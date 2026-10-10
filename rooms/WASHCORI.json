@@ -1,0 +1,15 @@
+{
+    "_about":  "The steam room with the trap door that closes behind you (WASHCORI). Steam billows up from the floor round the player; graphics card only.",
+    "lights": [ { "name": "torch on washwall3 (Room Review WASHCORI/2, Josh)", "_placed": "15 units out from Josh's click (21.87, -23.99, 49.91), at its height (49 above the floor)", "_round16": "Josh, WASHCORI/3: smaller (scale 0.8 -- the size every torch now uses, CORICORI/10), 40 higher (was y -23.99), 15% dimmer (power 1.4 -> 1.19)", "x": 20.63, "y": 16.01, "z": 34.96, "dir": [ -0.083, 0, -0.997 ], "shadow": true, "color": "#FFB266", "power": 1.19, "range": 260, "flicker": 0.35, "torch": { "scale": 0.8, "wall": 15 } } ],
+    "embers": { "rate": 0 },
+    "gi": { "_about": "Bounced light (Josh asked for it in the steam room; it needed a light first). One torch, so the gentler room-level cut (0.6, as MINEMAZE).", "strength": 2.5, "ambient": 0.6, "spacing": 20, "rays": 64, "bounces": 3, "albedo": 2.2 },
+    "steam":  {
+                  "rate":  24,
+                  "radius":  220,
+                  "rise":  11,
+                  "life":  7,
+                  "size":  34,
+                  "alpha":  0.3,
+                  "color":  "#C4C2BA"
+              }
+}

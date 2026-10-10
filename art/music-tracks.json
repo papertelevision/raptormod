@@ -1,0 +1,86 @@
+﻿{
+    "7":  {
+              "name":  "INGAME2",
+              "track":  9,
+              "lba":  320924,
+              "sectors":  26461,
+              "us":  352812993
+          },
+    "9":  {
+              "name":  "KREEPY3",
+              "track":  11,
+              "lba":  361619,
+              "sectors":  23576,
+              "us":  314340998
+          },
+    "10":  {
+               "name":  "PEACEFUL",
+               "track":  12,
+               "lba":  385195,
+               "sectors":  15570,
+               "us":  207588980
+           },
+    "3":  {
+              "name":  "FIGHT2",
+              "track":  5,
+              "lba":  260956,
+              "sectors":  11853,
+              "us":  158028980
+          },
+    "11":  {
+               "name":  "BOOTFX",
+               "track":  13,
+               "lba":  400765,
+               "sectors":  1050,
+               "us":  13999977
+           },
+    "4":  {
+              "name":  "GHOSTS",
+              "track":  6,
+              "lba":  272809,
+              "sectors":  14040,
+              "us":  187188980
+          },
+    "2":  {
+              "name":  "EGYPTIAN",
+              "track":  4,
+              "lba":  246465,
+              "sectors":  14491,
+              "us":  193212993
+          },
+    "1":  {
+              "name":  "CATHEDRL",
+              "track":  3,
+              "lba":  231884,
+              "sectors":  14581,
+              "us":  194412993
+          },
+    "0":  {
+              "name":  "AWEMYST",
+              "track":  2,
+              "lba":  217272,
+              "sectors":  14612,
+              "us":  194820998
+          },
+    "6":  {
+              "name":  "INGAME",
+              "track":  8,
+              "lba":  293959,
+              "sectors":  26965,
+              "us":  359532993
+          },
+    "5":  {
+              "name":  "GRAIL",
+              "track":  7,
+              "lba":  286849,
+              "sectors":  7110,
+              "us":  94788980
+          },
+    "8":  {
+              "name":  "KREEPY2",
+              "track":  10,
+              "lba":  347385,
+              "sectors":  14234,
+              "us":  189780998
+          }
+}

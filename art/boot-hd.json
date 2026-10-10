@@ -1,0 +1,267 @@
+{
+    "injW":  1600,
+    "injH":  928,
+    "scale":  1.4,
+    "designW":  1024,
+    "banner":  [
+                   "         77777777777777777",
+                   "                          77",
+                   "                        77",
+                   "                      77",
+                   "                    77",
+                   "                  77",
+                   "                77",
+                   "              77",
+                   "            77"
+               ],
+    "lines":  [
+                  "INITIATING MS-2 HELMET H.U.D...",
+                  "SYSTEM CHECK INITIATING...",
+                  "FALL DETECTED, INITIATING SELF SCAN...",
+                  "NO INJURIES DETECTED...",
+                  "SUIT DAMAGE MINIMAL...",
+                  "RAPTOR HEART RATE... 125BPM...",
+                  "HEALTH SYSTEM INITIATED..."
+              ],
+    "final":  "SYSTEM CHECK COMPLETE.",
+    "missionSmall":  [
+                         "MISSION: Aetermis Penetrated. 12/2/2012",
+                         "All systems functional"
+                     ],
+    "mission":  "OBJECTIVE: LOCATE HOLY GRAIL",
+    "us":  {
+               "hold":  16900000,
+               "fxDelay":  1000000,
+               "banner":  250000,
+               "banStep":  380000,
+               "text":  4000000,
+               "line":  864000,
+               "final":  9700000,
+               "finType":  900000,
+               "mission":  11400000,
+               "misType":  1200000,
+               "misTear":  [
+                               13300000,
+                               14500000
+                           ],
+               "misTearDur":  100000,
+               "open":  15500000,
+               "openSpan":  900000,
+               "calib":  500000,
+               "reboot":  14800000,
+               "warmStage":  300000,
+               "disStage":  600000,
+               "slipStart":  1200000,
+               "slipEnd":  9200000,
+               "flare":  120000,
+               "caretShr":  18,
+               "sweep":  1500000,
+               "decay":  400000,
+               "dump":  800000,
+               "barSpan":  6600000
+           },
+    "ink":  {
+                "fill":  20,
+                "scan":  34,
+                "text":  88,
+                "flare":  55,
+                "caret":  55,
+                "art":  35,
+                "lip":  36,
+                "ghost":  5,
+                "sweep":  49,
+                "track":  43,
+                "dump":  30,
+                "calib":  36,
+                "decay":  [
+                              92,
+                              96,
+                              100
+                          ],
+                "warm":  [
+                             [
+                                 2,
+                                 2
+                             ],
+                             [
+                                 2,
+                                 2
+                             ],
+                             [
+                                 51,
+                                 2
+                             ],
+                             [
+                                 47,
+                                 51
+                             ],
+                             [
+                                 15,
+                                 47
+                             ],
+                             [
+                                 27,
+                                 15
+                             ],
+                             [
+                                 34,
+                                 27
+                             ],
+                             [
+                                 20,
+                                 34
+                             ]
+                         ]
+            },
+    "dis":  [
+                [
+                    54,
+                    44,
+                    18,
+                    11,
+                    0
+                ],
+                [
+                    38,
+                    31,
+                    13,
+                    9,
+                    0
+                ],
+                [
+                    26,
+                    21,
+                    9,
+                    7,
+                    12
+                ],
+                [
+                    17,
+                    14,
+                    6,
+                    6,
+                    10
+                ],
+                [
+                    11,
+                    9,
+                    4,
+                    5,
+                    8
+                ],
+                [
+                    7,
+                    6,
+                    3,
+                    4,
+                    6
+                ],
+                [
+                    5,
+                    4,
+                    2,
+                    3,
+                    4
+                ],
+                [
+                    3,
+                    2,
+                    1,
+                    2,
+                    3
+                ],
+                [
+                    2,
+                    2,
+                    1,
+                    2,
+                    2
+                ],
+                [
+                    1,
+                    1,
+                    0,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    0,
+                    1,
+                    0
+                ],
+                [
+                    1,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            ],
+    "px":  {
+               "font":  18,
+               "misSmall":  18,
+               "misBig":  22,
+               "lineH":  22,
+               "banGap":  22,
+               "finalH":  22,
+               "txtX":  608,
+               "txtY":  240,
+               "inkW":  380,
+               "barX":  608,
+               "barY":  632,
+               "barW":  380,
+               "barH":  14,
+               "finalY":  664,
+               "misX":  605,
+               "misY":  402,
+               "misTextTop":  34,
+               "misSmH":  22,
+               "misObjRow":  90,
+               "misBigH":  32,
+               "misW":  390,
+               "misH":  122,
+               "icon":  26,
+               "misTearPx":  67,
+               "dumpX":  32,
+               "dumpY":  240,
+               "dumpCols":  4,
+               "dumpRows":  20,
+               "hexCell":  16,
+               "dumpFast":  16,
+               "dumpSlow":  3,
+               "glyphCells":  7,
+               "glyphOdds":  3,
+               "edgeMargin":  250,
+               "blkMargin":  150,
+               "tearRows":  [
+                                8,
+                                32
+                            ],
+               "tearShift":  [
+                                 16,
+                                 128
+                             ],
+               "split":  [
+                             31,
+                             12,
+                             32,
+                             48,
+                             64
+                         ],
+               "slip":  [
+                            10,
+                            32,
+                            3,
+                            15,
+                            63
+                        ],
+               "sweepRows":  2,
+               "ghostRows":  10,
+               "calibR":  [
+                              140,
+                              22
+                          ]
+           }
+}

@@ -1,0 +1,119 @@
+- [LE image layout](azrael-le-image-layout.md) - header lies about data pages; derive 0x61A54 from the tail. Never overwrite a fixed-up operand.
+- [Overlay read limit](azrael-overlay-read-limit.md) - 0xD000 = whole BSS window, the ceiling. Loader is in the clock blob, not the stub.
+- [Cave space](azrael-cave-space.md) - file caves full, LE tables can't grow; new code in 53 KB BSS at 0x133000. Two dead ends.
+- [RE tooling](azrael-re-tooling.md) - no compiler/Python/disassembler; LE loader + disassembler are custom C# via Add-Type.
+- [Key addresses](azrael-key-addresses.md) - video mode, 3D viewport, mouse/RMB gate, camera yaw-pitch, keyboard dispatch + file offsets.
+- [AztMod patch framework](aztmod-patch-framework.md) - ships as a patcher; one growing patch, in-game toggles, Steam-proofed by copying.
+- [Manifest, not build script](aztmod-manifest-not-buildscript.md) - Apply-AztMod installs from the manifest; editing Build-AztMod alone does NOTHING.
+- [HUD widgets](azrael-hud-widgets.md) - automap/gauge/scan readout at hard-coded coords; relocate, don't delete.
+- [Status gauge](azrael-status-gauge.md) - 0x34C40 callee-pops; widening the surface draws a stray line. Replace art only.
+- [HUD hit regions](azrael-hud-hit-regions.md) - cursor 0x182D6C/E; hover/click via event record 0x182DCA/C, hooked at 0x36D74.
+- [RL error callback](azrael-rl-error-callback.md) - 0x10204 is registered with RL, no static caller; trap the live stack.
+- [Reality Lab engine](azrael-reality-lab-engine.md) - RenderMorphics Reality Lab, ramp mode, statically linked.
+- [OpenGL verdict](azrael-opengl-verdict.md) - in-guest hardware 3D blocked by DOSBox + static linking. Don't re-derive.
+- [Perf MEASURED](azrael-perf-measured.md) - resolution nearly free; play ~22-24 fps; the 48 cap made the player walk at 46%.
+- [Blit vs rasteriser](azrael-blit-vs-rasteriser.md) - blit is ~1-3%; the rasteriser is the bottleneck.
+- [LFB plan](azrael-lfb-plan.md) - LFB at 0xC0000000, ~11 blit sites; 0x33EB8 hosts the init.
+- [Hi-res blocker](azrael-hires-blocker.md) - SUPERSEDED (800x600 runs); read for mouse/clip traps only.
+- [Panel button rects](azrael-panel-button-rects.md) - hot spots = polygon tables 0x146A7C..0x14712E, patched directly.
+- [Wall slide](azrael-wall-slide.md) - blocked moves retry along the wall normal at 0x162DD4.
+- [Stride-derived offsets](azrael-stride-derived-offsets.md) - load base 0x200000; row*552 offsets are stride family (one was an infinite loop).
+- [Font format](azrael-font-format.md) - 139 glyphs in one PCX strip; art swap only, palette 1..199.
+- [HUD overlay .RES](azrael-hud-overlay-res.md) - HUDTOP/BOT composite with 552-wide skips: the widescreen smear + heap corruption.
+- [Frame-tied timing](azrael-frame-tied-timing.md) - no delta time; 0x261C0 is the script interpreter; animation = six clock-gated +1 sites.
+- [HUD/viewport locked](azrael-hud-viewport-locked.md) - never propose shrinking the viewport or growing the panel for perf.
+- [DOSBox Staging](azrael-dosbox-staging.md) - 0.83 bundled; `shader = sharp`; cpu_cycles_protected is the one that matters.
+- [DOSBox runtime](azrael-dosbox-runtime.md) - memsize doesn't fix the widescreen crash; intro movies can't be patched out.
+- [Palette budget](azrael-palette-budget.md) - live palette = hud3+pal+h1; only 1..53 are the HUD's.
+- [Story log scrollback](azrael-story-log-scrollback.md) - negative draw Y = source offset; Patch-Imm32 -Lin is the INSTRUCTION.
+- [HUD reskin pipeline](azrael-hud-reskin.md) - Build-HudSkin/HudButtons; the artwork's layout drives engine coords.
+- [Texture cache reserve](azrael-texture-cache-reserve.md) - big-room crash: cache takes largest block - 4.5 MB; capturing the OOM printout.
+- [Conversation UI](azrael-conversation-ui.md) - option Y table at +0x59; ESC skips; log fonts palette 1..56 only.
+- [AztNow wraps](azrael-aztnow-wraps.md) - BIOS midnight tick wraps ~71.6 min; compare elapsed, never store now+duration.
+- [Music](azrael-music.md) - all MIDI; MDI.INI DRIVER picks the score; level-match soundfonts before judging.
+- [Resolution asserts](azrael-resolution-asserts.md) - classify regions by aspect, not pixel size; HudArt before HudSkin.
+- [Geometry export](azrael-geometry-export.md) - working OBJ of a live room; PS comma-precedence traps.
+- [Animation format](azrael-animation-format.md) - three head/tail key lists (+0x2C/+0x34/+0x3C); a list ends at its TAIL.
+- [RL object model](azrael-rl-object-model.md) - descriptor NAME +0x04, SIZE +0x08; Frame 736 B; visuals frame+0x268.
+- [Scene graph](azrael-scene-graph.md) - fully enumerable and named (frame+0x24); 132 nodes, two rigs.
+- [Camera transform](azrael-camera-transform.md) - globals are HANDLES (0x39E50); matrices +0x4C/+0x90; 0x42410 = scene root.
+- [VESA mode conflict](azrael-vesa-mode-conflict.md) - FIXED (0x4105); Assert-NoOverlap fails the build on overlapping patches.
+- [Texture format](azrael-texture-format.md) - .RES/.azf decoded (Huffman 0x2D558); RESOURCE.CFG redirect; last record needs 4 B slack.
+- [Host/guest bridge](azrael-host-guest-bridge.md) - ReadProcessMemory + string needles, no DOSBox fork; RAM base ASLR'd.
+- [XAF scene format](azrael-xaf-scene-format.md) - geometry is plain text: 178 files; multi-material via face_materials.
+- [Zones and room graph](azrael-zones-room-graph.md) - AZONES.DAT: 87 rooms, 166 portals, 127 events; dev duplicates ship.
+- [Blender OBJ axis trap](azrael-blender-obj-axis-trap.md) - importer keeps Y-up->Z-up in matrix_world; mesh data stays game coords.
+- [Project direction](azrael-project-direction.md) - improve in-engine now, Unity later; the bridge's read half carries over.
+- [View injection](azrael-view-injection.md) - host pixels via AztViewInject 0x1419D/0x141D2; tail calls only; index 0 never emitted; .pal goes stale.
+- [PowerShell UTF-8 trap](azrael-powershell-utf8-trap.md) - use [IO.File]::ReadAllText/WriteAllText, never Get-Content+Set-Content.
+- [Derived-above-constant trap](azrael-powershell-null-ordering.md) - Build-AztMod: derived above its constant = $null->0. Use DERIVED block.
+- [PowerShell silent traps](azrael-powershell-silent-traps.md) - -shl keeps left type; $top IS $Top; $PSScriptRoot empty in param defaults.
+- [Texture remaster verdict](azrael-texture-remaster-verdict.md) - SETTLED: AI/upscaled originals not worth it in this engine.
+- [XAF model pipeline](azrael-xaf-model-pipeline.md) - .XAF<->OBJ<->Blender verified; never voxel remesh.
+- [MOV/IAnimation format](azrael-mov-format.md) - decoder + encoder, all 10 movies round-trip exactly; AVI export.
+- [Close watcher on change](azrael-close-watcher-on-change.md) - stop running watchers when their code changes; confirm zero.
+- [Never auto-launch](azrael-never-autolaunch.md) - install, verify, report, stop. Josh launches the game.
+- [LOH retention trap](azrael-loh-retention-trap.md) - hash frames, don't keep them; long encodes with -Progress.
+- [Extra intro movie](azrael-extra-intro-movie.md) - must play from the intro sequence, not gameplay frame 1 (crash).
+- [Cutscene triggers](azrael-cutscene-triggers.md) - player 0x20BD4; in-game cutscenes are conversation responses.
+- [Inject clobbers esi](azrael-inject-esi-clobber.md) - read [esi+var] above `mov esi,ebx` in AztInjBody.
+- [Boot effects phase](azrael-boot-effects-phase.md) - 7 approved visor-boot effects in 3 batches; what's ruled out.
+- [Boot text rasteriser](azrael-boot-text-rasteriser.md) - GDI TextRenderer, integer px; never GDI+ DrawString.
+- [Reticle is TWO draws](azrael-reticle-two-draws.md) - circle 0x145FD runs after the inject hook; both gated.
+- [Viewport: paint, never suppress](azrael-viewport-paint-not-suppress.md) - holding 0x15257C smears the screen; paint via 0x1419D.
+- [MF stride trap](azrael-mf-stride-trap.md) - MF_MT_DEFAULT_STRIDE lies for non-16-aligned widths; decode output back to PNG.
+- [Intro sequence](azrael-intro-sequence.md) - skip flag 0x182DB0; patch all three jnz sites or none.
+- [8-bit movie audio](azrael-8bit-movie-audio.md) - silence is 0x80; normalise + TPDF dither.
+- [Blood Omen feasibility](blood-omen-feasibility.md) - 2nd project: Win32 Watcom PE, GOG caves, PILL.BIG of PSX TIMs.
+- [Early overlay](azrael-early-overlay.md) - overlay loads at 0x16146 before the intro; AztInjInit stays deferred.
+- [1600x1200](azrael-1600x1200.md) - VESA 0x120; ceiling was stride-1024 in overlay asm; BIOS-query a mode offline.
+- [Tier A host render](azrael-tier-a-host-render.md) - host renders, 8-bit injection; aztSup3D = host's 3D kill switch.
+- [3D block anatomy + A/B](azrael-3d-block-anatomy.md) - 0x3F0D0 CLEAR, 0x3F1B0 scene pass; tagged-FPS A/B harness.
+- [Host FOV calibration](azrael-host-fov-calibration.md) - FOV is 50 (measured); check alignment before tone.
+- [Render scale + cache allocator](azrael-render-scale.md) - divisor 0x10FEC; cache is a fragmenting first-fit list.
+- [Characters in host render](azrael-characters-host-render.md) - ZZ%04d+bone = rig instance; .ANI FILE picks the .xaf.
+- [Room unit cache](azrael-room-unit-cache.md) - room changes 4-24 ms via cached .unit files; -CaptureRef.
+- [Renderer phase COMPLETE](azrael-renderer-phase-complete.md) - 2026-10-05 sign-off; read first for host-render state.
+- [Doorway portals + smoothing](azrael-doorway-portals.md) - smoothing ON; live doorways OFF (-Portals), joins never line up.
+- [Floors + stale scene root](azrael-floor-needs-engine-draw.md) - AztFallGate on the 18 Hz tick; never cache guest pointers across loads.
+- [Render audit](azrael-render-audit.md) - live -Audit + offline Test-RoomHoles.
+- [Helmet lamp](azrael-helmet-lamp.md) - room level + eye spotlight via light table.
+- [Texture filtering](azrael-texture-filter.md) - dithered blend close + palette mips far; F7 A/B.
+- [Water reflections](azrael-water-reflections.md) - planar mirrors in WATER/LIQUID parts via the portal mask.
+- [True colour](azrael-true-colour.md) - host's click-through window over the viewport; game gets a key colour.
+- [Judge in game](azrael-judge-in-game.md) - apply and let Josh judge in game; no comparison images unless asked.
+- [Texture upscale recipe](azrael-texture-upscale-recipe.md) - Real-ESRGAN 4x recipe approved; apply only when asked. 8x rejected.
+- [Smoother models](azrael-smooth-models.md) - REMOVED; never re-propose subdivision.
+- [Frame cost](azrael-frame-cost.md) - lamp shadows ~11 ms + picture size are heavy; frame interpolation REMOVED.
+- [GPU renderer](azrael-gpu-renderer.md) - GpuRaster.cs draws/sharpens/composes true colour by default; F9 = processor.
+- [GPU effects](azrael-gpu-effects.md) - relief, AO, beam, mist, particles; black flicker fixed with aztInjSync 0.
+- [Atmosphere](azrael-atmosphere.md) - fog/dust/placed lights per room JSON in C:\Games\azrael-render\rooms.
+- [Widescreen panel](azrael-widescreen-panel.md) - full-width lower interface, game + host copies from one mapping.
+- [New HUD](azrael-hud-new.md) - HUD_NEW/GLOW, now v3 art via Build-HudV3.ps1 (16:10 mapping).
+- [Host pointer](azrael-host-pointer.md) - full-width mouse with no game code; broke hover/pickup -> off (-HostPointer).
+- [GPU default + boot](azrael-gpu-default-boot.md) - true colour default (-Retro = 8-bit); boot via the overlay.
+- [GPU boot](azrael-gpu-boot.md) - host's own boot (BootHd.cs), synced to aztBootEl; watcher -Launch.
+- [Scanner wireframe](azrael-scan-wire.md) - scans as rigs/item sets; texts from DESCRIPT.ZAP / OBJECTS.DAT.
+- [Silent SB + muzzle flash](azrael-gun-sound.md) - NEVER suspend DOSBox (killed SB audio); muzzle flash = uFlash.
+- [Loading voice + track](azrael-loading-voice.md) - voice over Josh's track; MCI MP3 fails here, ship WAV.
+- [HUD slide-in sound](azrael-hud-gears-sound.md) - ratchet.mp3 on slide-in; boot mixer is stereo.
+- [Player shadow](azrael-player-shadow.md) - raptor body from placed lights (cube maps), fixed size, floor-following.
+- [Book view black](azrael-book-view-black.md) - close-ups = [0x15257C]; world behind black; page drawn over the panel.
+- [Volumetric fog](azrael-volumetric-fog.md) - black absorbing fog + light scatter; 'volume' block; room level held.
+- [Room Review](azrael-room-review.md) - viewer + notes in ROUNDS: Start-RoomRound -> edit rooms\*.json -> Reply-RoomNote.
+- [Modern water](azrael-modern-water.md) - Fresnel ripples, glints, under-water glow, caustics; per-room 'water' block.
+- [Josh's hi-res textures](azrael-josh-hires-textures.md) - decals\<ROOM>\updated -> hires override, Fit-RoomTextures at 4096.
+- [Optimisation pass](azrael-optimisation-pass.md) - card presents into its own window, half-size fog, 5.5 M picture.
+- [Baked GI](azrael-baked-gi.md) - GiBake probe grid (flood-fill validity, not winding) + giAt; 'gi' block; CORICORI pilot, albedo 2.2.
+- [Holograms](azrael-holograms.md) - world-space wireframes ('holograms'); chalice removed, code kept.
+- [Painted darkness + props](azrael-painted-darkness-props.md) - volume.paint from the original art; lights[].torch builds a sconce.
+- [Visor readouts](azrael-visor-note.md) - damage badge: health [[0x1841C8]+0x16]; VisorNote (ScanWire.cs) on Overlay.Decorate3; a room's 'visor' block types a message on entry (MINEMAZE: flashlight off -> 'Press F for Headlamp').
+- [Memory core (save/load screen)](azrael-memory-core.md) - host-drawn VisorMenu + the game's slot-list hot spots/row maths moved to match (\*); RE doc docs\save-load-screen-RE.md. Installed 2026-10-09.
+- [Texture holes + noCast](azrael-texture-holes-nocast.md) - room settings by texture NAME (Tex.Leaf; the file's number is NOT the room index): cut bright art into openings, textures that cast no shadow. MINEHEAD grate light.
+- [Light from the artwork](azrael-art-light.md) - original art's painted light/shade shades room level + bounce per texel (artLight); paint has its own colour. MINEHEAD r20.
+- [ORRERY room](azrael-orrery-room.md) - golden cone + colour-cycling blobs (light key 'cycle'); parked parts broke the GI grid (fixed); puzzle full-screen is a separate task.
+- [HUD vector text](azrael-hud-vector-text.md) - log decoded from the game's surface; host lays it out in the ART's recess (LogOwn), own scrolling; -NoHostText/-NoLogLayout.
+- [System menu + keys](azrael-system-menu.md) - visor system menu over the fold-out (hot spots moved in guest memory at run time, retro untouched); ESC = menu, E = log box (in-place key patch); wheel scroll.
+- [WELLROOM](azrael-wellroom.md) - well water is part 'death' -> water.parts; paint fog weak in small rooms, artLight does it.
+- [Damaged visor](azrael-visor-damage.md) - health-driven cracks/broken corner/hit static/vitals ECG in the card's PRESENT pass; -NoVisorDamage.
+- [Title menu](azrael-title-menu.md) - 4K title + Continue/Load via title-loop hold + cmd 16 on frame 1; movie player ignores the skip flag (load bit 2); COPY overlay.sym.

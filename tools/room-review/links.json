@@ -1,0 +1,6 @@
+{
+  "_about": "Ways between rooms that portals.json does not hold (Room Review only; the game watcher never reads this). Each: to = the room, zone = the game's zone name (AZONES.DAT), door = where the marker stands in THIS room.",
+  "WASHCORI": [
+    { "to": "MINEMAZE", "zone": "WashRoomMineMaze (past door01 the floor gives way -- zxfalse -- and the player drops to the caves; trigger zxwshrR3)", "door": [ 144.5, -42.5, 19.5 ] }
+  ]
+}

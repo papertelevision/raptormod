@@ -1,0 +1,19 @@
+{
+  "_about": "The baptistery. 2026-10-08 (Josh): the modern water from SPAROOM applied here too -- the bath's water (ZQcutter01/02 at y -38 over zxwater at y -57, x 44..81, z 81..216) rippled, shiny and lit from below, with caustics on the bath and the wall beside it. Same look as SPAROOM's final settings, scaled to a bath: one lamp under its middle, a finer web, less height, and about half the light on the walls (the green moss turned the full strength neon).",
+  "water": {
+    "glow": "#2FD8C6",
+    "glowPower": 0.14,
+    "glowBase": 0.25,
+    "lights": [
+      { "x": 62, "z": 148, "radius": 45, "power": 2.6 }
+    ],
+    "dots": 1.5,
+    "shine": 2.5,
+    "f0": 0.04,
+    "spec": 1.0,
+    "lightSpec": 0.5,
+    "distort": 40,
+    "ripple": { "slope": 0.15, "size": 22, "speed": 0.5 },
+    "caustics": { "strength": 1.0, "size": 22, "speed": 0.45, "height": 70, "fill": 0.14 }
+  }
+}

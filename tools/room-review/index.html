@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Room Review</title>
+<link rel="stylesheet" href="/static/viewer.css">
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<header id="top">
+  <strong class="brand">Room Review</strong>
+  <button id="prev" title="Previous room in play order">&#9664;</button>
+  <select id="roomSel" title="Room"></select>
+  <button id="next" title="Next room in play order">&#9654;</button>
+  <span class="sep"></span>
+  <button id="modeBtn" title="Fly (default): the orbit view, WASD floats you through the room with no collision. Walk: as the player, eye height over the floor, walls stop you. F switches; Esc goes back to Fly.">Fly</button>
+  <label><input type="checkbox" id="wire"> Wireframe</label>
+  <label><input type="checkbox" id="lo"> Original textures</label>
+  <label><input type="checkbox" id="fogPrev"> Fog preview</label>
+  <label title="Walls are one-sided in the game: from behind they are not there. Tick to draw both sides."><input type="checkbox" id="back"> Back faces</label>
+  <label><input type="checkbox" id="trig"> Triggers</label>
+  <label title="The engine is left-handed: mirrored is the right way round. Stored coordinates never change."><input type="checkbox" id="mirror"> Mirror Z</label>
+  <span class="sep"></span>
+  <button id="roomNote" title="A note about the whole room">Note on room</button>
+  <button id="renderBtn" title="Render the room's REAL look from here: lights, fog, shadows, from its current settings (about 10 s). Key: R">Render view</button>
+  <span id="status"></span>
+</header>
+<main>
+  <div id="view">
+    <canvas id="c"></canvas>
+    <div id="hover"></div>
+    <div id="renderBox" hidden><div class="rb-head"><span id="renderMsg"></span><button id="renderClose" title="Close">&times;</button></div><img id="renderImg" alt="the renderer's view" hidden></div>
+    <div id="help">Fly: WASD / arrows move &middot; Q/E or Space/C down/up &middot; Shift faster &middot; drag turn, right-drag pan, wheel zoom &middot; F: walk &middot; click to leave a note</div>
+  </div>
+  <aside id="side">
+    <section>
+      <h2>Notes
+        <span class="nsel"><select id="noteFilter" class="small" title="Which notes to list">
+          <option value="all" selected>All open</option>
+          <option value="review">Your turn</option>
+          <option value="new">With Claude</option>
+          <option value="complete">Completed</option>
+        </select><select id="noteSort" class="small" title="Order">
+          <option value="turn" selected>Your turn first</option>
+          <option value="activity">Latest activity</option>
+          <option value="number">Note number</option>
+          <option value="kind">Kind</option>
+        </select></span>
+      </h2>
+      <div class="small" id="noteCounts"></div>
+      <div id="notes"></div>
+    </section>
+    <section>
+      <h2>Room settings <span class="small" id="atmSrc"></span></h2>
+      <div id="atm"></div>
+    </section>
+  </aside>
+</main>
+<div id="submitBox"><div id="submitMsg" class="small"></div><button id="submitBtn" title="Tell Claude your new notes and follow-ups are ready (no need to switch to the chat)">Submit update <span id="submitCount" hidden></span></button></div>
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h3 id="dlgTitle">New note</h3>
+    <div id="dlgWhere" class="small"></div>
+    <label id="dlgKindRow">Kind
+      <select id="dlgKind">
+        <option value="light">Light</option>
+        <option value="fog">Fog / volume</option>
+        <option value="mist">Mist / particles</option>
+        <option value="texture">Texture</option>
+        <option value="geometry">Geometry / hole</option>
+        <option value="other" selected>Other</option>
+      </select>
+    </label>
+    <label>Note<textarea id="dlgText" rows="5" placeholder="What should change here?"></textarea></label>
+    <label class="row"><input type="checkbox" id="dlgShot" checked> Attach a screenshot of this view</label>
+    <div class="buttons"><button value="cancel" formnovalidate>Cancel</button><button id="dlgOk" value="ok">Save note</button></div>
+  </form>
+</dialog>
+<div id="boot" class="boot">Loading the 3D viewer&hellip;</div>
+<script>
+  // the viewer is loaded from the internet (three.js on jsdelivr): say so plainly if it never arrives
+  setTimeout(function () { if (!window.__rrReady) { var b = document.getElementById('boot'); b.textContent = 'The 3D library (three.js from cdn.jsdelivr.net) did not load. Check the internet connection, then reload.'; b.classList.add('err'); } }, 12000);
+</script>
+<script type="module" src="/static/viewer.js"></script>
+</body>
+</html>

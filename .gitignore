@@ -1,0 +1,48 @@
+# RaptorMod (AztMod) -- what stays OUT of the repo. See SETUP.md for where the big assets live instead.
+
+# ---- backups and snapshots: git history replaces them ----
+backup-*/
+art-1024-backup/
+art-800x600-backup/
+checkpoints/
+release/
+*.aztbak
+*.bak
+AztMod.manifest.json.pre-*
+
+# ---- per-machine and obsolete manifests ----
+# (written by tools\Apply-Delta.ps1 on each machine: the baseline of what THAT install has)
+AztMod.manifest.installed.json
+AztMod.manifest.800x600.json
+AztMod.diag.manifest.json
+
+# ---- test and runtime output ----
+tc-test/
+*.log
+*.tmp
+
+# ---- derived on each machine by tools\Setup-Machine.ps1 ----
+art/title/title-music.wav
+
+# ---- by-products nothing reads ----
+art/plates.json
+art/preview-SAVE*.png
+design/incoming/flat-art/
+
+# ---- stale copies at the root (the notes live in docs/notes) ----
+/MEMORY.md
+/azrael-scene-graph.md
+
+# ---- the game's own files never belong here (private repo or not) ----
+*.EXE
+*.exe
+*.BIN
+*.MOV
+*.DAT
+
+# ---- editors / OS ----
+Thumbs.db
+desktop.ini
+.vs/
+.vscode/
+*.bak-*

@@ -1,0 +1,34 @@
+{
+  "_about": "The spa room's pool (the water is the part zxspadeath, WATERDEATH/slwate1, y -87). 2026-10-08, Room Review SPAROOM/1 + SPAROOM/2 (round 4): modern water -- rippled, shiny (Fresnel reflection), lit from below by an even turquoise glow plus lamps under the surface, throwing moving caustics onto the walls and the walkway's underside above it. The turquoise specks in the texture are kept and brightened by the glow.",
+  "lights": [
+    { "name": "torch on the south-west wall", "_note": "Room Review SPAROOM/3 (round 5): a flickering torch where Josh clicked on swalls, 30 units off the wall along its normal; same as CORICORI's torches", "_moved": "Round 14 (Josh, SPAROOM/6): the torch graphic added -- the light 15 units nearer the wall (now 15 out, as every other torch: the 30-unit arm was what CORICORI halved; was -181.66, 41.7, 49.84)", "x": -193.2, "y": 41.7, "z": 59.44, "dir": [ 0.769, 0, -0.64 ], "shadow": true, "color": "#FFB266", "power": 1.4, "range": 260, "flicker": 0.35, "torch": { "scale": 0.8, "wall": 15 } },
+    { "name": "torch on the east wall", "_note": "Room Review SPAROOM/5 (round 6): just like the south-west torch, where Josh clicked on newwal01, 30 units off the wall along its normal", "_moved": "Round 14 (Josh, SPAROOM/7): the torch graphic added -- the light 15 units nearer the wall, as the south-west torch (was 175.4, 2.77, -67.11)", "_raised": "Round 17 (Josh, SPAROOM/9): raised to his mark on newwal01 (201.31, 19.43, -82.65) -- 15 out along the wall's normal; was 187.24, 2.77, -76.32", "x": 189.47, "y": 19.43, "z": -73.44, "dir": [ -0.789, 0, 0.614 ], "shadow": true, "color": "#FFB266", "power": 1.4, "range": 260, "flicker": 0.35, "torch": { "scale": 0.8, "wall": 15 } }
+  ],
+  "embers": { "rate": 0, "_note": "Round 6 (Josh, SPAROOM/3): the torches are light only, no ember particles" },
+  "gi": { "_about": "Bounced light (2026-10-09, Josh: as CORICORI) -- the same settings: the room measured alike (median bounce 0.07 vs 0.11, 57% of surfaces in direct torchlight vs 68%). strength = how much of it; ambient = the room's flat level while it is on, as a share of it; albedo 2.2 = the textures' painted-in lighting made up for; spacing/rays/bounces = the bake.", "strength": 2.5, "ambient": 0.4, "spacing": 20, "rays": 64, "bounces": 3, "albedo": 2.2 },
+  "steam": { "fine": true, "rate": 90, "radius": 260, "rise": 7, "life": 7, "size": 12, "alpha": 0.28, "color": "#C4C2BA", "_note": "Round 7 (Josh, SPAROOM/4): the class spa steam (size 40 puffs, 40/s) was too large; small sharply shaped wisps, more of them" },
+  "drips": { "_about": "Round 15 (Josh, SPAROOM/2): droplets from above that ring the water where they land. There is no ceiling over the pool, so they start fromDark units above the eye; rate a second, within radius of the player; ripples = how strongly a landing rings the surface.", "rate": 3, "radius": 260, "size": 0.8, "fromDark": 240, "ripples": 1.0 },
+  "waterMist": { "_about": "Room Review SPAROOM/8 (Josh, 2026-10-09): a subtle teal mist along the edges of the top of the water, the water's colour but lighter, alongside the dark fine steam. rate = puffs a second; size/life/rise; alpha = how solid; inset = how far in over the water they start; drift.", "rate": 30, "size": 40, "life": 12, "rise": 1.5, "alpha": 0.12, "color": "#7FE6DA", "inset": 12, "drift": 3, "band": 40 },
+  "water": {
+    "_about": "glow = the light's colour under the water; glowPower = how bright the surface glows; glowBase = the even part, lights = lamps under it (x, z in room units; radius; power on top of glowBase); dots = how much the glow brightens the texture's own specks; shine = reflection strength (x Fresnel: strong at a glance, little looking straight down), f0 = reflection looking straight down; spec = glints of the flashlight and placed lights; distort = how far the ripples bend the reflection (pixels); ripple slope/size/speed; caustics strength (the moving lines) + fill (the even light) on the walls above, fading over 'height' units, size = the web's cell size.",
+    "glow": "#2FD8C6",
+    "glowPower": 0.14,
+    "glowBase": 0.25,
+    "lights": [
+      { "x": -120, "z": 30, "radius": 70, "power": 3.0 },
+      { "x": 40, "z": -120, "radius": 70, "power": 3.0 },
+      { "x": -240, "z": -220, "radius": 70, "power": 2.6 }
+    ],
+    "dots": 1.5,
+    "shine": 2.5,
+    "f0": 0.04,
+    "spec": 1.0,
+    "lightSpec": 0.5,
+    "_lightSpec": "Round 6 (Josh, SPAROOM/4): the torches' glint on the water, softened and warm (colour squared, ~1/4 of round 5's); 1 = this, lower = fainter",
+    "distort": 90, "_distort": "Round 15 (Josh, SPAROOM/2): more distortion (was 60) and ripple (slope 0.15 -> 0.22)",
+    "ripple": { "slope": 0.22, "size": 34, "speed": 0.55 },
+    "caustics": { "strength": 2.05, "size": 38, "speed": 0.45, "height": 140, "fill": 0.24 },
+    "noLight": [ [ -319, -254, -202, -153 ], [ 144, -228, 258, -115 ], [ 72, 82, 171, 185 ] ],
+    "_noLight": "Round 5 (Josh): the light off the water stays out of the three hallways (tunnel01/09-11 south-west, tunnel02-05 east, tunnel06-08/12 north; their floor plans plus 4 units)"
+  }
+}

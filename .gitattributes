@@ -1,0 +1,14 @@
+# Byte-exact everywhere: no line-ending conversion on any machine. The PowerShell here is read by Windows PowerShell 5.1,
+# which is sensitive to encodings (BOM / no BOM) and the C# is compiled by Add-Type -- git must hand every file back exactly
+# as it was committed. (This overrides core.autocrlf, which Git for Windows turns on by default.)
+* -text
+
+# diffs: treat these as binary
+*.png binary
+*.PCX binary
+*.pcx binary
+*.RES binary
+*.wav binary
+*.mp3 binary
+*.pal binary
+*.sf2 binary

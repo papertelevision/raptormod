@@ -1,0 +1,7 @@
+{
+  "_about": "Room Review (tools\\Start-RoomReview.ps1): which rooms to show first, in play order, and which dev copies to hide. mirrorZ: the engine is left-handed, so the viewer mirrors Z to show rooms the right way round (stored coordinates are always the room's own). eyeHeight: the player's eye above the floor.",
+  "batch": [ "CORICORI", "WASHCORI", "SPAROOM", "MINEHEAD", "MINEMAZE", "BAPTIST", "WELLROOM", "CHAMBNEW", "ORRERY", "TUNNMAZE" ],
+  "hidden": [ "R1", "SPAROOM3", "SPAROOMX", "OLDSPA", "SPACORI", "MINEHED2", "HINEAZF", "MAZENEW", "CHAMBFIN", "R7", "WELLDEMO", "R8" ],
+  "mirrorZ": true,
+  "eyeHeight": 48
+}

@@ -1,0 +1,31 @@
+{
+  "_about": "The well room (the drowned body in the well; the mine's way down). Room Review round 23 (2026-10-10, Josh): WELLROOM/1 the well's water as the spa's, scaled to the small pool -- the surface is the part 'death' (NIBODYBASE, y -35, a hexagon x 7..78, z -100..-39), which is not named for water, so 'water.parts' marks it; WELLROOM/2 its light rippling on the ceiling (85.5, 120 above it) and the pipes; WELLROOM/3 the painted darkness made real in a black volumetric fog (as CORICORI); WELLROOM/4 a torch; WELLROOM/5-6 two faint hazy teal lights for the well's glow.",
+  "lights": [
+    { "name": "torch on the west wall", "_note": "Room Review WELLROOM/4: on WELL_WALL05 at Josh's mark (-161.85, 10.86, -19.84), 15 units out along the wall's normal; as every torch", "x": -146.85, "y": 10.86, "z": -19.84, "dir": [ 1, 0, 0 ], "shadow": true, "color": "#FFB266", "power": 1.4, "range": 260, "flicker": 0.35, "torch": { "scale": 0.8, "wall": 15 } },
+    { "name": "teal glow of the well (south-west wall)", "_note": "Room Review WELLROOM/5: the well's glow, a hazy teal like the spa's water (its water mist #7FE6DA, a little deeper), not too bright; on WELL_WALL02 at Josh's mark (-6.96, -18.04, -117.65), 15 units out; no graphic, no flicker. air = it shows in the dark air (hazy)", "x": 3.65, "y": -18.04, "z": -107.04, "dir": [ 0.707, 0, 0.707 ], "shadow": true, "color": "#5FD8CA", "power": 0.3, "range": 200, "flicker": 0, "air": 2 },
+    { "name": "teal glow of the well (east wall)", "_note": "Room Review WELLROOM/6: another, fainter, same teal; on WELL_WALL03 at Josh's mark (81.43, -4.12, -7.04), 15 units out", "x": 70.82, "y": -4.12, "z": -17.65, "dir": [ -0.707, 0, -0.707 ], "shadow": true, "color": "#5FD8CA", "power": 0.2, "range": 200, "flicker": 0, "air": 2 }
+  ],
+  "fog": null,
+  "embers": { "rate": 0, "_note": "the torch's flame is the shader flame; no ember particles (as the other rooms)" },
+  "gi": { "_about": "Bounced light, as the other rooms; ambient 0.6 (MINEMAZE's gentler cut): the painted darkness already darkens the room", "strength": 2.5, "ambient": 0.6, "spacing": 20, "rays": 64, "bounces": 3, "albedo": 2.2 },
+  "volume": { "_about": "As CORICORI (WELLROOM/3): black air that absorbs with distance, lit by the lights as they pass; paint = thicker black where the ORIGINAL art is painted dark.",
+    "density": 0.004, "max": 0.78, "color": "#000000", "scatter": 0.14, "lamp": 1.0, "anisotropy": 0.3, "reach": 55, "far": 700, "steps": 24, "level": 0.82, "cut": 0.65,
+    "paint": { "density": 0.02, "max": 0.85, "cell": 8, "smooth": 30, "gamma": 1.5 } },
+  "artLight": { "_about": "WELLROOM/3 (Josh: dark mist like the black areas drawn on the textures): as MINEHEAD -- the ORIGINAL art's painted light and shade, per texel, shades the room level and the bounce (the placed lights untouched), so the painted black reads as real darkness; on top of the black painted-darkness fog, which here lies mostly along the walls.", "floor": 0.12, "gamma": 0.7, "open": 4, "close": 2, "blur": 1, "percentile": 0.85 },
+  "water": {
+    "_about": "WELLROOM/1-2: SPAROOM's water (same glow colour, glow, shine, glints) scaled to a pool about 70 units across instead of 600: one lamp under the middle, finer ripples and caustic web; the caustics' height 200 puts the ceiling 120 up at 55% (the light also spreads height/2 = 100 units past the pool's edge, so the three walls round the well and its pipes take it). parts = which part IS the water (its material is not named for it).",
+    "parts": [ "death" ],
+    "glow": "#2FD8C6",
+    "glowPower": 0.14,
+    "glowBase": 0.25,
+    "lights": [ { "x": 42.7, "z": -69.4, "radius": 26, "power": 3.0 } ],
+    "dots": 1.5,
+    "shine": 2.5,
+    "f0": 0.04,
+    "spec": 1.0,
+    "lightSpec": 0.5,
+    "distort": 50,
+    "ripple": { "slope": 0.22, "size": 14, "speed": 0.55 },
+    "caustics": { "strength": 2.05, "size": 20, "speed": 0.45, "height": 200, "fill": 0.24 }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "room-review",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [ "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\\Start-RoomReview.ps1", "-NoBrowser", "-StrictPort", "-Port", "8642" ],
+      "port": 8642
+    },
+    {
+      "name": "room-review-test",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [ "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\\Start-RoomReview.ps1", "-NoBrowser", "-StrictPort", "-Port", "8655" ],
+      "port": 8655
+    }
+  ]
+}
+
