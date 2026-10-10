@@ -117,3 +117,4 @@
 - [WELLROOM](azrael-wellroom.md) - well water is part 'death' -> water.parts; paint fog weak in small rooms, artLight does it.
 - [Damaged visor](azrael-visor-damage.md) - health-driven cracks/broken corner/hit static/vitals ECG in the card's PRESENT pass; -NoVisorDamage.
 - [Title menu](azrael-title-menu.md) - 4K title + Continue/Load via title-loop hold + cmd 16 on frame 1; movie player ignores the skip flag (load bit 2); COPY overlay.sym.
+- [RaptorMod repo](raptormod-repo.md) - AztMod = git repo papertelevision/raptormod (main); asset pack + Setup-Machine; rooms junction; docs/notes = shared notes.

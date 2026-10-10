@@ -1,0 +1,53 @@
+---
+name: raptormod-repo
+description: "AztMod is a git repo (github.com/papertelevision/raptormod, private, branch main) since 2026-10-10. Layout, what is out of git, the asset pack, the rooms junction, and docs/notes as the shared knowledge base."
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: 4bb44327-05db-4a50-ba64-31912f4aa648
+  modified: 2026-10-10T15:15:16.842Z
+---
+
+Josh (2026-10-10) wants to work from several PCs with a normal GitHub workflow. **AztMod is the repo root** (`<Steam>\steamapps\common\Azrael's Tear\AztMod`). Remote `origin` = https://github.com/papertelevision/raptormod.git (private), branch `main`.
+
+**Local config:** repo-local user Josh Sears / josh@papertelevision.com; `core.autocrlf false`; `core.longpaths true`. Git for Windows 2.55 was installed via winget with Josh's OK; it lives at `C:\Program Files\Git\cmd\git.exe` (NOT on the PATH of already-open shells).
+
+**In git (about 81 MB):** src, tools, art (as-is: its generators need realesrgan, Desktop audio and C:\Games sources), design (minus flat-art), rooms, runtime, docs, the manifest + overlay.sym, CLAUDE.md, SETUP.md, README.md.
+- `.gitattributes` `* -text`: byte-exact, no EOL conversion.
+
+**Out of git (`.gitignore`):**
+- backups and snapshots: backup-*, checkpoints (they hold R.EXE copies), release, art-*-backup, *.pre-*, *.bak-*;
+- tc-test;
+- per-machine and obsolete manifests;
+- art/title/title-music.wav: the MP3 is committed; tools\Setup-Machine.ps1 decodes it;
+- game files: *.EXE, *.BIN, *.MOV, *.DAT.
+
+**Moved into the repo:**
+- `rooms\`: `C:\Games\azrael-render\rooms` is now a JUNCTION to it. The old folder is kept as `rooms.pre-repo-20261010`.
+- The palette: `runtime\azrael-palette.pal`. Setup copies it to C:\Games\azrael-inject.
+
+**Big data = the ASSET PACK** (`tools\Export-AssetPack.ps1 -OutDir <folder>`): one tar per component, restored by `tools\Setup-Machine.ps1 -AssetPack <folder>`.
+- install: the built game, ~2.3 GB.
+- hires: 3.1 GB.
+- books, gfx sources, notes JSON.
+- Optional audio, video and realesrgan.
+- It contains the game, so it stays PRIVATE.
+
+**Setup-Machine** (idempotent; also the post-pull refresh):
+- checks the repo location;
+- restores the pack;
+- makes the rooms junction;
+- copies the palette;
+- decodes the title music;
+- runs Apply-AztMod -Install and records manifest.installed;
+- makes the desktop shortcut.
+
+**Paths are fixed on every PC** (C:\Games\...); only the Steam library may differ.
+
+**Knowledge base:** `docs\notes\` is a snapshot of this memory folder, and CLAUDE.md tells sessions on other PCs to read it. **When a note changes here, copy it to docs\notes and commit**, or the PCs drift.
+
+**Old README** (v0.1.0): rewritten. What was left of it is in docs\readme-v0.1-recovered.md; the 0.12.3 public README is in docs\public-readme-0.12.3.md.
+
+Fixes made along the way:
+- Build-HudV3/New/Wide/Overlay/Repalette default the stock game path in the body from $PSCommandPath ([[azrael-powershell-silent-traps]]).
+- Apply-AztMod's fresh copy skips AztMod and .claude.
