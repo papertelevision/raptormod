@@ -35,7 +35,7 @@ $desk = [Environment]::GetFolderPath('Desktop')
 # name -> root (the folder the tar is made FROM and restored INTO), the paths inside it, excludes, restore root token
 $all = [ordered]@{
     install    = @{ Root = 'C:\Games'; Paths = @('AzraelsTear-Modded'); Restore = 'C:\Games'
-                    Exclude = @('AzraelsTear-Modded/AztMod', 'AzraelsTear-Modded/.claude', 'AzraelsTear-Modded/capture', '*.log', 'AzraelsTear-Modded/stdout.txt') }
+                    Exclude = @('AzraelsTear-Modded/AztMod', 'AzraelsTear-Modded/.claude', 'AzraelsTear-Modded/capture', '*.log', '*.LOG', 'AzraelsTear-Modded/stdout.txt') }
     hires      = @{ Root = 'C:\Games\azrael-textures'; Paths = @('hires'); Restore = 'C:\Games\azrael-textures'; Exclude = @() }
     books      = @{ Root = 'C:\Games'; Paths = @('azrael-books'); Restore = 'C:\Games'; Exclude = @('azrael-books/before') }
     gfx        = @{ Root = 'C:\Games'; Paths = $null; Restore = 'C:\Games'; Exclude = @() }
