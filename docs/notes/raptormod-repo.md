@@ -24,13 +24,16 @@ Josh (2026-10-10) wants to work from several PCs with a normal GitHub workflow. 
 
 **Moved into the repo:**
 - `rooms\`: `C:\Games\azrael-render\rooms` is now a JUNCTION to it. The old folder is kept as `rooms.pre-repo-20261010`.
+- `room-notes\` (2026-10-10, Josh: the Room Review app belongs in this repo): `C:\Games\azrael-render\room-notes` is now a junction to it. The JSON is versioned; `room-notes/*.png` screenshots are ignored and per PC (optional pack component `screenshots`). The old folder is kept as `room-notes.pre-repo-20261010`.
+- The app itself (`tools\room-review\`, `Start-RoomReview.ps1`, the round/reply/restore tools, `Review-Rooms.cmd`, `.claude\launch.json`) was already in the initial import.
+- Setup-Machine builds every room's export (tools\Build-RoomCache.ps1) so the viewer lists all 178 rooms on a fresh PC: the server only knows rooms whose OBJ exists.
 - The palette: `runtime\azrael-palette.pal`. Setup copies it to C:\Games\azrael-inject.
 
 **Big data = the ASSET PACK** (`tools\Export-AssetPack.ps1 -OutDir <folder>`): one tar per component, restored by `tools\Setup-Machine.ps1 -AssetPack <folder>`.
 - install: the built game, ~2.3 GB.
 - hires: 3.1 GB.
-- books, gfx sources, notes JSON.
-- Optional audio, video and realesrgan.
+- books, gfx sources.
+- Optional: screenshots (Room Review's), audio, video and realesrgan.
 - It contains the game, so it stays PRIVATE.
 
 **Setup-Machine** (idempotent; also the post-pull refresh):

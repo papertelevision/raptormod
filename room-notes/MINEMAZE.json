@@ -1,0 +1,540 @@
+{
+    "schema":  2,
+    "room":  "MINEMAZE",
+    "rev":  24,
+    "nextId":  7,
+    "notes":  [
+
+              ],
+    "completed":  [
+                      {
+                          "id":  2,
+                          "ref":  "MINEMAZE/2",
+                          "status":  "complete",
+                          "created":  "2026-10-09T04:21:21.3888345Z",
+                          "updated":  "2026-10-09T04:28:22.0587784Z",
+                          "kind":  "fog",
+                          "point":  [
+                                        678.71,
+                                        -42.63,
+                                        723.16
+                                    ],
+                          "normal":  [
+                                         -0.749,
+                                         0.505,
+                                         -0.43
+                                     ],
+                          "part":  "corr08",
+                          "material":  "1WALL02D",
+                          "texture":  "22-mmzw2d.png",
+                          "uv":  [
+                                     0.36,
+                                     -0.356
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     739.04,
+                                                     18.82,
+                                                     538.95
+                                                 ],
+                                         "fwd":  [
+                                                     -0.16,
+                                                     -0.31,
+                                                     0.94
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  739.04,
+                                                         "Y":  18.82,
+                                                         "Z":  538.95,
+                                                         "Yaw":  -9.72,
+                                                         "Pitch":  -17.79
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  656.25,
+                                                        "y":  -27.49,
+                                                        "z":  710.26,
+                                                        "dir":  [
+                                                                    -0.867,
+                                                                    0,
+                                                                    -0.498
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Like the light areas, this cave also has dark areas that i\u0027s like you to analyze and add olumetric haze/dark-lighting as you did in the coricori first room.",
+                                          "at":  "2026-10-09T04:21:21.3888345Z",
+                                          "shot":  "MINEMAZE-2-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done, the same way as the first room: a black volumetric fog through the mine, with extra thick black wherever the original art is painted dark (the map comes from the game\u0027s own pixels, so it stays when the textures change). This stretch is one of the darkest-painted, and in the render it sinks almost completely into black; the flashlight cuts a hazy cone into it, catching the floor mist. The torches light the fog as they pass through it, with shafts where their light is blocked. If it\u0027s too black to play, it\u0027s one strength setting.",
+                                          "at":  "2026-10-09T04:28:22.0587784Z",
+                                          "changes":  [
+                                                          "rooms\\MINEMAZE.json: volume (as CORICORI: density 0.004, max 0.78, room level held at 0.82, flashlight cuts 65%) + paint {density 0.02, max 0.85}"
+                                                      ],
+                                          "round":  12,
+                                          "render":  "MINEMAZE-2-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T13:20:19.0411602Z"
+                      },
+                      {
+                          "id":  3,
+                          "ref":  "MINEMAZE/3",
+                          "status":  "complete",
+                          "created":  "2026-10-09T04:22:20.8577551Z",
+                          "updated":  "2026-10-09T04:28:30.1881260Z",
+                          "kind":  "mist",
+                          "point":  [
+                                        750.71,
+                                        -61.55,
+                                        286.88
+                                    ],
+                          "normal":  [
+                                         -0.001,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "cutter",
+                          "material":  "1WALL2",
+                          "texture":  "21-mmzw2.png",
+                          "uv":  [
+                                     0.495,
+                                     0.864
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     648.55,
+                                                     19.11,
+                                                     433.63
+                                                 ],
+                                         "fwd":  [
+                                                     0.26,
+                                                     -0.31,
+                                                     -0.91
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  648.55,
+                                                         "Y":  19.11,
+                                                         "Z":  433.63,
+                                                         "Yaw":  163.99,
+                                                         "Pitch":  -18.07
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  750.69,
+                                                        "y":  -31.55,
+                                                        "z":  286.88,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "I want a thick layer of mist but only along the bottom. This is like fog, not the lighting effect, so a thick fog on the lower floor throughout, but randomized and organic",
+                                          "at":  "2026-10-09T04:22:20.8577551Z",
+                                          "shot":  "MINEMAZE-3-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: a thick mist now hugs the floor throughout the mine. It\u0027s densest right on the ground and thins out within a few tens of units, so it stays low and never fogs your view at head height. It\u0027s broken into wisps of noise that drift slowly, so it\u0027s patchy and organic rather than an even sheet. It follows whichever floor level you\u0027re on. Torches and the flashlight light it as they pass through. Tunable: how thick (density 0.035, about six times the old setting), how high it reaches (12), and how patchy the wisps are.",
+                                          "at":  "2026-10-09T04:28:30.1881260Z",
+                                          "changes":  [
+                                                          "rooms\\MINEMAZE.json: mist {density 0.035, height 12, max 0.06, wisps 1.0, wispSize 55, drift 7} (replaces the shared misty class: density 0.006, wisps 0.8)"
+                                                      ],
+                                          "round":  12,
+                                          "render":  "MINEMAZE-3-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T13:20:21.6482320Z"
+                      },
+                      {
+                          "id":  1,
+                          "ref":  "MINEMAZE/1",
+                          "status":  "complete",
+                          "created":  "2026-10-09T04:20:31.0622138Z",
+                          "updated":  "2026-10-09T04:28:14.5286035Z",
+                          "kind":  "light",
+                          "point":  [
+                                        168.04,
+                                        -61.57,
+                                        800.01
+                                    ],
+                          "normal":  [
+                                         0.001,
+                                         1,
+                                         -0.001
+                                     ],
+                          "part":  "corr06",
+                          "material":  "1WALL01",
+                          "texture":  "23-mmzw1.png",
+                          "uv":  [
+                                     0.492,
+                                     0.591
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     258.72,
+                                                     -1.68,
+                                                     858.7
+                                                 ],
+                                         "fwd":  [
+                                                     -0.84,
+                                                     -0.3,
+                                                     -0.46
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  258.72,
+                                                         "Y":  -1.68,
+                                                         "Z":  858.7,
+                                                         "Yaw":  -118.53,
+                                                         "Pitch":  -17.23
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  168.07,
+                                                        "y":  -31.57,
+                                                        "z":  799.97,
+                                                        "dir":  [
+                                                                    0.63,
+                                                                    0,
+                                                                    -0.776
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This mine area has random lighting throughout with no light source. I\u0027d like you to analyze it and add real light sources throughout in the bright areas, lit by the torches we\u0027ve designed. Also for the torches dont forget that their geometry should also cast shadows.",
+                                          "at":  "2026-10-09T04:20:31.0622138Z",
+                                          "shot":  "MINEMAZE-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: seven real torches now light the mine where the original artists painted their light. I built a tool for it: it reads the brightness of the ORIGINAL art across the whole room (the game\u0027s own pixels, so your future clean textures won\u0027t change it), takes the brightest places at least 240 units apart, finds the nearest wall at each one and mounts a torch there facing into the light pool: 15 units out, about 72 above that floor, with the shader flame. Three are in the big cave (one about 220 units from where you clicked), two on the eastern stretch, and two on the upper level to the south. Each torch\u0027s light casts shadows, and the torch geometry itself is part of what casts them: its stake and cup throw shadows from the other torches and your flashlight. Embers are off, as in the other rooms. If a torch is in an odd spot, click it and say where it should go.",
+                                          "at":  "2026-10-09T04:28:14.5286035Z",
+                                          "changes":  [
+                                                          "rooms\\MINEMAZE.json (new): lights[0..6] seven torches at the original art\u0027s bright places (tools\\Find-PaintedLights.ps1 -Count 7 -Spacing 240), embers off",
+                                                          "tools\\Find-PaintedLights.ps1 (new): torch positions from the original art\u0027s painted light"
+                                                      ],
+                                          "round":  12,
+                                          "render":  "MINEMAZE-1-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T13:20:30.2027538Z"
+                      },
+                      {
+                          "id":  4,
+                          "ref":  "MINEMAZE/4",
+                          "status":  "complete",
+                          "created":  "2026-10-09T13:23:11.2843487Z",
+                          "updated":  "2026-10-09T13:36:20.7827923Z",
+                          "kind":  "other",
+                          "point":  [
+                                        630.52,
+                                        -8.55,
+                                        470.09
+                                    ],
+                          "normal":  [
+                                         -0.832,
+                                         0.448,
+                                         -0.328
+                                     ],
+                          "part":  "corr11",
+                          "material":  "1WALL01",
+                          "texture":  "23-mmzw1.png",
+                          "uv":  [
+                                     0.234,
+                                     0.269
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     365.17,
+                                                     -14.99,
+                                                     356
+                                                 ],
+                                         "fwd":  [
+                                                     1,
+                                                     -0.01,
+                                                     0.09
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  365.17,
+                                                         "Y":  -14.99,
+                                                         "Z":  356,
+                                                         "Yaw":  85.1,
+                                                         "Pitch":  -0.45
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  605.56,
+                                                        "y":  4.88,
+                                                        "z":  460.26,
+                                                        "dir":  [
+                                                                    -0.93,
+                                                                    0,
+                                                                    -0.367
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                       "roomFileMtime":  "2026-10-09T12:46:56.4009643Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Lets add a torch here as it will backlight the raptor character. As for torches, the shadow of the torch sconce is too \"blobby\" Lets skip the shadow casting of the round part of the torch and try only having the stake porch of the scones cast a shadow.",
+                                          "at":  "2026-10-09T13:23:11.2843487Z",
+                                          "shot":  "MINEMAZE-4-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added torch 5 on that corridor wall, 15 units out and 58 above the floor. The corridor\u0027s ceiling is only 88 up, so it sits a little lower than the 72 I\u0027d normally use, in line with the other mine torches (53-61 up). It gets the bounced lighting and dancing shadows like the rest. The sconce shadow is fixed in two steps: only the wooden stake casts a shadow now (the iron cup, ring, arm and plate and the coals cast none). And a torch never shadows its own sconce: with the light sitting straight above the stake, the stake threw its shadow end-on as a round blob down the wall (a real flame is big enough beside the stake to wash that out). The stake still casts shadows from the other lights and your flashlight. Also: the fog\u0027s light glow only took the first four lights in a room, so a fifth torch would have lit walls but not glowed in the fog. It now takes the four nearest you.",
+                                          "at":  "2026-10-09T13:36:20.7827923Z",
+                                          "changes":  [
+                                                          "rooms\\MINEMAZE.json lights[4] added (612.86, 10.75, 463.13)",
+                                                          "GpuRaster: sconce iron/coals cast no shadow; a torch skips its own sconce in its shadow view",
+                                                          "GpuRaster: the fog glow uses the 4 lights nearest the eye"
+                                                      ],
+                                          "round":  13,
+                                          "render":  "MINEMAZE-4-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T13:54:01.7634565Z"
+                      },
+                      {
+                          "id":  5,
+                          "ref":  "MINEMAZE/5",
+                          "status":  "complete",
+                          "created":  "2026-10-09T13:24:18.1894214Z",
+                          "updated":  "2026-10-09T13:36:28.1354398Z",
+                          "kind":  "other",
+                          "point":  [
+                                        57.25,
+                                        -74.14,
+                                        44.97
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "floor",
+                          "material":  "1WALL02D",
+                          "texture":  "22-mmzw2d.png",
+                          "uv":  [
+                                     0.492,
+                                     0.335
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     50.38,
+                                                     92.42,
+                                                     217.37
+                                                 ],
+                                         "fwd":  [
+                                                     -0.08,
+                                                     -0.57,
+                                                     -0.82
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  50.38,
+                                                         "Y":  92.42,
+                                                         "Z":  217.37,
+                                                         "Yaw":  -174.48,
+                                                         "Pitch":  -34.57
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  57.25,
+                                                        "y":  -44.14,
+                                                        "z":  44.97,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                       "roomFileMtime":  "2026-10-09T12:46:56.4009643Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "As the player enters this scene, if their flash light is off, I want to add a readout on their visor that reads \"Dark environment detected. Press F for Headlamp\"",
+                                          "at":  "2026-10-09T13:24:18.1894214Z",
+                                          "shot":  "MINEMAZE-5-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. About 1.5 s after you enter the mines with the flashlight off, the visor types \u0027Dark environment detected.\u0027 (amber) and then \u0027Press F for Headlamp\u0027 (in the scanner\u0027s teal) at the top left of the view, over a faint dark backing so it reads against a lit wall. It holds for 6 s once typed, then fades, and it fades at once when you press F. It shows again each time you enter with the flashlight off. It\u0027s a \u0027visor\u0027 block in the room file (text, lampOff, delay, hold), so any room can have one, and the watcher\u0027s -NoVisorNotes turns them off. It\u0027s drawn on the true-colour picture, so it isn\u0027t in this viewer\u0027s renders.",
+                                          "at":  "2026-10-09T13:36:28.1354398Z",
+                                          "round":  13,
+                                          "changes":  [
+                                                          "rooms\\MINEMAZE.json visor block",
+                                                          "ScanWire.cs VisorNote + Overlay.Decorate3",
+                                                          "Watch-HostRender: armed on room entry, cleared by the flashlight"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T17:11:55.3776430Z"
+                      },
+                      {
+                          "id":  6,
+                          "ref":  "MINEMAZE/6",
+                          "status":  "complete",
+                          "created":  "2026-10-09T13:53:50.6253535Z",
+                          "updated":  "2026-10-09T14:01:01.7835408Z",
+                          "kind":  "other",
+                          "point":  [
+                                        195.18,
+                                        -61.55,
+                                        397.17
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         -0.001
+                                     ],
+                          "part":  "corr03",
+                          "material":  "1WALL2",
+                          "texture":  "21-mmzw2.png",
+                          "uv":  [
+                                     0.508,
+                                     0.347
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     148.39,
+                                                     63.34,
+                                                     425.63
+                                                 ],
+                                         "fwd":  [
+                                                     0.34,
+                                                     -0.93,
+                                                     -0.11
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  148.39,
+                                                         "Y":  63.34,
+                                                         "Z":  425.63,
+                                                         "Yaw":  108.6,
+                                                         "Pitch":  -68.98
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  195.17,
+                                                        "y":  -31.55,
+                                                        "z":  397.15,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                       "roomFileMtime":  "2026-10-09T12:46:56.4009643Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Lets add a random light source here, just like a torch light but no torch graphic",
+                                          "at":  "2026-10-09T13:53:50.6253535Z",
+                                          "shot":  "MINEMAZE-6-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added light 6: a torch-like light with no torch graphic, over the spot you clicked. It sits 58 above the corridor floor (the height the mine torches use; the ceiling there is 103 up), with the torches\u0027 warm colour, power, range, flicker and dancing shadows. The bounced light is worked out again with it included.",
+                                          "at":  "2026-10-09T14:01:01.7835408Z",
+                                          "changes":  [
+                                                          "rooms\\MINEMAZE.json lights[5] added (195.18, -3.55, 397.17), no torch"
+                                                      ],
+                                          "round":  14,
+                                          "render":  "MINEMAZE-6-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T17:11:58.7305209Z"
+                      }
+                  ],
+    "deleted":  [
+
+                ]
+}

@@ -1,0 +1,887 @@
+{
+    "schema":  2,
+    "room":  "CORICORI",
+    "rev":  50,
+    "nextId":  11,
+    "notes":  [
+
+              ],
+    "completed":  [
+                      {
+                          "id":  1,
+                          "ref":  "CORICORI/1",
+                          "status":  "complete",
+                          "created":  "2026-10-08T15:31:38.4686775Z",
+                          "updated":  "2026-10-08T15:38:16.2100659Z",
+                          "kind":  "light",
+                          "point":  [
+                                        358.86,
+                                        -2.25,
+                                        274.34
+                                    ],
+                          "normal":  [
+                                         0.251,
+                                         0,
+                                         -0.968
+                                     ],
+                          "part":  "wall22",
+                          "material":  "CORWALL1",
+                          "texture":  "18-ecrrwl01.png",
+                          "uv":  [
+                                     0.356,
+                                     0.519
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -140.09,
+                                                     5.76,
+                                                     -85.45
+                                                 ],
+                                         "fwd":  [
+                                                     0.92,
+                                                     -0.14,
+                                                     0.36
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -140.09,
+                                                         "Y":  5.76,
+                                                         "Z":  -85.45,
+                                                         "Yaw":  68.68,
+                                                         "Pitch":  -8
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  366.37,
+                                                        "y":  -2.25,
+                                                        "z":  245.3,
+                                                        "dir":  [
+                                                                    0.251,
+                                                                    0,
+                                                                    -0.968
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-08T13:12:41.2395653Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Lets add a light source here",
+                                          "at":  "2026-10-08T15:31:38.4686775Z",
+                                          "shot":  "CORICORI-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added a torch here, a twin of the one on the inscription wall: same warm colour, strength, flicker and shadows, mounted 30 units out from the wall at the same height above the floor, facing into the corridor. If you\u0027d like something other than a torch here (a cooler lamp, a candle glow, a different strength), say so in a follow-up.",
+                                          "at":  "2026-10-08T15:38:16.2100659Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json: lights[1] \"torch by the SPAROOM door\" added at 366.4, -2.25, 245.3 facing (0.251, 0, -0.968)"
+                                                      ],
+                                          "round":  1,
+                                          "render":  "CORICORI-1-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-08T16:01:45.2580256Z"
+                      },
+                      {
+                          "id":  2,
+                          "ref":  "CORICORI/2",
+                          "status":  "complete",
+                          "created":  "2026-10-08T15:32:30.0621860Z",
+                          "updated":  "2026-10-08T16:34:30.3536495Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -24.65,
+                                        103.23,
+                                        1.31
+                                    ],
+                          "normal":  [
+                                         0.063,
+                                         -0.998,
+                                         0.027
+                                     ],
+                          "part":  "floorbit10",
+                          "material":  "1ENTER",
+                          "texture":  "05-ecrflr05.png",
+                          "uv":  [
+                                     0.502,
+                                     0.492
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -36,
+                                                     52.01,
+                                                     225.74
+                                                 ],
+                                         "fwd":  [
+                                                     -0.1,
+                                                     -0.14,
+                                                     -0.99
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -36,
+                                                         "Y":  52.01,
+                                                         "Z":  225.74,
+                                                         "Yaw":  -174.42,
+                                                         "Pitch":  -8
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -22.75,
+                                                        "y":  73.3,
+                                                        "z":  2.13,
+                                                        "dir":  [
+                                                                    0.919,
+                                                                    0,
+                                                                    0.395
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-08T13:12:41.2395653Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "I would like shafts of light coming from this hole in the ceiling, sublte light rays spooling down from a distant light souce.",
+                                          "at":  "2026-10-08T15:32:30.0621860Z"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "The hole is painted on (the ceiling there is solid, with a hole-in-the-stone texture), so no light could come through it from above. I added a new kind of light for this: a distant, cool, steady source high above the hole, shining straight down in a narrow cone through the ceiling, so the painted hole catches the light. Beneath it the volumetric fog shows the shaft, with faint drifting rays streaking it. I kept it subtle: it is faint from across the room and brighter as you look up into it. Easy to tune: stronger or fainter, wider or narrower, warmer, more or less streaky.",
+                                          "at":  "2026-10-08T15:38:23.5435459Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json: lights[2] \"light shafts through the ceiling hole\" added: x -24.65 y 363 z 1.31, straight down, cone 3-6 degrees, #C8D6FF, power 0.45, air 26, rays 0.6, no shadow test",
+                                                          "New light settings (renderer): \"cone\" (spotlight), \"air\" and \"airReach\" (a light\u0027s strength and reach in the volumetric fog), \"rays\" (streaks across its cone)"
+                                                      ],
+                                          "round":  1,
+                                          "render":  "CORICORI-2-1-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Can we make the shaft of light have a bit of orange tint to it? very sublte, perhaps the current white shaft diffusing to orange, then I\u0027d like more particles specifically floating in this light shaft, illuminated",
+                                          "at":  "2026-10-08T16:00:59.4509577Z",
+                                          "shot":  "CORICORI-2-2.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done, both parts. The shaft is still pale white where it comes through the hole and now diffuses to a soft orange as it falls toward the floor (subtle, as asked; the patch of light on the floor warms with it). It also has its own dust now: 140 specks drifting slowly inside the beam, lit by it and glinting, coloured along the same white-to-orange blend. They\u0027re there as soon as you enter the room. The specks show best close up, looking up into the shaft. Say if you want more or fewer specks, bigger ones, or a stronger orange.",
+                                          "at":  "2026-10-08T16:06:26.3948479Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json lights[2]: colorFar #FFB878 between tintFrom 262 and tintTo 362 (the ceiling to the floor, measured from the source)",
+                                                          "rooms\\CORICORI.json lights[2]: dust { count 140, size 0.7 }",
+                                                          "New light settings (renderer): \"colorFar\" + \"tintFrom\"/\"tintTo\" (a light changing colour with distance); \"dust\" (specks floating in a spotlight\u0027s shaft)"
+                                                      ],
+                                          "round":  2,
+                                          "render":  "CORICORI-2-3-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Lets make it use that orange-ish color rather than the transition form white. Otherwise its good to go.",
+                                          "at":  "2026-10-08T16:33:45.7623421Z",
+                                          "shot":  "CORICORI-2-4.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: the shaft is now that warm orange all the way down, from the hole to the floor, with no white at the top. The dust specks and the patch of light on the floor take the same colour. Strength, width, rays and dust are unchanged. If it\u0027s good to go, mark it Complete.",
+                                          "at":  "2026-10-08T16:34:30.3536495Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json lights[2]: color #C8D6FF -\u003e #FFB878; colorFar / tintFrom / tintTo removed (no white-to-orange blend)"
+                                                      ],
+                                          "round":  3,
+                                          "render":  "CORICORI-2-5-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-08T17:14:41.0020665Z"
+                      },
+                      {
+                          "id":  4,
+                          "ref":  "CORICORI/4",
+                          "status":  "complete",
+                          "created":  "2026-10-09T00:03:21.5091826Z",
+                          "updated":  "2026-10-09T00:08:17.0322549Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -36.15,
+                                        -113.95,
+                                        7.02
+                                    ],
+                          "normal":  [
+                                         0.025,
+                                         0.999,
+                                         0.038
+                                     ],
+                          "part":  "floorbit02",
+                          "material":  "1FLOOR3A",
+                          "texture":  "07-ecrflra3.png",
+                          "uv":  [
+                                     0.468,
+                                     0.526
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     76.58,
+                                                     -31.33,
+                                                     115.94
+                                                 ],
+                                         "fwd":  [
+                                                     -0.58,
+                                                     -0.34,
+                                                     -0.74
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  76.58,
+                                                         "Y":  -31.33,
+                                                         "Z":  115.94,
+                                                         "Yaw":  -141.9,
+                                                         "Pitch":  -19.7
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -35.41,
+                                                        "y":  -83.98,
+                                                        "z":  8.15,
+                                                        "dir":  [
+                                                                    0.544,
+                                                                    0,
+                                                                    0.839
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-08T16:34:22.9457412Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Add the polygonal chalice from the intro here.",
+                                          "at":  "2026-10-09T00:03:21.5091826Z",
+                                          "shot":  "CORICORI-4-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added: the intro\u0027s chalice now stands where you clicked. It\u0027s the same teal wireframe as the visor boot\u0027s artifact trace (same shape: foot, knotted stem, bowl, 14 lines round and its rings), with the same slow turn, floating a little above the floor and bobbing gently, a bright scan ring passing down it every 2.4 seconds, and the side facing you flaring brighter like in the intro. It\u0027s a hologram in the room: walls and objects hide it properly. A soft teal light at its middle glows faintly on the floor and in the fog. Adjustable: height (26 units now), how high it floats, spin speed, brightness, colour.",
+                                          "at":  "2026-10-09T00:08:17.0322549Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json: holograms[0] chalice at (-36.2, -114, 7.0), height 26, hover 8, bob 1.5, spin 0.75, #71DFD7 / flare #BEFBFF, scan ring",
+                                                          "rooms\\CORICORI.json: lights[3] soft teal glow at its middle (no shadow, power 0.5, range 70)",
+                                                          "GpuRaster: holograms (world-space wireframes, screen-width lines with a halo, hidden behind the room); room files take \"holograms\""
+                                                      ],
+                                          "round":  8,
+                                          "render":  "CORICORI-4-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T03:18:32.1857544Z"
+                      },
+                      {
+                          "id":  6,
+                          "ref":  "CORICORI/6",
+                          "status":  "complete",
+                          "created":  "2026-10-09T03:19:17.9308171Z",
+                          "updated":  "2026-10-09T03:30:07.2018433Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -391.81,
+                                        -30.76,
+                                        -138.64
+                                    ],
+                          "normal":  [
+                                         1,
+                                         0,
+                                         0.029
+                                     ],
+                          "part":  "wall03",
+                          "material":  "CORWALL2",
+                          "texture":  "17-ecrlwl01.png",
+                          "uv":  [
+                                     0.341,
+                                     0.398
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -199.77,
+                                                     8.5,
+                                                     -112.03
+                                                 ],
+                                         "fwd":  [
+                                                     -0.94,
+                                                     -0.19,
+                                                     -0.3
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -199.77,
+                                                         "Y":  8.5,
+                                                         "Z":  -112.03,
+                                                         "Yaw":  -107.58,
+                                                         "Pitch":  -11.09
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -361.82,
+                                                        "y":  -30.76,
+                                                        "z":  -137.78,
+                                                        "dir":  [
+                                                                    1,
+                                                                    0,
+                                                                    0.029
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-08T16:34:22.9457412Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This area is also an area steeped in darkness, as illustrated by the arwork, but I\u0027d like to emulate this is the actual volumetric lighting.",
+                                          "at":  "2026-10-09T03:19:17.9308171Z",
+                                          "shot":  "CORICORI-6-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "This end of the corridor is one of the darkest-painted parts of the room, so the new painted-darkness fog from note 5 covers it automatically and it now sinks into black. The far end is deep black, and the walls near you fade into it. If it should go darker still (or less), say so: it\u0027s one strength setting for the whole room, or I can push just this end.",
+                                          "at":  "2026-10-09T03:30:07.2018433Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json: volume.paint (same change as CORICORI/5; this end is among the darkest painted parts of the room)"
+                                                      ],
+                                          "round":  9,
+                                          "render":  "CORICORI-6-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T15:29:14.3787297Z"
+                      },
+                      {
+                          "id":  5,
+                          "ref":  "CORICORI/5",
+                          "status":  "complete",
+                          "created":  "2026-10-09T03:18:16.9197108Z",
+                          "updated":  "2026-10-09T03:42:00.6725509Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -102.87,
+                                        -114.04,
+                                        43.65
+                                    ],
+                          "normal":  [
+                                         0.269,
+                                         0.793,
+                                         -0.546
+                                     ],
+                          "part":  "floorbit07",
+                          "material":  "1FLOOR4A",
+                          "texture":  "06-ecrflra4.png",
+                          "uv":  [
+                                     0.369,
+                                     0.751
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -226.11,
+                                                     22.4,
+                                                     -57.96
+                                                 ],
+                                         "fwd":  [
+                                                     0.81,
+                                                     -0.52,
+                                                     0.27
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -226.11,
+                                                         "Y":  22.4,
+                                                         "Z":  -57.96,
+                                                         "Yaw":  71.93,
+                                                         "Pitch":  -31.02
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -94.79,
+                                                        "y":  -90.25,
+                                                        "z":  27.26,
+                                                        "dir":  [
+                                                                    0.442,
+                                                                    0,
+                                                                    -0.897
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-08T16:34:22.9457412Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Would we be able to match the dark black areas in tis corridor with a layer of black volumetric fog/lighting to emulate the lighting the original developers tried to achieve with the texture art?",
+                                          "at":  "2026-10-09T03:18:16.9197108Z",
+                                          "shot":  "CORICORI-5-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done, and for the whole room rather than just this spot. The renderer now reads the darkness the original artists painted into the textures: when the room loads it samples every floor, wall and ceiling surface\u0027s own colours into a smoothed map of how dark the art is in each part of the room. Wherever the art is painted dark, the volumetric fog gets thicker black. That deepens this corridor\u0027s dark band and walls, and it follows the art everywhere else too (22% of this room\u0027s area is painted darker than half and gets it). Your flashlight thins it the same way it thins the fog, so you can still see into it. Tunable in the room\u0027s settings: strength (density 0.02 now), how opaque it may get (85%), and how widely the art is averaged.",
+                                          "at":  "2026-10-09T03:29:51.2094441Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json: volume.paint {density 0.02, max 0.85, cell 8, smooth 30, gamma 1.5}",
+                                                          "GpuRaster: painted-darkness map built from the room\u0027s textures at load, marched into the volumetric fog (at half size, like the rest of the fog)"
+                                                      ],
+                                          "round":  9,
+                                          "render":  "CORICORI-5-1-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "I love this, but if I wee to render the tetures without the dark lighting in place, I want to maintain our volumetric \"darkness\". The goal is that I will render full textures, and build actual lighting instead of relying on texture artwork, but I really want it to feel like the original games vision made real (so sticking to the same lighting patterns, but with real lighting and no lighting drawn on the artwork). Let me kow your thoughts there.",
+                                          "at":  "2026-10-09T03:38:32.2087476Z",
+                                          "shot":  "CORICORI-5-2.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Agreed, and done: the darkness map is now built from the game\u0027s original texture pixels, not from whatever textures are loaded. Your clean renders can replace the art and the darkness pattern stays exactly where the original artists painted it (the map from the originals matches today\u0027s to within 2/255, so nothing changes visually right now). Thoughts for the clean-texture plan: (1) The fog darkens with distance, so a wall you\u0027re standing right next to in a dark stretch would look evenly lit once the painted shadow is gone. I\u0027d add a second part driven by the same map: the room\u0027s own light level lowered on surfaces where the original art was dark, so the nearby walls in those stretches stay shadowed too. (2) The other half of the original lighting is the painted bright pools. The same map shows exactly where they are (its brightest spots), so I can propose real lights at those places, matching the original\u0027s light pattern but as actual light that moves and casts shadows. When your first clean textures are in, tell me and I\u0027ll set up both, so we can judge them against the original in game.",
+                                          "at":  "2026-10-09T03:42:00.6725509Z",
+                                          "round":  10,
+                                          "changes":  [
+                                                          "GpuRaster.BuildPaintField: the map is made from the ORIGINAL art (the game\u0027s own pixels + palette) unless the room says \"fromLoaded\""
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T15:29:29.1858958Z"
+                      },
+                      {
+                          "id":  7,
+                          "ref":  "CORICORI/7",
+                          "status":  "complete",
+                          "created":  "2026-10-09T03:21:09.8292526Z",
+                          "updated":  "2026-10-09T03:42:16.7939724Z",
+                          "kind":  "light",
+                          "point":  null,
+                          "normal":  null,
+                          "part":  null,
+                          "material":  null,
+                          "texture":  null,
+                          "uv":  null,
+                          "target":  {
+                                         "type":  "light",
+                                         "index":  0,
+                                         "name":  "torch on the inscription wall"
+                                     },
+                          "camera":  {
+                                         "pos":  [
+                                                     182.25,
+                                                     -15.59,
+                                                     108.2
+                                                 ],
+                                         "fwd":  [
+                                                     -0.63,
+                                                     0.13,
+                                                     -0.76
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  182.25,
+                                                         "Y":  -15.59,
+                                                         "Z":  108.2,
+                                                         "Yaw":  -140.42,
+                                                         "Pitch":  7.44
+                                                     }
+                                     },
+                          "suggest":  null,
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-08T16:34:22.9457412Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "For this torch, i\u0027d like you to build a torch shaped mesh, similar to the 3d chalice, and add a torch to this light source. The shape of the torch only, which would consist of a wooden stake like portion, topped with a cylindrical piece of metal whcih would contain the flame. Adhere it to this light source in a natural way where it evokes the feel of a proper torch.",
+                                          "at":  "2026-10-09T03:21:09.8292526Z",
+                                          "shot":  "CORICORI-7-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Built: a real torch under this light, made of geometry (not a wireframe), so it\u0027s lit by its own flame, the flashlight and the room\u0027s light, casts shadows and sits in the fog like any part of the room. It\u0027s a wall sconce: an iron plate on the wall, an iron arm out to a ring, a wooden stake in the ring leaning a little away from the wall, and on top a flared iron cup with a rim band and a bed of charred coals, its mouth just below the light so the light sits where the flame would be. It has its own weathered wood, dark wrought-iron and charcoal textures with normal mapping. The light itself didn\u0027t move. Size, lean and how far it reaches from the wall are adjustable. Any other light can get one with a single setting.",
+                                          "at":  "2026-10-09T03:30:21.6906162Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json: lights[0].torch {scale 1, wall 30}",
+                                                          "GpuRaster: solid props (AddTorch: sconce, stake, cup, coals; procedural wood/iron/coal textures) merged into the room\u0027s geometry"
+                                                      ],
+                                          "round":  9,
+                                          "render":  "CORICORI-7-1-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "The torch looks great but it extends too far away from the wall. Make it about 50% closer, and add a very modern flame effect on top (not the particle effect you did before but something more realistic). The light would be emitting from that flame.",
+                                          "at":  "2026-10-09T03:35:57.2945533Z",
+                                          "shot":  "CORICORI-7-2.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: the torch is 50% closer to the wall (15 units out instead of 30), and the light moved with it, so it now sits in the flame. I also fixed the sconce\u0027s arm, which was 10 units too long (the excess was hidden inside the wall); it\u0027s now exactly wall to ring. The flame is a shader effect, not particles: a teardrop of rising turbulence that sways more toward its tip and throws off tongues near the top, coloured by heat from a white-yellow core through orange to a deep red edge with a hint of blue at its root. It\u0027s built from two layered sheets for depth plus a soft glow, always upright and facing you, and its foot is hidden by the cup\u0027s rim. It breathes and flickers on its own. The light comes from inside it.",
+                                          "at":  "2026-10-09T03:42:16.7939724Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json: lights[0] moved to (97.3, -8, -30.6), 15 units off the wall (was 30); torch.wall 15",
+                                                          "GpuRaster: shader flames (AddFlame; the torch adds one to its cup); the sconce arm\u0027s length fixed"
+                                                      ],
+                                          "round":  10,
+                                          "render":  "CORICORI-7-3-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T15:29:36.2443534Z"
+                      },
+                      {
+                          "id":  9,
+                          "ref":  "CORICORI/9",
+                          "status":  "complete",
+                          "created":  "2026-10-09T14:31:34.8434485Z",
+                          "updated":  "2026-10-09T15:08:14.9037517Z",
+                          "kind":  "other",
+                          "point":  [
+                                        108.72,
+                                        -34.29,
+                                        -44.32
+                                    ],
+                          "normal":  [
+                                         -0.421,
+                                         -0.072,
+                                         0.904
+                                     ],
+                          "part":  "textwall2",
+                          "material":  "DORCOR2",
+                          "texture":  "12-ecrdor02.png",
+                          "uv":  [
+                                     0.485,
+                                     0.388
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -51.92,
+                                                     -50.21,
+                                                     94.83
+                                                 ],
+                                         "fwd":  [
+                                                     0.79,
+                                                     -0.17,
+                                                     -0.59
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -51.92,
+                                                         "Y":  -50.21,
+                                                         "Z":  94.83,
+                                                         "Yaw":  127.13,
+                                                         "Pitch":  -9.96
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  96.09,
+                                                        "y":  -36.45,
+                                                        "z":  -17.19,
+                                                        "dir":  [
+                                                                    -0.422,
+                                                                    0,
+                                                                    0.907
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-09T05:14:44.8216591Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "move torch here",
+                                          "at":  "2026-10-09T14:31:34.8434485Z",
+                                          "shot":  "CORICORI-9-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: this is where the inscription torch now sits (it\u0027s the same torch, moved; see CORICORI/8 for the render).",
+                                          "at":  "2026-10-09T15:08:14.9037517Z",
+                                          "round":  15,
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json lights[0] moved here"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T15:29:39.4835044Z"
+                      },
+                      {
+                          "id":  8,
+                          "ref":  "CORICORI/8",
+                          "status":  "complete",
+                          "created":  "2026-10-09T14:31:19.6883820Z",
+                          "updated":  "2026-10-09T15:08:14.8572818Z",
+                          "kind":  "light",
+                          "point":  null,
+                          "normal":  null,
+                          "part":  null,
+                          "material":  null,
+                          "texture":  null,
+                          "uv":  null,
+                          "target":  {
+                                         "type":  "light",
+                                         "index":  0,
+                                         "name":  "torch on the inscription wall"
+                                     },
+                          "camera":  {
+                                         "pos":  [
+                                                     -86.49,
+                                                     99.03,
+                                                     37.81
+                                                 ],
+                                         "fwd":  [
+                                                     0.66,
+                                                     -0.49,
+                                                     -0.57
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -86.49,
+                                                         "Y":  99.03,
+                                                         "Z":  37.81,
+                                                         "Yaw":  131.05,
+                                                         "Pitch":  -29.54
+                                                     }
+                                     },
+                          "suggest":  null,
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-09T05:14:44.8216591Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Move this torch downward under the text in this texture. I\u0027ll make a mark on exactly where, with the note \"place torch here\" but do not add a duplicate torch, simply move this one to that location",
+                                          "at":  "2026-10-09T14:31:19.6883820Z",
+                                          "shot":  "CORICORI-8-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Moved, not duplicated: the inscription torch now hangs under the text at your mark (see CORICORI/9). The light is 15 units out from that spot on the wall, with the sconce and stake below it and the flame just under the words. The bounced lighting is worked out again for the new position.",
+                                          "at":  "2026-10-09T15:08:14.8572818Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json lights[0]: (97.29, -8, -30.62) -\u003e (102.39, -34.29, -30.72)"
+                                                      ],
+                                          "round":  15,
+                                          "render":  "CORICORI-8-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T15:29:45.4678785Z"
+                      },
+                      {
+                          "id":  10,
+                          "ref":  "CORICORI/10",
+                          "status":  "complete",
+                          "created":  "2026-10-09T15:31:44.2621580Z",
+                          "updated":  "2026-10-09T15:35:02.0138932Z",
+                          "kind":  "light",
+                          "point":  null,
+                          "normal":  null,
+                          "part":  null,
+                          "material":  null,
+                          "texture":  null,
+                          "uv":  null,
+                          "target":  {
+                                         "type":  "light",
+                                         "index":  0,
+                                         "name":  "torch on the inscription wall"
+                                     },
+                          "camera":  {
+                                         "pos":  [
+                                                     5,
+                                                     6.63,
+                                                     33.02
+                                                 ],
+                                         "fwd":  [
+                                                     0.9,
+                                                     -0.27,
+                                                     -0.34
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  5,
+                                                         "Y":  6.63,
+                                                         "Z":  33.02,
+                                                         "Yaw":  110.91,
+                                                         "Pitch":  -15.55
+                                                     }
+                                     },
+                          "suggest":  null,
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-09T15:05:48.1084293Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Make this torch and all torches the size I instructed in the washroom torch not",
+                                          "at":  "2026-10-09T15:31:44.2621580Z",
+                                          "shot":  "CORICORI-10-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: every torch is now the washroom torch\u0027s size (0.8 of the old one). That\u0027s 9 torches in all: this one, both in SPAROOM, the 5 in the mines and the washroom\u0027s. Their lights, positions and brightness are unchanged (only the washroom torch was dimmed, per WASHCORI/3).",
+                                          "at":  "2026-10-09T15:35:02.0138932Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json, SPAROOM.json, MINEMAZE.json, WASHCORI.json: torch.scale 1 -\u003e 0.8"
+                                                      ],
+                                          "round":  16,
+                                          "render":  "CORICORI-10-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T16:08:03.5560807Z"
+                      }
+                  ],
+    "deleted":  [
+                    {
+                        "id":  3,
+                        "ref":  "CORICORI/3",
+                        "status":  "new",
+                        "created":  "2026-10-08T20:29:33.3429343Z",
+                        "updated":  "2026-10-08T20:29:33.3429343Z",
+                        "kind":  "other",
+                        "point":  [
+                                      76.93,
+                                      -14.78,
+                                      -55.6
+                                  ],
+                        "normal":  [
+                                       -0.425,
+                                       0,
+                                       0.905
+                                   ],
+                        "part":  "textwall2",
+                        "material":  "DORCOR2",
+                        "texture":  "12-ecrdor02.png",
+                        "uv":  [
+                                   0.614,
+                                   0.47
+                               ],
+                        "target":  null,
+                        "camera":  {
+                                       "pos":  [
+                                                   -50.81,
+                                                   -16.84,
+                                                   77.11
+                                               ],
+                                       "fwd":  [
+                                                   0.77,
+                                                   0.1,
+                                                   -0.63
+                                               ],
+                                       "up":  [
+                                                  0,
+                                                  1,
+                                                  0
+                                              ],
+                                       "fov":  50,
+                                       "mirror":  true,
+                                       "gpuLook":  {
+                                                       "X":  -50.81,
+                                                       "Y":  -16.84,
+                                                       "Z":  77.11,
+                                                       "Yaw":  129.58,
+                                                       "Pitch":  5.68
+                                                   }
+                                   },
+                        "suggest":  {
+                                        "light":  {
+                                                      "x":  64.18,
+                                                      "y":  -14.78,
+                                                      "z":  -28.45,
+                                                      "dir":  [
+                                                                  -0.425,
+                                                                  0,
+                                                                  0.905
+                                                              ]
+                                                  }
+                                    },
+                        "seen":  {
+                                     "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                     "roomFileMtime":  "2026-10-08T16:34:22.9457412Z"
+                                 },
+                        "log":  [
+                                    {
+                                        "who":  "josh",
+                                        "text":  "This is the texture I\u0027m talking about that is cut off. The words are not fully displaying on the right as they do in original texture.",
+                                        "at":  "2026-10-08T20:29:33.3429343Z",
+                                        "shot":  "CORICORI-3-0.png"
+                                    }
+                                ]
+                    }
+                ]
+}

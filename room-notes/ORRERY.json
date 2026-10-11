@@ -1,0 +1,623 @@
+{
+    "schema":  2,
+    "room":  "ORRERY",
+    "rev":  27,
+    "nextId":  8,
+    "notes":  [
+                  {
+                      "id":  1,
+                      "ref":  "ORRERY/1",
+                      "status":  "review",
+                      "created":  "2026-10-09T18:22:42.4691707Z",
+                      "updated":  "2026-10-09T18:38:38.7066497Z",
+                      "kind":  "other",
+                      "point":  [
+                                    -140.41,
+                                    37.77,
+                                    145.43
+                                ],
+                      "normal":  [
+                                     0.271,
+                                     0.924,
+                                     -0.271
+                                 ],
+                      "part":  "orr_puzzle",
+                      "material":  "1ORRERYPUZZLE",
+                      "texture":  "03-or_puzzl.png",
+                      "uv":  [
+                                 0.618,
+                                 0.43
+                             ],
+                      "target":  null,
+                      "camera":  {
+                                     "pos":  [
+                                                 -73.3,
+                                                 65.28,
+                                                 62.89
+                                             ],
+                                     "fwd":  [
+                                                 -0.42,
+                                                 -0.14,
+                                                 0.9
+                                             ],
+                                     "up":  [
+                                                0,
+                                                1,
+                                                0
+                                            ],
+                                     "fov":  50,
+                                     "mirror":  true,
+                                     "gpuLook":  {
+                                                     "X":  -73.3,
+                                                     "Y":  65.28,
+                                                     "Z":  62.89,
+                                                     "Yaw":  -25.12,
+                                                     "Pitch":  -8
+                                                 }
+                                 },
+                      "suggest":  {
+                                      "light":  {
+                                                    "x":  -132.29,
+                                                    "y":  65.49,
+                                                    "z":  137.31,
+                                                    "dir":  [
+                                                                0.707,
+                                                                0,
+                                                                -0.707
+                                                            ]
+                                                }
+                                  },
+                      "seen":  {
+                                   "objMtime":  "2026-10-05T02:29:35.8057416Z",
+                                   "roomFileMtime":  null
+                               },
+                      "log":  [
+                                  {
+                                      "who":  "josh",
+                                      "text":  "The puzzle that appears when clicking this item is very tiny on the screen, and essentially does not work well. Lets make it full screen similar to the document size of the \"books\" that can be viewed",
+                                      "at":  "2026-10-09T18:22:42.4691707Z",
+                                      "shot":  "ORRERY-1-0.png"
+                                  },
+                                  {
+                                      "who":  "claude",
+                                      "text":  "Agreed -- this one is not a lighting change: the puzzle is drawn and clicked by the game itself, so making it full screen (like the books) means finding its drawing and its click spots in the game code and moving both, as was done for the save/load screen. I have split it into its own task so it gets done properly; it is not in this round.",
+                                      "at":  "2026-10-09T18:38:38.7066497Z",
+                                      "round":  19,
+                                      "changes":  [
+
+                                                  ]
+                                  }
+                              ]
+                  }
+              ],
+    "completed":  [
+                      {
+                          "id":  7,
+                          "ref":  "ORRERY/7",
+                          "status":  "complete",
+                          "created":  "2026-10-09T18:33:37.6081337Z",
+                          "updated":  "2026-10-09T18:38:38.6956506Z",
+                          "kind":  "other",
+                          "point":  [
+                                        10,
+                                        28.47,
+                                        -1.71
+                                    ],
+                          "normal":  [
+                                         0.828,
+                                         0.561,
+                                         0
+                                     ],
+                          "part":  "orr_cent02",
+                          "material":  "1ORRERYCENTRE",
+                          "texture":  "25-or_cent.png",
+                          "uv":  [
+                                     0.339,
+                                     0.737
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     66.02,
+                                                     136,
+                                                     -134.74
+                                                 ],
+                                         "fwd":  [
+                                                     -0.35,
+                                                     -0.51,
+                                                     0.79
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  66.02,
+                                                         "Y":  136,
+                                                         "Z":  -134.74,
+                                                         "Yaw":  -24.28,
+                                                         "Pitch":  -30.49
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  34.84,
+                                                        "y":  45.3,
+                                                        "z":  -1.71,
+                                                        "dir":  [
+                                                                    1,
+                                                                    0,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:35.8057416Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "The golden light from above will have a radius wide enough to encompass most of this orrory.",
+                                          "at":  "2026-10-09T18:33:37.6081337Z",
+                                          "shot":  "ORRERY-7-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done with note 2: the cone is about 110 units across at full strength and 160 at its soft edge on the floor, so it takes in most of the orrery.",
+                                          "at":  "2026-10-09T18:38:38.6956506Z",
+                                          "changes":  [
+                                                          "rooms\\ORRERY.json: lights[0].cone [16, 22]"
+                                                      ],
+                                          "round":  19,
+                                          "render":  "ORRERY-7-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T22:16:22.6721248Z"
+                      },
+                      {
+                          "id":  6,
+                          "ref":  "ORRERY/6",
+                          "status":  "complete",
+                          "created":  "2026-10-09T18:33:12.2656188Z",
+                          "updated":  "2026-10-09T18:38:29.8914847Z",
+                          "kind":  "light",
+                          "point":  [
+                                        129.3,
+                                        4.55,
+                                        4.07
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "orr_floor",
+                          "material":  "1ORRERYFLOOR",
+                          "texture":  "27-or_flor.png",
+                          "uv":  [
+                                     0.887,
+                                     0.51
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -9.41,
+                                                     146.35,
+                                                     -125.36
+                                                 ],
+                                         "fwd":  [
+                                                     0.39,
+                                                     -0.61,
+                                                     0.69
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -9.41,
+                                                         "Y":  146.35,
+                                                         "Z":  -125.36,
+                                                         "Yaw":  29.05,
+                                                         "Pitch":  -37.51
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  129.3,
+                                                        "y":  34.55,
+                                                        "z":  4.07,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:35.8057416Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "See note 3, another light source here.",
+                                          "at":  "2026-10-09T18:33:12.2656188Z",
+                                          "shot":  "ORRERY-6-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added, as note 3: the same blob here, three quarters round the colour cycle.",
+                                          "at":  "2026-10-09T18:38:29.8914847Z",
+                                          "changes":  [
+                                                          "rooms\\ORRERY.json: lights[4] (cycle offset 0.75)"
+                                                      ],
+                                          "round":  19,
+                                          "render":  "ORRERY-6-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T22:16:28.2621855Z"
+                      },
+                      {
+                          "id":  5,
+                          "ref":  "ORRERY/5",
+                          "status":  "complete",
+                          "created":  "2026-10-09T18:33:03.2060499Z",
+                          "updated":  "2026-10-09T18:38:21.1460800Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -100.89,
+                                        4.55,
+                                        -11.58
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "orr_floor",
+                          "material":  "1ORRERYFLOOR",
+                          "texture":  "27-or_flor.png",
+                          "uv":  [
+                                     0.187,
+                                     0.463
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -83.33,
+                                                     123.91,
+                                                     -39.18
+                                                 ],
+                                         "fwd":  [
+                                                     -0.06,
+                                                     -0.99,
+                                                     0.16
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -83.33,
+                                                         "Y":  123.91,
+                                                         "Z":  -39.18,
+                                                         "Yaw":  -20.63,
+                                                         "Pitch":  -80.24
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -100.89,
+                                                        "y":  34.55,
+                                                        "z":  -11.58,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:35.8057416Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "See note 3, another light source here.",
+                                          "at":  "2026-10-09T18:33:03.2060499Z",
+                                          "shot":  "ORRERY-5-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added, as note 3: the same blob here, half way round the colour cycle.",
+                                          "at":  "2026-10-09T18:38:21.1460800Z",
+                                          "changes":  [
+                                                          "rooms\\ORRERY.json: lights[3] (cycle offset 0.5)"
+                                                      ],
+                                          "round":  19,
+                                          "render":  "ORRERY-5-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T22:16:30.4060257Z"
+                      },
+                      {
+                          "id":  4,
+                          "ref":  "ORRERY/4",
+                          "status":  "complete",
+                          "created":  "2026-10-09T18:32:47.6339371Z",
+                          "updated":  "2026-10-09T18:38:12.2356554Z",
+                          "kind":  "light",
+                          "point":  [
+                                        0.04,
+                                        4.55,
+                                        -129.39
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "orr_floor",
+                          "material":  "1ORRERYFLOOR",
+                          "texture":  "27-or_flor.png",
+                          "uv":  [
+                                     0.494,
+                                     0.104
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     80.82,
+                                                     252.46,
+                                                     -53.16
+                                                 ],
+                                         "fwd":  [
+                                                     -0.32,
+                                                     -0.94,
+                                                     -0.12
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  80.82,
+                                                         "Y":  252.46,
+                                                         "Z":  -53.16,
+                                                         "Yaw":  -109.89,
+                                                         "Pitch":  -70.13
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  0.04,
+                                                        "y":  34.55,
+                                                        "z":  -129.39,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:35.8057416Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "See note 3, another light source here.",
+                                          "at":  "2026-10-09T18:32:47.6339371Z",
+                                          "shot":  "ORRERY-4-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added, as note 3: the same blob here, a quarter of the way round the colour cycle, so the four are never the same colour at once.",
+                                          "at":  "2026-10-09T18:38:12.2356554Z",
+                                          "changes":  [
+                                                          "rooms\\ORRERY.json: lights[2] (cycle offset 0.25)"
+                                                      ],
+                                          "round":  19,
+                                          "render":  "ORRERY-4-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T22:16:31.8994432Z"
+                      },
+                      {
+                          "id":  3,
+                          "ref":  "ORRERY/3",
+                          "status":  "complete",
+                          "created":  "2026-10-09T18:32:28.6496163Z",
+                          "updated":  "2026-10-09T18:38:03.2954352Z",
+                          "kind":  "other",
+                          "point":  [
+                                        9.04,
+                                        4.55,
+                                        125.69
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "orr_floor",
+                          "material":  "1ORRERYFLOOR",
+                          "texture":  "27-or_flor.png",
+                          "uv":  [
+                                     0.522,
+                                     0.88
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     155.14,
+                                                     115.46,
+                                                     40.58
+                                                 ],
+                                         "fwd":  [
+                                                     -0.76,
+                                                     -0.5,
+                                                     0.42
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  155.14,
+                                                         "Y":  115.46,
+                                                         "Z":  40.58,
+                                                         "Yaw":  -60.77,
+                                                         "Pitch":  -29.71
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  9.04,
+                                                        "y":  34.55,
+                                                        "z":  125.69,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:35.8057416Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Light source, deep orange, flickering light, no torch. The light sources in this room other than the main light form the ceiling will vary in color, swirling from orange, to orangish purple, to orange-red to red-blue in a slow cycle for an ethereal magical feel. Note these light seurces will be blobs, and not super bright, very much an ambient effect.",
+                                          "at":  "2026-10-09T18:32:28.6496163Z",
+                                          "shot":  "ORRERY-3-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added: a soft glowing blob 25 above the floor here, no torch, deep orange, flickering, not bright (power 0.5, reach 140), glowing in the fog. Its colour drifts slowly round orange, orange-purple, orange-red and red-blue over 22 s (new \"cycle\" setting on lights), eased between each.",
+                                          "at":  "2026-10-09T18:38:03.2954352Z",
+                                          "changes":  [
+                                                          "rooms\\ORRERY.json: lights[1] (cycle orange -\u003e #C8508C -\u003e #FF3A12 -\u003e #8A3AB0, 22 s)",
+                                                          "Watch-HostRender.ps1: new light key \"cycle\" {colors, seconds, offset}"
+                                                      ],
+                                          "round":  19,
+                                          "render":  "ORRERY-3-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T22:16:35.4475991Z"
+                      },
+                      {
+                          "id":  2,
+                          "ref":  "ORRERY/2",
+                          "status":  "complete",
+                          "created":  "2026-10-09T18:30:27.3881133Z",
+                          "updated":  "2026-10-09T18:37:54.4088248Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -1.33,
+                                        406.46,
+                                        2.34
+                                    ],
+                          "normal":  [
+                                         0,
+                                         -1,
+                                         0
+                                     ],
+                          "part":  "orr_top",
+                          "material":  "1ORRERY_TOP",
+                          "texture":  "17-or_top.png",
+                          "uv":  [
+                                     0.517,
+                                     0.508
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -46.3,
+                                                     66.98,
+                                                     124.91
+                                                 ],
+                                         "fwd":  [
+                                                     0.28,
+                                                     0.84,
+                                                     -0.47
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -46.3,
+                                                         "Y":  66.98,
+                                                         "Z":  124.91,
+                                                         "Yaw":  149.05,
+                                                         "Pitch":  56.74
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -1.33,
+                                                        "y":  376.46,
+                                                        "z":  2.34,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:35.8057416Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Similar to the coricori room, I want a beam of light shining from this area in the ceiling. It will be a large cone of golden light that envelopes the orrory shape below. Apply the fog to this room but lightly, with bounce lighting appllied throughout. Deep dust particles will be floating in this cone of golden light.",
+                                          "at":  "2026-10-09T18:30:27.3881133Z",
+                                          "shot":  "ORRERY-2-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added: a golden cone (#FFC25A) shining straight down from the ceiling shaft (orr_top), 16-22 degrees wide so it takes in most of the orrery, visible in the air (air 9, light rays), with 320 dust specks floating in it. Light fog (black, density 0.0015, at most 35%) and bounce light throughout (the cone carries most of it). A first pass at twice the power washed the whole room gold; this is the toned-down one.",
+                                          "at":  "2026-10-09T18:37:54.4088248Z",
+                                          "changes":  [
+                                                          "rooms\\ORRERY.json: new file -- volume, gi, lights[0] golden cone with dust",
+                                                          "GiBake.cs: the probe grid ignores geometry parked far from the lights (the orrery\u0027s parts wait at y -37,000)",
+                                                          "GpuRaster.cs: a light with a strong \"air\" keeps its place in the fog among nearer lights"
+                                                      ],
+                                          "round":  19,
+                                          "render":  "ORRERY-2-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T22:16:42.3123923Z"
+                      }
+                  ],
+    "deleted":  [
+
+                ]
+}

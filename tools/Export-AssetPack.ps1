@@ -10,13 +10,13 @@
 # THE PACK HOLDS A COPY OF THE GAME (the built install). It is for Josh's own machines: keep it on a private drive or a
 # private cloud folder -- never a public place.
 #
-# Components (default: install, hires, books, gfx, notes; -Include all adds the optional ones):
+# Components (default: install, hires, books, gfx; -Include all adds the optional ones):
 #   install    C:\Games\AzraelsTear-Modded       the built game: DOSBox Staging + its conf and soundfont, the extracted and
 #                                                upscaled GAME\AZTEX, the re-encoded movies, the CD soundtrack, saves
 #   hires      C:\Games\azrael-textures\hires    the renderer's hi-res textures (~3 GB: Real-ESRGAN runs + Josh's 4K art)
 #   books      C:\Games\azrael-books             the upscaled book pages (an install input)
 #   gfx        C:\Games\azrael-gfx               Josh's sources only: decals\<ROOM>\updated, screens, credits, orrery-puzzle
-#   notes      C:\Games\azrael-render\room-notes Room Review's notes and rounds (JSON only; the screenshots stay behind)
+#   screenshots room-notes\*.png (in the repo)    optional: Room Review's screenshots (the notes' JSON is in git)
 #   audio      Desktop\AzraelTearSoundtrack      optional: soundtrack / boot-sound sources (Build-Soundtrack, loading audio)
 #   video      C:\Games\azrael-video\update      optional: the MP4 sources the movies are re-encoded from
 #   realesrgan C:\Games\realesrgan               optional: the upscaler (only for re-running upscales / HUD builds)
@@ -24,7 +24,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$OutDir,
-    [string[]]$Include = @('install', 'hires', 'books', 'gfx', 'notes'),
+    [string[]]$Include = @('install', 'hires', 'books', 'gfx'),
     [switch]$Force
 )
 $ErrorActionPreference = 'Stop'
@@ -39,7 +39,7 @@ $all = [ordered]@{
     hires      = @{ Root = 'C:\Games\azrael-textures'; Paths = @('hires'); Restore = 'C:\Games\azrael-textures'; Exclude = @() }
     books      = @{ Root = 'C:\Games'; Paths = @('azrael-books'); Restore = 'C:\Games'; Exclude = @('azrael-books/before') }
     gfx        = @{ Root = 'C:\Games'; Paths = $null; Restore = 'C:\Games'; Exclude = @() }
-    notes      = @{ Root = 'C:\Games\azrael-render'; Paths = @('room-notes'); Restore = 'C:\Games\azrael-render'; Exclude = @('*.png') }
+    screenshots = @{ Root = (Split-Path -Parent $PSScriptRoot); Paths = @('room-notes'); Restore = '%REPO%'; Exclude = @('*.json') }
     audio      = @{ Root = $desk; Paths = @('AzraelTearSoundtrack'); Restore = '%DESKTOP%'; Exclude = @() }
     video      = @{ Root = 'C:\Games\azrael-video'; Paths = @('update'); Restore = 'C:\Games\azrael-video'; Exclude = @() }
     realesrgan = @{ Root = 'C:\Games'; Paths = @('realesrgan'); Restore = 'C:\Games'; Exclude = @() }

@@ -46,3 +46,6 @@ desktop.ini
 .vs/
 .vscode/
 *.bak-*
+
+# Room Review's screenshots stay on each PC (the notes' JSON is versioned)
+room-notes/*.png

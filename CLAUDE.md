@@ -58,7 +58,7 @@ Other docs:
 |---|---|
 | `<Steam>\steamapps\common\Azrael's Tear\AztMod` | **This repo.** The build reads the stock game from `..\GAME\AZRAEL`. |
 | `C:\Games\AzraelsTear-Modded` | The built, patched game: DOSBox Staging, extracted AZTEX, movies, soundtrack. Not in git. |
-| `C:\Games\azrael-render` | The renderer's caches, `watch.log`, Room Review notes. Its `rooms\` is a junction to this repo's `rooms\`. |
+| `C:\Games\azrael-render` | The renderer's caches and `watch.log`. Its `rooms\` and `room-notes\` are junctions to this repo's `rooms\` and `room-notes\`: room settings and Room Review notes are versioned, and their screenshots are ignored. |
 | `C:\Games\azrael-textures\hires` | Hi-res texture overrides (~3 GB). Not in git; comes with the asset pack. |
 | `C:\Games\azrael-inject\azrael-palette.pal` | Copied from `runtime\` by `tools\Setup-Machine.ps1`. |
 
@@ -70,3 +70,4 @@ Other docs:
   - `.gitignore` blocks `*.EXE` / `*.BIN` / `*.MOV` / `*.DAT`.
 - Big binary assets go in the asset pack (`tools\Export-AssetPack.ps1`), not git.
 - `AztMod.manifest.installed.json` is per machine. It is ignored.
+- **Room Review rounds:** after replying to notes (`tools\Reply-RoomNote.ps1`) and editing `rooms\*.json`, commit both, so the other PCs see the replies and the changes together.

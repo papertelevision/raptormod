@@ -1,6 +1,6 @@
 # Setting up a PC to work on RaptorMod
 
-The repo holds everything that is code or hand-made and small: the patch source and manifest, the renderer, the art, the design sources, the room settings and the notes.
+The repo holds everything that is code or hand-made and small: the patch source and manifest, the renderer, the Room Review app, the art, the design sources, the room settings, Room Review's notes and the project notes.
 
 The big data travels separately, as an **asset pack**:
 - the built game install;
@@ -45,7 +45,7 @@ This writes one `.tar` per component plus `pack.json`, about 6.5 GB, into the fo
 | `hires` | `C:\Games\azrael-textures\hires`: the renderer's hi-res textures | ~3.1 GB |
 | `books` | `C:\Games\azrael-books`: the upscaled book pages | ~0.2 GB |
 | `gfx` | Josh's sources in `C:\Games\azrael-gfx`: `decals\<ROOM>\updated`, `screens`, `credits` | ~0.2 GB |
-| `notes` | Room Review's notes (JSON; screenshots left behind) | small |
+| *(optional)* `screenshots` | Room Review's note screenshots (the notes themselves are in git) | ~0.2 GB |
 | *(optional)* `audio`, `video`, `realesrgan` | Soundtrack and boot-sound sources, the MP4 movie sources, the upscaler. Only needed to rebuild the soundtrack or movies, or to run new upscales: `-Include all` | ~0.8 GB |
 
 To refresh just one component later, for example after new textures:
@@ -68,10 +68,11 @@ powershell -ExecutionPolicy Bypass -File AztMod\tools\Setup-Machine.ps1 -AssetPa
 `Setup-Machine.ps1` reports each step it takes. It:
 - checks that the repo sits in the game folder;
 - restores the pack (anything already present is left alone unless `-Force`);
-- makes the `C:\Games\azrael-render\rooms` junction to the repo's `rooms\`;
+- makes the `C:\Games\azrael-render\rooms` and `\room-notes` junctions to the repo's `rooms\` and `room-notes\`;
 - copies the palette;
 - decodes the title music;
 - installs the repo's patches into `C:\Games\AzraelsTear-Modded`;
+- builds every room's cached 3D export, which Room Review's viewer shows (a few minutes the first time);
 - puts **"Azrael's Tear (Host Renderer - true colour)"** on the desktop.
 
 Play from that shortcut. The renderer compiles itself on its first start, and builds its room caches (`C:\Games\azrael-render`) the first time it sees each room, so the first visit to a room is a little slower.
@@ -82,6 +83,7 @@ For Claude Code, open the session in the `AztMod` folder. It reads `CLAUDE.md`, 
 
 - **The renderer** (`tools\`) runs straight from the repo. Pull, then play.
 - **Room settings** (`rooms\*.json`) are read through the junction. Pull, then play.
+- **Room Review** (`Review-Rooms.cmd`) works on any PC once it's set up. Its notes (`room-notes\*.json`) are in git: commit and push after submitting a round on one PC, and pull before reviewing on another. Each PC keeps its own screenshots.
 - **Patches or art changed** (the pull touched `AztMod.manifest.json` or `art\`): close the game and run `tools\Setup-Machine.ps1` again with no `-AssetPack`. It reinstalls the patches and art and records the installed manifest. `Install-Update.cmd` also works for patch-only changes.
 - **Big assets changed on another PC:** re-export that component there, then on this PC run `Setup-Machine.ps1 -AssetPack <folder> -Force`.
 - **Not synced:**

@@ -1,0 +1,620 @@
+{
+    "schema":  2,
+    "room":  "WELLROOM",
+    "rev":  26,
+    "nextId":  8,
+    "notes":  [
+                  {
+                      "id":  7,
+                      "ref":  "WELLROOM/7",
+                      "status":  "new",
+                      "created":  "2026-10-10T01:12:28.4095942Z",
+                      "updated":  "2026-10-10T01:12:28.4095942Z",
+                      "kind":  "other",
+                      "point":  [
+                                    -47.35,
+                                    -41.45,
+                                    -26.59
+                                ],
+                      "normal":  [
+                                     0,
+                                     1,
+                                     0
+                                 ],
+                      "part":  "well_floor",
+                      "material":  "WELL_FLOOR",
+                      "texture":  "17-wel_flor.png",
+                      "uv":  [
+                                 0.612,
+                                 0.445
+                             ],
+                      "target":  null,
+                      "camera":  {
+                                     "pos":  [
+                                                 19.52,
+                                                 60.01,
+                                                 84.63
+                                             ],
+                                     "fwd":  [
+                                                 -0.37,
+                                                 -0.4,
+                                                 -0.84
+                                             ],
+                                     "up":  [
+                                                0,
+                                                1,
+                                                0
+                                            ],
+                                     "fov":  50,
+                                     "mirror":  true,
+                                     "gpuLook":  {
+                                                     "X":  19.52,
+                                                     "Y":  60.01,
+                                                     "Z":  84.63,
+                                                     "Yaw":  -156.47,
+                                                     "Pitch":  -23.7
+                                                 }
+                                 },
+                      "suggest":  {
+                                      "light":  {
+                                                    "x":  -47.35,
+                                                    "y":  -11.45,
+                                                    "z":  -26.59,
+                                                    "dir":  [
+                                                                0,
+                                                                -1,
+                                                                0
+                                                            ]
+                                                }
+                                  },
+                      "seen":  {
+                                   "objMtime":  "2026-10-05T02:29:26.2802228Z",
+                                   "roomFileMtime":  "2026-10-10T00:32:50.1378698Z"
+                               },
+                      "log":  [
+                                  {
+                                      "who":  "josh",
+                                      "text":  "Dust particles in this room as well.",
+                                      "at":  "2026-10-10T01:12:28.4095942Z",
+                                      "shot":  "WELLROOM-7-0.png"
+                                  }
+                              ]
+                  }
+              ],
+    "completed":  [
+                      {
+                          "id":  1,
+                          "ref":  "WELLROOM/1",
+                          "status":  "complete",
+                          "created":  "2026-10-10T00:16:52.3894564Z",
+                          "updated":  "2026-10-10T00:33:20.6703524Z",
+                          "kind":  "other",
+                          "point":  [
+                                        42.24,
+                                        -35.01,
+                                        -66.21
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "death",
+                          "material":  "NIBODYBASE",
+                          "texture":  "06-wel_bdy2.png",
+                          "uv":  [
+                                     0.89,
+                                     0.972
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -15.55,
+                                                     35.38,
+                                                     21.54
+                                                 ],
+                                         "fwd":  [
+                                                     0.27,
+                                                     -0.51,
+                                                     -0.82
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -15.55,
+                                                         "Y":  35.38,
+                                                         "Z":  21.54,
+                                                         "Yaw":  161.77,
+                                                         "Pitch":  -30.44
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  42.24,
+                                                        "y":  -5.01,
+                                                        "z":  -66.21,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:26.2802228Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "we should add a small watery glow effect just like in the sparoom to this water surface. It must be scaled to be smaller however, but I want the same glow and reflections.",
+                                          "at":  "2026-10-10T00:16:52.3894564Z",
+                                          "shot":  "WELLROOM-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: the well now has the spa\u0027s modern water -- the same teal glow from under the surface, Fresnel shine, rippled reflections and glints -- scaled to the small pool (one lamp under the middle, ripples and the caustic web about half the spa\u0027s size). The well\u0027s surface is the part \u0027death\u0027 and was not named as water, so the renderer did not know it was water before; the room file now says so (\"water.parts\").",
+                                          "at":  "2026-10-10T00:33:20.6703524Z",
+                                          "changes":  [
+                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "water block: glow #2FD8C6, glowPower 0.14, one lamp (42.7, -69.4) radius 26, ripples size 14, caustics size 20",
+                                                          "Watch-HostRender.ps1 Get-Room: a room\u0027s water.parts marks parts as water"
+                                                      ],
+                                          "round":  23,
+                                          "render":  "WELLROOM-1-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-10T01:11:48.7305379Z"
+                      },
+                      {
+                          "id":  2,
+                          "ref":  "WELLROOM/2",
+                          "status":  "complete",
+                          "created":  "2026-10-10T00:21:02.4486823Z",
+                          "updated":  "2026-10-10T00:33:32.6810310Z",
+                          "kind":  "other",
+                          "point":  [
+                                        58.16,
+                                        85.5,
+                                        -89.39
+                                    ],
+                          "normal":  [
+                                         0,
+                                         -1,
+                                         0
+                                     ],
+                          "part":  "well_roof",
+                          "material":  "1WELL01",
+                          "texture":  "02-wel_r01.png",
+                          "uv":  [
+                                     0.278,
+                                     0.354
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -79.89,
+                                                     28.44,
+                                                     88.57
+                                                 ],
+                                         "fwd":  [
+                                                     0.58,
+                                                     0.14,
+                                                     -0.8
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -79.89,
+                                                         "Y":  28.44,
+                                                         "Z":  88.57,
+                                                         "Yaw":  144,
+                                                         "Pitch":  8.21
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  58.16,
+                                                        "y":  55.5,
+                                                        "z":  -89.39,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:26.2802228Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "water reflection and color bouncing should be seen above this well on the ceiling.",
+                                          "at":  "2026-10-10T00:21:02.4486823Z",
+                                          "shot":  "WELLROOM-2-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: the water\u0027s rippling light reaches the ceiling over the well (120 units up, at about half strength) and spreads up to 100 units past the rim, so the walls round the well and its pipes take the moving teal caustics too.",
+                                          "at":  "2026-10-10T00:33:32.6810310Z",
+                                          "changes":  [
+                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "water.caustics.height 200"
+                                                      ],
+                                          "round":  23,
+                                          "render":  "WELLROOM-2-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-10T01:11:51.4925904Z"
+                      },
+                      {
+                          "id":  3,
+                          "ref":  "WELLROOM/3",
+                          "status":  "complete",
+                          "created":  "2026-10-10T00:21:41.6448598Z",
+                          "updated":  "2026-10-10T00:33:44.0306453Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -111.99,
+                                        -41.45,
+                                        26.58
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "well_floor",
+                          "material":  "WELL_FLOOR",
+                          "texture":  "17-wel_flor.png",
+                          "uv":  [
+                                     0.822,
+                                     0.273
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     2.35,
+                                                     105.65,
+                                                     -43.97
+                                                 ],
+                                         "fwd":  [
+                                                     -0.65,
+                                                     -0.71,
+                                                     0.27
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  2.35,
+                                                         "Y":  105.65,
+                                                         "Z":  -43.97,
+                                                         "Yaw":  -67.01,
+                                                         "Pitch":  -45.4
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -111.99,
+                                                        "y":  -11.45,
+                                                        "z":  26.58,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:26.2802228Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "As with other rooms, I want dark mist to emulate the black areas we see drawn on the textures to emulate the lighting design.",
+                                          "at":  "2026-10-10T00:21:41.6448598Z",
+                                          "shot":  "WELLROOM-3-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done, two ways. As in the other rooms, a black volumetric fog thickens where the ORIGINAL art is painted dark -- in this room that is mostly along the walls and corners. And as in MINEHEAD, the light from the artwork: the original art\u0027s painted light and shade, texel by texel, now shades the room\u0027s own light and its bounce, so the black drawn on the floor and walls reads as real darkness (the torch and the teal lights still cut through it).",
+                                          "at":  "2026-10-10T00:33:44.0306453Z",
+                                          "changes":  [
+                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "volume + volume.paint (as CORICORI)",
+                                                          "artLight (as MINEHEAD: floor 0.12, gamma 0.7, open 4, close 2, blur 1, percentile 0.85)",
+                                                          "gi (bounced light, ambient 0.6)"
+                                                      ],
+                                          "round":  23,
+                                          "render":  "WELLROOM-3-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-10T01:11:54.7885053Z"
+                      },
+                      {
+                          "id":  4,
+                          "ref":  "WELLROOM/4",
+                          "status":  "complete",
+                          "created":  "2026-10-10T00:22:41.7980713Z",
+                          "updated":  "2026-10-10T00:33:55.7755477Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -161.85,
+                                        10.86,
+                                        -19.84
+                                    ],
+                          "normal":  [
+                                         1,
+                                         0,
+                                         0
+                                     ],
+                          "part":  "walls",
+                          "material":  "WELL_WALL05",
+                          "texture":  "22-wel_wal5.png",
+                          "uv":  [
+                                     0.442,
+                                     0.472
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     8.8,
+                                                     6.54,
+                                                     41.27
+                                                 ],
+                                         "fwd":  [
+                                                     -0.85,
+                                                     0.06,
+                                                     -0.52
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  8.8,
+                                                         "Y":  6.54,
+                                                         "Z":  41.27,
+                                                         "Yaw":  -121.42,
+                                                         "Pitch":  3.31
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -131.85,
+                                                        "y":  10.86,
+                                                        "z":  -19.84,
+                                                        "dir":  [
+                                                                    1,
+                                                                    0,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:26.2802228Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "One of our torches with its typical lighting and effects here.",
+                                          "at":  "2026-10-10T00:22:41.7980713Z",
+                                          "shot":  "WELLROOM-4-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: one of our torches (sconce, flame, flicker, shadows, scale 0.8) on the west wall at your mark, the light 15 units out from the wall as every torch.",
+                                          "at":  "2026-10-10T00:33:55.7755477Z",
+                                          "changes":  [
+                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "lights[0] torch at (-146.85, 10.86, -19.84) facing +x"
+                                                      ],
+                                          "round":  23,
+                                          "render":  "WELLROOM-4-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-10T01:11:57.6472370Z"
+                      },
+                      {
+                          "id":  5,
+                          "ref":  "WELLROOM/5",
+                          "status":  "complete",
+                          "created":  "2026-10-10T00:25:45.1266463Z",
+                          "updated":  "2026-10-10T00:34:08.2355224Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -6.96,
+                                        -18.04,
+                                        -117.65
+                                    ],
+                          "normal":  [
+                                         0.707,
+                                         0,
+                                         0.707
+                                     ],
+                          "part":  "walls",
+                          "material":  "WELL_WALL02",
+                          "texture":  "23-wel_wal2.png",
+                          "uv":  [
+                                     0.443,
+                                     0.27
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -27.09,
+                                                     6.54,
+                                                     37.24
+                                                 ],
+                                         "fwd":  [
+                                                     0.34,
+                                                     -0.17,
+                                                     -0.92
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -27.09,
+                                                         "Y":  6.54,
+                                                         "Z":  37.24,
+                                                         "Yaw":  159.74,
+                                                         "Pitch":  -9.98
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  14.26,
+                                                        "y":  -18.04,
+                                                        "z":  -96.43,
+                                                        "dir":  [
+                                                                    0.707,
+                                                                    0,
+                                                                    0.707
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:26.2802228Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "A light source here to capture the glow of the well in this room, a hazy teal similar to the water color from the spa roomwill be the color of this light. Not too bright",
+                                          "at":  "2026-10-10T00:25:45.1266463Z",
+                                          "shot":  "WELLROOM-5-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: a faint hazy teal light (#5FD8CA, between the spa water\u0027s glow and its mist) at your mark, 15 units off the wall, no flicker, showing a little in the dark air. Kept low (power 0.3).",
+                                          "at":  "2026-10-10T00:34:08.2355224Z",
+                                          "changes":  [
+                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "lights[1] at (3.65, -18.04, -107.04), power 0.3, air 2"
+                                                      ],
+                                          "round":  23,
+                                          "render":  "WELLROOM-5-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-10T01:12:01.1461169Z"
+                      },
+                      {
+                          "id":  6,
+                          "ref":  "WELLROOM/6",
+                          "status":  "complete",
+                          "created":  "2026-10-10T00:26:23.7835472Z",
+                          "updated":  "2026-10-10T00:34:19.6159710Z",
+                          "kind":  "other",
+                          "point":  [
+                                        81.43,
+                                        -4.12,
+                                        -7.04
+                                    ],
+                          "normal":  [
+                                         -0.707,
+                                         0,
+                                         -0.707
+                                     ],
+                          "part":  "walls",
+                          "material":  "WELL_WALL03",
+                          "texture":  "24-wel_wal3.png",
+                          "uv":  [
+                                     0.447,
+                                     0.368
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -27.09,
+                                                     6.54,
+                                                     37.24
+                                                 ],
+                                         "fwd":  [
+                                                     0.77,
+                                                     -0.19,
+                                                     -0.61
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -27.09,
+                                                         "Y":  6.54,
+                                                         "Z":  37.24,
+                                                         "Yaw":  128.57,
+                                                         "Pitch":  -10.74
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  60.22,
+                                                        "y":  -4.12,
+                                                        "z":  -28.26,
+                                                        "dir":  [
+                                                                    -0.707,
+                                                                    0,
+                                                                    -0.707
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:26.2802228Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Another faint light source here in the same hazy teal as described in the other light source request. We will see the refleciton of the well\u0027s water on all three walls, and the piping of the well.",
+                                          "at":  "2026-10-10T00:26:23.7835472Z",
+                                          "shot":  "WELLROOM-6-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: a second, fainter one in the same teal at your mark (power 0.2). With the caustics\u0027 reach raised (note 2) the well\u0027s rippling reflection shows on all three walls round it and on the pipes.",
+                                          "at":  "2026-10-10T00:34:19.6159710Z",
+                                          "changes":  [
+                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "lights[2] at (70.82, -4.12, -17.65), power 0.2, air 2"
+                                                      ],
+                                          "round":  23,
+                                          "render":  "WELLROOM-6-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-10T01:12:04.0944182Z"
+                      }
+                  ],
+    "deleted":  [
+
+                ]
+}

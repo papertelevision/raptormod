@@ -1,0 +1,839 @@
+{
+    "schema":  2,
+    "room":  "SPAROOM",
+    "rev":  48,
+    "nextId":  10,
+    "notes":  [
+
+              ],
+    "completed":  [
+                      {
+                          "id":  1,
+                          "ref":  "SPAROOM/1",
+                          "status":  "complete",
+                          "created":  "2026-10-08T17:16:04.5009483Z",
+                          "updated":  "2026-10-08T17:35:20.3126637Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -115.87,
+                                        -86.99,
+                                        28.25
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "zxspadeath",
+                          "material":  "WATERDEATH",
+                          "texture":  "04-slwate1.png",
+                          "uv":  [
+                                     -0.048,
+                                     0.429
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -167.44,
+                                                     32.18,
+                                                     -59.61
+                                                 ],
+                                         "fwd":  [
+                                                     0.47,
+                                                     -0.71,
+                                                     0.53
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -167.44,
+                                                         "Y":  32.18,
+                                                         "Z":  -59.61,
+                                                         "Yaw":  41.53,
+                                                         "Pitch":  -45.01
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -115.87,
+                                                        "y":  -56.99,
+                                                        "z":  28.25,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "can we add a few light source beneath this water surface? it would be perfect to feel as if the water is lightly illuminate from below wit h a glowing effect, and water-like light projections on the walls above as if light is reflecting off the surface.",
+                                          "at":  "2026-10-08T17:16:04.5009483Z",
+                                          "shot":  "SPAROOM-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added: the pool is now lit from below. Three lamps sit under the surface (one right under where you clicked, one under note 2\u0027s spot, one in the far corner), each making a soft turquoise pool of light in the water, plus a faint even glow everywhere. The light comes up out of the water onto everything above it: a soft fill plus moving caustic lines (the rippling web that pool light throws) on the walls, the pipe arch and the walkway\u0027s underside. It fades with height above the water. It all animates in game. The walls get a paler cyan than the water itself, because full turquoise turned the brown stone green. Lamp positions and brightness are easy to move: point at a spot and I\u0027ll put one there.",
+                                          "at":  "2026-10-08T17:35:20.3126637Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json (new): water.glow #2FD8C6, glowPower 0.14, glowBase 0.25",
+                                                          "water.lights: 3 lamps under the surface at (-120,30), (40,-120), (-240,-220), radius 70",
+                                                          "water.caustics: strength 2.6, size 38, height 140, fill 0.3 (light on the walls above the pool)",
+                                                          "GpuRaster: new glowing-water lighting + caustics in the room shader (GPU mode only)"
+                                                      ],
+                                          "round":  4,
+                                          "render":  "SPAROOM-1-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-08T17:49:38.3157367Z"
+                      },
+                      {
+                          "id":  8,
+                          "ref":  "SPAROOM/8",
+                          "status":  "complete",
+                          "created":  "2026-10-09T13:56:10.3672216Z",
+                          "updated":  "2026-10-09T14:01:27.2201958Z",
+                          "kind":  "other",
+                          "point":  [
+                                        11.93,
+                                        -86.99,
+                                        89.43
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "zxspadeath",
+                          "material":  "WATERDEATH",
+                          "texture":  "04-slwate1.png",
+                          "uv":  [
+                                     0.387,
+                                     1.482
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     159.16,
+                                                     18.42,
+                                                     -19.64
+                                                 ],
+                                         "fwd":  [
+                                                     -0.94,
+                                                     -0.27,
+                                                     0.2
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  159.16,
+                                                         "Y":  18.42,
+                                                         "Z":  -19.64,
+                                                         "Yaw":  -77.81,
+                                                         "Pitch":  -15.83
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  11.93,
+                                                        "y":  -56.99,
+                                                        "z":  89.43,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  "2026-10-09T12:46:56.3989643Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "The dark mist in this room actually adds a lot of nice depth to the water. In addiiton to the existing mist, I\u0027d like some teal, subtle mist to be place in the edged of the top of the water. It will be the same basic color as the water is but slightly lighter.",
+                                          "at":  "2026-10-09T13:56:10.3672216Z",
+                                          "shot":  "SPAROOM-8-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added a teal edge mist (#7FE6DA, the water\u0027s teal but lighter), kept separately from the dark steam you like. The pool surface turned out to be one big quad running under the walls, so its own outline wouldn\u0027t work. Instead the mist is born where the water actually meets the room: within 40 units of a wall, pillar or step, about 2,000 spots found around the pool. Soft puffs lie low over the water, drift slowly away from the wall and fade, about 360 at a time. Settings are in the room\u0027s \u0027waterMist\u0027 block: rate 30, alpha 0.12 (how solid), size 40, band 40 (how near a wall). Turn alpha or rate down if it reads too strong.",
+                                          "at":  "2026-10-09T14:01:27.2201958Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json waterMist block",
+                                                          "Particles.cs: water-edge mist (new kind)",
+                                                          "Watch-HostRender: waterMist room key"
+                                                      ],
+                                          "round":  14,
+                                          "render":  "SPAROOM-8-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T14:27:54.7560209Z"
+                      },
+                      {
+                          "id":  7,
+                          "ref":  "SPAROOM/7",
+                          "status":  "complete",
+                          "created":  "2026-10-09T13:55:12.6287340Z",
+                          "updated":  "2026-10-09T14:01:18.7199846Z",
+                          "kind":  "light",
+                          "point":  null,
+                          "normal":  null,
+                          "part":  null,
+                          "material":  null,
+                          "texture":  null,
+                          "uv":  null,
+                          "target":  {
+                                         "type":  "light",
+                                         "index":  1,
+                                         "name":  "torch on the east wall"
+                                     },
+                          "camera":  {
+                                         "pos":  [
+                                                     59.35,
+                                                     -15.68,
+                                                     19.29
+                                                 ],
+                                         "fwd":  [
+                                                     0.88,
+                                                     0.05,
+                                                     -0.48
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  59.35,
+                                                         "Y":  -15.68,
+                                                         "Z":  19.29,
+                                                         "Yaw":  118.55,
+                                                         "Pitch":  2.91
+                                                     }
+                                     },
+                          "suggest":  null,
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  "2026-10-09T12:46:56.3989643Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "LEts add the torch effect/graphic to this light as well",
+                                          "at":  "2026-10-09T13:55:12.6287340Z",
+                                          "shot":  "SPAROOM-7-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Torch graphic added here too, with the light moved to 15 units off the wall like the other one.",
+                                          "at":  "2026-10-09T14:01:18.7199846Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json lights[1]: torch added; moved to 15 off the wall (187.24, 2.77, -76.32)"
+                                                      ],
+                                          "round":  14,
+                                          "render":  "SPAROOM-7-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T14:27:57.9514537Z"
+                      },
+                      {
+                          "id":  6,
+                          "ref":  "SPAROOM/6",
+                          "status":  "complete",
+                          "created":  "2026-10-09T13:54:56.1948702Z",
+                          "updated":  "2026-10-09T14:01:10.3192776Z",
+                          "kind":  "light",
+                          "point":  null,
+                          "normal":  null,
+                          "part":  null,
+                          "material":  null,
+                          "texture":  null,
+                          "uv":  null,
+                          "target":  {
+                                         "type":  "light",
+                                         "index":  0,
+                                         "name":  "torch on the south-west wall"
+                                     },
+                          "camera":  {
+                                         "pos":  [
+                                                     -111.54,
+                                                     -26.25,
+                                                     -90.21
+                                                 ],
+                                         "fwd":  [
+                                                     -0.45,
+                                                     0.18,
+                                                     0.88
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -111.54,
+                                                         "Y":  -26.25,
+                                                         "Z":  -90.21,
+                                                         "Yaw":  -27.19,
+                                                         "Pitch":  10.18
+                                                     }
+                                     },
+                          "suggest":  null,
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  "2026-10-09T12:46:56.3989643Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "For this light lets add the torch graphic",
+                                          "at":  "2026-10-09T13:54:56.1948702Z",
+                                          "shot":  "SPAROOM-6-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Torch graphic added. I also moved the light 15 units nearer the wall: it was 30 out, and a torch there would hang on a 30-unit arm, which is what you had halved in the first room. Every torch is now 15 out. Same height as before.",
+                                          "at":  "2026-10-09T14:01:10.3192776Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json lights[0]: torch added; moved to 15 off the wall (-193.2, 41.7, 59.44)"
+                                                      ],
+                                          "round":  14,
+                                          "render":  "SPAROOM-6-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T14:28:02.7306666Z"
+                      },
+                      {
+                          "id":  4,
+                          "ref":  "SPAROOM/4",
+                          "status":  "complete",
+                          "created":  "2026-10-08T18:14:52.4705256Z",
+                          "updated":  "2026-10-08T18:23:39.4872892Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -131.49,
+                                        -86.99,
+                                        1.81
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "zxspadeath",
+                          "material":  "WATERDEATH",
+                          "texture":  "04-slwate1.png",
+                          "uv":  [
+                                     -0.028,
+                                     0.172
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -42.08,
+                                                     101.2,
+                                                     -9.54
+                                                 ],
+                                         "fwd":  [
+                                                     -0.48,
+                                                     -0.85,
+                                                     0.23
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -42.08,
+                                                         "Y":  101.2,
+                                                         "Z":  -9.54,
+                                                         "Yaw":  -64.74,
+                                                         "Pitch":  -57.85
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -131.49,
+                                                        "y":  -56.99,
+                                                        "z":  1.81,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  "2026-10-08T17:34:45.8619744Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "the reflection of the light source from the wall is too intense, please soften it a bit and also make it a slightly warm color.",
+                                          "at":  "2026-10-08T18:14:52.4705256Z",
+                                          "shot":  "SPAROOM-4-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Softened and warmed: the torches\u0027 reflection on the water is now about a quarter as strong, and it takes the torch\u0027s own orange (deeper, so it no longer burns out to white), with a faint warm sheen around it instead of a hard white patch. It still ripples. The flashlight\u0027s own glint is unchanged. If you want it fainter still, it\u0027s one number (lightSpec).",
+                                          "at":  "2026-10-08T18:17:12.0800270Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json: water.lightSpec 1.0 (new setting)",
+                                                          "GpuRaster: placed-light glints on water use the light colour squared, ~1/4 strength, plus a soft broad sheen"
+                                                      ],
+                                          "round":  6,
+                                          "render":  "SPAROOM-4-1-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Lets make the reflective light a bit more transparent on the water surface. It\u0027s still a bit too glaring. The reflections on the wall however (the water reflections) can be turned up a bit to be right in between their first setting and the current setting (still absent entirely from the hallways). For the steam, it\u0027s all a bit too large. Can we tighten the steaming effect so those look more modern/high resolution?",
+                                          "at":  "2026-10-08T18:21:53.6352468Z",
+                                          "shot":  "SPAROOM-4-2.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Three changes. (1) The torches\u0027 reflection on the water is half as strong again, more see-through. (2) The water\u0027s light patterns on the walls are back up, halfway between the first setting and the last one (strength 2.05, fill 0.24), and still kept out of the hallways. (3) The steam is now fine: small curls of vapour (size 12 instead of 40) with sharper detail inside each wisp, about twice as many of them, staying low over the water. It no longer lays a thick blur over the whole pool. Your old WASHCORI steam is unchanged; this is a new \u0027fine\u0027 style, so other rooms can opt in. This render lets the steam build up for 4 seconds first. Earlier renders only ran 0.3 s, so they barely showed the steam at all.",
+                                          "at":  "2026-10-08T18:23:39.4872892Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json: water.lightSpec 0.5; caustics strength 2.05, fill 0.24",
+                                                          "rooms\\SPAROOM.json: steam (own, replaces the spa class) fine, size 12, rate 90, alpha 0.28, rise 7, life 7",
+                                                          "Particles/GpuRaster: fine steam style (steam.fine); Render-RoomView lets particles build up 4 s"
+                                                      ],
+                                          "round":  7,
+                                          "render":  "SPAROOM-4-3-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T14:28:10.3960478Z"
+                      },
+                      {
+                          "id":  5,
+                          "ref":  "SPAROOM/5",
+                          "status":  "complete",
+                          "created":  "2026-10-08T18:15:17.2899846Z",
+                          "updated":  "2026-10-08T18:17:20.0574777Z",
+                          "kind":  "light",
+                          "point":  [
+                                        199.08,
+                                        2.77,
+                                        -85.53
+                                    ],
+                          "normal":  [
+                                         -0.789,
+                                         0,
+                                         0.614
+                                     ],
+                          "part":  "newwal01",
+                          "material":  "SPAWALL3",
+                          "texture":  "17-spawal04.png",
+                          "uv":  [
+                                     0.431,
+                                     0.479
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     90.72,
+                                                     -121.26,
+                                                     -1.14
+                                                 ],
+                                         "fwd":  [
+                                                     0.67,
+                                                     0.53,
+                                                     -0.52
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  90.72,
+                                                         "Y":  -121.26,
+                                                         "Z":  -1.14,
+                                                         "Yaw":  127.5,
+                                                         "Pitch":  31.7
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  175.4,
+                                                        "y":  2.77,
+                                                        "z":  -67.11,
+                                                        "dir":  [
+                                                                    -0.789,
+                                                                    0,
+                                                                    0.614
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  "2026-10-08T17:34:45.8619744Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Add another light source here just like the one on the other wall",
+                                          "at":  "2026-10-08T18:15:17.2899846Z",
+                                          "shot":  "SPAROOM-5-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added: a second torch just like the south-west one, where you clicked on the east wall, 30 units out and facing into the room. Same warm flickering light, casts shadows, no embers.",
+                                          "at":  "2026-10-08T18:17:20.0574777Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json: lights[1] torch at (175.4, 2.77, -67.1), dir (-0.789, 0, 0.614), same settings as lights[0]"
+                                                      ],
+                                          "round":  6,
+                                          "render":  "SPAROOM-5-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T14:28:16.3496184Z"
+                      },
+                      {
+                          "id":  3,
+                          "ref":  "SPAROOM/3",
+                          "status":  "complete",
+                          "created":  "2026-10-08T17:50:44.1175832Z",
+                          "updated":  "2026-10-08T18:17:03.9764399Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -204.72,
+                                        41.7,
+                                        69.03
+                                    ],
+                          "normal":  [
+                                         0.769,
+                                         0,
+                                         -0.64
+                                     ],
+                          "part":  "swalls",
+                          "material":  "SPAWALL1",
+                          "texture":  "18-spawal02.png",
+                          "uv":  [
+                                     0.462,
+                                     0.567
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -161.43,
+                                                     17.13,
+                                                     -95.12
+                                                 ],
+                                         "fwd":  [
+                                                     -0.32,
+                                                     0.03,
+                                                     0.95
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -161.43,
+                                                         "Y":  17.13,
+                                                         "Z":  -95.12,
+                                                         "Yaw":  -18.77,
+                                                         "Pitch":  1.55
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -181.66,
+                                                        "y":  41.7,
+                                                        "z":  49.84,
+                                                        "dir":  [
+                                                                    0.769,
+                                                                    0,
+                                                                    -0.64
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  "2026-10-08T17:34:45.8619744Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "add a flickering torch like light source here",
+                                          "at":  "2026-10-08T17:50:44.1175832Z",
+                                          "shot":  "SPAROOM-3-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added a flickering torch where you clicked, 30 units out from the wall and facing into the room. It\u0027s the same as the torches in the first room: warm orange, flickering, and it casts shadows (yours included). It also glints on the water now. Like every flickering light it gives off a few embers by default; say if you\u0027d rather not have them here (CORICORI has them off).",
+                                          "at":  "2026-10-08T17:53:59.1268056Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json: lights[0] torch at (-181.7, 41.7, 49.8), dir (0.769, 0, -0.64), #FFB266, power 1.4, range 260, flicker 0.35, shadow"
+                                                      ],
+                                          "round":  5,
+                                          "render":  "SPAROOM-3-1-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Remove the actual torch particle effect, I only want the light source.",
+                                          "at":  "2026-10-08T18:14:17.6522268Z",
+                                          "shot":  "SPAROOM-3-2.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: no ember particles in this room any more, for both torches. They\u0027re light only (the same setting as the first room).",
+                                          "at":  "2026-10-08T18:17:03.9764399Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json: embers.rate 0"
+                                                      ],
+                                          "round":  6,
+                                          "render":  "SPAROOM-3-3-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T14:29:52.2247462Z"
+                      },
+                      {
+                          "id":  2,
+                          "ref":  "SPAROOM/2",
+                          "status":  "complete",
+                          "created":  "2026-10-08T17:24:04.1972279Z",
+                          "updated":  "2026-10-09T15:08:23.2093117Z",
+                          "kind":  "other",
+                          "point":  [
+                                        41.83,
+                                        -86.99,
+                                        -113.38
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "zxspadeath",
+                          "material":  "WATERDEATH",
+                          "texture":  "04-slwate1.png",
+                          "uv":  [
+                                     1.329,
+                                     0.257
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -200.92,
+                                                     47.79,
+                                                     -250.23
+                                                 ],
+                                         "fwd":  [
+                                                     0.63,
+                                                     -0.23,
+                                                     0.74
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -200.92,
+                                                         "Y":  47.79,
+                                                         "Z":  -250.23,
+                                                         "Yaw":  40.34,
+                                                         "Pitch":  -13.37
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  41.83,
+                                                        "y":  -56.99,
+                                                        "z":  -113.38,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "For the surface of this water, can we make it look like modern water? I love the little torquoise dots however and dont wanrt to lose those. I want a shiny, water effect surface applied.",
+                                          "at":  "2026-10-08T17:24:04.1972279Z",
+                                          "shot":  "SPAROOM-2-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "The water\u0027s surface is now drawn as water. Animated ripples bend the reflection of the room. The reflection follows the viewing angle the way real water does: strong at a glance across the pool, almost none looking straight down, where you see into the glowing water instead. The flashlight (and any placed light) leaves glints on the ripples. Your turquoise dots are kept: the glow from below brightens them (dots 1.5), so they sparkle more than before. In the side-by-side, the far end shows the wall reflected and wobbling, and the near water shows the glow and dots. Tunable: shine (reflection strength), distort (how much ripples bend it), ripple size/speed, and dots.",
+                                          "at":  "2026-10-08T17:35:27.7958039Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json: water.shine 2.5, f0 0.04, spec 1, distort 60, ripple {slope 0.15, size 34, speed 0.5}, dots 1.5",
+                                                          "GpuRaster: new water surface pass (Fresnel reflection through ripples, glints, glow); the reflection now renders into its own buffer",
+                                                          "Watch-HostRender: room files take a \"water\" block; -NoWaterFx turns it off"
+                                                      ],
+                                          "round":  4,
+                                          "render":  "SPAROOM-2-1-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This looks amazing, the only issue is the reflections on the wall are a bit too bright so tone those down a bit. Also ideally they would not exist in the hallways that connect to the other rooms.",
+                                          "at":  "2026-10-08T17:50:24.6839032Z",
+                                          "shot":  "SPAROOM-2-2.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Toned down: the light patterns the water throws on the walls are about 40% weaker (strength 2.6 -\u003e 1.5, the even fill 0.3 -\u003e 0.18). They\u0027re also gone from the three hallways off the room (south-west, east and north): each hallway\u0027s floor plan is now a no-light zone with a soft edge at the opening. I checked it from inside the south-west hallway: its walls lose the cyan light and keep their own. The water\u0027s surface itself is unchanged.",
+                                          "at":  "2026-10-08T17:53:51.7323823Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json: water.caustics strength 1.5, fill 0.18",
+                                                          "water.noLight: 3 hallway boxes (tunnel01/09-11, tunnel02-05, tunnel06-08/12)",
+                                                          "GpuRaster: no-light boxes for the water\u0027s light (AddWaterCut; up to 4 per room)"
+                                                      ],
+                                          "round":  5,
+                                          "render":  "SPAROOM-2-3-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Lets add a bit more distortion and ripple to the water. I\u0027d also like droplets form the ceiling to effect these ripples as if the drops are hitting the surface.",
+                                          "at":  "2026-10-09T14:29:36.6529994Z",
+                                          "shot":  "SPAROOM-2-4.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "More distortion (reflection bend 60 -\u003e 90) and more ripple (slope 0.15 -\u003e 0.22, a touch faster). Drips now fall from above, about 3 a second around you. There\u0027s no ceiling over the pool, so they come out of the darkness overhead. Where one lands on the water it throws rings: a leading crest and a fainter one behind it, spreading and fading over about 2.5 seconds. Drips that land on the walkways don\u0027t ring the water underneath. Tunable in the room\u0027s \u0027drips\u0027 block: rate, fromDark (how high they start), ripples (ring strength).",
+                                          "at":  "2026-10-09T15:08:23.2093117Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json water.distort 90, water.ripple.slope 0.22, drips block",
+                                                          "Particles.cs: drips from the dark, landings recorded",
+                                                          "GpuRaster.cs: water rings where drips land"
+                                                      ],
+                                          "round":  15,
+                                          "render":  "SPAROOM-2-5-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T17:11:27.8068468Z"
+                      },
+                      {
+                          "id":  9,
+                          "ref":  "SPAROOM/9",
+                          "status":  "complete",
+                          "created":  "2026-10-09T16:09:04.1991857Z",
+                          "updated":  "2026-10-09T16:22:58.1828677Z",
+                          "kind":  "other",
+                          "point":  [
+                                        201.31,
+                                        19.43,
+                                        -82.65
+                                    ],
+                          "normal":  [
+                                         -0.789,
+                                         0,
+                                         0.614
+                                     ],
+                          "part":  "newwal01",
+                          "material":  "SPAWALL3",
+                          "texture":  "17-spawal04.png",
+                          "uv":  [
+                                     0.424,
+                                     0.529
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     23.79,
+                                                     67.15,
+                                                     -41.45
+                                                 ],
+                                         "fwd":  [
+                                                     0.92,
+                                                     -0.26,
+                                                     -0.31
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  23.79,
+                                                         "Y":  67.15,
+                                                         "Z":  -41.45,
+                                                         "Yaw":  108.48,
+                                                         "Pitch":  -15.09
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  177.63,
+                                                        "y":  19.43,
+                                                        "z":  -64.23,
+                                                        "dir":  [
+                                                                    -0.789,
+                                                                    0,
+                                                                    0.614
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  "2026-10-09T15:34:29.5259881Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Rasie the torch that exists below this note to this location",
+                                          "at":  "2026-10-09T16:09:04.1991857Z",
+                                          "shot":  "SPAROOM-9-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Raised: the east-wall torch now hangs at your mark, 15 units out from the wall, about 17 units higher than before. Same torch, nothing duplicated.",
+                                          "at":  "2026-10-09T16:22:58.1828677Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json lights[1]: (187.24, 2.77, -76.32) -\u003e (189.47, 19.43, -73.44)"
+                                                      ],
+                                          "round":  17,
+                                          "render":  "SPAROOM-9-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T17:11:32.5393834Z"
+                      }
+                  ],
+    "deleted":  [
+
+                ]
+}

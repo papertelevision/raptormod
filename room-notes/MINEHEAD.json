@@ -1,0 +1,524 @@
+{
+    "schema":  2,
+    "room":  "MINEHEAD",
+    "rev":  24,
+    "nextId":  7,
+    "notes":  [
+
+              ],
+    "completed":  [
+                      {
+                          "id":  1,
+                          "ref":  "MINEHEAD/1",
+                          "status":  "complete",
+                          "created":  "2026-10-09T16:10:38.3402259Z",
+                          "updated":  "2026-10-09T16:23:06.8585235Z",
+                          "kind":  "other",
+                          "point":  [
+                                        27.37,
+                                        153.11,
+                                        275.28
+                                    ],
+                          "normal":  [
+                                         0,
+                                         -1,
+                                         0
+                                     ],
+                          "part":  "stuff",
+                          "material":  "1MH_PLATFORMBTOM",
+                          "texture":  "37-mineplab.png",
+                          "uv":  [
+                                     0.286,
+                                     0.748
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     35.62,
+                                                     101.43,
+                                                     82.24
+                                                 ],
+                                         "fwd":  [
+                                                     -0.17,
+                                                     0.21,
+                                                     0.96
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  35.62,
+                                                         "Y":  101.43,
+                                                         "Z":  82.24,
+                                                         "Yaw":  -10.19,
+                                                         "Pitch":  12.14
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  27.37,
+                                                        "y":  123.11,
+                                                        "z":  275.28,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This texture is my least favorite as it is attempting to emulate light casting down on the wall beneath. Can we cut this texture up so light can actually shine through it? The \"cut\" would remove the light grid areas of the texture, and you\u0027ll place a lightsource behind it that casts light through, being divided by the grid just like the texture on the wall beneath.",
+                                          "at":  "2026-10-09T16:10:38.3402259Z",
+                                          "shot":  "MINEHEAD-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done, three parts. (1) The grate texture\u0027s bright grid cells are now real holes (about 2,700 texels of its two panels; the bars and the rust stay solid), so you can see up through them. (2) The platform\u0027s top slab casts no shadow, so light from above can reach the grate. (3) A pale white light hangs above the platform, slanting down through both panels onto the steep slope beneath. Its light comes through only where the holes are, so the grate\u0027s bars throw a real grid of light cells onto that slope, next to the painted one. Two notes: from straight above, the light only grazed that slope, so it comes down at an angle from your side. The real grid lands slightly offset from the painted grid, so you\u0027ll see a faint double grid on the right patch; I can line them up, or tone the painted one down, if you\u0027d like. New room settings make this reusable: \u0027holes\u0027 (cut a texture\u0027s bright art into openings) and \u0027noCast\u0027.",
+                                          "at":  "2026-10-09T16:23:06.8585235Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json (new): holes 37-mineplab, noCast 38-mineplat, a light through the grate",
+                                                          "Raster.Tex.CutHoles / GpuRaster.RefreshMask / watcher Set-RoomTextureRules",
+                                                          "GiBake honours holes and noCast"
+                                                      ],
+                                          "round":  17,
+                                          "render":  "MINEHEAD-1-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T17:11:12.6771213Z"
+                      },
+                      {
+                          "id":  3,
+                          "ref":  "MINEHEAD/3",
+                          "status":  "complete",
+                          "created":  "2026-10-09T17:57:24.7803468Z",
+                          "updated":  "2026-10-09T18:06:52.8967432Z",
+                          "kind":  "other",
+                          "point":  [
+                                        476.1,
+                                        347.88,
+                                        -528.95
+                                    ],
+                          "normal":  [
+                                         0,
+                                         0,
+                                         1
+                                     ],
+                          "part":  "stuff",
+                          "material":  "1MH_TOPWALL05",
+                          "texture":  "44-minewal2.png",
+                          "uv":  [
+                                     0.01,
+                                     0.325
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     222.77,
+                                                     79.25,
+                                                     -247.81
+                                                 ],
+                                         "fwd":  [
+                                                     0.6,
+                                                     0.59,
+                                                     -0.54
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  222.77,
+                                                         "Y":  79.25,
+                                                         "Z":  -247.81,
+                                                         "Yaw":  132.17,
+                                                         "Pitch":  36.07
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  476.1,
+                                                        "y":  347.88,
+                                                        "z":  -498.95,
+                                                        "dir":  [
+                                                                    0,
+                                                                    0,
+                                                                    1
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-09T17:51:09.9489064Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "You can see here on the original art that only the corners and edges use the very dark lighting, and we want to recreate that. Currently the entire room is too dark, so for the lighting used in the full room, I think the fog/mist/lighting can be a beige thats similar to the color of the brighter areas in this room. This will brighten up the space, as this is one of the brighter rooms in the game/",
+                                          "at":  "2026-10-09T17:57:24.7803468Z",
+                                          "shot":  "MINEHEAD-3-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "The fog is now beige (#806F66, the average colour of the original art\u0027s well-lit texels), and the room\u0027s fill light is tinted that colour too. The painted darkness keeps its own colour, black, so only the corners and edges the original paints dark stay very dark. The light from the artwork (see note 2) does the rest: each surface now gets the original\u0027s light and shade, at the art\u0027s own well-lit level.",
+                                          "at":  "2026-10-09T18:06:52.8967432Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json: volume.color #000000 -\u003e #806F66; volume.paint.color #000000 (new key: the painted darkness has its own colour)",
+                                                          "rooms\\MINEHEAD.json: artLight.tint \"art\" (#FFDECC on the fill light)"
+                                                      ],
+                                          "round":  18,
+                                          "render":  "MINEHEAD-3-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T18:13:49.4216266Z"
+                      },
+                      {
+                          "id":  2,
+                          "ref":  "MINEHEAD/2",
+                          "status":  "complete",
+                          "created":  "2026-10-09T17:55:46.5632700Z",
+                          "updated":  "2026-10-09T18:06:43.2194364Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -103.91,
+                                        59.72,
+                                        308.69
+                                    ],
+                          "normal":  [
+                                         0,
+                                         0.393,
+                                         -0.919
+                                     ],
+                          "part":  "stuff",
+                          "material":  "1MH_WALL01",
+                          "texture":  "39-minewal1.png",
+                          "uv":  [
+                                     0.492,
+                                     0.681
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -2.69,
+                                                     34.25,
+                                                     88.06
+                                                 ],
+                                         "fwd":  [
+                                                     -0.32,
+                                                     0.08,
+                                                     0.95
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -2.69,
+                                                         "Y":  34.25,
+                                                         "Z":  88.06,
+                                                         "Yaw":  -18.43,
+                                                         "Pitch":  4.63
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -103.91,
+                                                        "y":  71.53,
+                                                        "z":  281.11,
+                                                        "dir":  [
+                                                                    0,
+                                                                    0,
+                                                                    -1
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-09T17:51:09.9489064Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Remove the additional light source form this wall, the lights from the grating above are enough. We need hard shading from the panel above this area also (see original artwork for reference)",
+                                          "at":  "2026-10-09T17:55:46.5632700Z",
+                                          "shot":  "MINEHEAD-2-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Removed the extra light by the wall (the soft light at -3, 160 under the platform); the grate light is now the only direct light there. For the hard shading, I added a new feature, light from the artwork: the original texture art is read texel by texel, and its painted light and shade now shade the room\u0027s fill and bounce light on every surface. On 39-minewal1 the original paints the top half (just under the platform) dark and the bottom bright, with a hard edge, so the wall now sits in the platform\u0027s shade with the two grids cutting through it. The painted grid in the old art is filtered out, so only the real light draws the grid.",
+                                          "at":  "2026-10-09T18:06:43.2194364Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json: light \"painted light pool at -3, 160\" removed",
+                                                          "rooms\\MINEHEAD.json: new \"artLight\" block (floor 0.12, gamma 0.7, open 4, close 2, blur 1, percentile 0.85, tint art)",
+                                                          "GpuRaster.cs: BuildArtLight + art shading in the main shader (new feature)"
+                                                      ],
+                                          "round":  18,
+                                          "render":  "MINEHEAD-2-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T18:21:13.5180858Z"
+                      },
+                      {
+                          "id":  4,
+                          "ref":  "MINEHEAD/4",
+                          "status":  "complete",
+                          "created":  "2026-10-09T17:58:09.7468554Z",
+                          "updated":  "2026-10-09T18:07:02.5994773Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -170.6,
+                                        189.68,
+                                        69.53
+                                    ],
+                          "normal":  [
+                                         0,
+                                         0.988,
+                                         0.153
+                                     ],
+                          "part":  "stuff",
+                          "material":  "1MH_PLATFORMTOP",
+                          "texture":  "38-mineplat.png",
+                          "uv":  [
+                                     0.378,
+                                     0.046
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -18.98,
+                                                     352.62,
+                                                     -187.6
+                                                 ],
+                                         "fwd":  [
+                                                     -0.15,
+                                                     -0.45,
+                                                     0.88
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -18.98,
+                                                         "Y":  352.62,
+                                                         "Z":  -187.6,
+                                                         "Yaw":  -9.73,
+                                                         "Pitch":  -26.81
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -170.6,
+                                                        "y":  219.33,
+                                                        "z":  74.12,
+                                                        "dir":  [
+                                                                    0,
+                                                                    0,
+                                                                    1
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-09T17:51:09.9489064Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This platform should cast a very dark shadow on the vertical stone wall below",
+                                          "at":  "2026-10-09T17:58:09.7468554Z",
+                                          "shot":  "MINEHEAD-4-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done with the same light from the artwork as note 2: the wall under the platform now takes the shade the original art paints there, and the soft light that was lighting it from underneath the platform is gone. The grids still come through the shade from the real light above.",
+                                          "at":  "2026-10-09T18:07:02.5994773Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json: see MINEHEAD/2 (artLight, middle light removed)"
+                                                      ],
+                                          "round":  18,
+                                          "render":  "MINEHEAD-4-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T18:21:17.6142603Z"
+                      },
+                      {
+                          "id":  5,
+                          "ref":  "MINEHEAD/5",
+                          "status":  "complete",
+                          "created":  "2026-10-09T18:27:04.2400849Z",
+                          "updated":  "2026-10-09T18:37:36.0599885Z",
+                          "kind":  "other",
+                          "point":  [
+                                        98.32,
+                                        -40.76,
+                                        -319.18
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "stuff",
+                          "material":  "1MH_FLOOR",
+                          "texture":  "41-mineflor.png",
+                          "uv":  [
+                                     0.645,
+                                     0.456
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     291.24,
+                                                     29.86,
+                                                     -330.07
+                                                 ],
+                                         "fwd":  [
+                                                     -0.96,
+                                                     -0.29,
+                                                     0.02
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  291.24,
+                                                         "Y":  29.86,
+                                                         "Z":  -330.07,
+                                                         "Yaw":  -89.03,
+                                                         "Pitch":  -16.7
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  98.32,
+                                                        "y":  -10.76,
+                                                        "z":  -319.18,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-09T18:14:06.6468752Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Something with the lighting is now making this room feel too \"hot\" as far as the color palette. I\u0027m not sure if more lighting was added, but it\u0027s most likely not needed now that we removed the room-filling\n mist.",
+                                          "at":  "2026-10-09T18:27:04.2400849Z",
+                                          "shot":  "MINEHEAD-5-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "You were right: three warm \"painted light pool\" lights I added for the brighter-room pass were still in, and the room fill light was tinted warm (#FFDECC). All three lights are gone and the tint is off, so the light from the artwork now shades a neutral fill. The grate light is the only light in the room.",
+                                          "at":  "2026-10-09T18:37:36.0599885Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json: lights \"painted light pool\" x3 removed",
+                                                          "rooms\\MINEHEAD.json: artLight.tint \"art\" removed"
+                                                      ],
+                                          "round":  19,
+                                          "render":  "MINEHEAD-5-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T22:15:45.2822590Z"
+                      },
+                      {
+                          "id":  6,
+                          "ref":  "MINEHEAD/6",
+                          "status":  "complete",
+                          "created":  "2026-10-09T18:27:36.6361339Z",
+                          "updated":  "2026-10-09T18:37:45.6731245Z",
+                          "kind":  "light",
+                          "point":  null,
+                          "normal":  null,
+                          "part":  null,
+                          "material":  null,
+                          "texture":  null,
+                          "uv":  null,
+                          "target":  {
+                                         "type":  "light",
+                                         "index":  0,
+                                         "name":  "light through the platform grates (MINEHEAD/1)"
+                                     },
+                          "camera":  {
+                                         "pos":  [
+                                                     194.37,
+                                                     41.4,
+                                                     -429.32
+                                                 ],
+                                         "fwd":  [
+                                                     -0.46,
+                                                     0.41,
+                                                     0.79
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  194.37,
+                                                         "Y":  41.4,
+                                                         "Z":  -429.32,
+                                                         "Yaw":  -30.08,
+                                                         "Pitch":  23.96
+                                                     }
+                                     },
+                          "suggest":  null,
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-09T18:14:06.6468752Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This will of course stay, and any lights meant to cast shadow in this grating area.",
+                                          "at":  "2026-10-09T18:27:36.6361339Z",
+                                          "shot":  "MINEHEAD-6-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Kept as is: the grate light (and its shadows through both grids, its floating specks) stays; nothing that casts in the grating area was touched.",
+                                          "at":  "2026-10-09T18:37:45.6731245Z",
+                                          "changes":  [
+
+                                                      ],
+                                          "round":  19,
+                                          "render":  "MINEHEAD-6-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T22:15:55.9167377Z"
+                      }
+                  ],
+    "deleted":  [
+
+                ]
+}

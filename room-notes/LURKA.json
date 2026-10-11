@@ -1,0 +1,198 @@
+{
+    "schema":  2,
+    "room":  "LURKA",
+    "rev":  14,
+    "nextId":  3,
+    "notes":  [
+
+              ],
+    "completed":  [
+                      {
+                          "id":  1,
+                          "ref":  "LURKA/1",
+                          "status":  "complete",
+                          "created":  "2026-10-09T22:18:07.7378377Z",
+                          "updated":  "2026-10-09T23:49:08.3962487Z",
+                          "kind":  "other",
+                          "point":  [
+                                        12.14,
+                                        11.13,
+                                        0.24
+                                    ],
+                          "normal":  [
+                                         0.983,
+                                         -0.074,
+                                         0.168
+                                     ],
+                          "part":  "head",
+                          "material":  "LURKA_HEAD",
+                          "texture":  "03-l_head.png",
+                          "uv":  [
+                                     0.533,
+                                     0.611
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     35.66,
+                                                     19.67,
+                                                     4.2
+                                                 ],
+                                         "fwd":  [
+                                                     -0.76,
+                                                     -0.64,
+                                                     -0.07
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  35.66,
+                                                         "Y":  19.67,
+                                                         "Z":  4.2,
+                                                         "Yaw":  -95.18,
+                                                         "Pitch":  -40.03
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  41.63,
+                                                        "y":  8.91,
+                                                        "z":  5.28,
+                                                        "dir":  [
+                                                                    0.986,
+                                                                    0,
+                                                                    0.169
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:21.1673564Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "We had chat gpt produce some really high end textures for lurka, can we replace those now that we have the GPU support?",
+                                          "at":  "2026-10-09T22:18:07.7378377Z",
+                                          "shot":  "LURKA-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: the ChatGPT textures (design\\incoming\\lurka) are in the true-colour renderer at 2048x2048, replacing the earlier ESRGAN upscales. Each was fitted back onto the original layout first -- ChatGPT had drawn them 12-34% zoomed in -- and the original\u0027s outlines now sit on the new art\u0027s edges (head 0.88; body, legs and skirt lower only because details inside the shapes are redrawn). The relief (bump) maps follow automatically. The body texture is shared with the Claude models (CL-* and FIGHT use the same image), so they get the new body too. The previous files are in C:\\Games\\azrael-textures\\hires-backup-lurka if you want them back.",
+                                          "at":  "2026-10-09T23:38:31.7397148Z",
+                                          "changes":  [
+                                                          "C:\\Games\\azrael-textures\\hires: 01-l_bod, 02-l_legs, 03-l_head, 04-l_skirt (+ 02-l_bod, 07-l_bod for the models sharing the body) -- fitted, 2048"
+                                                      ],
+                                          "round":  20,
+                                          "render":  "LURKA-1-1-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This is great, Lurka character model needs so polygons to connect the rest of his body. Can you make sure this character has all parts connected wit no missing polygons?",
+                                          "at":  "2026-10-09T23:43:39.9921715Z",
+                                          "shot":  "LURKA-1-2.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Most of the \"missing\" polygons were there all along: 182 of Lurka\u0027s 440 triangles are textured with painted black in the original art (wrists, ankles, the insides of limbs, the skirt\u0027s back panels), which vanished into the dark in 1996 and now read as holes. The new textures have those black areas filled with the cloth and skin around them, so every triangle shows real texture. What remains are small seams at the joints: the model is rigid segments 0.3-0.7 units apart at rest, wider as the limbs bend. Closing those properly needs skin bridges that stretch with the animation -- a bigger job I have offered separately.",
+                                          "at":  "2026-10-09T23:49:08.3962487Z",
+                                          "changes":  [
+                                                          "C:\\Games\\azrael-textures\\hires: 01-l_bod, 02-l_legs, 03-l_head, 04-l_skirt (+ 02-l_bod, 07-l_bod) -- painted-black areas filled from the surrounding art (fitted unfilled versions in hires-backup-lurka-fitted)"
+                                                      ],
+                                          "round":  21,
+                                          "render":  "LURKA-1-3-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-10T00:11:44.9859973Z"
+                      },
+                      {
+                          "id":  2,
+                          "ref":  "LURKA/2",
+                          "status":  "complete",
+                          "created":  "2026-10-09T23:44:26.4916467Z",
+                          "updated":  "2026-10-09T23:55:34.7135956Z",
+                          "kind":  "other",
+                          "point":  null,
+                          "normal":  null,
+                          "part":  null,
+                          "material":  null,
+                          "texture":  null,
+                          "uv":  null,
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     47.57,
+                                                     14.17,
+                                                     27.43
+                                                 ],
+                                         "fwd":  [
+                                                     -0.82,
+                                                     -0.38,
+                                                     -0.43
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  47.57,
+                                                         "Y":  14.17,
+                                                         "Z":  27.43,
+                                                         "Yaw":  -117.62,
+                                                         "Pitch":  -22.05
+                                                     }
+                                     },
+                          "suggest":  null,
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:21.1673564Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "The skirt texture needs to be placed on both sides of the polygon",
+                                          "at":  "2026-10-09T23:44:26.4916467Z",
+                                          "shot":  "LURKA-2-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: characters are now drawn double-sided in the true-colour renderer, so the skirt\u0027s single panels show from behind as well as in front (closed limbs look the same as before). The skirt\u0027s back panels were also mapped onto painted black in the original texture; that is now filled with the skirt cloth.",
+                                          "at":  "2026-10-09T23:49:16.1607567Z",
+                                          "changes":  [
+                                                          "GpuRaster.cs: TwoSidedMoves -- no back-face culling for character (moving) textures"
+                                                      ],
+                                          "round":  21,
+                                          "render":  "LURKA-2-1-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Eh no this isn;\u0027t working, revert lurkas polygons to the previous version",
+                                          "at":  "2026-10-09T23:54:51.9644968Z",
+                                          "shot":  "LURKA-2-2.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Reverted. Lurka is back to the fitted ChatGPT textures as they were before the black fill, and characters draw single-sided again as before. The filled versions are kept in C:\\Games\\azrael-textures\\hires-backup-lurka-filled if you ever want them back.",
+                                          "at":  "2026-10-09T23:55:34.7135956Z",
+                                          "round":  22,
+                                          "changes":  [
+                                                          "hires 01-l_bod (+02-l_bod, 07-l_bod), 02-l_legs, 03-l_head, 04-l_skirt restored from hires-backup-lurka-fitted",
+                                                          "GpuRaster.cs: TwoSidedMoves = false"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-10T00:11:51.8633978Z"
+                      }
+                  ],
+    "deleted":  [
+
+                ]
+}

@@ -1,0 +1,258 @@
+{
+    "schema":  2,
+    "room":  "WASHCORI",
+    "rev":  12,
+    "nextId":  4,
+    "notes":  [
+
+              ],
+    "completed":  [
+                      {
+                          "id":  1,
+                          "ref":  "WASHCORI/1",
+                          "status":  "complete",
+                          "created":  "2026-10-09T04:11:27.6735857Z",
+                          "updated":  "2026-10-09T04:17:19.8193748Z",
+                          "kind":  "other",
+                          "point":  [
+                                        142.3,
+                                        -37.04,
+                                        17.16
+                                    ],
+                          "normal":  [
+                                         -1,
+                                         0,
+                                         0.007
+                                     ],
+                          "part":  "door01",
+                          "material":  "SPADOOR",
+                          "texture":  "19-spadoor.png",
+                          "uv":  [
+                                     0.474,
+                                     0.565
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -12.61,
+                                                     -26.51,
+                                                     -6.99
+                                                 ],
+                                         "fwd":  [
+                                                     0.96,
+                                                     -0.22,
+                                                     0.19
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -12.61,
+                                                         "Y":  -26.51,
+                                                         "Z":  -6.99,
+                                                         "Yaw":  79.02,
+                                                         "Pitch":  -12.48
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  112.3,
+                                                        "y":  -37.04,
+                                                        "z":  17.36,
+                                                        "dir":  [
+                                                                    -1,
+                                                                    0,
+                                                                    0.007
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:29.8961460Z",
+                                       "roomFileMtime":  "2026-10-06T15:44:10.1295283Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "I think we are missing a room, the one that is past this door and leads to a series of caves (the one with the first raptor known as lincoln in it). Can you ensure that\u0027s laoded into this 3d notes app so i can make changes?",
+                                          "at":  "2026-10-09T04:11:27.6735857Z",
+                                          "shot":  "WASHCORI-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "That room is MINEMAZE, and it was already in Room Review (the fifth room). What was missing was the link: past this door the floor gives way (a false floor) and you drop into the caves, so it isn\u0027t a doorway and my room-link data had no entry for it. That\u0027s why there was no marker pointing to MINEMAZE. The game\u0027s own zone table confirms it: WashRoomMineMaze, trigger zxwshrR3, just past door01. Lincoln (his scan reads \u0027human species, MS2 HUD unit, identified: Lincoln\u0027) is placed in MINEMAZE. I\u0027ve added the link: once you restart Room Review (close it and open it again from the desktop shortcut; your notes are kept), this door shows \u0027-\u003e MINEMAZE\u0027 and clicking it takes you there. MINEMAZE\u0027s own doors lead on to MINEHEAD and CHAMBNEW.",
+                                          "at":  "2026-10-09T04:17:19.8193748Z",
+                                          "round":  11,
+                                          "changes":  [
+                                                          "tools\\room-review\\links.json (new): WASHCORI -\u003e MINEMAZE at door01",
+                                                          "Start-RoomReview.ps1 reads links.json fresh on every room request (later links need no restart)"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T15:31:01.2528211Z"
+                      },
+                      {
+                          "id":  3,
+                          "ref":  "WASHCORI/3",
+                          "status":  "complete",
+                          "created":  "2026-10-09T15:30:32.7200667Z",
+                          "updated":  "2026-10-09T15:34:46.3861697Z",
+                          "kind":  "light",
+                          "point":  null,
+                          "normal":  null,
+                          "part":  null,
+                          "material":  null,
+                          "texture":  null,
+                          "uv":  null,
+                          "target":  {
+                                         "type":  "light",
+                                         "index":  0,
+                                         "name":  "torch on washwall3 (Room Review WASHCORI/2, Josh)"
+                                     },
+                          "camera":  {
+                                         "pos":  [
+                                                     -39.12,
+                                                     -2.31,
+                                                     -48.99
+                                                 ],
+                                         "fwd":  [
+                                                     0.7,
+                                                     -0.23,
+                                                     0.67
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -39.12,
+                                                         "Y":  -2.31,
+                                                         "Z":  -48.99,
+                                                         "Yaw":  46.29,
+                                                         "Pitch":  -13.03
+                                                     }
+                                     },
+                          "suggest":  null,
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:29.8961460Z",
+                                       "roomFileMtime":  "2026-10-09T15:05:48.1483429Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "CAn we make the scale of this torch slightly smaller? And move it upward by about 40px. Lastly lets reduce its brightness by 15%",
+                                          "at":  "2026-10-09T15:30:32.7200667Z",
+                                          "shot":  "WASHCORI-3-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: the torch is smaller (0.8 of its old size), 40 units higher (y -24 -\u003e 16) and 15% dimmer (power 1.4 -\u003e 1.19). The bounced light is worked out again for the new spot.",
+                                          "at":  "2026-10-09T15:34:46.3861697Z",
+                                          "changes":  [
+                                                          "rooms\\WASHCORI.json lights[0]: torch.scale 0.8, y 16.01, power 1.19"
+                                                      ],
+                                          "round":  16,
+                                          "render":  "WASHCORI-3-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T17:11:46.0179832Z"
+                      },
+                      {
+                          "id":  2,
+                          "ref":  "WASHCORI/2",
+                          "status":  "complete",
+                          "created":  "2026-10-09T14:30:25.3543996Z",
+                          "updated":  "2026-10-09T15:08:31.8700237Z",
+                          "kind":  "light",
+                          "point":  [
+                                        21.87,
+                                        -23.99,
+                                        49.91
+                                    ],
+                          "normal":  [
+                                         -0.083,
+                                         0,
+                                         -0.997
+                                     ],
+                          "part":  "washwall3",
+                          "material":  "WASHWALL4",
+                          "texture":  "22-washwl4.png",
+                          "uv":  [
+                                     0.495,
+                                     0.495
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -64.39,
+                                                     -5.5,
+                                                     -76.21
+                                                 ],
+                                         "fwd":  [
+                                                     0.65,
+                                                     -0.04,
+                                                     0.76
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -64.39,
+                                                         "Y":  -5.5,
+                                                         "Z":  -76.21,
+                                                         "Yaw":  40.7,
+                                                         "Pitch":  -2.41
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  19.37,
+                                                        "y":  -23.99,
+                                                        "z":  20.01,
+                                                        "dir":  [
+                                                                    -0.083,
+                                                                    0,
+                                                                    -0.997
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:29.8961460Z",
+                                       "roomFileMtime":  "2026-10-06T15:44:10.1295283Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Add our torch and light source here",
+                                          "at":  "2026-10-09T14:30:25.3543996Z",
+                                          "shot":  "WASHCORI-2-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added our torch, sconce and flame here, 15 units out from where you clicked, at that height (49 above the floor), with the same flicker and dancing shadows as the others. Since the room now has a light, I also gave it the bounced lighting, with the gentler room-level cut (one torch, like the mine), so the steam room picks up the torch\u0027s warm bounce. It\u0027s close to the wall, so that wall gets bright; say if you want it dimmer.",
+                                          "at":  "2026-10-09T15:08:31.8700237Z",
+                                          "changes":  [
+                                                          "rooms\\WASHCORI.json lights[0] torch added (20.63, -23.99, 34.96)",
+                                                          "rooms\\WASHCORI.json gi block"
+                                                      ],
+                                          "round":  15,
+                                          "render":  "WASHCORI-2-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-09T17:11:48.6499636Z"
+                      }
+                  ],
+    "deleted":  [
+
+                ]
+}

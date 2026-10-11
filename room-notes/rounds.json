@@ -1,0 +1,247 @@
+{
+    "current":  23,
+    "rounds":  [
+                   {
+                       "n":  1,
+                       "started":  "2026-10-08T15:33:10.5495772Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-001",
+                       "files":  3,
+                       "notes":  [
+                                     "CORICORI/1",
+                                     "CORICORI/2"
+                                 ]
+                   },
+                   {
+                       "n":  2,
+                       "started":  "2026-10-08T16:03:30.0299836Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-002",
+                       "files":  3,
+                       "notes":  [
+                                     "CORICORI/2"
+                                 ]
+                   },
+                   {
+                       "n":  3,
+                       "started":  "2026-10-08T16:34:13.6414081Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-003",
+                       "files":  3,
+                       "notes":  [
+                                     "CORICORI/2"
+                                 ]
+                   },
+                   {
+                       "n":  4,
+                       "started":  "2026-10-08T17:24:14.0757455Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-004",
+                       "files":  3,
+                       "notes":  [
+                                     "SPAROOM/1",
+                                     "SPAROOM/2"
+                                 ]
+                   },
+                   {
+                       "n":  5,
+                       "started":  "2026-10-08T17:51:15.4383330Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-005",
+                       "files":  4,
+                       "notes":  [
+                                     "SPAROOM/2",
+                                     "SPAROOM/3"
+                                 ]
+                   },
+                   {
+                       "n":  6,
+                       "started":  "2026-10-08T18:15:28.8963016Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-006",
+                       "files":  4,
+                       "notes":  [
+                                     "SPAROOM/3",
+                                     "SPAROOM/4",
+                                     "SPAROOM/5"
+                                 ]
+                   },
+                   {
+                       "n":  7,
+                       "started":  "2026-10-08T18:22:02.4159310Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-007",
+                       "files":  4,
+                       "notes":  [
+                                     "SPAROOM/4"
+                                 ]
+                   },
+                   {
+                       "n":  8,
+                       "started":  "2026-10-09T00:04:23.8259051Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-008",
+                       "files":  5,
+                       "notes":  [
+                                     "CORICORI/4"
+                                 ]
+                   },
+                   {
+                       "n":  9,
+                       "started":  "2026-10-09T03:21:35.9811536Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-009",
+                       "files":  5,
+                       "notes":  [
+                                     "CORICORI/5",
+                                     "CORICORI/6",
+                                     "CORICORI/7"
+                                 ]
+                   },
+                   {
+                       "n":  10,
+                       "started":  "2026-10-09T03:38:44.3278845Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-010",
+                       "files":  5,
+                       "notes":  [
+                                     "CORICORI/5",
+                                     "CORICORI/7"
+                                 ]
+                   },
+                   {
+                       "n":  11,
+                       "started":  "2026-10-09T04:11:37.5798548Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-011",
+                       "files":  5,
+                       "notes":  [
+                                     "WASHCORI/1"
+                                 ]
+                   },
+                   {
+                       "n":  12,
+                       "started":  "2026-10-09T04:24:48.0716128Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-012",
+                       "files":  5,
+                       "notes":  [
+                                     "MINEMAZE/1",
+                                     "MINEMAZE/2",
+                                     "MINEMAZE/3"
+                                 ]
+                   },
+                   {
+                       "n":  13,
+                       "started":  "2026-10-09T13:29:29.8049035Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-013",
+                       "files":  6,
+                       "notes":  [
+                                     "MINEMAZE/4",
+                                     "MINEMAZE/5"
+                                 ]
+                   },
+                   {
+                       "n":  14,
+                       "started":  "2026-10-09T13:56:27.7780434Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-014",
+                       "files":  6,
+                       "notes":  [
+                                     "MINEMAZE/6",
+                                     "SPAROOM/6",
+                                     "SPAROOM/7",
+                                     "SPAROOM/8"
+                                 ]
+                   },
+                   {
+                       "n":  15,
+                       "started":  "2026-10-09T15:03:28.6688824Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-015",
+                       "files":  6,
+                       "notes":  [
+                                     "CORICORI/8",
+                                     "CORICORI/9",
+                                     "SPAROOM/2",
+                                     "WASHCORI/2"
+                                 ]
+                   },
+                   {
+                       "n":  16,
+                       "started":  "2026-10-09T15:34:16.8151130Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-016",
+                       "files":  6,
+                       "notes":  [
+                                     "CORICORI/10",
+                                     "WASHCORI/3"
+                                 ]
+                   },
+                   {
+                       "n":  17,
+                       "started":  "2026-10-09T16:12:54.4498617Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-017",
+                       "files":  6,
+                       "notes":  [
+                                     "MINEHEAD/1",
+                                     "SPAROOM/9"
+                                 ]
+                   },
+                   {
+                       "n":  18,
+                       "started":  "2026-10-09T17:58:35.6910839Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-018",
+                       "files":  7,
+                       "notes":  [
+                                     "MINEHEAD/2",
+                                     "MINEHEAD/3",
+                                     "MINEHEAD/4"
+                                 ]
+                   },
+                   {
+                       "n":  19,
+                       "started":  "2026-10-09T18:33:53.8280864Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-019",
+                       "files":  7,
+                       "notes":  [
+                                     "MINEHEAD/5",
+                                     "MINEHEAD/6",
+                                     "ORRERY/1",
+                                     "ORRERY/2",
+                                     "ORRERY/3",
+                                     "ORRERY/4",
+                                     "ORRERY/5",
+                                     "ORRERY/6",
+                                     "ORRERY/7"
+                                 ]
+                   },
+                   {
+                       "n":  20,
+                       "started":  "2026-10-09T23:35:21.4699239Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-020",
+                       "files":  8,
+                       "notes":  [
+                                     "LURKA/1"
+                                 ]
+                   },
+                   {
+                       "n":  21,
+                       "started":  "2026-10-09T23:44:33.5598521Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-021",
+                       "files":  8,
+                       "notes":  [
+                                     "LURKA/1",
+                                     "LURKA/2"
+                                 ]
+                   },
+                   {
+                       "n":  22,
+                       "started":  "2026-10-09T23:54:57.3256394Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-022",
+                       "files":  8,
+                       "notes":  [
+                                     "LURKA/2"
+                                 ]
+                   },
+                   {
+                       "n":  23,
+                       "started":  "2026-10-10T00:26:29.5231973Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-023",
+                       "files":  8,
+                       "notes":  [
+                                     "WELLROOM/1",
+                                     "WELLROOM/2",
+                                     "WELLROOM/3",
+                                     "WELLROOM/4",
+                                     "WELLROOM/5",
+                                     "WELLROOM/6"
+                                 ]
+                   }
+               ]
+}
