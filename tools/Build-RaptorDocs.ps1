@@ -4,9 +4,12 @@
 #   powershell -ExecutionPolicy Bypass -File tools\Build-RaptorDocs.ps1
 #   powershell -ExecutionPolicy Bypass -File tools\Build-RaptorDocs.ps1 -GameDir C:\Games\AzraelsTear-Modded -Source C:\Games\azrael-gfx
 #
-# Sources (private: the asset pack's gfx component, NEVER git -- the manual's text and the print-outs are the publisher's):
-#   <Source>\raptordocs\manual.txt       the 1996 manual, OCR'd and proofread against its scan (the markup is in its header)
-#   <Source>\raptordocs\classified.txt   the print-outs in order: <path under Source> | title | the line under it
+# Sources:
+#   <TextDir>\manual.txt       the 1996 manual, OCR'd and proofread against its scan (the markup is in its header)
+#   <TextDir>\classified.txt   the print-outs in order: <path under Source> | title | the line under it
+#     TextDir = this repo's raptordocs\ (Josh, 2026-10-13: the text is versioned in this private repo -- it never goes
+#     public; a separate distribution repo comes later)
+#   <Source>\<path>            the print-outs' scans (the asset pack's gfx component: they stay OUT of git)
 # Writes <GameDir>\raptordocs (the watcher hands it to the title as GameGate.TitleDocs):
 #   manual.txt, classified.txt (file | title | line), classified\NN.jpg (each scan as a JPEG at its full size).
 # Run it again after changing either source; the watcher reads the files when the title opens.
@@ -14,11 +17,13 @@
 param(
     [string]$GameDir = 'C:\Games\AzraelsTear-Modded',
     [string]$Source = 'C:\Games\azrael-gfx',
+    [string]$TextDir = '',          # ('' = the repo's raptordocs\, from this script's own path: $PSScriptRoot is empty in a param default)
     [ValidateRange(50, 100)][int]$Quality = 92
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
-$src = Join-Path $Source 'raptordocs'
+if (-not $TextDir) { $TextDir = Join-Path (Split-Path -Parent (Split-Path -Parent $PSCommandPath)) 'raptordocs' }
+$src = $TextDir
 foreach ($p in @($GameDir, (Join-Path $src 'manual.txt'), (Join-Path $src 'classified.txt'))) { if (-not (Test-Path $p)) { throw "not found: $p" } }
 $out = Join-Path $GameDir 'raptordocs'; $cls = Join-Path $out 'classified'
 New-Item -ItemType Directory -Force -Path $cls | Out-Null

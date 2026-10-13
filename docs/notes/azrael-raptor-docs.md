@@ -21,10 +21,10 @@ Josh (2026-10-11): rename the title's STORY to "Raptor Docs". It opens "just lik
   - `classified.txt` (file | title | line);
   - `classified\NN.jpg`.
 - **Build:** `tools\Build-RaptorDocs.ps1` writes that folder from Josh's sources:
-  - `C:\Games\azrael-gfx\raptordocs\manual.txt` and `classified.txt` (in the asset pack's gfx component, added to Export-AssetPack);
+  - `raptordocs\manual.txt` and `classified.txt` in this repo (since 2026-10-13; before that in the asset pack's gfx component);
   - the scans in `credits\*.png`.
   - Re-run it after editing either. Nothing about it is in the manifest.
-- **The manual's text and the print-outs are the publisher's (1996 Mindscape / Intelligent Games).** They are never in git, like the PDF (`<game>\manual`, whose README says it is not redistributable). Shipping them in a public 1.0 is Josh's call.
+- **The manual's TEXT is in this repo; the print-outs' SCANS are not** (Josh, 2026-10-13: "This repo will never go public, I'm going to have a separate distributable git for that later, so please include it ... a community patch/mod that is provided free of charge ... please omit the scans but include the text"). `raptordocs\manual.txt` and `raptordocs\classified.txt` (repo root) are what Build-RaptorDocs reads (`-TextDir`, default the repo's `raptordocs\`); the scans stay in `C:\Games\azrael-gfx\credits\` (asset pack), as does the PDF (`<game>\manual`, not redistributable). The old copies in `C:\Games\azrael-gfx\raptordocs\` are no longer read (nor packed). What goes into the later public distribution repo is decided there.
 
 **The manual**
 - **Source:** the archive.org PDF (14 spreads = 28 booklet pages, MRC images + a GlyphLessFont text layer, CID = Unicode).

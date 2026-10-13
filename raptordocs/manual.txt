@@ -1,0 +1,281 @@
+// RAPTOR DOCS -- THE MANUAL, as the visor's library shows it (TitleScreen, tools\RaptorDocs.cs).
+// Built from the 1996 manual (C:\Games\AzraelsTear-Modded\manual\Azraels-Tear-Manual.pdf): OCR'd and proofread against
+// the page scans, 2026-10-11. The publisher's text -- it lives here with Josh's art, never in git.
+// tools\Build-RaptorDocs.ps1 copies it into <game>\raptordocs.
+//
+// Markup, one item per line ('//' at the start = a comment):
+//   @title T                 the document's name (the reader's header)
+//   @chapter NAME | HEADING  a chapter: its contents entry and its heading; it starts a new page
+//   @h T                     a section heading            @epigraph T   a centred line
+//   @bullet T                a bullet                     @quote T      an indented entry (the journal's "> ")
+//   @mono T                  a terminal line              @caption T    a small capitals line
+//   @warn T                  a framed warning             @term L | R   a two-column row ('; ' in R = a new line)
+//   @icon NAME | TITLE | T   a cursor (the in-game vector icon NAME) with its title and text
+//   @figicon NAME | T        a cursor with a caption      @gap          some space    @break  a new page
+//   anything else            paragraph text (a blank line ends the paragraph)
+
+@title MS-2 OPERATOR'S MANUAL
+
+@chapter AZRAEL | AZRAEL
+@epigraph (áz-ray-əl, -ri, -el).
+@gap
+@epigraph The angel who separates the soul from the body at death in Muslim and Jewish legend.
+@epigraph [Arabic Azra'il, from Hebrew 'Azar'el, "God has helped".]
+@gap
+@gap
+@caption A WORLDSCAPE PRODUCTION  //  MINDSCAPE  //  INTELLIGENT GAMES
+
+@chapter KNIGHTS TEMPLAR | THE KNIGHTS TEMPLAR
+In A.D. 1099, a year blessed to God, the Crusader armies under the leadership of Godfrey of Bouillon finally brought Jerusalem under Christian control. After four long years of struggle, the armies rode singing through the streets of the holy city freed at last from Saracen rule.
+
+Over the next century, thousands of Christian pilgrims travelled to the city. However, as time passed, more and more people were beset by robbers and bandits. In response, a group of knights led by Hugh de Payens formed the order of Knights Templar. These brave men of God rapidly gained the admiration of all Christendom for their courage and became beneficiaries of papal support, with gifts of lands and titles bestowed upon them. In the years that followed, the Templars expanded rapidly. They became a major power, with Templar outposts founded throughout Europe and the Holy Lands.
+
+In A.D. 1146, the Templars uncovered the resting place of the Grail in Jerusalem. With the recent loss of the city of Evessa to the Turkish rabble, the holiest of all relics was removed without delay to Paris. It was guarded by an escort of twelve knights and arrived safely at the Templar High Command in the spring of A.D. 1148.
+
+@chapter THE RAPTORS | THE RAPTORS
+@epigraph Raptor (rap-tər, -tawr) n. A bird of prey. [Latin, "one who seizes", from raptus, RAPT.]
+@gap
+The Raptors are sophisticated cat-burglars by nature. Shunning the heavily armed storm-trooper approach, they prefer to be light and fast, quickly and quietly finishing the job before anyone even knows they're there. Raptors tend to wear light-weight thermal coveralls with soft-soled sneakers. They also wear the MS-2 helmet, a rather sophisticated piece of military hardware. A light backpack or satchel capable of holding their tools and supplies complements their standard equipment.
+
+Details on the MS-2 helmet are provided in the official literature. More information regarding the Raptors can be found in the following electronic journal (#676).
+
+@chapter JOURNAL #676 | THE STATE OF WORLD-WIDE ARCHAEOLOGY
+@caption THE ELECTRONIC JOURNAL OF
+@mono Issue 676/March 2003
+@mono Article 2; The Rise and Rise of the Raptors
+@mono Reporter: M. Giles
+@mono crossrefglobecat(M2955);594;602;189;121;290;457;321;1778
+@mono crossrefbibliog;<M493004/N4959220/A122949233
+@mono commlinkref:cct:djrr;289493>>>34589
+@gap
+@quote The traditional archaeologist's image from the last century of the tweed jacketed, pipe-smoking university professor has been supplanted forever by a new breed of scavengers with the questionable title of raptors.
+@quote They are the children of a new age. An age where increasing uncertainty accompanies the massive tectonic upheavals that since '98 have reshaped and redefined the world we live in and our perception of our place in history.
+@quote The impact of these changes on the world of archaeology has been profound. The shifting of the land and the global reduction of sea level has revealed many new archaeological sites. Among them are whole towns and cities from previously undiscovered human cultures, like the city of the Mabu people, long lost beneath the sea. (See Issue 594).
+@quote Our knowledge of known civilizations is also being revolutionized. Only last year the delta of the Nile revealed its deep secret of no less than twenty-three miles of secret, subterranean passageways connecting ten temples dedicated to Aten. (See Issue 475)
+@quote Universities over the world have had to throw out some of their dearest and most authoritative textbooks, now rendered of less value than the paper on which they were printed.
+@quote These discoveries and the huge public interest they have engendered have had diverse effects on the purpose and the public image of archaeology. Funding and governmental grants have increased exponentially as has the interest among wealthy, private collectors and unscrupulous museums in acquiring these relics at almost any cost.
+@quote The high price (and profit) of these antiquities has led to an explosion in archaeological thievery.
+@quote Much of this opportunism has manifested in ham-fisted, clumsy operations reminiscent of ancient tomb robbers in terror of the mummy's curse. The higher bidders, however, are able to hire members of a new elite fraternity of professional plunderers: the raptors.
+@quote Little is known of them as individuals. They are obviously highly trained both in the recognition of valuable artifacts and in dealing with the dangers inherent in exploring some of the locations they have plundered.
+@quote They must also be men and women of extreme wealth. They are able to equip themselves with the latest technology in both weaponry and portable information systems.
+@quote It is known that each one of them has acquired an example of the Stolland library HUD system. This abortive and extremely expensive military device gives the user a hands-free penetrative scanning system backed up with no less than twelve gigabytes of library information.
+@quote It is also clear that there is no love lost between any of them. Just a week ago, the corpse of one Ingrid Seindheim was discovered shot through the heart at the entryway to an ancient Mayan temple uncovered in an earthquake only the previous day.
+@quote The gutter press has imbued these hi-tech opportunists with a persona of heroism and adventure. The exploits of these raptors have been used to give a worried population something to occupy their mind. A strong image of survival and adaptability in troubled times.
+@quote The word raptor is Latin and it means thief. In the opinion of this journal at least, the world should not lose sight of that fact.
+
+@chapter PLAYER'S GUIDE | PLAYER'S GUIDE
+The following guide assumes you are using a mouse to play the game. A full list of keyboard equivalent controls can be found on the Control Reference section of the quickstart card.
+
+@h About This Guide
+This player's guide explains how you (the player) can explore the underground tombs and passageways of Aeternis. You will learn how to take and use items, solve puzzles, communicate with other characters, defend yourself and live long enough to survive the tests and emerge with the ultimate prize... the Grail itself!
+
+@h We Have Awaited You, Thief
+Load the game as described in the keycard. The introduction will now play. Press the Esc key on your keyboard if you wish to skip it. When loading has finished you will see the world from your MS-2 helmet displayed in glorious real-time texture-mapped 3D. A number of quick system checks will appear, projected onto the inside of the visor as part of the head-up-display (HUD). Environmental scans will confirm the presence of two exits and the Motion Detectors will also register two non-humans nearby. You should be able to see at least one of the two creatures running around in front of you when the game begins.
+
+@h Looking Around
+To move the helmet and change the view, right-click your mouse and hold the button down. As you move your mouse, the helmet will move accordingly, allowing you to view your current surroundings. If you find this movement to be a little slow, you can improve the speed by altering the resolution of the view as seen through the visor. Simply press number keys 1, 2, 3 or 4 to change the resolution mode:
+@bullet Key 1 gives the highest resolution and is recommended if you have a fast computer.
+@bullet Key 2 gives you a mode balanced between reasonable graphic resolution and game speed.
+@bullet Key 3 gives the lowest resolution. This will make the graphics run quickly but at the expense of clarity.
+@bullet Key 4 will automatically adjust the setting depending on what you are doing. It will set the resolution to drop down one mode when you are on the move and step up one mode when you are standing still. For example, if you are in mode 2 when you press 4 then the game will switch to mode 3 when you move and mode 1 when you are stationary. This is known as 'reactive' or 'auto mode' and is recommended for the lower specification computers.
+
+You can also adjust the size of the visor view to speed things up a little. Pressing the [-] key will toggle between the standard view and a smaller view. The size of the visor is also automatically adjusted if you use 'auto mode' (Key 4).
+
+If you wish, you can lock the horizontal view so the helmet doesn't 'bob' as much when you are on the move. Pressing X will lock the view, preventing you from looking up or down. To unlock it and return to normal, press X again.
+
+@h The Compass
+The current resolution mode is displayed above the compass which is located above the visor. The compass shows your current heading and will change whenever you look in another direction. It employs the standard eight point compass convention.
+
+@h Examining Things
+@figicon scan | TO BEGIN SCANNING, LEFT-CLICK YOUR MOUSE WHILE THE CURSOR IS THIS SHAPE.
+When you are stationary, you should see a yellow cursor in the middle of the helmet. Move your mouse and the cursor will move with it. Below the visor you will see a number of controls. The MS-2 helmet has a number of functions and you can access them by left-clicking the cursor on the controls shown here. You can also examine ('scan') items and characters that appear in the visor in the same way. For example, move the cursor over one of the creatures running around nearby. The cursor will change shape. This tells you that the creature can be scanned. Whilst the cursor is still this shape, left-click your mouse to begin scanning. (You might need to move your head to keep it in view). Some information about the creature should be projected onto the visor as part of the HUD. You should also have noticed one of the controls below the visor lights up when you are pointing at an item or character that can be scanned.
+
+You can adjust the way the HUD behaves by switching on HUD mode (press key 5). This special mode will only display the HUD when new information becomes available. It will then switch into standby mode and remain hidden until the next information is ready.
+
+Please note that scanning and looking at something are two separate actions and therefore each one uses a different cursor.
+
+@h Walking
+To physically move down the corridor, you need to use both the left and the right mouse buttons. Firstly, right-click the mouse and keep this button held down. Look (move your head) in the direction you wish to move, then left-click the mouse once. You will take one step forward. Each left-click will take you another step in that direction (as long as you still have the right mouse button held down). To move quickly, left-click the mouse and hold it down. You will now walk briskly along the corridor. To stop moving forward, let go of the left mouse button. You can also let go of the right button if you don't need to move the MS-2 helmet anymore.
+
+@h Running
+If you feel the need to run, hold down the Shift key on your keyboard and then use the right then left mouse buttons to move as described above. You can also step sideways by using the < and > keys.
+
+@h Jumping
+There is no actual control for jumping. If you run off the edge of a cliff, you will jump automatically. The distance you travel will depend on how fast you were moving when you hit the edge.
+
+@h Falling
+You can fall short distances without great injury. If you suffer a deep fall then you are likely to incur some damage to yourself or your MS-2's systems. Some drops might kill you outright so be careful!
+
+@h Your Health
+In the middle of the helmet controls you will see a yellow/orange meter. This indicates your current state of health. It will reduce from right to left if you injure yourself. Don't let your health drop too low, or you might collapse or even die! The MS-2 is capable of trying to resuscitate you if you fall unconscious. It will introduce various life-saving drugs into your system, but this won't always be enough to keep you alive. There are many ways to be mortally wounded - falling, being shot at, being bitten...
+
+@h Defending Yourself
+@figicon shoot | IN COMBAT MODE, YOU WILL SEE A TARGET CURSOR APPEAR IN THE VISOR.
+You will not be alone as you explore the underground catacombs. For this reason, you may need to use your MS-7 Sniper or other weapons from time to time. The MS-7 Sniper is a semi-automatic machine gun which will fire a multiple burst of three shots. To use it you need to enter combat mode. Press the Spacebar once to do this. Pressing it again will revert to normal. When in combat mode, you will see a target cursor appear in the visor. Use the mouse to guide the cursor. If the cursor hits the edge of the visor, the view will move in that direction (as if you have moved the helmet). Next to the cursor you will see a number. This is your current ammo level. Each left-click of the mouse in combat mode will fire off one burst.
+
+@h Taking Things
+@figicon take | THIS CURSOR TELLS YOU THAT THE ITEM BENEATH CAN BE TAKEN.
+From your starting point, walk up to the NE/E door but keep an eye on the ground. You should spot an item lying in the dirt. Move your cursor over this and it will change shape again. This cursor tells you that the item beneath it can be taken. Left-click and you will take it. If the HUD reports "Out of range" then you need to move closer (the cursor will turn orange when you are in range of the item). Once taken, the item will be displayed so you can examine it in detail. You discover that it is a page from a diary, dated April 1164 AD. It may hold vital clues so read it carefully. When you have finished, right-click and you will put the item away for safe keeping.
+
+If you look on the panel beneath the visor, the item has now appeared on a list. If you left-click on the name in the list, the HUD will now report that the item is being held. You should also see a small eye appear next to the name on the list. This tells you that the item can be looked at in more detail. Left-clicking on the name again will re-display the diary page for you to look at once more.
+
+@h Using Things
+@figicon default | THE CURSOR WILL CHANGE SHAPE IF THE ITEM CAN BE USED HERE.
+You will need to use some of the items you pick up whilst exploring Aeternis. Left-click on the names in your inventory list. The HUD will report that the item is held (and an eye will appear next to the names in the list if the item can be 'looked at' in more detail. Not all can). Now point at whatever you wish to use the item on within your current location. If the item can be used here then the cursor will change shape once again. Left-click to use it on the item in the location. The name of the items you are trying to use together will be displayed on the left of the HUD. If the items can't be used in this way, nothing will happen.
+
+@h Opening Doors
+@figicon push | INDICATES THAT THE DOOR CAN BE PUSHED.
+Move the cursor over the door at the NE/E end. It will change shape again. The cursor is now showing that the door can be pushed. Left-click the mouse and the door will creak open for you. If the HUD says it is "out of range" then you must move closer before trying again. Once the door is open, move through the doorway and keep going. You will soon approach another door. As you do, the MS-2 will scan this new area and then report its findings on the HUD for you to read and digest. It is important that you take note of the details revealed by the HUD when you explore a new area. Your survival in the game may depend on it!
+
+@h The Automap
+Now would be a good time to use the MS-2's auto-map facility. Pressing M will project a map onto your visor. You will see an overhead view of the area just scanned by the environmental scanners in your helmet. In this example you can see the room just beyond the door currently in front of you. The map also shows you where certain exits within that room lead to, but only if you have already visited them. Press M again to turn the map off.
+
+@h Exploring
+@figicon rot | INDICATES THE STOPCOCK CAN BE ROTATED.
+You want to push open the door in front of you, so move the cursor over the door and the cursor should change shape again. Left-click your mouse and the door should creak open. Now walk through the doorway and stop. (Not all of the doors in these underground tunnels will be so obliging. Some may be locked. If so, you will need to find a key or some other way of opening them). Have a look around by moving your helmet. You should see a wooden walkway leading to a NE door. To the right of this is another walkway and a large round stopcock. All of these are also mentioned in the ENVSCAN on your HUD. Move the cursor over the stopcock and it should change shape once again. This means that the stopcock can be rotated. You can left-click to turn the stopcock if you wish. Now move along the walkway but be very careful. One slip and you might end up in hot water!
+
+@h Communicating
+Approach the door, but as you get closer turn S to see another door close by. Walk up to this door and push it open. Now walk through into the new area. Another door lies to the S. Walk up to it and push it open. Go S into a new large room. You will hear the begging cries of someone trapped inside the room! Go SW but be careful to avoid the recently collapsed holes in the ground. As you get closer the cries should become louder. Eventually you should come across a character known as Lurka, who is trapped below on a ledge. He will speak to you. When he has finished, a number of possible replies will be displayed on your HUD. You can scroll through the replies using your up/down cursor (arrow) keys. If you are doing particularly well, you might have quite a long list of questions to scroll through. Should you help Lurka? Can you trust him? Whatever you decide to do, point at your reply and left-click to confirm. Talk alone won't help him out of his predicament, but you should learn a few important clues.
+
+One of the controls beneath the visor has an "R" on it during conversations. By left-clicking this option, you can hear the last thing that was said to you again. Whilst this happens, "Replay" will be displayed on the HUD. If you wish to abort this during a replay, just press the Esc key.
+
+@h Other Actions
+As you make progress in the game, you will find that you can perform a number of other actions (lever, pull etc). The cursor will always change shape to indicate what you can or cannot do. Apart from the usual movement, you will also be able to move up and down as you explore. Again, the cursor will show you when this is possible. A full list of all the actions can be found below. Just remember that if a cursor is blue, you are currently "Out of Range" and must get closer before you can perform the action. When you are close enough, the cursor will turn orange.
+@icon pointer | Standard | When no other action is available, the cursor remains in this standard form. You can select any of the helmet controls using this cursor.
+@icon up | Go Up | There will be exits that require you to climb up or down. This cursor lets you know that you can go Up.
+@icon down | Go Down | Self-explanatory.
+@icon pull | Pull | If an item or feature can be pulled, the cursor changes to this shape. Note: Doors may need to be unlocked first.
+@icon push | Push | If an item or feature can be pushed, the cursor changes to this shape. Note: Doors may need to be unlocked first.
+@icon rot | Rotate | Wheels or stopcocks need to be rotated - this cursor allows you to do this.
+@icon take | Take | If an item can be taken, the cursor changes to this shape.
+@icon use | Lever | You will discover a number of levers and other similar switches as you explore. This cursor tells you which ones can be used.
+@icon scan | Scan | You can examine a number of features by scanning them with this cursor.
+@icon default | Use | You can use an item from your inventory on items or other features found in particular locations. Left-click on the item in your inventory to hold it ready for use, then move the cursor over the item or feature you wish to use it on. If the cursor changes to this shape, you can use the items on each other.
+@icon look | Look | Some items can be looked at in more detail. This can apply to items in locations or in your inventory. Left-clicking on an item in your inventory might display this cursor next to the item's name, left-clicking again will let you look at it. Some items in locations can also be looked at. The cursor will change to indicate this. If the eye is shut, the item or feature is out of range. To look at it you must get closer.
+@icon shoot | Shoot | Available only after you've pressed Spacebar to enter combat mode. Each left-click of the mouse will then fire off a three-round burst. The number beneath keeps count of the bursts left in your MS-7 Sniper gun. Note: The type of target cursor displayed depends upon the weapon held in your hands when Spacebar is pressed. The default weapon is the MS-7 Sniper.
+
+@h Other Game Functions
+You can save your game at almost any point in the quest. Move your cursor down to the double-button on the right of the panel beneath your visor. Left-click once. A small device will swing into view, giving you a number of options. One of them will be "Save". Left-click this and a list of five save game slots will appear. Select the slot you wish to save to, then type in your save game name. Finally, point and left-click the cursor at the small 'confirm' option that appears and the game will be saved. Just remember to select the double button again to remove the device and allow you to continue playing.
+
+You can load saved games in the same way, except this time you choose "Load" instead. You then select the save game you wish to load in from the list on the HUD. There is also an option to "Restart" the game from the beginning if you wish to. As with 'save' before, you need to select 'confirm' before anything will happen.
+
+You can also alter the level of in-game music and sound effects from here. Simply left-click to the left of the current volume bar to increase the volume or click to the right to decrease. You can also turn the in-game Music or Sound Effects on or off by left-clicking on the relevant option itself. Finally you can quit the game and return to your operating system by selecting "Quit". Only do this if you are sure. If you wish to continue with the current game at a later date, remember to save your game first before quitting.
+
+@h Hints and Tips
+Pay attention to any warnings given by the HUD. Scan objects for vital clues. Watch the ground very carefully. Some early locations have very weak foundations. Protect yourself from hot water if you decide to go fishing.
+
+@chapter MS-2 HELMET | MS-2 HELMET
+@warn WARNING
+@warn THE MS-2 HELMET CONTAINS A LARGE ELECTRICAL CHARGE. TO PREVENT SHOCK DO NOT REMOVE THE OUTER CASING, REFER TO A QUALIFIED SERVICE TECHNICIAN WHEN FAULTY. NO USER SERVICEABLE PARTS INSIDE.
+@warn ALL ADD-ON MODULES MUST BE INSTALLED BY A PROFESSIONAL SERVICE TECHNICIAN. UNAUTHORIZED TAMPERING MAY RESULT IN PERMANENT DAMAGE AND POSSIBLE USER DEATH.
+
+@h Installation
+The MS-2 helmet will automatically install all onboard software when powered for the first time. Data will only be erased in the event of user death - this unit has no magic black box to store data - all will be permanently erased in the event of death.
+
+The MS-2 Helmet is a sophisticated piece of military hardware, equipped with a range of multiple technical functions that are superbly suited to the Raptors' profession. It is an expensive and impressive piece of equipment, difficult to obtain, but considered now to be standard for any serious Raptor. It is in reality a minute and complex computer set into a hard-shelled helmet, that can provide a vast array of functions for its user. It is completely capable of auto-repairing itself when damaged. It is, however, a fairly new product and as such is not completely free from the occasional problem. Primarily, it provides the Raptor with sophisticated 'Head-up display' information in the form of text and wire frame pictures.
+
+@h HUD (Head Up Display)
+The HUD unit is an interchangeable custom circuit board that slots neatly into the MS-2 Helmet. It can only be removed by an authorized service centre/technician. When entering a new location the HUD will automatically perform various environmental scans - all results and data will be displayed on the right hand side of the HUD. Specific scans will work on many different items. A report will be displayed on the HUD showing details of the scanned object. The HUD also automatically adjusts the display to compensate for darkened areas.
+
+@h Health Meter
+The MS-2 is capable of detecting the vital signs of the user. Different sources of medical data are condensed into a classic meter display. A full bar represents 100% health. As health diminishes, the bar will reduce from right to left.
+
+@h Dialogue Repeat
+This new feature on the MS-2 HUD unit will repeat the last section of dialogue interpreted by the language data-banks. This is a very popular utility when communicating in foreign tongues as the translation module retains individual vocal idiosyncrasies (local accents or colloquialisms). This feature allows the user to analyze closely all the connotations of the most recent communication.
+
+@h Inventory
+This shows all of the items you have collected. Items can be scanned while in the inventory and information will be displayed on the HUD. Equipment stored in the inventory can be placed in your hand by selecting it from the inventory list first. It is then ready for use on any item you might wish to try it on within your current location.
+
+@h Compass (Navigation Assistance)
+A rotating compass can be found at the top of the helmet. This is an essential tool to aid navigation and prevent loss of direction, and is especially useful in the dark.
+
+@h Special Functions
+Don't be alarmed when the eye piece swings into place over your right eye. It provides a number of extra special functions that you will need to access from time to time. To deactivate, select the control again.
+
+@caption OTHER FUNCTIONS OF THE MS-2 HELMET INCLUDE:
+
+@h Gun
+The MS-7 Sniper, a semi-automatic machine gun which can fire multiple rounds. The 'Sniper' allows for accurate shooting, with each projectile using a relatively small amount of energy. The weapon has a limited amount of recoil control built in but has a reputation of pulling up during sustained firing. The MS-2 helmet interfaces directly with the Sniper (or any other weapon) to display a targeting system on the HUD.
+
+@h Automap
+The complex map images are generated from the scan information retrieved when first entering a room. All maps are displayed in a 2D plan elevation and all obvious exits will be highlighted by a bright blue arrow. Connecting rooms will be shown if previous scan information is detected.
+
+@h Systems Check
+All systems are monitored at all times. This feature reports on the operational status of all on-board electrical and computer systems. If any function is damaged the diagnostic features will report system damage to the HUD. The diagnostic function also reports on your physical status, detailing the physical damage and its effects.
+
+@h Translation Module
+This function translates most known languages in real time, allowing you to understand and converse with people using foreign tongues.
+
+@chapter APPENDICES | APPENDIX A - PERFORMANCE SPECIFICATIONS
+@h Scanner
+All built in scanners have a direct range up to 250 meters.
+
+@h Battery
+The on board super charged Ni-Cd battery pack has a 6.0V rating with a capacity of 700mAh/120HR. A small power reserve is used to protect data in the event of battery failure or exhaustion.
+
+@h Resolution
+The HUD has a maximum 640 x 480 resolution with a 70Hz refresh rate, various optional pixel enlargement techniques give the HUD a faster frame rate.
+
+@h Translation
+The translation module supports over 100 different types of audible, visual and written communication dating back as far as 5000BC.
+@gap
+@term Database | 12 Gigabyte uncompressed capacity
+@term Dimensions | 440mm x 300mm x 260mm
+@term Weight | 1Kg / 2.2lb
+@term Resistance | 500 Newtons per Square inch
+@term Operating temperature | -20°C to +60°C
+@term Operating Altitude | 40km below sea level to 40km above sea level
+@term Operating Humidity | 0% to 95%
+
+@break
+@h APPENDIX B - MAINTENANCE AND TROUBLESHOOTING
+Providing you clean the MS-2 helmet after use with a damp non abrasive cloth and have it serviced after every 250 hours of use, it should last a lifetime.
+
+Excessive blows to the outer casing can cause malfunction, for added protection the CPU is housed within a hardened titanium casing providing a balanced vacuum.
+
+@gap
+@h APPENDIX C - GLOSSARY OF INTERNAL ANALYSIS SYSTEMS
+@term ENVSCAN | (environmental scan) This is non-user initiated information concerning a location or room about to be entered.
+@term DNASCAN | The MS-2 will bounce an invisible, microscopic laser off the cellular structure of living material and perform an instant analysis for display on the HUD.
+@term PENSCAN | (penetrative scan) The MS-2 will project inaudible ultrasound waves through most objects encountered and analyze the data accordingly. It will then make recommendations based on the pictographic data collated.
+@term WARNING | The MS-2 will automatically make the user aware of any perceived threat or hazard without prompting.
+@term SUGGEST | The MS-2 will use information gathered from its database, compare with objects already scanned and make reliable suggestions.
+@gap
+The MS-2 is equipped with a registration signal that can be read by other commercially vended MS-2 units. This allows all non-military personnel using an MS-2 to be identified at all times.
+
+The MS-2 is also able to respond to changes in the environment and report them. This can provide the user with a useful addition to their own natural senses.
+
+@chapter ADDITIONAL HELP | ADDITIONAL HELP...
+@quote "The light's on the blink, I think it was damaged in the fall. ...that'll be a nuisance. I can see stonework, a passage, a corridor of some kind. I'm going East. ...there's a door, looks quite old, I think this is it... Still going East, I'm in a hot room, with quite rickety-looking wooden bridges across it, some sort of metal pipework... I'm turning South. Another door, I'm in a big room, some sort of mine workings I think. There are metal tracks on the floor and some quite big holes and fissures... I'll have to be careful. Big double doors. I can't see any way to open them... Another door due South. ...I'll have a look at that in a minute. I can hear what sounds like a voice, quite far away. Sounds like I'm not alone down here. Who else could have found this place... Going southwest, there's a natural fissure here, heading south through that, I'm in a greenish stone room, a small bath, perhaps a font, some broken mirrors, it looks like there's another room behind them... Stepping through carefully, there's another bath on this side, looks like there's something drawn on the wall above the bath. I'm noting it down. A diagram. There's a rather dodgy-looking balcony above me, I'm going to have a look..."
+@quote "On the balcony, I can see a couple of bits of tapestry lying about, they seem to go in these wooden frames. Hmm, four frames, only three bits of tapestry. Looks like they go together to make a single image. I'll look for the last bit, might be useful. How long have I been down here? Damn watch isn't working. Feels like quite a while, not tired or hungry... I'm going back into that mine area... I'm going through another door, heading South. New chamber, damp, mossy, there's a well. It's looks like there's something in there. '...I say, who are you? No, never heard of him, listen, where did you spring from? How many more of you are down here? No, look, never mind that, how do I get - No! Wait!' Damn. Where did she go? Damn. ...alright, um, some sort of apparatus in here, also looks old, metal pipework, a range of slots, apertures. Looks like a sort of switchboard for pipework. There's a lever here, that's moved one of the pipes. If I hook it up here... nothing happens. ...alright, move the other one. Ah, I can hear water running, looks like this is actually still working, I can hear water running from somewhere outside the room. Don't know what it does... Let's have a look at the well. Oh. There's a body in here, looks like it's been here a while, a girl. I wonder... there's something glinting in there, looks like a key. The water's too hot for me to just reach in and get it. I'll need some sort of hook, or poker or something. I'll go back to the minehead..."
+@quote "I'm at the top of the ramp, seems steady enough, I can hear that voice again - seems to be calling to someone, perhaps they're in trouble. I've just picked up some tongs, they'll be just the thing for getting that key. There's a box and some levers up here, I'm not quite sure what they're for. Anyway, going back down the ramp to get that key..."
+@quote "...back where I first entered again. Heading West. Still no sign of the watch working again, I'll have to get back out before dawn... Another door, going through. Small room, big bronze plate, looks like an early metal mirror. Lots of moss in here, some double doors, can't open those, ...what's that? Door's shut behind me. Seems to be stuck tight. Won't budge. ...I'll try the other door. Floor feels a bit Aaaah... Ow... Nothing broken I think; floor just gave way. Ow. Not quite sure where I am now. Rather dark... I can hear that voice calling out quite clearly now. Perhaps I'm stuck down here with him. Can't see how to get back up there. Tunnel leading off, I think I'd better investigate... Hope this is still transmitting, that's the second nasty fall I've had down here..."
+
+@chapter CREDITS | CREDITS
+@caption A WORLDSCAPE PRODUCTION
+@gap
+@term PRODUCER, MINDSCAPE INTERNATIONAL | Lee Singleton
+@term MANUAL | Richard Hewison; Intelligent Games; Lee Singleton; Louis Saekow Design
+@term TESTING/QA | Adrian Wood Jones; Lee Singleton; Mat "Traveller" Dean; Clive Fort; Buck Irving; Scott Von Schoik
+@term MARKETING | Mike Lustenberger; Ruth Weston; Jeff Shirk; Louis Saekow Design; Molly Eng
+@term SPECIAL THANKS | Kate Seekings; Kevin Bachus; Jim Mackonochie; Clive Fort; Richard Leinfellner
+@term EXECUTIVE PRODUCER, INTELLIGENT GAMES | Matthew Stibbe
+@term ORIGINAL DESIGN | Ken Haywood
+@term DESIGN | Richard Guy
+@term ADDITIONAL DESIGN | Andy Knott; Doug Telford
+@term PROGRAMMING | Martin Fermor; Philip Veale
+@term ADDITIONAL PROGRAMMING | Ian Beaumont
+@term ART | Neil Crosbourne; Mike Elliott; Richard Guy; Dee Jarvis; Andy Knott; Doug Telford
+@term WRITING | Mark Giles
+@term PRODUCTION COORDINATOR | Iain McNeil
+@term MANAGEMENT | Kevin Shrapnell; Richard Evans; Morven Sloan
+@term INSTALLER SOFTWARE | Helpful Programs Inc.'s "Instalit"
+@term MUSIC AND SOUND EFFECTS | Title Music by Ray Shulman; In Game Music by Kerry Minnear; Sound Effects by Marvin Black
+@term VOICE TALENT DIRECTOR | Paul Jamieson
+@term VOICE TALENT | Paul Jamieson; Richard Attlee; Ian Michie; Jenifer Konko
+@term DOS SOUND DRIVERS | SoundStream Audio System by Miles Design
+@term WINDOWS 95 PROGRAMMING | Art & D
+@term WINDOWS 95 GAME ENGINE | Direct3D by Microsoft Corporation
+@gap
+@caption PORTIONS © COPYRIGHT 1993-1995, SCITECH SOFTWARE
+@caption © 1996 MINDSCAPE, INC.  //  © 1996 INTELLIGENT GAMES LTD.  //  © 1996 KEN HAYWOOD
