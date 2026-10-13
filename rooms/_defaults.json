@@ -39,6 +39,7 @@
                                                   }
                                    },
                     "cave":  {
+                                 "wet":  { "_why": "Phase 2 (Josh, 2026-10-12): damp caves -- walls damp near the floor at half strength, floors only in puddles (on level floor), keeping the gloom.", "strength": 0.85, "height": 40, "dark": 0.66, "floor": 0, "shine": 0.16, "gloss": 40, "puddles": 0.25, "puddleSize": 70, "walls": 0.5, "ceiling": 0.08 },
                                  "rooms":  [
                                                "CORICORI",
                                                "WASHCORI",
@@ -120,6 +121,7 @@
                                            }
                               },
                     "spa":  {
+                                "wet":  { "_why": "Phase 2 (Josh, 2026-10-12): the spa -- steam and water: wetter, higher up the walls, more puddles.", "strength": 1.0, "height": 120, "dark": 0.6, "floor": 0.6, "shine": 0.2, "gloss": 44, "puddles": 0.35, "puddleSize": 60, "ceiling": 0.3 },
                                 "_why":  "The spa with the walkway over the water, off the first room: steam off the water, no mist (it hid the water and its reflections).",
                                 "rooms":  [
                                               "SPAROOM",

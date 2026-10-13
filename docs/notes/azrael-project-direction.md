@@ -1,6 +1,6 @@
 ---
 name: azrael-project-direction
-description: "Two-phase plan - keep improving Azrael's Tear in its own engine now, move presentation to Unity later. Option 1 is complete as of 2026-09-27."
+description: "Three stages since 2026-10-11: RaptorMod 1.0 on DOSBox, 2.0 without DOSBox (an emulator core in our app), Unity later. (2026-09-27: improve in-engine now, Unity later.)"
 metadata:
   node_type: memory
   type: project
@@ -42,3 +42,7 @@ and every drawing path that assumes 8bpp.
 play; the hook is inert until a host sets the flag.
 
 Related: [[aztmod-patch-framework]], [[azrael-xaf-scene-format]], [[azrael-zones-room-graph]]
+
+## UPDATE 2026-10-11 -- three stages, Unity is the third
+
+Josh's sequence ([[raptormod-roadmap]]): **1.0** = a patch for the Steam DOSBox version (bug fixes + the 2K/4K texture tiers); **2.0** = DOSBox removed by running an emulator core inside our own app ([[azrael-leaving-dosbox]] Tier 1) plus more 3D effects, room polish and better geometry; **Unity** = later, not important now -- it can host the Tier 1 core as its simulation backend. The '8-bit ceiling' reason above is history: the host renderer has drawn the view in true colour since 2026-10 ([[azrael-gpu-renderer]]).

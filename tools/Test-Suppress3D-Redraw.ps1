@@ -103,7 +103,7 @@ $fnLin = 0x133000 + $off + 4
 function FrameNo { [BitConverter]::ToUInt32((Read-AztGuest -Base $g -Lin $fnLin -Length 4), 0) }
 
 if ($Mode -eq 'Flag') {
-    $target = $g.MemBase + $Flag + $OBJ2_DELTA
+    $target = $g.MemBase + $Flag + $g.Delta2      # (GuestBase finds obj2's delta: it moved with obj1's size)
     $len = 2
     $suppressBytes = [BitConverter]::GetBytes([uint16]1)
     $desc = ("flag 0x{0:X6} = 1" -f $Flag)

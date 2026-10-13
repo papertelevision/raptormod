@@ -1,10 +1,95 @@
 {
     "schema":  2,
     "room":  "WASHCORI",
-    "rev":  12,
-    "nextId":  4,
+    "rev":  15,
+    "nextId":  5,
     "notes":  [
-
+                  {
+                      "id":  4,
+                      "ref":  "WASHCORI/4",
+                      "status":  "review",
+                      "created":  "2026-10-13T03:46:58.2509802Z",
+                      "updated":  "2026-10-13T03:58:40.2374718Z",
+                      "kind":  "other",
+                      "point":  [
+                                    23.58,
+                                    -20.15,
+                                    49.77
+                                ],
+                      "normal":  [
+                                     -0.083,
+                                     0,
+                                     -0.997
+                                 ],
+                      "part":  "washwall3",
+                      "material":  "WASHWALL4",
+                      "texture":  "22-washwl4.png",
+                      "uv":  [
+                                 0.501,
+                                 0.509
+                             ],
+                      "target":  null,
+                      "camera":  {
+                                     "pos":  [
+                                                 -2.29,
+                                                 -25.1,
+                                                 -87.97
+                                             ],
+                                     "fwd":  [
+                                                 0.16,
+                                                 -0.03,
+                                                 0.99
+                                             ],
+                                     "up":  [
+                                                0,
+                                                1,
+                                                0
+                                            ],
+                                     "fov":  50,
+                                     "mirror":  true,
+                                     "gpuLook":  {
+                                                     "X":  -2.29,
+                                                     "Y":  -25.1,
+                                                     "Z":  -87.97,
+                                                     "Yaw":  9.07,
+                                                     "Pitch":  -1.46
+                                                 }
+                                 },
+                      "suggest":  {
+                                      "light":  {
+                                                    "x":  21.08,
+                                                    "y":  -20.15,
+                                                    "z":  19.87,
+                                                    "dir":  [
+                                                                -0.083,
+                                                                0,
+                                                                -0.997
+                                                            ]
+                                                }
+                                  },
+                      "seen":  {
+                                   "objMtime":  "2026-10-05T02:29:29.8961460Z",
+                                   "roomFileMtime":  "2026-10-09T15:34:29.5295408Z"
+                               },
+                      "log":  [
+                                  {
+                                      "who":  "josh",
+                                      "text":  "The torch in this room should be lowered to this point",
+                                      "at":  "2026-10-13T03:46:58.2509802Z",
+                                      "shot":  "WASHCORI-4-0.png"
+                                  },
+                                  {
+                                      "who":  "claude",
+                                      "text":  "Done: the torch is lowered to your mark, 15 units out from the wall like every torch -- 36 units lower than it was.",
+                                      "at":  "2026-10-13T03:58:40.2374718Z",
+                                      "changes":  [
+                                                      "rooms\\WASHCORI.json lights[0]: 20.63, 16.01, 34.96 -\u003e 22.33, -20.15, 34.82"
+                                                  ],
+                                      "round":  24,
+                                      "render":  "WASHCORI-4-1-render.png"
+                                  }
+                              ]
+                  }
               ],
     "completed":  [
                       {

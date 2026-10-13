@@ -17,3 +17,9 @@ Josh (2026-10-08): reading books or viewing inventory items used to sit on black
   - Panel keys are not clickable in book view. Verified offline with a synthetic screen (no HUD pixels, page aligned); not yet seen in game.
 - Verified: Test-GpuLook -BlackView gives 0 non-black pixels against a key-only screen (52,500 without it).
 - This is NOT the 'never hold 0x15257C' rule in [[azrael-viewport-paint-not-suppress]]: that was the HOST writing the flag. Here it is only read.
+
+**BAND ACROSS THE PAGE (2026-10-11, Josh: "still being cut off by some portions of the bottom UI's shape toward the bottom").**
+- The view's compose leaves out the game's drawings from the panel's bleed row (`OwnFromRow` = wide.json bleedTop = 948, HideFromRow), while Panel.ComposeBook drew the page only from PanelTop (977). Game rows 948..976 of the page showed black: a ~29-row band (~39 px at 2562 wide).
+- **FIX (Panel.cs):** ComposeBook / ReadBook start at `BookFrom` = min(OwnFromRow, PanelTop) (not above the window's Top): black plus the page surface's own pixels from the bleed row down. The view's compose still leaves those rows out, so the game's 8-bit copy of the HUD's top edge never shows beside a page.
+- Watcher: the opened log box's HideRect is dropped while a page is up (the panel doesn't draw the box over a page, so no part of it may be hidden).
+- Offline: scratchpad book-band-test.ps1 (32-bit). Rows 950/960/975 were clear (the compose hid them, so black on screen) and are now PAGE. Test helpers: Panel.TestBookSurface / TestBookFrom.

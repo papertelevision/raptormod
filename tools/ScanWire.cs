@@ -1528,6 +1528,106 @@ namespace AztTool
         }
     }
 
+    /// <summary>THE VISOR'S "Scanning..." LABEL (Josh, 2026-10-13: "for this new animation, each time it shows, I want a small
+    /// 'Scanning...' label to appear in the lower right of the visor area in typical in-universe style. It will be on screen
+    /// the same amount of time as the wireframes so very brief"). While the room materializes (GpuRaster.MatTagK): the damage
+    /// badge's dark glass plate and corner brackets, mirrored to the lower right, in the scan's teal -- a turning radar sweep,
+    /// the word with its dots ticking on, and a thin bar that fills as the wave crosses the room (MatProgress). It flickers
+    /// on and fades with the outlines' trail. Drawn here (GDI+, premultiplied) Fps times a second; the card lays it over the
+    /// picture in its present pass (GpuRaster.SetTag), so the frames never come back through the processor for it.</summary>
+    public class ScanTag
+    {
+        public int Ink = 0x5FD8C0, Flare = 0xCFFFF4, Glass = 0x021214;
+        public string Text = "Scanning";
+        public double FadeIn = 0.18, Fps = 40;
+        public bool Enabled = true;
+        public long Shows;
+        readonly Overlay _ov; readonly Stopwatch _clock = Stopwatch.StartNew();
+        double _onAt = -1, _drawnAt = -1; int[] _px; int _w, _h; float _em = -1, _textW;
+        public ScanTag(Overlay ov) { _ov = ov; }
+        static double Noise(int i) { uint h = (uint)i * 2654435761u; h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15; return (h & 0xFFFF) / 65535.0; }
+        static Font FontOf(float em) { return new Font("Consolas", em, FontStyle.Bold, GraphicsUnit.Pixel); }
+        /// <summary>Every frame, on the card's thread, before the picture is presented.</summary>
+        public void Step(GpuRaster gpu)
+        {
+            float k = Enabled ? gpu.MatTagK : 0f;
+            double now = _clock.Elapsed.TotalSeconds;
+            if (k <= 0.001f) { _onAt = -1; gpu.TagOn = false; return; }
+            if (_onAt < 0) { _onAt = now; _drawnAt = -1; Shows++; }
+            int W = gpu.PresentW, H = gpu.PresentH; if (W < 64 || H < 64) { gpu.TagOn = false; return; }
+            if (_drawnAt >= 0 && now - _drawnAt < 1.0 / Fps) return;           // (the last one stays on the card)
+            _drawnAt = now;
+            double t = now - _onAt, a = Math.Min(1.0, t / FadeIn) * k;
+            if (t < 0.22 && Noise((int)(t * 60)) < 0.3 + 0.5 * (1 - t / 0.22)) a *= 0.2;      // (a ragged flicker on)
+            int vr = Math.Max(64, Math.Min(H, _ov != null ? _ov.ViewRowsOf(H) : H));
+            float x, y; var px = Render(t, a, gpu.MatProgress, W, vr, out x, out y);
+            gpu.SetTag(px, _w, _h, x, y);
+        }
+        /// <summary>The label at time t (s) and strength a, for a window W wide whose view is vr rows: its pixels (premultiplied
+        /// ARGB, _w x _h) and where its top left goes (window px).</summary>
+        public int[] Render(double t, double a, float prog, int W, int vr, out float x, out float y)
+        {
+            float em = Math.Max(12f, vr / 58f), pad = em * 0.7f, icon = em * 1.2f;
+            if (em != _em)
+            {
+                _em = em;
+                using (var b = new Bitmap(1, 1)) using (var g = Graphics.FromImage(b)) using (var f = FontOf(em))
+                    _textW = g.MeasureString(Text + "...", f, PointF.Empty, StringFormat.GenericTypographic).Width;   // (the plate keeps its size as the dots come)
+            }
+            float bw = pad + icon + em * 0.55f + _textW + pad, bh = em * 2.3f, margin = em * 0.3f;
+            int w = (int)Math.Ceiling(bw + 2 * margin), h = (int)Math.Ceiling(bh + 2 * margin);
+            x = W * 0.945f + em * 0.8f - bw - margin; y = vr * 0.86f - bh - margin;
+            if (_px == null || _px.Length != w * h) _px = new int[w * h]; else Array.Clear(_px, 0, _px.Length);
+            _w = w; _h = h;
+            var hnd = GCHandle.Alloc(_px, GCHandleType.Pinned);
+            try
+            {
+                using (var bm = new Bitmap(w, h, w * 4, PixelFormat.Format32bppPArgb, hnd.AddrOfPinnedObject()))
+                using (var g = Graphics.FromImage(bm))
+                using (var font = FontOf(em))
+                {
+                    g.SmoothingMode = SmoothingMode.AntiAlias; g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                    float x0 = margin, y0 = margin, x1 = margin + bw, y1 = margin + bh;
+                    // the glass: the view behind darkened toward a teal black, interlaced
+                    using (var gb = new SolidBrush(Color.FromArgb((int)(150 * a), Color.FromArgb(Glass)))) g.FillRectangle(gb, x0, y0, bw, bh);
+                    using (var il = new SolidBrush(Color.FromArgb((int)(55 * a), Color.Black))) for (float yy = y0; yy < y1; yy += 3) g.FillRectangle(il, x0, yy, bw, 1);
+                    var ink = Color.FromArgb((int)(235 * a), Color.FromArgb(Ink));
+                    // the visor's corner brackets
+                    float L = em * 0.6f;
+                    using (var pen = new Pen(ink, Math.Max(1.5f, em / 9f)))
+                    {
+                        g.DrawLines(pen, new[] { new PointF(x0, y0 + L), new PointF(x0, y0), new PointF(x0 + L, y0) });
+                        g.DrawLines(pen, new[] { new PointF(x1 - L, y0), new PointF(x1, y0), new PointF(x1, y0 + L) });
+                        g.DrawLines(pen, new[] { new PointF(x0, y1 - L), new PointF(x0, y1), new PointF(x0 + L, y1) });
+                        g.DrawLines(pen, new[] { new PointF(x1 - L, y1), new PointF(x1, y1), new PointF(x1, y1 - L) });
+                    }
+                    // the radar: two rings, a fading wedge behind a turning arm
+                    float cx = x0 + pad + icon / 2, cy = y0 + bh * 0.45f, r = icon * 0.46f;
+                    using (var thin = new Pen(Color.FromArgb((int)(140 * a), Color.FromArgb(Ink)), Math.Max(1f, em / 14f)))
+                    {
+                        g.DrawEllipse(thin, cx - r, cy - r, 2 * r, 2 * r); g.DrawEllipse(thin, cx - r * 0.5f, cy - r * 0.5f, r, r);
+                    }
+                    double ang = t * 300.0 % 360.0;       // (degrees: a turn every 1.2 s)
+                    for (int i = 0; i < 6; i++)
+                        using (var wb = new SolidBrush(Color.FromArgb((int)(75 * a * (1 - i / 6.0)), Color.FromArgb(Ink))))
+                            g.FillPie(wb, cx - r, cy - r, 2 * r, 2 * r, (float)(ang - 10 * (i + 1)), 10f);
+                    double ar = ang * Math.PI / 180;
+                    using (var arm = new Pen(Color.FromArgb((int)(250 * a), Color.FromArgb(Flare)), Math.Max(1.5f, em / 10f)))
+                        g.DrawLine(arm, cx, cy, cx + r * (float)Math.Cos(ar), cy + r * (float)Math.Sin(ar));
+                    // the word, its dots ticking on
+                    string s = Text + new string('.', (int)(t * 3.2) % 4);
+                    float tx = cx + icon / 2 + em * 0.55f, ty = cy - em * 0.62f;
+                    using (var tb = new SolidBrush(ink)) g.DrawString(s, font, tb, tx, ty, StringFormat.GenericTypographic);
+                    // the bar: how far the wave has crossed the room
+                    float by = y1 - em * 0.42f, bx0 = tx, bx1 = x1 - pad, fx = bx0 + (bx1 - bx0) * Math.Max(0f, Math.Min(1f, prog));
+                    using (var track = new Pen(Color.FromArgb((int)(70 * a), Color.FromArgb(Ink)), Math.Max(1f, em / 12f))) g.DrawLine(track, bx0, by, bx1, by);
+                    if (fx > bx0 + 0.5f) using (var fill = new Pen(Color.FromArgb((int)(240 * a), Color.FromArgb(Flare)), Math.Max(1.5f, em / 9f))) g.DrawLine(fill, bx0, by, fx, by);
+                }
+            }
+            finally { hnd.Free(); }
+            return _px;
+        }
+    }
     /// <summary>THE DAMAGED VISOR (Josh, 2026-10-10: "on that same signal when the damage taken badge displays, I want to see
     /// distortion/static on the visor ... As the health gets lower, i want to see more and more damage on the visor, like
     /// scratches at first, dirt etc., then more and more cracks, a broken piece from one corner when near death, and a small
@@ -1536,7 +1636,7 @@ namespace AztTool
     /// The glass is one layer drawn here, off the game's thread, for the damage it has taken (GpuRaster.SetVisorLayer):
     /// dust and grime first, hairline scratches, a raptor's claw rake, then impact cracks that spread as the damage grows
     /// (each crack system has its own threshold and grows along its own lines -- the same glass, never re-dealt), and near
-    /// death the top right corner broken away, the display dead behind it, its liquid crystal bleeding in. The present pass
+    /// death a top corner broken away (BreakLeft: the LEFT one), the display dead behind it, its liquid crystal bleeding in. The present pass
     /// lays it over the picture with the cracks bending the view behind them (FS_PRESENT). A hit tears and splits the
     /// display for a moment (Hit); mending (health back) is a teal sweep down the glass. Near death a vitals monitor --
     /// the boot's oscilloscope ECG, racing and irregular -- sits above the damage badge, and the visor's edges pulse red with
@@ -1549,6 +1649,10 @@ namespace AztTool
         public bool Enabled = true;
         readonly Overlay _ov; readonly Stopwatch _clock = Stopwatch.StartNew();
         public VisorDamage(Overlay ov) { _ov = ov; }
+        /// <summary>The visor's menus (the watcher sets it): behind an open panel the damage fades away -- in over FadeIn s as
+        /// it opens, back over FadeOut s after it closes (Josh, 2026-10-10: "fade the damage behind open menus").</summary>
+        public VisorMenu Menus; public double ClearFadeIn = 0.2, ClearFadeOut = 0.3;
+        double _clrK, _clrAt = -1; float[] _clrLast;
         /// <summary>The damage the glass shows (1 - health), and builds of its layer so far / the last one's time.</summary>
         public double Level; public long Builds; public double LastBuildMs; public string LastError;
         /// <summary>The vitals monitor's beep on each beat while it shows (Josh: "pretty quiet" -- its own BootSound, at a
@@ -1620,6 +1724,14 @@ namespace AztTool
             gpu.VisorLevel = (float)Level; gpu.VisorHit = (float)hit; gpu.VisorHitAge = (float)Math.Max(0, age); gpu.VisorSeed = _hitSeed;
             gpu.VisorTime = (float)(now % 1000.0); gpu.VisorBeat = (float)beat; gpu.VisorSweep = sweep; gpu.VisorViewRows = (float)ViewFrac(h);
             gpu.VisorDeath = (float)(_flatAt >= 0 ? Math.Min(1, (now - _flatAt) / 4.0) : 0);
+            // clear behind the open menus (the last rectangles kept while it fades back)
+            {
+                var cr = Menus != null ? Menus.ClearRects : null; bool up = cr != null && cr.Length >= 4;
+                if (up) _clrLast = cr;
+                double cdt = _clrAt < 0 ? 0 : now - _clrAt; _clrAt = now;
+                _clrK = up ? Math.Min(1, _clrK + cdt / Math.Max(0.01, ClearFadeIn)) : Math.Max(0, _clrK - cdt / Math.Max(0.01, ClearFadeOut));
+                gpu.VisorClear = _clrK > 0 ? _clrLast : null; gpu.VisorClearK = (float)_clrK;
+            }
             // the vitals monitor near death, fading in and out
             double wa = Level >= WidgetFrom ? 1 : 0; double dt = _widAt < 0 ? 0 : now - _widAt; _widAt = now;
             _widA = wa > _widA ? Math.Min(wa, _widA + dt / 0.6) : Math.Max(wa, _widA - dt / 0.8);
@@ -1838,8 +1950,14 @@ namespace AztTool
         }
 
         /// <summary>The glass at damage `level` for a window w x h (whose top viewFrac of rows is the view).</summary>
-        /// <summary>The damage (1 - health) at which the top right corner breaks away.</summary>
+        /// <summary>The damage (1 - health) at which the top corner breaks away.</summary>
         public const double CornerFrom = 0.5;
+        /// <summary>WHICH top corner breaks (Josh, 2026-10-10: "when the player dies of damage, we cant see the system menu due
+        /// to the broken glass effect, so I want to put the broken glass effect from the top right damage to the left, but make
+        /// sure we dont lose any of the other effects"). The system menu folds out on the right. true = the break is top LEFT
+        /// and the claw rake, which was placed on the side away from the break, goes to the right: the whole glass mirrored,
+        /// the same seed, every effect kept -- false = the original (break top right, rake left).</summary>
+        public static bool BreakLeft = true;
         public static Layer Build(double level, int w, int h, int seed, double viewFrac)
         {
             var sw = Stopwatch.StartNew();
@@ -1893,9 +2011,10 @@ namespace AztTool
                         using (var lt = new Pen(Argb((int)(al * k), 0xD7E1EB), Math.Max(1f, 0.55f * u))) gp.DrawBezier(lt, p0, p1, p2, p3);
                     }
                 }
-                // 4. THE CLAW RAKE: four long gouges across the left of the glass
+                // 4. THE CLAW RAKE: four long gouges across the glass, on the side away from the broken corner
                 {
                     float cx = (float)(w * (0.22 + 0.1 * r.NextDouble())), cy = (float)(vr * (0.35 + 0.15 * r.NextDouble())); double ang = -0.9 + 0.3 * r.NextDouble();
+                    if (BreakLeft) { cx = w - cx; ang = Math.PI - ang; }      // (mirrored: away from the break, as it always was)
                     double k = In(0.42, 0.06);
                     if (k > 0)
                         for (int j = 0; j < 4; j++)
@@ -1998,7 +2117,7 @@ namespace AztTool
                     using (var b = new SolidBrush(Argb((int)(230 * k), rgb))) gp.FillRectangle(b, p.X, p.Y, s, s);
                 }
                 // 7. THE BROKEN CORNER, BREAKING AWAY LIKE GLASS (Josh, 2026-10-10: "actually break apart and change shape like
-                // actual glass"). The top right of the glass is a web of pieces -- rings out from the corner crossed by jagged
+                // actual glass"). The top corner (left with BreakLeft, else right) is a web of pieces -- rings out from the corner crossed by jagged
                 // radial lines, every edge shared by the two pieces either side of it -- and each piece has its own damage at
                 // which it falls out: those at the corner first (from CornerFrom, half health), a piece only after the one
                 // inside it. So the hole grows a piece at a time and its edge changes shape as it goes; a piece about to go is
@@ -2006,7 +2125,7 @@ namespace AztTool
                 {
                     var cr = new Random(seed * 7 + 3);
                     const int K = 6, J = 7;
-                    float Sx = 0.36f * w, Sy = 0.5f * vr; var C0 = new PointF(w + 2, -2);
+                    float Sx = 0.36f * w, Sy = 0.5f * vr; var C0 = new PointF(BreakLeft ? -2 : w + 2, -2);
                     var th = new double[J + 1];
                     for (int j = 0; j <= J; j++) th[j] = j == 0 ? -0.15 : j == J ? Math.PI / 2 + 0.15 : (j + (cr.NextDouble() - 0.5) * 0.6) / J * Math.PI / 2;
                     var V = new PointF[K + 1, J + 1];
@@ -2015,7 +2134,8 @@ namespace AztTool
                         {
                             if (k == 0) { V[k, j] = C0; continue; }
                             double rho = (k + (cr.NextDouble() - 0.5) * 0.55) / K, a = th[j] + (j > 0 && j < J ? (cr.NextDouble() - 0.5) * 0.08 : 0);
-                            V[k, j] = new PointF((float)(w - rho * Math.Cos(a) * Sx), (float)(rho * Math.Sin(a) * Sy));
+                            float ox = (float)(rho * Math.Cos(a) * Sx);      // (out from the corner, across the glass)
+                            V[k, j] = new PointF(BreakLeft ? ox : w - ox, (float)(rho * Math.Sin(a) * Sy));
                         }
                     // when each piece falls out (never before the piece inside it)
                     var T = new double[K, J];
@@ -2145,6 +2265,8 @@ namespace AztTool
         public int ViewY = 49;
         // ---- the look ----
         public int Amber = 0xFFB040, AmberHi = 0xFFE3A6, AmberDim = 0x9A6418, Glass = 0x2A1700;
+        /// <summary>One turn of the confirm key's sheen round its outline (s).</summary>
+        public double SheenSeconds = 3.0;
         public double Darken = 0.62, Tint = 0.10, Interlace = 0.32, Degauss = 0.85, OpenSeconds = 0.22;
         public BootSound Sound;
         readonly Overlay _ov;
@@ -2290,9 +2412,13 @@ namespace AztTool
         float PY(double gyScreen) { int g = (int)Math.Max(0, Math.Min(_gy.Length - 1, Math.Round(gyScreen - ViewY))); return _gy[g]; }
         static Color C(int rgb, double a) { return Color.FromArgb((int)Math.Max(0, Math.Min(255, 255 * a)), (rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255); }
 
+        /// <summary>The open panels (memory core / reading / writing, system menu) as rectangles of the PICTURE, 0..1 each
+        /// way, four floats a panel (x0, y0, x1, y1); null when none is up. VisorDamage fades the glass's damage out behind
+        /// them (Josh, 2026-10-10: "fade the damage behind open menus").</summary>
+        public volatile float[] ClearRects;
         public bool DrawOver(int[] pic, int pw, int ph)
         {
-            if (_ov == null) return false;
+            if (_ov == null) { ClearRects = null; return false; }
             double t = _clock.Elapsed.TotalSeconds;
             // opening: the tube's picture grows from a line; closing: it collapses back
             double grow = _open ? Math.Min(1, (t - _openedAt) / OpenSeconds) : Math.Max(0, 1 - (t - _closedAt) / 0.18);
@@ -2311,7 +2437,7 @@ namespace AztTool
                     if (rd >= _readLen && !_readDoneSnd) { _readDoneSnd = true; try { Sound.Line(29, 0.1, 1.3); } catch { } }
                 }
             }
-            if (grow <= 0.001 && sysGrow <= 0.001 && !ret) return false;
+            if (grow <= 0.001 && sysGrow <= 0.001 && !ret) { ClearRects = null; return false; }
             int[] cxi, cxf, cxiR, cxfR, riy, rwy; int bt, bb; bool vis;
             _ov.ComposeMap(pw, ph, out cxi, out cxf, out cxiR, out cxfR, out riy, out rwy, out bt, out bb, out vis);
             int vr = Math.Min(ph, _ov.ViewRowsOf(ph));
@@ -2333,6 +2459,13 @@ namespace AztTool
                 any |= DrawPanel(pic, pw, ph, vr, s, t, SysX0, SysY0, SysX1, SysY1, sysGrow, _sysOpen, _sysOpenedAt, DrawSysContent, right, _sysBend);
             }
             if (grow > 0.001) any |= DrawPanel(pic, pw, ph, vr, s, t, PanelX0, PanelY0, PanelX1, PanelY1, grow, _open || reading, reading ? _readAt : _openedAt, DrawContent);
+            // the panels' rectangles (a little past their frames), for the damaged visor
+            {
+                var cl = new List<float>(8); float m = 10 * s;
+                if (sysGrow > 0.001) cl.AddRange(new[] { (PX(SysX0) - m) / pw, (PY(SysY0) - m) / ph, (_sysRight + m) / pw, (PY(SysY1) + m) / ph });
+                if (grow > 0.001) cl.AddRange(new[] { (PX(PanelX0) - m) / pw, (PY(PanelY0) - m) / ph, (PX(PanelX1) + m) / pw, (PY(PanelY1) + m) / ph });
+                ClearRects = cl.Count > 0 ? cl.ToArray() : null;
+            }
             if (ret) { DrawReturn(pic, pw, vr, s, rt); any = true; }
             if (any && !ret && !reading) DrawCursor(pic, pw, vr, s);         // (last: over the panels; not while the view returns -- the game's own pointer is back)
             return any;
@@ -2463,15 +2596,52 @@ namespace AztTool
             }
         }
         RectangleF R(int[] r) { return RectangleF.FromLTRB(PX(r[0]), PY(r[1]), PX(r[2]), PY(r[3])); }
-        void Button(Graphics g, int[] r, string label, string sub, bool hov, bool lit, Font f, Font fs, Pen frame, Pen thin, Brush bHi, Brush bAm, Brush bDim, Brush bDark)
+        // active: a key waiting for its click (the confirm) -- lit faintly, its outline the sheen's track (Sheen).
+        void Button(Graphics g, int[] r, string label, string sub, bool hov, bool lit, Font f, Font fs, Pen frame, Pen thin, Brush bHi, Brush bAm, Brush bDim, Brush bDark, bool active = false)
         {
             var rr = R(r);
-            if (lit) g.FillRectangle(new SolidBrush(C(Amber, 0.88)), rr); else if (hov) g.FillRectangle(new SolidBrush(C(Amber, 0.2)), rr);
-            g.DrawRectangle(lit || hov ? frame : thin, rr.X, rr.Y, rr.Width, rr.Height);
+            if (lit) g.FillRectangle(new SolidBrush(C(Amber, 0.88)), rr); else if (hov) g.FillRectangle(new SolidBrush(C(Amber, active ? 0.32 : 0.2)), rr); else if (active) g.FillRectangle(new SolidBrush(C(Amber, 0.14)), rr);
+            if (!active) g.DrawRectangle(lit || hov ? frame : thin, rr.X, rr.Y, rr.Width, rr.Height);      // (a waiting key's outline is the sheen's track: Sheen)
             var sz = g.MeasureString(label, f);
             float ty = rr.Y + (rr.Height - sz.Height) / 2f - (sub != null ? fs.Height * 0.3f : 0);
             g.DrawString(label, f, lit ? bDark : bHi, rr.X + (rr.Width - sz.Width) / 2f, ty);
             if (sub != null) { var s2 = g.MeasureString(sub, fs); g.DrawString(sub, fs, lit ? bDark : bDim, rr.X + (rr.Width - s2.Width) / 2f, ty + sz.Height * 0.86f); }
+        }
+        // THE CONFIRM KEY ASKS FOR ITS CLICK (Josh, 2026-10-13: "the 'confirm' button should become active but also have a
+        // revolving effect on its outline clarifying that the user needs to click it ... an in-universe style revolving 'sheen'
+        // that slowly revolves on the button's outline ... ... anytime the player needs to confirm something
+        // after an initial action in the menu systems"; then "switched back to the amber/orange color rather than the teal"): a faint amber outline, and a bright head with a fading tail running round
+        // it once every SheenSeconds -- a soft wide glow under a crisp line, the head itself in the flare.
+        void Sheen(Graphics g, RectangleF rr, double t, float s)
+        {
+            float w = rr.Width, h = rr.Height, per = 2 * (w + h);
+            if (per < 4) return;
+            Func<float, PointF> At = d =>
+            {
+                d = ((d % per) + per) % per;
+                if (d < w) return new PointF(rr.X + d, rr.Y); d -= w;
+                if (d < h) return new PointF(rr.Right, rr.Y + d); d -= h;
+                if (d < w) return new PointF(rr.Right - d, rr.Bottom); d -= w;
+                return new PointF(rr.X, rr.Bottom - d);
+            };
+            using (var rim = new Pen(C(Amber, 0.5), Math.Max(1f, 1.2f * s))) g.DrawRectangle(rim, rr.X, rr.Y, w, h);
+            float head = (float)((t / Math.Max(0.3, SheenSeconds)) % 1.0) * per, tail = per * 0.38f; const int n = 56;
+            var sm = g.SmoothingMode; g.SmoothingMode = SmoothingMode.AntiAlias;
+            for (int pass = 0; pass < 2; pass++)
+                using (var pen = new Pen(Color.Transparent, pass == 0 ? Math.Max(3.5f, 5.5f * s) : Math.Max(1.2f, 1.7f * s)) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+                    for (int i = n - 1; i >= 0; i--)
+                    {
+                        double k = Math.Pow(1 - i / (double)n, 1.8);
+                        pen.Color = C(i < 4 && pass == 1 ? AmberHi : Amber, (pass == 0 ? 0.2 : 1.0) * k);
+                        // (each piece through any corner it turns, so the head stays on the outline)
+                        float d0 = head - tail * (i + 1) / n, d1 = head - tail * i / n;
+                        var p0 = At(d0); var p1 = At(d1);
+                        float[] corners = { w, w + h, 2 * w + h, per };
+                        PointF? mid = null;
+                        foreach (var cn in corners) { float a0 = ((d0 % per) + per) % per, a1 = a0 + (d1 - d0); if (a0 < cn && a1 > cn) { mid = At(cn); break; } }
+                        if (mid.HasValue) { g.DrawLine(pen, p0, mid.Value); g.DrawLine(pen, mid.Value, p1); } else g.DrawLine(pen, p0, p1);
+                    }
+            g.SmoothingMode = sm;
         }
         void Slider(Graphics g, float s, int[] track, string name, int level, bool on, bool drag, bool hov, Font f, Font fs, Pen frame, Pen thin, Brush bHi, Brush bAm, Brush bDim)
         {
@@ -2529,7 +2699,8 @@ namespace AztTool
                     string key = _sysQuit ? "CONFIRM" : _sel == 6 ? "RESTART" : _sysSave ? "COMMIT" : "RESTORE", sub = _sysQuit ? "QUIT GAME" : _sysSave ? "SAVE" : "LOAD";
                     if (((int)(t * 2.2) & 1) == 0) g.DrawString(what, fSmall, bAm, hx, py + 6 * s);
                     g.DrawString(_sysQuit ? "QUIT AGAIN OR ESC TO CANCEL" : "OR PRESS ENTER", fSmall, bDim, hx, py + 26 * s);
-                    Button(g, SysOk, key, sub, _sysHover == 7, false, fBtn, fSmall, frame, thin, bHi, bAm, bDim, bDark);
+                    Button(g, SysOk, key, sub, _sysHover == 7, false, fBtn, fSmall, frame, thin, bHi, bAm, bDim, bDark, true);
+                    Sheen(g, R(SysOk), t, s);
                 }
                 else if (((int)(t * 1.6) & 1) == 0 || t < _sysModeAt + 1.2) g.DrawString(Typed("> ESC TO CLOSE", t, _sysModeAt + 0.6, 50), fSmall, bAm, hx, py + 16 * s);
             }
@@ -2710,9 +2881,30 @@ namespace AztTool
         }
         public double ReadMin = 1.0; double _readFinAt = -10;
         double _readAt = -10, _readBlip = -10, _readLen = 2.2, _readP; int _readSlot = -1; string _readName = ""; bool _readDoneSnd;
+        // THE ROOM IS PART OF THE LOAD (Josh, 2026-10-12: "we need those textures to be loaded when loading a game as well, but
+        // that needs to be lumped into the core loading UI/animation as part of the loading process"): the renderer reports the
+        // new room's textures -- decoded, then sent to the card -- as LoadProgress (0..1). The archive itself is then the first
+        // 30% of the bar on the planned time (creeping on while the room has not begun), the rest follows the room, never
+        // backwards, and the line under the bar says what it is doing. -1 (RoomLoadAhead off: no renderer room to wait for):
+        // the bar as before.
+        public volatile float LoadProgress = -1f;
+        public bool RoomLoadAhead = true;
+        public string RoomStage = "ANALYZING ENVIRONMENT";
+        double _progBase = -1, _readPT = -1;
+        double ReadBar(double rt, double t)
+        {
+            double e = 1 - Math.Pow(1 - Math.Min(1, rt / ReadSeconds), 2);
+            float lp = LoadProgress;
+            if (lp < 0) return Math.Max(_readP, Math.Min(0.99, e));
+            double tgt = 0.30 * e + 0.12 * (1 - Math.Exp(-Math.Max(0, rt - ReadSeconds) / 3.0));
+            if (lp > 0) { if (_progBase < 0) _progBase = Math.Max(_readP, 0.30); tgt = Math.Max(tgt, _progBase + (0.99 - _progBase) * Math.Min(1, lp)); }
+            double dt = _readPT >= 0 ? Math.Max(0, Math.Min(0.25, t - _readPT)) : 0; _readPT = t;
+            return tgt <= _readP ? _readP : _readP + (tgt - _readP) * Math.Min(1, dt * 7);
+        }
         public void BeginReading(int slot, string name)
         {
             double t = _clock.Elapsed.TotalSeconds; _readAt = t; _readLen = ReadSeconds; _readP = 0; _readSlot = slot; _readName = (name ?? "").Trim().ToUpperInvariant(); _readDoneSnd = false;
+            LoadProgress = RoomLoadAhead ? 0f : -1f; _progBase = -1; _readPT = -1;
             if (Sound != null && Sound.On) { try { Sound.DegaussSound(Degauss); Sound.Typing(73, 0.55, 1.05); } catch { } }
         }
         double ReadEnd { get { return _readAt + _readLen + ReadHold; } }
@@ -2729,7 +2921,7 @@ namespace AztTool
             bool done = read ? rt >= _readLen : !_writing; double wt = read ? rt : t - _writeAt;
             // reading: eased over ReadSeconds as planned; a load held up past that (ReadWait) sits at 99% until it is done
             double p = !read ? (done ? 1 : Math.Min(0.96, 1 - Math.Exp(-wt / (WriteSeconds * 0.45))))
-                     : done ? 1 : Math.Max(_readP, Math.Min(0.99, 1 - Math.Pow(1 - Math.Min(1, rt / ReadSeconds), 2)));
+                     : done ? 1 : ReadBar(rt, t);
             if (read && !done && _readFinAt >= _readAt) p = Math.Max(p, _readP + (1 - _readP) * Math.Min(1, (t - _readFinAt) / 0.3));
             if (read) _readP = p;
             double startAt = read ? _readAt : _writeAt, doneAt = read ? _readAt + _readLen : _wroteAt;
@@ -2765,7 +2957,7 @@ namespace AztTool
                 for (int i = 0; i < lit; i++) g.FillRectangle(i == lit - 1 && !done ? bHi : bAm, bx0 + 4 * s + i * sw, by0 + 4 * s, sw - 3 * s, by1 - by0 - 8 * s);
                 var pct = string.Format("{0,3}%", (int)Math.Round(p * 100));
                 g.DrawString(pct, fSmall, bDim, bx1 - g.MeasureString(pct, fSmall).Width, by1 + 6 * s);
-                g.DrawString(done ? "INTEGRITY VERIFIED" : read ? "RESTORING ARCHIVE FROM MEMORY CORE" : "COMMITTING ARCHIVE TO MEMORY CORE", fSmall, bDim, bx0, by1 + 6 * s);
+                g.DrawString(done ? "INTEGRITY VERIFIED" : read ? (LoadProgress > 0 && RoomStage != null ? RoomStage : "RESTORING ARCHIVE FROM MEMORY CORE") : "COMMITTING ARCHIVE TO MEMORY CORE", fSmall, bDim, bx0, by1 + 6 * s);
                 // the stream: lines of hex scrolling up under the bar, newest brightest
                 int tick = (int)(t * 18), lines = 8; float ly = PY(RowTop + 200), lh = 19 * s;
                 for (int i = 0; i < lines; i++)

@@ -8,6 +8,7 @@
 //   * STEAM   billows up from the floor around the player (rooms that have it), growing and
 //             thinning as it rises.
 //   * KICKUP  little puffs of dust where the player's feet are, while walking.
+//   * GHOST   glowing wisps shed from a ghost's hem, ribbons and hands (a room's "ghost" block), rising as they fade.
 // Everything but the embers is lit the way the dust motes are: the room's level plus the helmet
 // lamp's beam where it falls (Raster.LampAt); embers make their own light.
 using System;
@@ -19,7 +20,7 @@ namespace AztTool
     {
         public const int Stride = 10;          // per particle out: x y z, size (world), r g b (0..255), alpha, additive (0/1), seed
         struct P { public float x, y, z, vx, vy, vz, age, life, size, size1, seed; public byte kind; }
-        const byte EMBER = 1, DRIP = 2, SPLASH = 3, STEAM = 4, KICK = 5, SHAFT = 6, WMIST = 7;
+        const byte EMBER = 1, DRIP = 2, SPLASH = 3, STEAM = 4, KICK = 5, SHAFT = 6, WMIST = 7, GHOST = 8;
         readonly List<P> _p = new List<P>(512);
         readonly Random _rnd = new Random(11);
         float R() { return (float)_rnd.NextDouble(); }
@@ -137,6 +138,28 @@ namespace AztTool
                         size = _shafts[b + 15] > 0f ? _shafts[b + 8] * (0.3f + 2.7f * _shafts[b + 15] * (float)Math.Pow(R(), 3)) : _shafts[b + 8] * (0.5f + R() * 0.9f), size1 = si + (along - from) / Math.Max(1f, to - from) * 0.999f, seed = R() });
         }
 
+        // ---- A GHOST'S WISPS (Josh, 2026-10-11, WELLROOM: Niamh "more ethereal"): pale curls of mist shed from her hem, her
+        // trailing ribbons and her hands (SetGhostSources: those parts' vertices in the posed room), drifting up and away and
+        // fading -- she moves on and they stay where they were shed, so they trail. Glowing (additive), shaped as the steam's soft puff.
+        // Size, rise (a second) and spread are shares of the height those parts span as she is posed (her size is the engine's).
+        public float GhostRate = 0f, GhostSize = 0.06f, GhostLife = 3.2f, GhostRise = 0.05f, GhostAlpha = 0.85f, GhostSpread = 0.03f;
+        public int GhostColor = 0x9FEDE4;
+        int[] _gVerts = new int[0]; float _gAcc, _gSpan = 1f;
+        /// <summary>Where a ghost's wisps are shed from: vertex indices into the posed room Update is given (none = no wisps).</summary>
+        public void SetGhostSources(int[] verts) { _gVerts = verts ?? new int[0]; _p.RemoveAll(q => q.kind == GHOST); _gAcc = 0; }
+        public int GhostSources { get { return _gVerts.Length; } }
+        void GhostParticle(float[] vx)
+        {
+            // somewhere between two of those points: through her lower body, not only at its corners
+            int a = _gVerts[_rnd.Next(_gVerts.Length)] * 3, b = _gVerts[_rnd.Next(_gVerts.Length)] * 3;
+            if (a + 2 >= vx.Length || b + 2 >= vx.Length) return;
+            float u = R(), px = vx[a] + (vx[b] - vx[a]) * u, py = vx[a + 1] + (vx[b + 1] - vx[a + 1]) * u, pz = vx[a + 2] + (vx[b + 2] - vx[a + 2]) * u;
+            float life = GhostLife * (0.6f + R() * 0.8f), sp = GhostSpread * _gSpan, sz = GhostSize * _gSpan;
+            Add(new P { kind = GHOST, x = px + (R() - 0.5f) * sp, y = py + (R() - 0.5f) * sp, z = pz + (R() - 0.5f) * sp,
+                        vx = (R() - 0.5f) * sp, vy = GhostRise * _gSpan * (0.4f + R() * 0.9f), vz = (R() - 0.5f) * sp,
+                        life = life, size = sz * (0.5f + R() * 0.5f), size1 = sz * (1.6f + R()), seed = R() });
+        }
+
         bool _wmPrimed;
         float _dripAcc, _steamAcc, _walked; float _lx, _ly, _lz; bool _haveLast;
         public int Count { get { return _p.Count; } }
@@ -179,6 +202,10 @@ namespace AztTool
                         break;
                     case WMIST:
                         p.vx += (R() - 0.5f) * 2f * dt; p.vz += (R() - 0.5f) * 2f * dt;
+                        break;
+                    case GHOST:
+                        // a slow curl: wandering sideways, easing off, still rising
+                        p.vx += (R() - 0.5f) * 10f * dt; p.vz += (R() - 0.5f) * 10f * dt; p.vx *= 1f - 0.6f * dt; p.vz *= 1f - 0.6f * dt;
                         break;
                     case KICK:
                         p.vx *= 1f - Math.Min(1f, 2.5f * dt); p.vz *= 1f - Math.Min(1f, 2.5f * dt); p.vy -= 4f * dt;
@@ -300,6 +327,15 @@ namespace AztTool
                 _wmAcc += WaterMistRate * dt;
                 while (_wmAcc >= 1f) { _wmAcc -= 1f; WaterMistParticle(false); }
             }
+            // A GHOST'S WISPS, from her as she is posed this frame
+            if (GhostRate > 0f && _gVerts.Length > 0 && vx != null)
+            {
+                float lo = float.MaxValue, hi = float.MinValue;
+                foreach (int gv in _gVerts) { int k3 = gv * 3 + 1; if (k3 >= vx.Length) continue; float y = vx[k3]; if (y < lo) lo = y; if (y > hi) hi = y; }
+                _gSpan = hi > lo ? Math.Max(1f, hi - lo) : 1f;
+                _gAcc += GhostRate * dt;
+                while (_gAcc >= 1f) { _gAcc -= 1f; GhostParticle(vx); }
+            }
             // KICKED-UP DUST: a few puffs at the feet for every step's worth of ground covered
             if (_haveLast && KickRate > 0f)
             {
@@ -345,7 +381,7 @@ namespace AztTool
                 if (v[2] < 1f) continue;
                 float sx = cx0 + v[0] * fpx / v[2], sy = cy0 - v[1] * fpx / v[2];
                 if (sx < -200 || sy < -200 || sx > W + 200 || sy > H + 200) continue;
-                bool add = p.kind == EMBER || p.kind == SHAFT;
+                bool add = p.kind == EMBER || p.kind == SHAFT || p.kind == GHOST;
                 order.Add(new KeyValuePair<float, int>(add ? 1e9f - v[2] : -v[2], i));       // alpha ones far to near, then the additive ones
             }
             order.Sort((a, b) => a.Key.CompareTo(b.Key));
@@ -383,6 +419,11 @@ namespace AztTool
                         float wl = Math.Min(1f, 0.85f + 0.3f * beam);
                         cr = ((col >> 16) & 255) * wl; cg = ((col >> 8) & 255) * wl; cb = (col & 255) * wl;
                         alpha = WaterMistAlpha * (float)Math.Sin(Math.PI * t); break;
+                    case GHOST:
+                        // her own glow, growing and thinning as it rises, fading in and out
+                        additive = true; col = GhostColor; size = p.size + (p.size1 - p.size) * t;
+                        cr = (col >> 16) & 255; cg = (col >> 8) & 255; cb = col & 255;
+                        alpha = GhostAlpha * (float)Math.Sin(Math.PI * t); break;
                     case SHAFT:
                     {
                         // lit by the shaft itself: its colour along the beam (size1's fraction), glinting, fading in and out
@@ -401,7 +442,7 @@ namespace AztTool
                 int q = n * Stride;
                 dst[q] = p.x; dst[q + 1] = p.y; dst[q + 2] = p.z; dst[q + 3] = size;
                 dst[q + 4] = Math.Min(255f, cr); dst[q + 5] = Math.Min(255f, cg); dst[q + 6] = Math.Min(255f, cb);
-                dst[q + 7] = alpha; dst[q + 8] = additive ? 1f : 0f; dst[q + 9] = p.kind == STEAM ? (SteamFine ? 3f : 1f) + p.seed : p.kind == WMIST ? 1f + p.seed : (p.kind == DRIP ? -1f : p.seed);      // (water mist: the steam's soft puff)
+                dst[q + 7] = alpha; dst[q + 8] = additive ? 1f : 0f; dst[q + 9] = p.kind == STEAM ? (SteamFine ? 3f : 1f) + p.seed : p.kind == WMIST ? 1f + p.seed : p.kind == GHOST ? 1f + p.seed : (p.kind == DRIP ? -1f : p.seed);      // (water mist and a ghost's wisps: the steam's soft puff)
                 n++;
             }
             return n;

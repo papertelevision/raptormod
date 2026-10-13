@@ -62,7 +62,17 @@ $g_evtCursorY   = [uint32]0x182DCC
 # record counts for the HUDTOP.RES / HUDBOT.RES viewport overlays (see below)
 $g_hudTopCount  = [uint32]0x1523C4
 $g_hudBotCount  = [uint32]0x1523C8
-$g_saveBox      = [uint32]0x1525A0  # save/load box is taking typed text
+$g_saveBox      = [uint32]0x1525A0  # (misnamed) the PICTURE VIEW: set by 0x16A80, cleared by 0x16BE0; the key handler's 0x12BF0 gives it ESC (close) and 's'
+$g_saveList     = [uint32]0x1523E0  # the fold-out's SAVE list is up (docs\save-load-screen-RE.md s1.3)
+$g_listSel      = [uint32]0x146948  # its picked row: 0..4 = a slot (typing its name), -1 none, 6 RESTART
+# KEYS FOR TYPING -- one word the overlay rewrites every frame (AztFrameAll): picture view, OR the save list up with a slot
+# picked, i.e. the game's own save-name entry (0x12CCB: E0 && sel != -1 -> every key is text). The WASD hooks in the stub
+# read it: the stub cave has no byte left for a second test, and `cmp word [esi+d32],0` is the same 8 bytes as the
+# `cmp word [edi+0x1525A0],0` it replaced. At a FIXED overlay offset (+19, after the three entry jumps) because the stub is
+# assembled before the overlay; until the overlay is read in it is zero-filled BSS = "not typing", i.e. stock WASD.
+# (Josh, 2026-10-11: "anytime you save the game, WASD is disabled for typing" -- the hooks only ever tested the picture
+# view, so W/A/S/D in a save name became movement keys.) $TYPING_KEYS_AT is set just under $OVERLAY_BASE (derived values
+# must sit below their constant: azrael-powershell-null-ordering).
 $g_invertY      = [uint32]0x1471DA  # negates the mouselook Y delta at 0x1D130; F10 toggles it
 $g_combat       = [uint32]0x14721C  # "sniper" mode: crosshair + left mouse fires
 $g_fwdFlag      = [uint32]0x14721E  # forward-key flag; gates the movement block
@@ -234,6 +244,7 @@ $PCX_LOAD     = [uint32]0x38A20   # Load(eax = surface, edx = filename)
 # The installer ships it as a required art file for that reason.
 $OVERLAY_BASE = [uint32]0x133000
 $OVERLAY_NAME = 'AZTCODE.BIN'
+$TYPING_KEYS_AT = [uint32]($OVERLAY_BASE + 19)     # aztTypingKeys: right after the overlay's three entry jumps (see $g_saveList)
 
 # Pull the overlay in at 0x16146, before the intro sequence, instead of waiting for the
 # first rendered frame. Two reasons, and the first is measurable: the boot effect is a CD
@@ -267,11 +278,14 @@ $OVERLAY_MAGIC = [uint32]0x4F545A41          # 'AZTO' -- also the "is it loaded?
 # Read a fixed generous length rather than the exact size: DOS AH=3Fh returns
 # what it actually read, so this needs no build-order dependency on how big the
 # overlay turned out, and 53 KB of BSS means it cannot overrun.
-# 0xD000 = 52 KB, the WHOLE BSS window (0x133000..0x140000). Raised from 0xC000 when the
-# boot effects left only 2.4 KB of headroom. Nothing else lives in this window: the 576 KB
-# staging buffer comes from the game's own allocator, not from here. Asserted against the
-# window further down, where $OBJ1_VSIZE is finally known.
-$OVERLAY_READ = [uint32]0xD000
+# The WHOLE BSS window: 0x40000 = 256 KB (0x133000..0x173000) since 2026-10-11, when obj1
+# grew past obj2's linked base (see $OBJ1_VSIZE). It was 0xD000 = 52 KB, full to 2 bytes.
+# ONE DOS read of up to 256 KB: DOS/4GW takes a 32-bit count for AH=3Fh -- the game's own
+# fread (0x397B3) hands the whole remainder to its read (0x54044 -> int 21h) with no 64 KB
+# chunking. Nothing else lives in this window: the 576 KB staging buffer comes from the
+# game's own allocator, not from here. Asserted against the window further down, where
+# $OBJ1_VSIZE is finally known.
+$OVERLAY_READ = [uint32]0x40000
 
 # ---- LE object table edits -------------------------------------------------
 $LE_BASE        = 0x290FC
@@ -1673,10 +1687,10 @@ $BOOT_FIN_TYPE_US = 900000      # ...over this long, then holds until the missio
 # re-deriving a design nobody has seen. At 1024 it is exactly 1.0 and every number
 # below is unchanged, so this cannot disturb the resolution it was tuned at.
 # CAPPED, because the readout is stored as a 1bpp BITMAP IN THE OVERLAY and its byte
-# cost grows as the SQUARE of this. The full 1600/1024 = 1.5625 assembles to 57,612
-# bytes against AztOverlayLoad's 53,248 -- and that window cannot grow, it ends exactly
-# where obj2 begins. 1.40 lands near 50 KB and is 90% of the ideal size, which is not a
-# difference you can see; the build throws if a later change pushes it over.
+# cost grows as the SQUARE of this. The full 1600/1024 = 1.5625 assembled to 57,612
+# bytes against the old 53,248-byte window (it ended at obj2's linked base then; it is
+# 256 KB since 2026-10-11, see $OBJ1_VSIZE). 1.40 is 90% of the ideal size, which is not
+# a difference you can see, and it is the size that was signed off -- left as it is.
 $BOOT_DESIGN_W = 1024
 # 1.40. It was briefly dropped to 1.25 to pay for 4-row block alignment while the
 # scanline band was 2; that band is back to 1, the alignment costs nothing again, and
@@ -3816,7 +3830,7 @@ A-Call $a 'AztDeltas'
 A-PopEax $a
 A-CmpWordSiImm $a 'aztEnabled' 0
 A-Jz $a 'AKU_pass'
-A-CmpWordDiImm $a $g_saveBox 0     # don't eat W/A/S/D while a save name is being typed
+A-CmpWordSiImm $a $TYPING_KEYS_AT 0   # don't eat W/A/S/D while keys are text (a save name; the picture view)
 A-Jnz $a 'AKU_pass'
 A-MovDxEaxDisp $a 7
 A-CmpDxImm $a 0x11; A-Jz $a 'AKU_w'
@@ -3865,7 +3879,7 @@ A-Call $a 'AztDeltas'
 A-PopEax $a
 A-CmpWordSiImm $a 'aztEnabled' 0
 A-Jz $a 'AKH_pass'
-A-CmpWordDiImm $a $g_saveBox 0     # save box is taking typed text -- leave keys alone
+A-CmpWordSiImm $a $TYPING_KEYS_AT 0   # keys are text (a save name; the picture view) -- leave W/A/S/D alone
 A-Jnz $a 'AKH_fkeys'
 # W/S become the stock forward/back arrows. A/D ALSO become forward, but record
 # a strafe direction that AztStrafe uses to rotate the movement vector.
@@ -4226,15 +4240,32 @@ $patches += New-Patch -Name 'volume-defaults-14693E' -FileOffset ($DATA_PAGES + 
 #                        demand simply because the object says it is that big.
 #                        Not patchable (no file offset), but writable at runtime.
 #
-# $OBJ1_VSIZE claims all of it, right up to obj2's base. Every file-backed cave
-# in this build is now within a few bytes of full and there is no unreferenced
-# padding anywhere in obj1, so the only way to add code is to put it in that BSS
-# at runtime -- see AztOverlay. Nothing may exceed 0x130000: obj1 base 0x10000
-# plus that is exactly 0x140000, and objects must not overlap.
-$OBJ1_VSIZE = 0x130000
-if ($OBJ1_BASE + $OBJ1_VSIZE -gt 0x140000) {
-    throw ("obj1 vsize 0x{0:X} would overlap obj2 at 0x140000" -f $OBJ1_VSIZE)
-}
+# Every file-backed cave in this build is within a few bytes of full and there is no
+# unreferenced padding anywhere in obj1, so the only way to add code is to put it in
+# that BSS at runtime -- see AztOverlay.
+#
+# THE WINDOW IS NO LONGER CAPPED AT obj2's LINKED BASE (Josh, 2026-10-11: "If there is a
+# ceiling, lets raise it a logical amount ... users will be fine with a larger download").
+# It was 0x130000 (window 0x133000..0x140000 = 52 KB, full to 2 bytes). DOS/4GW does not
+# load the objects at their linked bases: obj1 runs at 0x200000 (delta 0x1F0000) and obj2
+# one page past obj1's END (0x331000 = 0x200000 + 0x130000 + 0x1000, delta 0x1F1000) --
+# two separate placements, not one block keeping the linked layout (that would give both
+# the same delta). Growing obj1 therefore moves obj2 UP by the same amount, and the linked
+# ranges overlapping is nothing the loader looks at: every absolute reference in the
+# image is a fixup against (object, offset).
+#   * obj2's delta becomes vsize + 0xC1000 (0x224000 at 0x163000). Guest code takes it
+#     from AztDeltas (a loader-resolved pointer), never from obj1's delta -- the one place
+#     that added 0x1000 to esi (AztScenePart2's refresh) now calls AztDeltas.
+#   * The host derives it at attach time from string needles, trying this layout's value
+#     and the old 0x1F1000 (GuestBase.ps1, LoadingScreen.cs GameGate), and logs which.
+#   * tools\LeTool.cs prefers the LATER object where linked ranges overlap, so loading a
+#     patched R.EXE (Test-Patch) still reads obj2's data at 0x140000+.
+# 0x163000 = a 256 KB window (0x133000..0x173000), five times the old one; the guest
+# loses 204 KB of heap to it, against 32 MB.
+$OBJ1_VSIZE = 0x163000
+if ($OBJ1_VSIZE % 0x1000) { throw ("obj1 vsize 0x{0:X} must be whole pages (obj2 lands a page past its end)" -f $OBJ1_VSIZE) }
+if ($OBJ1_VSIZE -gt 0x200000) { throw ("obj1 vsize 0x{0:X}: raise it deliberately -- every MB comes out of the game's heap" -f $OBJ1_VSIZE) }
+$OBJ2_DELTA_EXPECTED = [uint32]($OBJ1_VSIZE + 0xC1000)     # (obj1 runs at 0x200000; obj2 a page past its end, linked at 0x140000)
 # AztOverlayLoad reads $OVERLAY_READ bytes straight into $OVERLAY_BASE, so that read must
 # fit the BSS window. Checked HERE because $OBJ1_VSIZE, which defines the window's top, is
 # only known this far down -- the limit itself has to be declared much earlier.
@@ -4956,6 +4987,8 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
     A-Jmp $ovl 'AztFrameAll'
     Add-Label $ovl 'AztOvlCdBoot'
     A-Jmp $ovl 'AztCdBootStart'
+    #  +19  aztTypingKeys: a WORD the stub's WASD hooks read (see $g_saveList). Fixed here, asserted after assembly.
+    Add-Label $ovl 'aztTypingKeys'; A-Dw $ovl 0
 
     # Everything that runs once at load, and everything that runs per frame. The
     # three fixed entries above are jumps so that this list can grow without moving
@@ -5003,6 +5036,16 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
     # ebx = now on entry, and every one of these clobbers it, so it is re-supplied
     # from the stack before each call rather than saved once.
     Add-Label $ovl 'AztFrameAll'
+    # KEYS FOR TYPING (see $g_saveList): picture view, or the save list up with a slot 0..4 picked (the game's save-name
+    # entry). -1 (none) and 6 (RESTART) compare above 4 unsigned. esi/edi hold the deltas here (reached from the frame hook).
+    A-MovAxDi $ovl $g_saveBox                  # ax = the picture view
+    A-CmpWordDiImm $ovl $g_saveList 0
+    A-JzS $ovl 'AFA_typed'
+    A-CmpWordDiImm $ovl $g_listSel 4
+    A-JaS $ovl 'AFA_typed'
+    A-OrAxImm $ovl 1
+    Add-Label $ovl 'AFA_typed'
+    A-MovSiAx $ovl 'aztTypingKeys'
     # THE STAGING BUFFER IS ALLOCATED HERE, NOT IN AztInitAll, because init now runs
     # before the intro movies and this asks for 576 KB of the same heap the movie player
     # needs. Once, on the first rendered frame -- which is exactly when it used to happen.
@@ -5536,11 +5579,7 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
             Add-Label $ovl $sp.Lbl
             A-Pushfd $ovl
             A-Pushad $ovl
-            A-CallNext $ovl
-            Add-Label $ovl ($sp.Lbl + '_ref')
-            A-PopEax $ovl
-            A-SubEaxImm $ovl ($sp.Lbl + '_ref')
-            A-MovEsiEax $ovl                      # esi = obj1 delta
+            A-Call $ovl $asm.Labels['AztDeltas']   # esi = obj1 delta, edi = obj2 delta (the refresh reads obj2)
             A-MovEaxSi $ovl 'aztSceneParts'
             A-AndEaxImm $ovl ([uint32]$sp.Bit)
             A-TestEaxEax $ovl
@@ -5566,9 +5605,10 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
                 # a real frame (zero matrix rows, NaN in its "world") and must never be
                 # handed to the propagator itself. 0x552C4 opens with `push edx` and ends
                 # `pop edx / ret`, hence the push before the jump. Registers are free here:
-                # this sits inside the stub's pushad. obj2 lies one page further along than
-                # obj1 (delta 0x1F1000 against 0x1F0000), hence the + 0x1000 on esi.
-                Add-Bytes $ovl @(0x8B,0x86); Add-Abs32 $ovl ([uint32](0x147ED8 + 0x1000))   # mov eax, [root]
+                # this sits inside the stub's pushad, and edi is obj2's delta from AztDeltas.
+                # (It used to be esi + 0x1000 -- "obj2 lies one page past obj1" -- which stopped
+                # being true when obj1 grew past obj2's linked base; see $OBJ1_VSIZE.)
+                Add-Bytes $ovl @(0x8B,0x87); Add-Abs32 $ovl ([uint32]0x147ED8)   # mov eax, [edi + root]
                 A-Call $ovl ($sp.Lbl + '_refresh')     # the two-instruction thunk after this stub's ret
             }
             A-Popad $ovl
@@ -10270,9 +10310,9 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
         # the dwords that COULD be return addresses scans three times deeper into
         # 80 bytes, and every slot that comes back is worth symbolising.
         #
-        # The test is "inside obj1", which is exactly 0x10000..0x140000 -- obj1
-        # starts at 0x10000 and the BSS window that ends it runs to 0x140000,
-        # where obj2 begins. Any return address is in obj1 by definition, and the
+        # The test is "inside obj1", which is exactly 0x10000..OBJ1_BASE+OBJ1_VSIZE -- obj1
+        # starts at 0x10000 and the BSS window that ends it runs to 0x173000 now (it was
+        # 0x140000, obj2's linked base, until obj1 grew). Any return address is in obj1 by definition, and the
         # heap (0xA86038, 0x1138038) and obj2's data are both above it. Overlay
         # addresses at 0x133000 are inside the range deliberately: a frame that
         # came back through our own code is worth seeing, not worth hiding.
@@ -10304,8 +10344,8 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
         A-Db $ovl @(0x29,0xF0)                        # sub eax, esi -- runtime -> built
         A-CmpEaxImm $ovl 0x10000
         A-Jb  $ovl 'ART_next'                         # below obj1
-        A-CmpEaxImm $ovl 0x140000
-        A-Jae $ovl 'ART_next'                         # at or past obj2
+        A-CmpEaxImm $ovl ([uint32]($OBJ1_BASE + $OBJ1_VSIZE))
+        A-Jae $ovl 'ART_next'                         # past obj1's end
         A-Db $ovl @(0xAB)                             # stosd
         A-DecEdx $ovl
         A-Jz $ovl 'ART_sifted'                        # slots full
@@ -10379,6 +10419,9 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
     }
 
     $ovlAsm = Invoke-Asm $ovl
+    if ($ovlAsm.Labels['aztTypingKeys'] -ne $TYPING_KEYS_AT) {
+        throw ("aztTypingKeys must sit at 0x{0:X} (the stub's WASD hooks read that literal); it is at 0x{1:X}" -f $TYPING_KEYS_AT, $ovlAsm.Labels['aztTypingKeys'])
+    }
     if ($ovlAsm.Labels['AztOvlInit'] -ne ($OVERLAY_BASE + 4)) {
         throw ("AztOvlInit must sit at +4 (the loader calls that literal); it is at 0x{0:X}" -f $ovlAsm.Labels['AztOvlInit'])
     }
@@ -12842,15 +12885,21 @@ if ($ENABLE_HIRES) {
     # / `sub eax,...` live in the mouse handler. If a site like that ever does
     # need neutralising, jump over the operand with `EB 04` rather than NOP it.)
 
-    # The cursor's start position. There is a scr-wc family for X but the matching
-    # Y was never patched, so it opened at 240 on a 600-high screen.
+    # WHERE THE POINTER IS PARKED: `mov edx,y / mov eax,x / call 0x35A45` (SetMousePos) at three sites:
+    #   0x132AF  Space turning combat OFF -- the mod's look -> interactive switch goes through it (AztSendSpace)
+    #   0x16DA5  0x16CCC, a mode exit that puts the stock pointer back
+    #   0x179F2  0x179EC, a conversation starting
+    # They parked at the SCREEN's centre (800, 600). The look-mode crosshair is pinned at the 3D VIEW's centre
+    # (aztCentreX/Y = 800, 513 -- AztFrameHook / AztCursorRedraw), so on right-click the interactive cursor appeared
+    # 87 game px BELOW the reticle (Josh, 2026-10-11: "they move down because a portion of the viewport is obscured ...
+    # centered in the viewable viewport like the main reticule in all cases"). All three now park on the view centre.
+    # (The hot spot is (15,15) for every cursor -- set once at 0x10E79 -- the middle of the 30 x 30 bitmap.)
     foreach ($s in @(0x132AF, 0x16DA5, 0x179F2)) {
         $patches += Patch-Imm32 -Name ("scr-hc-{0:X}" -f $s) -Lin $s `
-            -Old ([int]($SCREEN_H_OLD/2)) -New ([int]($SCREEN_H/2)) -Note 'screen vertical centre'
+            -Old ([int]($SCREEN_H_OLD/2)) -New ([int]$CENTRE_Y) -Note 'pointer park Y: the 3D view centre (where the look-mode reticle is)'
     }
-    # screen centre, used to park the pointer
     foreach ($s in @(0x132B4, 0x16DAA, 0x179F7)) {
-        $patches += Patch-Imm32 -Name ("scr-wc-{0:X}" -f $s) -Lin $s -Old ([int]($SCREEN_W_OLD/2)) -New ([int]($SCREEN_W/2)) -Note 'screen horizontal centre'
+        $patches += Patch-Imm32 -Name ("scr-wc-{0:X}" -f $s) -Lin $s -Old ([int]($SCREEN_W_OLD/2)) -New ([int]$CENTRE_X) -Note 'pointer park X: the 3D view centre'
     }
 }
 

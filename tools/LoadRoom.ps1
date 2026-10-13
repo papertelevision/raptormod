@@ -331,19 +331,71 @@ function Add-AztUnitMem([string]$Name, [string]$Stamp, $u) {
 # and the rest (which never had a picture) take their colour from the palette. A PNG whose size
 # does not match the texture it is being given to means the order assumption has failed for
 # that unit, and the whole unit falls back to palette colours rather than risk a wrong picture.
+# a PNG's width and height from its header (IHDR), without decoding it
+function Get-AztPngSize([string]$Path) {
+    $fs = [IO.File]::OpenRead($Path)
+    try { $b = New-Object byte[] 24; if ($fs.Read($b, 0, 24) -lt 24) { return $null }
+          return @(((([int]$b[16]) -shl 24) -bor (([int]$b[17]) -shl 16) -bor (([int]$b[18]) -shl 8) -bor [int]$b[19]), ((([int]$b[20]) -shl 24) -bor (([int]$b[21]) -shl 16) -bor (([int]$b[22]) -shl 8) -bor [int]$b[23])) }
+    finally { $fs.Dispose() }
+}
+# TEXTURE QUALITY (Josh, 2026-10-11: the title's Options -> Texture quality, Normal = 2K textures, Ultra = 4K): a replacement
+# larger than -MaxSize on its long side is read from a copy scaled to fit, made once in "<OverrideDir>-<MaxSize>" beside the
+# folder (made again when the master is newer) -- so Normal also decodes a quarter of the pixels at every room entry
+function Get-AztSizedOverride([string]$Path, [int]$MaxSize) {
+    if ($MaxSize -le 0) { return $Path }
+    $sz = Get-AztPngSize $Path; if (-not $sz -or [Math]::Max($sz[0], $sz[1]) -le $MaxSize) { return $Path }
+    $dir = Split-Path $Path -Parent; $cd = Join-Path (Split-Path $dir -Parent) ("{0}-{1}" -f (Split-Path $dir -Leaf), $MaxSize)
+    $out = Join-Path $cd (Split-Path $Path -Leaf)
+    if ((Test-Path $out) -and (Get-Item $out).LastWriteTimeUtc -ge (Get-Item $Path).LastWriteTimeUtc) { return $out }
+    New-Item -ItemType Directory -Force $cd | Out-Null
+    Add-Type -AssemblyName System.Drawing
+    $k = $MaxSize / [double][Math]::Max($sz[0], $sz[1]); $w = [Math]::Max(1, [int][Math]::Round($sz[0] * $k)); $h = [Math]::Max(1, [int][Math]::Round($sz[1] * $k))
+    $tmp = "$out.part"; $src = [Drawing.Image]::FromFile($Path)
+    try {
+        $bm = New-Object Drawing.Bitmap $w, $h, ([Drawing.Imaging.PixelFormat]::Format32bppArgb); $g = [Drawing.Graphics]::FromImage($bm)
+        $g.InterpolationMode = 'HighQualityBicubic'; $g.PixelOffsetMode = 'HighQuality'; $g.CompositingMode = 'SourceCopy'
+        $ia = New-Object Drawing.Imaging.ImageAttributes; $ia.SetWrapMode([Drawing.Drawing2D.WrapMode]::TileFlipXY)      # (no dark rim from beyond the edge)
+        $g.DrawImage($src, (New-Object Drawing.Rectangle 0, 0, $w, $h), 0, 0, $src.Width, $src.Height, [Drawing.GraphicsUnit]::Pixel, $ia)
+        $g.Dispose(); $bm.Save($tmp, [Drawing.Imaging.ImageFormat]::Png); $bm.Dispose()
+    } finally { $src.Dispose() }
+    Move-Item -Force $tmp $out
+    return $out
+}
+# SHARED ART (2026-10-12, [[azrael-texture-repair]]): one original picture is exported under several leaves (MINEMAZE's 03-baptapce is
+# BAPTIST's 00-baptapce), and replacement art goes in by leaf -- so a leaf still on the old upscale whose picture has Josh's new art
+# under another leaf loads THAT leaf's art: leaf -> twin leaf, tools\TexTwins.cs (the rules, the index file). Checked on every load
+# that has textures to decode: ~5 ms (the folders listed, nothing read); worked out again only when they changed (~0.6 s for all).
+$script:AztTwin = $null
+function Get-AztTwinArt([string]$CacheDir, [string]$OverrideDir) {
+    if (-not $OverrideDir -or -not [IO.Directory]::Exists($OverrideDir) -or -not [IO.Directory]::Exists($CacheDir)) { return (New-Object 'System.Collections.Generic.Dictionary[string,string]') }
+    if (-not ('AztTool.TexTwins' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'TexTwins.cs') -ReferencedAssemblies System.Drawing -ErrorAction Stop }
+    $stamp = [AztTool.TexTwins]::Stamp($CacheDir, $OverrideDir)
+    if ($script:AztTwin -and $script:AztTwin.Stamp -eq $stamp) { return $script:AztTwin.Map }
+    $map = [AztTool.TexTwins]::Load($CacheDir, $OverrideDir)
+    $script:AztTwin = @{ Stamp = [AztTool.TexTwins]::LastStamp; Map = $map; Note = [AztTool.TexTwins]::LastNote }
+    return $map
+}
 function Add-AztRgb {
     # -OverrideDir: REPLACEMENT ART. A PNG there with the same file name as a texture's own
     # (e.g. 08-ecrflra2.png) is used for its colours instead, at whatever size it is. The
     # original is still loaded first, to prove the texture order, and still decides where the
-    # texture has holes -- so a replacement must keep the original's layout.
-    param([string[]]$Names, [string]$CacheDir, [byte[]]$Pal, [string]$OverrideDir = '')
+    # texture has holes -- so a replacement must keep the original's layout. A texture whose own file
+    # there is only the old upscale shows a twin's new art instead (SHARED ART, Get-AztTwinArt).
+    # -MaxSize: TEXTURE QUALITY -- replacements no larger than this on their long side (0 = as they are; Normal = 2048)
+    # -Progress: { param($done, $total) } called every ~15 ms while the pictures decode (the watcher's loading cover)
+    param([string[]]$Names, [string]$CacheDir, [byte[]]$Pal, [string]$OverrideDir = '', [int]$MaxSize = 0, [scriptblock]$Progress = $null)
     $fromFile = 0; $fromPal = 0; $bad = @(); $replaced = @()
+    $dirKey = [string]$OverrideDir + $(if ($MaxSize -gt 0 -and $OverrideDir) { "|$MaxSize" } else { '' })      # (another quality = every texture afresh)
+    $useNow = ++$script:AztRgbUse
+    # 1. the units that need their colours, and each one's pictures in the order its textures were made
+    $work = New-Object System.Collections.Generic.List[object]
     foreach ($n in @($Names | Where-Object { $_ } | Select-Object -Unique)) {
         $mem = $script:AztUnitMem[$n]
         if (-not $mem) { continue }
+        $mem.RgbUsed = $useNow
         # done already, FOR THIS REPLACEMENT FOLDER. Another folder means every texture is loaded
         # afresh (its original first, then the replacement if that folder has one).
-        if ($mem.RgbDone -and [string]$mem.RgbDir -eq [string]$OverrideDir) { continue }
+        if ($mem.RgbDone -and [string]$mem.RgbDir -eq $dirKey) { continue }
         $tex = $mem.Tex; $pngs = @()
         if ($mem.RgbDone) { foreach ($t in $tex) { $t.Rgb = $null; $t.RgbFromFile = $false } }
         $obj = Join-Path $CacheDir ("{0}.obj" -f $n); $mtl = Join-Path $CacheDir ("{0}.mtl" -f $n)
@@ -361,29 +413,115 @@ function Add-AztRgb {
                 if ($map.ContainsKey($m)) { $p = Join-Path $CacheDir $map[$m]; if (Test-Path $p) { $pngs += $p } }
             }
         }
-        $ok = ($pngs.Count -lt $tex.Length)
-        if ($ok) {
-            for ($i = 0; $i -lt $pngs.Count; $i++) {
-                if ($tex[$i].Rgb) { continue }
-                $same = $false
-                try { $same = $tex[$i].LoadRgb($pngs[$i], $Pal) } catch { $same = $false }
-                $tex[$i].Leaf = [IO.Path]::GetFileNameWithoutExtension($pngs[$i])      # (its name, for room settings that name a texture: "holes")
-                if (-not $same) { $ok = $false; break }
-            }
-        }
-        if (-not $ok) { $bad += $n; foreach ($t in $tex) { if ($t.RgbFromFile) { $t.Rgb = $null; $t.RgbFromFile = $false } } }
-        elseif ($OverrideDir -and (Test-Path $OverrideDir)) {
-            for ($i = 0; $i -lt $pngs.Count; $i++) {
-                $ov = Join-Path $OverrideDir (Split-Path $pngs[$i] -Leaf)
-                if (-not (Test-Path $ov)) { continue }
-                try { [void]$tex[$i].LoadRgb($ov, $Pal); $replaced += ('{0} ({1}x{2})' -f (Split-Path $ov -Leaf), $tex[$i].Rgb[0].W, $tex[$i].Rgb[0].H) }
-                catch { [void]$tex[$i].LoadRgb($pngs[$i], $Pal) }
-            }
-        }
-        foreach ($t in $tex) { if ($t.Rgb) { if ($t.RgbFromFile) { $fromFile++ } } else { $t.EnsureRgb($Pal); $fromPal++ } }
-        $mem.RgbDone = $true; $mem.RgbDir = [string]$OverrideDir
+        $work.Add([pscustomobject]@{ N = $n; Mem = $mem; Pngs = $pngs; Ok = ($pngs.Count -lt $tex.Length) })
     }
-    return [pscustomobject]@{ FromFile = $fromFile; FromPalette = $fromPal; Bad = $bad; Replaced = $replaced }
+    if ($work.Count -eq 0) { return [pscustomobject]@{ FromFile = 0; FromPalette = 0; Bad = @(); Replaced = @(); Twins = 0 } }
+    $haveOv = [bool]($OverrideDir -and (Test-Path $OverrideDir))
+    # the leaf whose replacement art each texture shows: its own, or a twin's new art (SHARED ART, Get-AztTwinArt)
+    $artOf = @{}; $twinErr = ''; $nTwin = 0
+    if ($haveOv) {
+        $twin = $null; try { $twin = Get-AztTwinArt $CacheDir $OverrideDir } catch { $twinErr = $_.Exception.Message }
+        foreach ($w in $work) { foreach ($p in $w.Pngs) { $lf = [IO.Path]::GetFileNameWithoutExtension($p); $artOf[$p] = $(if ($twin -and $twin.ContainsKey($lf)) { $twin[$lf] } else { $lf }) } }
+    }
+    $ovGuess = 0; if ($haveOv) { foreach ($w in $work) { foreach ($p in $w.Pngs) { if (Test-Path (Join-Path $OverrideDir ($artOf[$p] + '.png'))) { $ovGuess++ } } } }
+    # MANY AT ONCE (2026-10-12): Raster.LoadRgbAsync decodes on several threads -- a room's 4K art in ~0.7 s, not 4-5 s --
+    # while this waits, telling -Progress how far it has got (weighting the 4K replacements: the originals are 128-256 px)
+    $wait = { param($job, [int]$base, [int]$tot)
+        while (-not $job.Finished) { if ($Progress) { try { & $Progress ($base + $job.Done) $tot } catch { } }; [Threading.Thread]::Sleep(15) }
+        if ($job.Task) { $job.Task.Wait() }
+        if ($Progress) { try { & $Progress ($base + $job.Total) $tot } catch { } } }
+    # 2. the originals: they prove the texture order (a size that does not match = palette colours for that whole unit)
+    $jt = New-Object System.Collections.Generic.List[object]; $jp = New-Object System.Collections.Generic.List[string]; $jw = New-Object System.Collections.Generic.List[int]
+    for ($wi = 0; $wi -lt $work.Count; $wi++) {
+        $w = $work[$wi]; if (-not $w.Ok) { continue }
+        for ($i = 0; $i -lt $w.Pngs.Count; $i++) { if ($w.Mem.Tex[$i].Rgb) { continue }; $jt.Add($w.Mem.Tex[$i]); $jp.Add($w.Pngs[$i]); $jw.Add($wi) }
+    }
+    $totAll = [Math]::Max(1, [int](($jt.Count + 9) / 10) + $ovGuess)
+    if ($jt.Count) {
+        $job = [AztTool.Raster]::LoadRgbAsync([AztTool.Raster+Tex[]]$jt.ToArray(), $jp.ToArray(), $Pal, 0)
+        & $wait $job 0 $totAll
+        for ($k = 0; $k -lt $jt.Count; $k++) {
+            $jt[$k].Leaf = [IO.Path]::GetFileNameWithoutExtension($jp[$k])      # (its name, for room settings that name a texture: "holes")
+            if ($job.Error[$k] -or -not $job.Same[$k]) { $work[$jw[$k]].Ok = $false }
+        }
+    }
+    foreach ($w in $work) { if (-not $w.Ok) { $bad += $w.N; foreach ($t in $w.Mem.Tex) { if ($t.RgbFromFile) { $t.Rgb = $null; $t.RgbFromFile = $false } } } }
+    # 3. the replacement art (the slow part)
+    if ($haveOv) {
+        $ot = New-Object System.Collections.Generic.List[object]; $op = New-Object System.Collections.Generic.List[string]; $oo = New-Object System.Collections.Generic.List[string]
+        foreach ($w in $work) {
+            if (-not $w.Ok) { continue }
+            for ($i = 0; $i -lt $w.Pngs.Count; $i++) {
+                $ov = Join-Path $OverrideDir ($artOf[$w.Pngs[$i]] + '.png')
+                if (-not (Test-Path $ov)) { continue }
+                if ($Progress -and $MaxSize -gt 0) { try { & $Progress ([int](($jt.Count + 9) / 10)) $totAll } catch { } }      # (a smaller copy made the first time can take a moment: the cover keeps moving)
+                try { $ov = Get-AztSizedOverride $ov $MaxSize } catch { }
+                $ot.Add($w.Mem.Tex[$i]); $op.Add($ov); $oo.Add($w.Pngs[$i])
+            }
+        }
+        if ($ot.Count) {
+            $job = [AztTool.Raster]::LoadRgbAsync([AztTool.Raster+Tex[]]$ot.ToArray(), $op.ToArray(), $Pal, 0)
+            & $wait $job ([int](($jt.Count + 9) / 10)) $totAll
+            for ($k = 0; $k -lt $ot.Count; $k++) {
+                if ($job.Error[$k]) { try { [void]$ot[$k].LoadRgb($oo[$k], $Pal) } catch { } }      # (a replacement that will not load: the original)
+                else {
+                    $own = [IO.Path]::GetFileNameWithoutExtension($oo[$k]); $src = $artOf[$oo[$k]]
+                    $replaced += ('{0}.png ({1}x{2}{3})' -f $own, $ot[$k].Rgb[0].W, $ot[$k].Rgb[0].H, $(if ($src -ne $own) { $nTwin++; ', the new art of ' + $src } else { '' }))
+                }
+            }
+        }
+    }
+    # 3b. COMPANION MAPS (Josh's art pipeline, 2026-10-12): "<name>_rough.png" (white = rough, black = polished), "_height.png"
+    # (white = raised) and "_glow.png" (white = glows) beside a replacement in the same folder -- read at most 2048 on their long
+    # side (the Normal tier's sized copies as for the colours) into Tex.MatPx: the graphics card's shine, relief and glow.
+    # A texture showing a twin's art takes that twin's maps (they belong to the picture).
+    $mats = 0; $matErr = @()
+    if ($haveOv) {
+        $ct = New-Object System.Collections.Generic.List[object]; $cr = New-Object System.Collections.Generic.List[string]; $ch = New-Object System.Collections.Generic.List[string]; $cg = New-Object System.Collections.Generic.List[string]
+        foreach ($w in $work) {
+            if (-not $w.Ok) { continue }
+            for ($i = 0; $i -lt $w.Pngs.Count; $i++) {
+                $tx = $w.Mem.Tex[$i]; $tx.MatPx = $null; $tx.MatHas = 0
+                $base = Join-Path $OverrideDir $artOf[$w.Pngs[$i]]
+                $cp = New-Object string[] 3; $any = $false; $sf = @('_rough', '_height', '_glow')
+                for ($c = 0; $c -lt 3; $c++) { $p = $base + $sf[$c] + '.png'; if (Test-Path -LiteralPath $p) { try { $p = Get-AztSizedOverride $p $MaxSize } catch { }; $cp[$c] = $p; $any = $true } }
+                if ($any) { $ct.Add($tx); $cr.Add($cp[0]); $ch.Add($cp[1]); $cg.Add($cp[2]) }
+            }
+        }
+        if ($ct.Count) {
+            $job = [AztTool.Raster]::LoadMatAsync([AztTool.Raster+Tex[]]$ct.ToArray(), $cr.ToArray(), $ch.ToArray(), $cg.ToArray(), $(if ($MaxSize -gt 0) { [Math]::Min($MaxSize, 2048) } else { 2048 }), 0)
+            $job.Task.Wait()
+            for ($k = 0; $k -lt $ct.Count; $k++) { if ($job.Same[$k]) { $mats++ } elseif ($job.Error[$k]) { $matErr += ('{0}: {1}' -f $ct[$k].Leaf, $job.Error[$k]) } }
+        }
+    }
+    # 4. palette colours for the rest
+    foreach ($w in $work) {
+        $b = 0L
+        foreach ($t in $w.Mem.Tex) {
+            if ($t.Rgb) { if ($t.RgbFromFile) { $fromFile++ } } else { $t.EnsureRgb($Pal); $fromPal++ }
+            foreach ($lv in $t.Rgb) { $b += 4L * $lv.Px.Length }
+            if ($t.MatPx) { $b += 4L * $t.MatPx.Length }
+        }
+        $w.Mem.RgbDone = $true; $w.Mem.RgbDir = $dirKey; $w.Mem.RgbBytes = $b
+    }
+    return [pscustomobject]@{ FromFile = $fromFile; FromPalette = $fromPal; Bad = $bad; Replaced = $replaced; Companions = $mats; CompanionErrors = $matErr; Twins = $nTwin; TwinError = $twinErr }
+}
+$script:AztRgbUse = 0
+# THE SESSION'S TEXTURE CACHE, BOUNDED (2026-10-12). Every unit's painted colours stay decoded for the session, so a room
+# entered again needs no decoding at all -- but a 4K texture is ~85 MB here (with its half-size copies) and a room 1-2.5 GB,
+# so past -CapBytes the least recently used units OTHER than -Keep give theirs up (decoded again if met again).
+function Limit-AztRgbCache([string[]]$Keep, [long]$CapBytes) {
+    $all = @(); $total = 0L
+    foreach ($kv in $script:AztUnitMem.GetEnumerator()) { $m = $kv.Value; if (-not $m.RgbDone -or -not $m.RgbBytes) { continue }; $total += [long]$m.RgbBytes; $all += [pscustomobject]@{ N = [string]$kv.Key; M = $m } }
+    $dropped = @()
+    if ($CapBytes -gt 0 -and $total -gt $CapBytes) {
+        foreach ($u in @($all | Where-Object { $Keep -notcontains $_.N } | Sort-Object { [long]$_.M.RgbUsed })) {
+            if ($total -le [long]($CapBytes * 0.85)) { break }
+            foreach ($t in $u.M.Tex) { $t.Rgb = $null; $t.RgbFromFile = $false; $t.MatPx = $null; $t.MatHas = 0 }
+            $total -= [long]$u.M.RgbBytes; $u.M.RgbDone = $false; $u.M.RgbBytes = 0; $dropped += $u.N
+        }
+    }
+    return [pscustomobject]@{ Bytes = $total; Dropped = $dropped }
 }
 
 # Same parameters and the same result shape as it always had; every caller is unchanged.

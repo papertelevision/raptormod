@@ -64,6 +64,9 @@ Other docs:
 
 ## Git
 
+- **Branches:** work happens on `dev` (or a feature branch cut from it). `main` is the last state Josh has played and approved: merge `dev` into it only when he says so.
+- **Do not commit or push, and do not ask to (Josh, 2026-10-10: "please dont commit or ask me to push as we make changes. I'll tell you when I want to commit").** Leave changes in the working tree; when he says commit, commit what is there with a message saying what changed and why.
+
 - Byte-exact (`.gitattributes`: `* -text`).
 - **Never commit game files:**
   - `R.EXE`, `AZT.BIN`, movies and the install folder are not ours to commit;

@@ -1,6 +1,6 @@
 - [LE image layout](azrael-le-image-layout.md) - header lies about data pages; derive 0x61A54 from the tail. Never overwrite a fixed-up operand.
-- [Overlay read limit](azrael-overlay-read-limit.md) - 0xD000 = whole BSS window, the ceiling. Loader is in the clock blob, not the stub.
-- [Cave space](azrael-cave-space.md) - file caves full, LE tables can't grow; new code in 53 KB BSS at 0x133000. Two dead ends.
+- [Overlay read limit](azrael-overlay-read-limit.md) - window 256 KB since 2026-10-11 (obj1 vsize 0x163000 past obj2's linked base; obj2 delta 0x1F1000 -> 0x224000, found not assumed). Loader in the clock blob.
+- [Cave space](azrael-cave-space.md) - file caves full, LE tables can't grow; new code in the BSS overlay at 0x133000 (256 KB now). Two dead ends.
 - [RE tooling](azrael-re-tooling.md) - no compiler/Python/disassembler; LE loader + disassembler are custom C# via Add-Type.
 - [Key addresses](azrael-key-addresses.md) - video mode, 3D viewport, mouse/RMB gate, camera yaw-pitch, keyboard dispatch + file offsets.
 - [AztMod patch framework](aztmod-patch-framework.md) - ships as a patcher; one growing patch, in-game toggles, Steam-proofed by copying.
@@ -94,15 +94,15 @@
 - [GPU default + boot](azrael-gpu-default-boot.md) - true colour default (-Retro = 8-bit); boot via the overlay.
 - [GPU boot](azrael-gpu-boot.md) - host's own boot (BootHd.cs), synced to aztBootEl; watcher -Launch.
 - [Scanner wireframe](azrael-scan-wire.md) - scans as rigs/item sets; texts from DESCRIPT.ZAP / OBJECTS.DAT.
-- [Silent SB + muzzle flash](azrael-gun-sound.md) - NEVER suspend DOSBox (killed SB audio); muzzle flash = uFlash.
+- [Silent SB + muzzle flash](azrael-gun-sound.md) - NEVER suspend DOSBox (killed SB audio); muzzle flash = uFlash; stale title clicks fired the gun -> ClearGameInput.
 - [Loading voice + track](azrael-loading-voice.md) - voice over Josh's track; MCI MP3 fails here, ship WAV.
 - [HUD slide-in sound](azrael-hud-gears-sound.md) - ratchet.mp3 on slide-in; boot mixer is stereo.
 - [Player shadow](azrael-player-shadow.md) - raptor body from placed lights (cube maps), fixed size, floor-following.
 - [Book view black](azrael-book-view-black.md) - close-ups = [0x15257C]; world behind black; page drawn over the panel.
 - [Volumetric fog](azrael-volumetric-fog.md) - black absorbing fog + light scatter; 'volume' block; room level held.
-- [Room Review](azrael-room-review.md) - viewer + notes in ROUNDS: Start-RoomRound -> edit rooms\*.json -> Reply-RoomNote.
+- [Room Review](azrael-room-review.md) - viewer + notes in ROUNDS: Start-RoomRound -> edit rooms\*.json -> Reply-RoomNote. GAME LOOK (G): live frames from RoomLookWorker.ps1, the game's renderer + switches 5/6/7/8/L.
 - [Modern water](azrael-modern-water.md) - Fresnel ripples, glints, under-water glow, caustics; per-room 'water' block.
-- [Josh's hi-res textures](azrael-josh-hires-textures.md) - decals\<ROOM>\updated -> hires override, Fit-RoomTextures at 4096.
+- [Josh's hi-res textures](azrael-josh-hires-textures.md) - decals\<ROOM>\updated (or 4k-2k) -> hires via Fit-RoomTextures at 4096; keyed (_key) art via Fill-KeyedTexture; check with Test-TextureCoverage; CORICORI + MINEMAZE + the opening rooms (10-12) done at 4K and 2K; Normal (2K) / Ultra (4K); install ONE leaf per picture: twins on the old upscale follow (loader alias).
 - [Optimisation pass](azrael-optimisation-pass.md) - card presents into its own window, half-size fog, 5.5 M picture.
 - [Baked GI](azrael-baked-gi.md) - GiBake probe grid (flood-fill validity, not winding) + giAt; 'gi' block; CORICORI pilot, albedo 2.2.
 - [Holograms](azrael-holograms.md) - world-space wireframes ('holograms'); chalice removed, code kept.
@@ -113,8 +113,19 @@
 - [Light from the artwork](azrael-art-light.md) - original art's painted light/shade shades room level + bounce per texel (artLight); paint has its own colour. MINEHEAD r20.
 - [ORRERY room](azrael-orrery-room.md) - golden cone + colour-cycling blobs (light key 'cycle'); parked parts broke the GI grid (fixed); puzzle full-screen is a separate task.
 - [HUD vector text](azrael-hud-vector-text.md) - log decoded from the game's surface; host lays it out in the ART's recess (LogOwn), own scrolling; -NoHostText/-NoLogLayout.
-- [System menu + keys](azrael-system-menu.md) - visor system menu over the fold-out (hot spots moved in guest memory at run time, retro untouched); ESC = menu, E = log box (in-place key patch); wheel scroll.
+- [System menu + keys](azrael-system-menu.md) - visor system menu over the fold-out (hot spots moved in guest memory at run time, retro untouched); ESC = menu, E = log box (in-place key patch); wheel scroll; the confirm key waits with a revolving amber sheen (VisorMenu.Sheen).
 - [WELLROOM](azrael-wellroom.md) - well water is part 'death' -> water.parts; paint fog weak in small rooms, artLight does it.
+- [Ghost (Niamh)](azrael-ghost.md) - room 'ghost' block: card draws a rig as glowing smoke + wisps + dim light; sizes = shares of her height; -NoGhost.
 - [Damaged visor](azrael-visor-damage.md) - health-driven cracks/broken corner/hit static/vitals ECG in the card's PRESENT pass; -NoVisorDamage.
 - [Title menu](azrael-title-menu.md) - 4K title + Continue/Load via title-loop hold + cmd 16 on frame 1; movie player ignores the skip flag (load bit 2); COPY overlay.sym.
-- [RaptorMod repo](raptormod-repo.md) - AztMod = git repo papertelevision/raptormod (main); asset pack + Setup-Machine; rooms junction; docs/notes = shared notes.
+- [RaptorMod repo](raptormod-repo.md) - git repo papertelevision/raptormod; work on dev; NEVER commit/push until Josh says; asset pack + Setup-Machine; junctions; docs/notes.
+- [Vector cursors](azrael-vector-cursors.md) - the game's 30 cursors as animated vectors (CursorIcons.cs); bitmaps blanked; EVERY blit raises 'pointer hidden' (debounce); tell the panel via Overlay.GameCursorBlank; all loop (play, 1.5 s, play); SPACE = weapon out = no pick-up cursor; host Space guard (Keys.cs) 1 s after spoken lines (-NoSpaceGuard); -NoIconCursor.
+- [Leaving DOSBox](azrael-leaving-dosbox.md) - 3 tiers assessed 2026-10-11; Tier 1 (emulator core in our app) CHOSEN for 2.0; story layer unreversed blocks Unity.
+- [RaptorMod roadmap](raptormod-roadmap.md) - 1.0 = Steam DOSBox patch (fixes + 2K/4K texture tiers); 2.0 = no DOSBox + effects/polish; Unity later. No deep DOSBox-only fixes in 1.0.
+- [RAPTOR DOCS](azrael-raptor-docs.md) - title's STORY -> RAPTOR DOCS: the 1996 manual typeset in the visor (manual.txt markup) + classified print-outs (magnifier); Build-RaptorDocs.ps1; compile with /define:TITLE_GATE (TitleShapes); manual TEXT in the repo (raptordocs\), scans NOT.
+
+- [Room loading cover + texture cache](azrael-room-cover.md) - RoomCover.cs hides the 8-bit view on room entry (pulse, decode, upload); parallel decode; CPU cap -TextureCacheGB + card LRU; game loads: textures sent + finished under the loading panel, its bar follows them; -NoRoomCover.
+- [Materials + shine](azrael-materials.md) - texture plan phases 1-4 (Josh reviews each); phase 1: rooms\_materials.json tags, lamp/light highlights, companion maps _rough/_height/_glow (Fit-RoomTextures carries them); F6 / -NoShine. Phase 2 wet: rooms' "wet", SetGround floor map, F5 / -NoWet / -WetDebug.
+- [Texture repair (phase 3)](azrael-texture-repair.md) - Test-TextureTiling audit; GpuRaster.SetRelay folds smeared/stretched faces off an intact neighbour, evens stretched runs, mixes clean repeats; fold only round a corner, never beside a flush intact face; F11 / -NoRepair / room "repair". SHARED ART fixed: TexTwins.cs alias, an old-upscale (exactly 4x) leaf loads a twin's new art (342 leaves, index texture-twins-hires.tsv, 5 ms a load).
+- [Parallax depth (phase 4a)](azrael-parallax-depth.md) - POM from per-texture height maps (companion _height, else the art's GROOVES by closing; brightness-as-height failed); F7 with the relief; ONLY stone/floor/rock walls+floors (material "parallax", SetParallaxShell area test, plank grain check; "parallax" on/off lists by hand); -NoParallax / room "parallax". 4b (painted-view depth) REMOVED: never re-propose.
+- [Visor materializes the room](azrael-materialize.md) - room cover 100% / loaded game / new game boot: teal wire front (also THROUGH WALLS: DrawXray, hidden edges only) + texture front + trail + specks, water too, "Scanning..." label (ScanTag, present pass). LOADS: HUD (BootHd.HudWait) + dark glass (MatHold) held until the view is STEADY, then the panel goes; -NoMaterialize.

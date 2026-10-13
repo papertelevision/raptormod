@@ -228,7 +228,11 @@ namespace LeTool
 
         public int ObjOfLinear(uint lin)
         {
-            for (int i = 1; i <= NObj; i++)
+            // LATEST FIRST: AztMod grows obj1's vsize past obj2's linked base (the overlay's BSS window, 2026-10-11), so in
+            // a PATCHED image the linked ranges overlap; there the address is obj2's data, not obj1's zero-filled tail.
+            // (DOS/4GW places the objects one after another, so the overlap exists only on paper.) The stock image has no
+            // overlap and reads exactly as before.
+            for (int i = NObj; i >= 1; i--)
                 if (lin >= ObjBase[i] && lin < ObjBase[i] + ObjSize[i]) return i;
             return 0;
         }

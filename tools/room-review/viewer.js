@@ -135,6 +135,8 @@ async function loadRoom(name, pose) {
     o.material = Array.isArray(o.material) ? o.material.map(m => matFor(m.name)) : matFor(o.material.name);
   });
   room.add(obj); applyWire(); applyFog();
+  if (LOOK.tex) { LOOK.tex.dispose(); LOOK.tex = null; }      // (the last room's frame: gone until this room's first)
+  applyLook();
   // the room's size, for the camera and the fly speed
   const box = new THREE.Box3().setFromObject(room), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
   S.size = Math.max(sz.x, sz.y, sz.z); S.center = c;
@@ -420,6 +422,72 @@ $('renderBtn').addEventListener('click', renderView);
 $('renderClose').addEventListener('click', () => { $('renderBox').hidden = true; });
 $('renderImg').addEventListener('click', () => window.open($('renderImg').src, '_blank'));
 
+// ---- GAME LOOK (Josh, 2026-10-12: "Its much easier for me to see these effects in the room preview app ... implement them
+// there so there is more parity with the actual game"): the room drawn LIVE by the game's own true-colour renderer. Each
+// camera move sends the view and the switches to the server's renderer (tools\RoomLookWorker.ps1, started the first time)
+// and its frame becomes the backdrop. The room's geometry stays in place unseen (depth only), so pins, lights, doors and
+// clicks work as before. Switches as the game's keys -- the browser keeps F5 and F11 for itself, so digits here: Wet (F5 in
+// the game, 5 here), Shine (F6, 6), Relief + depth (F7, 7), Texture repair (F11, 8), Flashlight (L). G: Game look on/off.
+const LOOK = { on: !!store.get('look', false), opts: Object.assign({ lamp: true, wet: true, shine: true, relief: true, repair: true }, store.get('lookOpts', {})),
+               busy: false, sent: '', tex: null, size: null, pendingSize: null, sizeAt: 0, retry: 0 };
+const LOOK_KEYS = { '5': 'wet', '6': 'shine', '7': 'relief', '8': 'repair', 'l': 'lamp' };
+const LOOK_NAMES = { wet: 'Wet', shine: 'Shine', relief: 'Relief + depth', repair: 'Texture repair', lamp: 'Flashlight' };
+window.__rr.look = LOOK;
+function lookStatus(t) { $('lookMsg').textContent = t || ''; }
+function applyLook() {
+  for (const m of S.mats) if (m !== S.triggerMat) { m.colorWrite = !LOOK.on; m.needsUpdate = true; }
+  scene.background = LOOK.on && LOOK.tex ? LOOK.tex : new THREE.Color(0x0b0b0d);
+  $('lookBtn').classList.toggle('on', LOOK.on); $('lookBar').hidden = !LOOK.on;
+  for (const k of Object.keys(LOOK_NAMES)) $('lk_' + k).checked = !!LOOK.opts[k];
+  if (!LOOK.on) LOOK.sent = '';
+  requestRender();
+}
+function setLook(on) {
+  LOOK.on = on; store.set('look', on); LOOK.sent = ''; LOOK.retry = 0;
+  lookStatus(on ? 'Game look: asking the renderer…' : ''); applyLook();
+}
+function flipLook(k) { LOOK.opts[k] = !LOOK.opts[k]; store.set('lookOpts', LOOK.opts); applyLook(); lookStatus(`${LOOK_NAMES[k]}: ${LOOK.opts[k] ? 'ON' : 'OFF'}`); }
+// the canvas's shape, at most 1600 wide; a new size only once the window has settled (the renderer is made again for it)
+function lookSize() {
+  const cw = Math.max(1, canvas.clientWidth), ch = Math.max(1, canvas.clientHeight);
+  let w = Math.min(1600, Math.round(cw)), h = Math.round(w * ch / cw); w -= w % 4; h -= h % 2;
+  const key = w + 'x' + h, now = performance.now();
+  if (!LOOK.size) LOOK.size = { w, h, key };
+  else if (LOOK.size.key !== key) {
+    if (!LOOK.pendingSize || LOOK.pendingSize.key !== key) { LOOK.pendingSize = { w, h, key }; LOOK.sizeAt = now; }
+    else if (now - LOOK.sizeAt > 500) { LOOK.size = LOOK.pendingSize; LOOK.pendingSize = null; }
+  }
+  return LOOK.size;
+}
+// one frame at a time: asked when the view or a switch differs from the last one asked for
+async function lookTick() {
+  if (!LOOK.on || !S.name || LOOK.busy || performance.now() < LOOK.retry) return;
+  const g = camPose().gpuLook, sz = lookSize();
+  const req = { X: g.X, Y: g.Y, Z: g.Z, Yaw: g.Yaw, Pitch: g.Pitch, w: sz.w, h: sz.h, ...LOOK.opts };
+  const key = S.name + JSON.stringify(req) + (mirror ? 'm' : '');
+  if (key === LOOK.sent) return;
+  LOOK.busy = true; const room = S.name, t0 = performance.now();
+  try {
+    const r = await fetch(`/api/rooms/${room}/look`, { method: 'POST', headers: { ...HDR, 'Content-Type': 'application/json' }, body: JSON.stringify(req) });
+    if (r.status === 503) { const j = await r.json().catch(() => ({})); lookStatus(`Game look: starting the renderer… ${Math.round(j.seconds || 0)} s`); LOOK.retry = performance.now() + 600; return; }
+    if (!r.ok) { let m = String(r.status); try { m = (await r.json()).error || m; } catch { } lookStatus('Game look: ' + m); LOOK.retry = performance.now() + 2500; return; }
+    const url = URL.createObjectURL(await r.blob()), img = new Image(); img.src = url;
+    try { await img.decode(); } finally { URL.revokeObjectURL(url); }
+    if (!LOOK.on || room !== S.name) return;
+    const t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.generateMipmaps = false; t.minFilter = THREE.LinearFilter;
+    // (the renderer draws the game's way round: without the Z mirror the view here is its reflection)
+    if (!mirror) { t.wrapS = THREE.RepeatWrapping; t.repeat.x = -1; t.offset.x = 1; }
+    t.needsUpdate = true;
+    if (LOOK.tex) LOOK.tex.dispose(); LOOK.tex = t; scene.background = t;
+    LOOK.sent = key;
+    lookStatus(`Game look · ${Math.round(performance.now() - t0)} ms a frame`);
+    requestRender();
+  } catch (e) { lookStatus('Game look: ' + e.message); LOOK.retry = performance.now() + 2500; }
+  finally { LOOK.busy = false; }
+}
+$('lookBtn').addEventListener('click', () => setLook(!LOOK.on));
+for (const k of Object.keys(LOOK_NAMES)) $('lk_' + k).addEventListener('change', e => { LOOK.opts[k] = e.target.checked; store.set('lookOpts', LOOK.opts); requestRender(); });
+
 // ---- "Submit update" (lower right): tells Claude the notes are ready -- no need to switch to the chat. Shows where it
 // stands: notes waiting to be sent; sent and waiting for Claude; Claude working on round N; Claude replied (your turn).
 let submitState = null;
@@ -450,8 +518,8 @@ setInterval(() => { if (document.visibilityState === 'visible') refreshSubmit();
 const keys = new Set(); let look = null, yaw = 0, pitch = 0, speedK = 1, eyeY = null;
 const MODE_NAME = { orbit: 'Fly', walk: 'Walk' };
 const HELP = {
-  orbit: 'Fly: WASD / arrows move &middot; Q/E or Space/C down/up &middot; Shift faster &middot; drag turn, right-drag pan, wheel zoom &middot; F: walk &middot; click to leave a note',
-  walk: 'Walk: WASD / arrows &middot; drag to look &middot; Shift run &middot; wheel speed &middot; F or Esc: fly &middot; click to leave a note'
+  orbit: 'Fly: WASD / arrows move &middot; Q/E or Space/C down/up &middot; Shift faster &middot; drag turn, right-drag pan, wheel zoom &middot; F: walk &middot; G: game look &middot; click to leave a note',
+  walk: 'Walk: WASD / arrows &middot; drag to look &middot; Shift run &middot; wheel speed &middot; F or Esc: fly &middot; G: game look &middot; click to leave a note'
 };
 function syncLook() { const f = new THREE.Vector3(); camera.getWorldDirection(f); yaw = Math.atan2(f.x, f.z); pitch = Math.asin(Math.max(-1, Math.min(1, f.y))); }
 function setMode(m) {
@@ -479,6 +547,8 @@ window.addEventListener('keydown', e => {
   if (k === 'f') { setMode(S.mode === 'walk' ? 'orbit' : 'walk'); return; }
   if (k === 'escape') { setMode('orbit'); return; }
   if (k === 'r' && !e.ctrlKey && !e.metaKey) { renderView(); return; }
+  if (k === 'g' && !e.ctrlKey && !e.metaKey) { setLook(!LOOK.on); return; }
+  if (LOOK.on && LOOK_KEYS[k] && !e.ctrlKey && !e.metaKey && !e.altKey) { flipLook(LOOK_KEYS[k]); return; }
   if (k.startsWith('arrow') || k === ' ') e.preventDefault();
   keys.add(k === ' ' ? 'space' : k); if (e.key === 'Shift') keys.add('shift'); requestRender();
 });
@@ -551,6 +621,7 @@ function frame(now) {
     if (orbit.update()) dirty = true;
   }
   if (dirty) { dirty = false; renderNow(); }
+  lookTick();
   requestAnimationFrame(frame);
 }new ResizeObserver(requestRender).observe(canvas);
 
@@ -569,6 +640,21 @@ $('mirror').addEventListener('change', () => {
 });
 setInterval(() => { if (document.visibilityState === 'visible' && !$('dlg').open) refreshNotes(false).catch(() => { }); }, 5000);
 
+// ---- the models that are not rooms (Josh, 2026-10-12: "group all character models separately from the rooms in that dropdown list")
+// The game's character rigs -- each named by an animation file's FILE line (GAME\AZRAEL\*.ANI) -- then the copies, animation
+// takes and tests of the same figures that no .ANI names (checked by their parts: Claude's CL-* takes, Eugene's and Theo's
+// test rigs, the raptor's blood and fight copies, the scorpions). Each shows as "Character · MODEL".
+const ANI_RIGS = { AMEDGAR: 'Edgar', AMRAP: 'Raptor', AMTOB: 'Tobias', CLAWALK: 'Claude', EUGBLD: 'Eugene', EXTGEFF: 'Geffrye', EXTTOBF: 'Tobias', FIGHT: 'Fight scene',
+  GEOFFRY: 'Geffrye', JACK: 'Jack', LEO: 'Leo', LURKA: 'Lurka', NIAMH: 'Niamh', PHILIP2: 'Philip', PUNTTEST: 'Jack (punt)', RAPTOR: 'Raptor', RATTY: 'Ratty',
+  REEDGAR: 'Edgar', RLEOCATH: 'Leo', SAILOR_A: 'Sailor', SASCHA: 'Sascha', SASHMOVE: 'Sascha', TALLUM: 'Tallum', THEO: 'Theo', TOBIAS: 'Tobias', TRILET01: 'Scorpion', VINCENT: 'Vincent' };
+const CHAR_COPIES = { 'CL-ATAK': 'Claude', 'CL-ATAK1': 'Claude', 'CL-LOOK': 'Claude', 'CL-STAND': 'Claude', 'CL-TURN': 'Claude', 'CL-WALK': 'Claude', CLATAK: 'Claude',
+  CLATAK01: 'Claude', CLATAK02: 'Claude', CLATAK03: 'Claude', CLATAK2: 'Claude', CLTURN: 'Claude', CLWALK: 'Claude', CLWALK2: 'Claude', EDGAR: 'Edgar',
+  EUGBLD1: 'Eugene', EUGBLD2: 'Eugene', EUGENE: 'Eugene', EUGENE3: 'Eugene', EUGTEST: 'Eugene', PHILIP: 'Philip', RAPBLOD: 'Raptor', RAPBLOD1: 'Raptor',
+  TEST1: 'Raptor', 'RPA-FIH3': 'Raptor', LEOCATH: 'Leo', THEONEW: 'Theo', 'THEO-ANI': 'Theo', IKTEST: 'Theo', TALLNEW: 'Tallum', TRILOB4: 'Scorpion',
+  'SCORPDE#': 'Scorpions', SAMURI01: 'Samurai', 'O-TEST': 'Test figure' };
+// neither rooms nor figures: camera dummies, a test square, an effect
+const OTHER_MODELS = { CAM: 'camera', CAMERA01: 'camera', CAMWALK1: 'camera path', 'SQR-TEST': 'test square', DEATH: 'box', DROWN: 'bubbles' };
+
 // ---- start ----------------------------------------------------------------------------------------------------------------------------
 (async () => {
   try {
@@ -576,13 +662,22 @@ setInterval(() => { if (document.visibilityState === 'visible' && !$('dlg').open
     const sel = $('roomSel'), mk = (r, label) => { const o = document.createElement('option'); o.value = r.name; o.textContent = label; return o; };
     const g1 = document.createElement('optgroup'); g1.label = 'In play order';
     const g2 = document.createElement('optgroup'); g2.label = 'All rooms';
+    const g4 = document.createElement('optgroup'); g4.label = 'Characters';
+    const g5 = document.createElement('optgroup'); g5.label = 'Other models';
     const g3 = document.createElement('optgroup'); g3.label = 'Dev copies';
+    const chars = [];
     for (const r of S.rooms) {
       const notes = (r.review ? `  · ${r.review} to review` : '') + (r.new ? `  · ${r.new} with Claude` : '');
+      const who = ANI_RIGS[r.name] || CHAR_COPIES[r.name];
       if (r.batch >= 0) g1.appendChild(mk(r, `${r.batch + 1}. ${r.name}${notes}`));
+      else if (who) chars.push({ r, who, main: !!ANI_RIGS[r.name], notes });
+      else if (OTHER_MODELS[r.name]) g5.appendChild(mk(r, `${r.name} (${OTHER_MODELS[r.name]})${notes}`));
       else (r.hidden ? g3 : g2).appendChild(mk(r, r.name + notes));
     }
-    sel.append(g1, g2, g3);
+    // by character, the rig an .ANI names first, then its copies
+    chars.sort((a, b) => a.who.localeCompare(b.who) || (b.main - a.main) || a.r.name.localeCompare(b.r.name));
+    for (const c of chars) g4.appendChild(mk(c.r, `${c.who} · ${c.r.name}${c.notes}`));
+    sel.append(g1, g2, g4, g5, g3);
     const want = (url.searchParams.get('room') || '').toUpperCase(), start = S.rooms.find(r => r.name === want) ? want : (S.rooms.find(r => r.batch === 0) || S.rooms[0]).name;
     const cam = (url.searchParams.get('cam') || '').split(',').map(Number);
     if (url.searchParams.get('lo') === '1') $('lo').checked = true;

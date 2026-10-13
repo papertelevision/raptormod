@@ -163,3 +163,7 @@ Deriving the delta inline is call/pop/sub = 12 bytes, and obj2's is another 13.
 AztOpenMovie into the BSS overlay (~19 KB free, AztDeltas already there), which needs the
 overlay loaded BEFORE the intro: hook 0x16146, the `call 0x10220` immediately preceding the
 only call to the intro sequence at 0x1614B.
+
+## UPDATE 2026-10-11: THE WINDOW IS 256 KB NOW
+
+The 'hard ceiling: obj1 base + vsize must not exceed 0x140000' was a precaution, not a measured limit. DOS/4GW places obj2 one page past obj1's END, so obj1's vsize is now 0x163000 (BSS window 0x133000..0x173000) and obj2 simply loads 0x33000 higher (delta 0x224000). See [[azrael-overlay-read-limit]] for everything that had to follow it. The file-backed CAVES are unchanged: still full.

@@ -95,13 +95,25 @@ namespace AztTool
         // for the top (both re-asserted on timers: the swap was the flicker). It fades out over them when the view is back.
         public const string CoverName = "AztTitleCover";
         static IntPtr _cover; static long _coverAt;
-        /// <summary>Where a host window goes in the z-order: just below the title while it is up, else the top.</summary>
+        /// <summary>Where a host window goes in the z-order: just below the game's cursor (CursorIcons.cs) while it is drawn
+        /// by the host, else just below the title while it is up, else the top.</summary>
         public static IntPtr TopSlot()
+        {
+            IntPtr cw = CursorWindow; if (cw != IntPtr.Zero) return cw;
+            return CoverSlot();
+        }
+        /// <summary>Just below the title while it is up, else the top (the cursor's own place).</summary>
+        public static IntPtr CoverSlot()
         {
             long now = Stopwatch.GetTimestamp();
             if (now - _coverAt > Stopwatch.Frequency / 10) { _coverAt = now; IntPtr c = FindWindowW(null, CoverName); _cover = c != IntPtr.Zero && IsWindowVisible(c) ? c : IntPtr.Zero; }
             return _cover != IntPtr.Zero ? _cover : HWND_TOPMOST;
         }
+        /// <summary>THE GAME'S CURSOR, DRAWN BY THE HOST (CursorIcons.cs IconCursor): every other host window goes below it.</summary>
+        public static IntPtr CursorWindow;
+        /// <summary>The game draws NO cursor of its own just now (IconCursor has blanked its bitmap and draws it instead): the
+        /// panel then takes the screen as it is round the pointer -- there is no cursor to tell apart from the text under it.</summary>
+        public static volatile bool GameCursorBlank;
 
         // ---- state ---------------------------------------------------------------------
         readonly int _pid, _w, _h, _screenW, _screenH, _vpX, _vpY;

@@ -57,8 +57,9 @@ namespace AztTool
         /// or refused request is answered here and null returned.</summary>
         public MiniRequest Accept(int timeoutMs)
         {
-            var ls = Ready();
-            if (ls == null) { System.Threading.Thread.Sleep(Math.Min(timeoutMs, 50)); ls = Ready(); if (ls == null) return null; }
+            // (looked at every 2 ms up to timeoutMs, not once after 50: Room Review's game look asks for a frame per camera move)
+            var ls = Ready(); var waited = System.Diagnostics.Stopwatch.StartNew();
+            while (ls == null) { if (waited.ElapsedMilliseconds >= timeoutMs) return null; System.Threading.Thread.Sleep(2); ls = Ready(); }
             var c = ls.AcceptTcpClient(); c.ReceiveTimeout = 5000; c.SendTimeout = 15000;
             var r = new MiniRequest { Client = c };
             try

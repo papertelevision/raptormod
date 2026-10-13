@@ -15,7 +15,8 @@
 #                                                upscaled GAME\AZTEX, the re-encoded movies, the CD soundtrack, saves
 #   hires      C:\Games\azrael-textures\hires    the renderer's hi-res textures (~3 GB: Real-ESRGAN runs + Josh's 4K art)
 #   books      C:\Games\azrael-books             the upscaled book pages (an install input)
-#   gfx        C:\Games\azrael-gfx               Josh's sources only: decals\<ROOM>\updated, screens, credits, orrery-puzzle
+#   gfx        C:\Games\azrael-gfx               Josh's sources only: decals\<ROOM>\updated, screens, credits, orrery-puzzle,
+#                                                (the title's manual text + print-out list are in git: raptordocs\; their scans are credits\)
 #   screenshots room-notes\*.png (in the repo)    optional: Room Review's screenshots (the notes' JSON is in git)
 #   audio      Desktop\AzraelTearSoundtrack      optional: soundtrack / boot-sound sources (Build-Soundtrack, loading audio)
 #   video      C:\Games\azrael-video\update      optional: the MP4 sources the movies are re-encoded from

@@ -164,6 +164,46 @@ function Start-RenderJob([string]$room, $pose) {
     return $id
 }
 
+# ---- "Game look" (Josh, 2026-10-12: "implement them there so there is more parity with the actual game"): the true-colour
+# renderer kept running in its own process (tools\RoomLookWorker.ps1, started the first time the viewer asks), one frame per
+# camera move with the game's switches (wet, shine, relief + depth, texture repair, flashlight). This server passes the
+# viewer's request on and the JPEG back; the worker quits with this server or after 20 idle minutes.
+$script:look = $null
+function Get-LookWorker {
+    $lw = $script:look
+    if ($lw -and -not $lw.Proc.HasExited) {
+        if (-not $lw.Ready) {
+            try { $c = New-Object Net.WebClient; $c.Proxy = $null; [void]$c.DownloadString(('http://127.0.0.1:{0}/ping' -f $lw.Port)); $lw.Ready = $true } catch { }
+        }
+        return $lw
+    }
+    # a free loopback port from 8650
+    $port = 0; foreach ($p in 8650..8690) { try { $t = New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback, $p); $t.Start(); $t.Stop(); $port = $p; break } catch { } }
+    if (-not $port) { throw 'no free port for the game look' }
+    $argLine = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Port {1} -ParentPid {2}' -f (Join-Path $toolDir 'RoomLookWorker.ps1'), $port, $PID
+    $proc = Start-Process powershell -ArgumentList $argLine -WindowStyle Hidden -PassThru
+    $script:look = [pscustomobject]@{ Proc = $proc; Port = $port; Ready = $false; Started = [DateTime]::UtcNow }
+    Write-Host ("  game look: renderer starting on 127.0.0.1:{0}" -f $port) -ForegroundColor Cyan
+    return $script:look
+}
+function Invoke-LookFrame([string]$room, [byte[]]$body) {
+    $lw = Get-LookWorker
+    if (-not $lw.Ready) { return (Json @{ state = 'starting'; seconds = [Math]::Round(([DateTime]::UtcNow - $lw.Started).TotalSeconds, 1) } 503) }
+    $in = $utf8.GetString($body) | ConvertFrom-Json
+    $req = [ordered]@{ room = $room }
+    foreach ($k in 'X', 'Y', 'Z', 'Yaw', 'Pitch', 'w', 'h') { $v = 0.0; if (-not [double]::TryParse([string]$in.$k, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$v)) { return (Err 400 "bad $k") }; $req[$k] = $v }
+    foreach ($k in 'lamp', 'wet', 'shine', 'relief', 'repair') { $req[$k] = [bool]$in.$k }
+    $out = $utf8.GetBytes((ConvertTo-Json $req -Compress))
+    $wr = [Net.HttpWebRequest]::Create(('http://127.0.0.1:{0}/frame' -f $lw.Port)); $wr.Method = 'POST'; $wr.ContentType = 'application/json'; $wr.Proxy = $null; $wr.Timeout = 90000
+    $s = $wr.GetRequestStream(); $s.Write($out, 0, $out.Length); $s.Close()
+    try { $resp = $wr.GetResponse() } catch [Net.WebException] {
+        $er = $_.Exception.Response; if (-not $er) { $script:look.Ready = $false; return (Err 502 ('the renderer did not answer: ' + $_.Exception.Message)) }
+        $sr = New-Object IO.StreamReader $er.GetResponseStream(); $t = $sr.ReadToEnd(); $er.Close(); return (New-Resp 500 'application/json; charset=utf-8' ($utf8.GetBytes($t)) @{ 'Cache-Control' = 'no-store' })
+    }
+    $ms = New-Object IO.MemoryStream; $resp.GetResponseStream().CopyTo($ms); $info = $resp.Headers['X-Look-Ms']; $resp.Close()
+    return (New-Resp 200 'image/jpeg' $ms.ToArray() @{ 'Cache-Control' = 'no-store'; 'X-Look-Ms' = [string]$info })
+}
+
 # ---- routing ------------------------------------------------------------------------------------------------------
 $STATIC = @{ 'viewer.js' = 'text/javascript; charset=utf-8'; 'viewer.css' = 'text/css; charset=utf-8' }
 function Invoke-Route([string]$method, [string]$path, [string]$query, [hashtable]$hdr, [byte[]]$body) {
@@ -226,6 +266,10 @@ function Invoke-Route([string]$method, [string]$path, [string]$query, [hashtable
                         $state = $(if (-not $j.Proc.HasExited) { 'running' } elseif (Test-Path $j.Out) { 'done' } else { 'error' })
                         return (Json @{ state = $state; seconds = $secs; image = $(if ($state -eq 'done') { '/renders/{0}/{1}.png' -f $room, $j.Id } else { $null }) })
                     }
+                    return (Err 405 'not allowed')
+                }
+                if ($seg[3] -eq 'look') {
+                    if ($seg.Count -eq 4 -and $method -eq 'POST') { return (Invoke-LookFrame $room $body) }
                     return (Err 405 'not allowed')
                 }
                 if ($seg[3] -eq 'atmosphere') {
@@ -377,6 +421,7 @@ try {
     }
 } finally {
     if ($script:renderJob -and -not $script:renderJob.Proc.HasExited) { try { $script:renderJob.Proc.Kill() } catch { } }
+    if ($script:look -and -not $script:look.Proc.HasExited) { try { $c = New-Object Net.WebClient; $c.Proxy = $null; [void]$c.DownloadString(('http://127.0.0.1:{0}/quit' -f $script:look.Port)) } catch { try { $script:look.Proc.Kill() } catch { } } }
     if ($hl) { try { $hl.Stop(); $hl.Close() } catch { } }
     if ($mini) { $mini.Stop() }
     Write-Host 'room review stopped.' -ForegroundColor Gray

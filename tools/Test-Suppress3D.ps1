@@ -93,7 +93,7 @@ function Frame-Delta { param($a, $b)
     return @{ Top = (100.0 * $top / $split); Bottom = (100.0 * $bot / ($a.Length - $split)) }
 }
 
-$flagRuntime = $Flag + $OBJ2_DELTA
+$flagRuntime = $Flag + $g.Delta2      # (GuestBase finds obj2's delta: it moved with obj1's size)
 $flagHost = $g.MemBase + $flagRuntime
 $orig = [AztTool.ProcMem]::Read($g.ProcessId, $flagHost, 2)
 Write-Host ("flag 0x{0:X6} (runtime 0x{1:X}) currently = {2}" -f $Flag, $flagRuntime, [BitConverter]::ToUInt16($orig, 0))

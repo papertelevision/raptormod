@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4bb44327-05db-4a50-ba64-31912f4aa648
-  modified: 2026-10-10T01:16:41.893Z
+  modified: 2026-10-11T05:08:30.529Z
 ---
 
 Josh (2026-10-09): the log (right) and inventory (left) text are "too hard to read". He wants "crisp, legible fonts with consistent linespacing", the visor's vector approach. Chosen in chat: Verdana (the face the game's sheets come from), gold + cyan kept, same size, so the game's own line layout stays and conversation clicks keep working.
@@ -50,3 +50,38 @@ Josh (2026-10-09): the log (right) and inventory (left) text are "too hard to re
 - **To check after Josh's first session:** the `hud text:` lines in watch.log (state, sample, fallbacks); whether conversation lists line up mid-scroll; whether the space advance and baseline look right.
 
 Related: [[azrael-story-log-scrollback]], [[azrael-font-format]], [[azrael-hud-new]], [[azrael-conversation-ui]].
+
+**Round 4 (2026-10-10): conversations were "glitchy -- flickers, hard to click options".**
+- CAUSE of the flicker: the conversation path re-checked the screen every frame (Agree), and the game repaints its box every frame (fill, then text), so torn readings failed. Each failure showed the game's pixels for that frame, and Search sometimes chose a wrong row.
+- Now: the placement is the game's maths plus the last confirmed offset (`_goodDelta`). A failed check holds it (`TextHolds`). Search runs only after `ConvHoldSeconds` (1.5 s) of failure; the game's pixels show only if nothing ever lined up. `_goodDelta` resets on conversation start and end.
+- HOVER (the game gives NO hover feedback): `Panel.OptionHover` reads the option table: word count 0x162B34 (`ConvOptAddr`, watcher), then each option's end row 0x162B36[i], in surface rows per the mod.
+  - It takes the first option whose end row is below the pointer's row (row = cursorY - rec[1] + first), the same rule as AztConvHit -> 0x180C0, so what lights is what a click picks.
+  - Option i spans from option i-1's end. The first option's top is found from the text: its lines upward in the same font (HudRun.Font), up to 4, stopping at a blank line.
+  - Drawn as an amber glass bar with the visor's brackets (`HoverInk`).
+- Offline test: scratchpad `hudconv-test.ps1` (32-bit; a fake conversation, with the game's text drawn on the fake screen). Result: a torn frame is held with 0 fallbacks; hover picks options 2 / 1 / none correctly, wrapped options included.
+
+**Round 5 (2026-10-10): "better after the first choice ... when the dialogue options first appear ... still glitchy".**
+- CAUSE: an options list is blitted from surface row cs (0x152B32, the list's scroll) at y 2, i.e. `first = cs - 2`. The FIRST list sits unscrolled at cs = 0, and the code only used cs - 2 when cs != 0. So the first list was placed by the log's maths, never lined up, and showed the game's pixels. watch.log's success line read "row -2, +2 px".
+- **List mode** = cs != 0, or options present (0x162B34 count, 1..16) and nobody speaking (word 0x152B28, `ConvSpeakAddr`, wired by the watcher).
+  - The speaking check is needed because 0x162B34 is only zeroed when the NEXT list is built (0x18020), so it outlives a choice.
+  - `_goodDelta` resets when list mode flips.
+- Before a full Search: a dx probe of ±6 px around the last dx, then the last first row, then the other placement (`altFirst`).
+- The hover bar's left edge now comes from the ART recess (`LogBoxOpen` + 6), not the game's box, since the first list sits only 2 px in. It is clipped to that recess.
+- Offline: scratchpad `hudconv-first-test.ps1` (32-bit, a cs-0 list at +2 px): 100% at row -2, +2 px; hover 2 / 0 / none correct; a torn frame held; 0 fallbacks.
+
+**Round 6 (2026-10-11): "sometimes still gets stuck in the old text, no hover effects".**
+- watch.log, three sessions: every conversation start and every new options list began with "does not line up (best 0% at row -121 / -172 ...)" for up to ~1 s.
+  - CAUSE 1: a mode change (conversation on, list mode flip) reset `_goodDelta` to "never lined up". The first readings catch the game's box mid-repaint (fill, then text; DOSBox's screen lags its memory), so it showed the game's pixels until one agreed.
+  - CAUSE 2: `Agree` scores "no text on either side" as 1.0. On an empty reading, the probes / Search accepted an EMPTY placement (row -n = -172) as the offset, sending the next real frames astray.
+- FIX:
+  - Each mode starts trusted at the game's maths (`_goodDelta` 0) with its own last good dx (`_listDx` 2, `_logDx` 0, as every log shows).
+  - Until the screen confirms it (`_confirmed`), a failed check searches at once; a search that finds nothing keeps the maths.
+  - Alternative placements count only with ink (`tryAt`: ik > 40).
+  - The game's pixels only after `ConvGiveUpSeconds` (4 s) of nothing agreeing; that log line now gives the mode, scroll, option count, speaking, box state and ink.
+- Offline: `hudconv-torn-first-test.ps1` (the list arrives with the box empty twice) is held in vector type with hover; first-list and synthetic tests still pass, 0 fallbacks.
+- Session 01:02 (with that fix): one vector state all session, 0 fallbacks.
+- **LONG LISTS (same day, Josh's screenshot of a 17-option list in the open box: no hover).** The option cap was 16, in both listMode and OptionHover. The game adds a table entry for every option that fits (0x17FF6 draws while y < H - 80 = 598 rows: about 28 one-line options).
+  - `Panel.MaxOptions` is now 64. Scratchpad `hudconv-long-test.ps1` (18 options): hover 16 on the 17th; torn reading held.
+  - The CYAN option in a list is the game's own: the top node [0x152B22], or the CLICKED one while its line plays. It is not a hover.
+
+**Round 7 (2026-10-11, with the vector cursors): dialogue choices looked dead.** With the game's cursor bitmap blanked ([[azrael-vector-cursors]]), Panel.UpdateRef never refreshed its 84x84 box round a RESTING pointer, so the text there stayed the OLD list (PxNoCursor / ScreenInk read it). Fixed: `Overlay.GameCursorBlank` -> the reference is the screen itself, nothing learnt, no cursor drawn. Offline: panel-stale-box-test.ps1, 2032/2880 stale pixels before, 0 after.

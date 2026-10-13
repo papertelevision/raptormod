@@ -1,4 +1,5 @@
 {
+  "wet": null,
   "_about": "MINEHEAD: Room Review MINEHEAD/1 (Josh, 2026-10-09): the platform's underside (37-mineplab) painted a light grid. Its bright cells are now real holes, and a light high above shines through them, so the grate's bars throw the grid down onto the wall and floor beneath. The platform's top slab (38-mineplat) casts no shadow, so that light reaches the grate.",
   "holes": [ { "texture": "37-mineplab", "minLum": 100, "box": [ 50, 5, 205, 58 ], "_note": "the two grid panels' bright cells (about 2,700 texels of 256x128): stable from 90 to 170, the bars and rust stay solid" } ],
   "noCast": [ "38-mineplat", "34-minesmas" ], "_noCast": "38-mineplat: the slab over the grates. 34-minesmas (round 18): the crusher (mh_smasher) stands on the platform right over the LEFT grate (x -247..-159, y 181..350) and shadowed its whole grid -- the original art paints light through both grates, so it casts no shadow now",

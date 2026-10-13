@@ -191,6 +191,49 @@ namespace AztTool
             foreach (Tex t in texes) if (t != null && t.Mips == null) t.BuildMips(pal, lut);
         }
 
+        // ---- MANY PAINTED TEXTURES AT ONCE (2026-10-12) ----------------------------------------
+        // A room's 4K art decoded one PNG at a time took 4-5 s on entering it (Josh saw the 256-colour game the whole while).
+        // Several at once: 42 of them in 1.1 s instead of 4.5 s with 8 workers (GDI+ serialises some of each decode, so more
+        // workers gain little). Runs in the background; the watcher keeps its loading cover counting from Done meanwhile.
+        public sealed class RgbJob
+        {
+            public int Total; internal int DoneN;
+            public int Done { get { return System.Threading.Volatile.Read(ref DoneN); } }
+            public bool[] Same; public string[] Error;
+            public System.Threading.Tasks.Task Task;
+            public bool Finished { get { return Task == null || Task.IsCompleted; } }
+        }
+        /// <summary>texes[i].LoadRgb(paths[i]) for all i on up to `workers` threads (0 = half the processors, at most 8).
+        /// Same[i]: the PNG had the texture's own size; Error[i]: why it failed (null = it loaded).</summary>
+        public static RgbJob LoadRgbAsync(Tex[] texes, string[] paths, byte[] pal, int workers)
+        {
+            var j = new RgbJob { Total = texes.Length, Same = new bool[texes.Length], Error = new string[texes.Length] };
+            int k = workers > 0 ? workers : Math.Max(1, Math.Min(8, Environment.ProcessorCount / 2));
+            j.Task = System.Threading.Tasks.Task.Run(() =>
+                Parallel.For(0, texes.Length, new ParallelOptions { MaxDegreeOfParallelism = k }, i =>
+                {
+                    try { j.Same[i] = texes[i].LoadRgb(paths[i], pal); }
+                    catch (Exception e) { j.Error[i] = e.Message; }
+                    System.Threading.Interlocked.Increment(ref j.DoneN);
+                }));
+            return j;
+        }
+
+        /// <summary>texes[i].LoadMat(rough[i], height[i], glow[i], maxSize) for all i, as LoadRgbAsync (Same[i]: a map was there).</summary>
+        public static RgbJob LoadMatAsync(Tex[] texes, string[] rough, string[] height, string[] glow, int maxSize, int workers)
+        {
+            var j = new RgbJob { Total = texes.Length, Same = new bool[texes.Length], Error = new string[texes.Length] };
+            int k = workers > 0 ? workers : Math.Max(1, Math.Min(8, Environment.ProcessorCount / 2));
+            j.Task = System.Threading.Tasks.Task.Run(() =>
+                Parallel.For(0, texes.Length, new ParallelOptions { MaxDegreeOfParallelism = k }, i =>
+                {
+                    try { j.Same[i] = texes[i].LoadMat(rough[i], height[i], glow[i], maxSize); }
+                    catch (Exception e) { j.Error[i] = e.Message; }
+                    System.Threading.Interlocked.Increment(ref j.DoneN);
+                }));
+            return j;
+        }
+
         // ---- THE HELMET LAMP ---------------------------------------------------------------
         //
         // A light that the ENGINE never had: the room at a steady general level, plus a
@@ -559,6 +602,10 @@ namespace AztTool
             /// <summary>Casts no shadow (the graphics card's shadow views leave it out): a torch sconce's iron and coals --
             /// Josh, Room Review MINEMAZE/4: its round parts made a 'blobby' shadow; only the wooden stake casts.</summary>
             public bool NoCast;
+            /// <summary>Worn by a GHOST (a room's "ghost" block names the character): the graphics card leaves it out of the
+            /// picture, the shadow views and the reflections and draws it as glowing smoke instead (GpuRaster.GhostOn).
+            /// The processor's picture draws it as it always did.</summary>
+            public bool Ghost;
             /// <summary>The texture's exported file name without extension (e.g. "37-mineplab"), set when its true colours load.</summary>
             public string Leaf;
             /// <summary>Its palette indices before any holes were cut (CutHoles), so they can be put back.</summary>
@@ -566,6 +613,76 @@ namespace AztTool
             /// <summary>The light and shade its ORIGINAL art paints, per texel (255 = the room's well-lit level): the graphics card
             /// shades the room's level and the bounce with it (GpuRaster.BuildArtLight). Null = none.</summary>
             public byte[] ArtLight;
+            // ---- MATERIAL (2026-10-12, Josh: "Material tags for every texture ... Shine where it belongs"): what the surface
+            // is -- set by the watcher from rooms\_materials.json (name rules, exact names, a room's own "materials") -- and how
+            // it shines under the lamp and the placed lights on the graphics card. Shine 0 = matte. Gloss: how tight the
+            // highlight is (a Blinn exponent); Metal 0..1: how much it takes the surface's own colour; ShineVary: how much the
+            // art's own brightness sets it texel by texel (bright grains and polish shine, painted shadow and cracks do not).
+            public string Material;
+            public float Shine, Gloss = 16f, Metal, ShineVary;
+            /// <summary>How much a wet room's damp shows on it (its material's "wet": 1 stone and rock .. 0 glass, the painted
+            /// doorway views, characters): darker and glossier where the room is wet (GpuRaster's WET SURFACES).</summary>
+            public float Wet;
+            /// <summary>Its share of the graphics card's relief and micro relief (its material's "relief"): 1 stone and wood, 0 on a
+            /// shiny surface (Josh, 2026-10-12: relief "makes them all look more grainy and textured where they should be shiny").</summary>
+            public float Relief = 1f;
+            /// <summary>Its share of the graphics card's PARALLAX DEPTH (its material's "parallax": stone, floor and rock walls and
+            /// floors 1, everything else 0 -- Josh, 2026-10-12: "limit this to walls and floors, but not the wooden plank style
+            /// floors"). ParallaxSet: named on or off by hand (rooms\_materials.json "parallax" lists, a room's "materials"), so
+            /// the art's plank check (GpuRaster.ParallaxGrainMax) does not overrule it.</summary>
+            public float Parallax; public bool ParallaxSet;
+            /// <summary>How much of its parallax height comes from the art's broad SHADING (0..1: 0 = only the grooves -- mortar,
+            /// gaps, cracks -- sink; 1 = bright areas bulge, dark ones sink, with the cracks carved in). A room's "parallax":
+            /// {"shade"} (Josh, 2026-10-12, MINEMAZE/7: "The rocks could bulge a bit more throughout, using the texture shading
+            /// as a guide for deep cracks and other depth indicators").</summary>
+            public float ParallaxShade;
+            // COMPANION MAPS (Josh's art pipeline: "<leaf>_rough.png", "_height.png", "_glow.png" beside the colour): one
+            // picture, 0xAARRGGBB -- R smoothness (255 - roughness), G height, B glow. MatHas: 1 rough, 2 height, 4 glow.
+            public int[] MatPx; public int MatW, MatH, MatHas;
+            /// <summary>Reads whichever companion maps are given (null / missing = not there) as greys, at the first one's size
+            /// (long side at most maxSize), into MatPx. False if none was there.</summary>
+            public bool LoadMat(string rough, string height, string glow, int maxSize)
+            {
+                string[] files = { rough, height, glow };
+                int w = 0, h = 0, has = 0; int[][] grey = new int[3][];
+                for (int c = 0; c < 3; c++)
+                {
+                    string f = files[c]; if (string.IsNullOrEmpty(f) || !System.IO.File.Exists(f)) continue;
+                    using (var src = (System.Drawing.Bitmap)System.Drawing.Image.FromFile(f))
+                    {
+                        if (w == 0)
+                        {
+                            w = src.Width; h = src.Height;
+                            if (maxSize > 0 && Math.Max(w, h) > maxSize) { double k = maxSize / (double)Math.Max(w, h); w = Math.Max(1, (int)Math.Round(w * k)); h = Math.Max(1, (int)Math.Round(h * k)); }
+                        }
+                        using (var bm = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+                        {
+                            using (var g = System.Drawing.Graphics.FromImage(bm))
+                            using (var ia = new System.Drawing.Imaging.ImageAttributes())
+                            {
+                                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic; g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                                g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy; ia.SetWrapMode(System.Drawing.Drawing2D.WrapMode.TileFlipXY);
+                                g.DrawImage(src, new System.Drawing.Rectangle(0, 0, w, h), 0, 0, src.Width, src.Height, System.Drawing.GraphicsUnit.Pixel, ia);
+                            }
+                            var bd = bm.LockBits(new System.Drawing.Rectangle(0, 0, w, h), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                            var px = new int[w * h];
+                            try { for (int y = 0; y < h; y++) System.Runtime.InteropServices.Marshal.Copy(new IntPtr(bd.Scan0.ToInt64() + (long)y * bd.Stride), px, y * w, w); }
+                            finally { bm.UnlockBits(bd); }
+                            for (int i = 0; i < px.Length; i++) { int p = px[i]; px[i] = (30 * ((p >> 16) & 255) + 59 * ((p >> 8) & 255) + 11 * (p & 255) + 50) / 100; }
+                            grey[c] = px; has |= 1 << c;
+                        }
+                    }
+                }
+                if (has == 0) { MatPx = null; MatHas = 0; return false; }
+                var o = new int[w * h];
+                for (int i = 0; i < o.Length; i++)
+                {
+                    int r = grey[0] != null ? 255 - grey[0][i] : 128, gg = grey[1] != null ? grey[1][i] : 128, b = grey[2] != null ? grey[2][i] : 0;
+                    o[i] = unchecked((int)0xFF000000) | (r << 16) | (gg << 8) | b;
+                }
+                MatPx = o; MatW = w; MatH = h; MatHas = has;
+                return true;
+            }
             /// <summary>HOLES CUT WHERE THE ART IS BRIGHT (Josh, 2026-10-09, Room Review MINEHEAD/1: "cut this texture up so
             /// light can actually shine through it"): every texel whose ORIGINAL colour is at least minLum bright (0..255),
             /// within box (texels x0 y0 x1 y1; null = all), becomes index 0 -- a hole to the picture, the shadow views and

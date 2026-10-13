@@ -1,10 +1,95 @@
 {
     "schema":  2,
     "room":  "MINEMAZE",
-    "rev":  24,
-    "nextId":  7,
+    "rev":  27,
+    "nextId":  8,
     "notes":  [
-
+                  {
+                      "id":  7,
+                      "ref":  "MINEMAZE/7",
+                      "status":  "review",
+                      "created":  "2026-10-13T03:48:40.4061110Z",
+                      "updated":  "2026-10-13T03:58:16.4974244Z",
+                      "kind":  "other",
+                      "point":  [
+                                    360.93,
+                                    -53.87,
+                                    566.32
+                                ],
+                      "normal":  [
+                                     0.391,
+                                     0.492,
+                                     0.778
+                                 ],
+                      "part":  "corr09",
+                      "material":  "1WALL2",
+                      "texture":  "21-mmzw2.png",
+                      "uv":  [
+                                 0.337,
+                                 0.516
+                             ],
+                      "target":  null,
+                      "camera":  {
+                                     "pos":  [
+                                                 229.22,
+                                                 -0.59,
+                                                 677.03
+                                             ],
+                                     "fwd":  [
+                                                 0.91,
+                                                 -0.21,
+                                                 -0.36
+                                             ],
+                                     "up":  [
+                                                0,
+                                                1,
+                                                0
+                                            ],
+                                     "fov":  50,
+                                     "mirror":  true,
+                                     "gpuLook":  {
+                                                     "X":  229.22,
+                                                     "Y":  -0.59,
+                                                     "Z":  677.03,
+                                                     "Yaw":  111.81,
+                                                     "Pitch":  -12.27
+                                                 }
+                                 },
+                      "suggest":  {
+                                      "light":  {
+                                                    "x":  372.65,
+                                                    "y":  -39.09,
+                                                    "z":  589.65,
+                                                    "dir":  [
+                                                                0.449,
+                                                                0,
+                                                                0.894
+                                                            ]
+                                                }
+                                  },
+                      "seen":  {
+                                   "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                   "roomFileMtime":  "2026-10-09T15:34:29.5249817Z"
+                               },
+                      "log":  [
+                                  {
+                                      "who":  "josh",
+                                      "text":  "This room would benefit the most from the 3d depth. The rocks could bulge a bit more throughout, using the texture shading as a guide for deep cracks and other depth indicators.",
+                                      "at":  "2026-10-13T03:48:40.4061110Z",
+                                      "shot":  "MINEMAZE-7-0.png"
+                                  },
+                                  {
+                                      "who":  "claude",
+                                      "text":  "Done: here the depth now follows the art\u0027s shading, as you said -- bright rock bulges, dark areas sink, and the cracks are carved deep -- at three times the depth the other rooms use (they take only the cracks and joints). Compare with F7 in the game, or 7 in Room Review\u0027s Game look (G). The strength is two numbers in rooms\\MINEMAZE.json \"parallax\" (depth 3, shade 0.7).",
+                                      "at":  "2026-10-13T03:58:16.4974244Z",
+                                      "changes":  [
+                                                      "rooms\\MINEMAZE.json \"parallax\": { depth 3, shade 0.7 } (new: height from the art\u0027s shading)"
+                                                  ],
+                                      "round":  24,
+                                      "render":  "MINEMAZE-7-1-render.png"
+                                  }
+                              ]
+                  }
               ],
     "completed":  [
                       {

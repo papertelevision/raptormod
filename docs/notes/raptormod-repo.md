@@ -54,3 +54,7 @@ Josh (2026-10-10) wants to work from several PCs with a normal GitHub workflow. 
 Fixes made along the way:
 - Build-HudV3/New/Wide/Overlay/Repalette default the stock game path in the body from $PSCommandPath ([[azrael-powershell-silent-traps]]).
 - Apply-AztMod's fresh copy skips AztMod and .claude.
+
+**Branches (2026-10-10, Josh: "adhere to the new github workflow"):** work happens on `dev`, which tracks origin/dev. `main` is the approved state: merge only when Josh says so. NO commits or pushes, and no asking to push, until Josh says so (2026-10-10). CLAUDE.md says the same.
+
+**Private for good (Josh, 2026-10-13):** "This repo will never go public, I'm going to have a separate distributable git for that later." RaptorMod is a free community patch/mod (never sold). So publisher material Josh approves may live here -- the in-game manual's text (`raptordocs\`) does; the classified scans still do not. Game files (R.EXE, AZT.BIN, movies) never do. A public distribution repo is a separate, later job: decide there what it may carry.

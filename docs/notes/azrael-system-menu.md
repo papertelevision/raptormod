@@ -73,3 +73,9 @@ Related: [[azrael-memory-core]], [[azrael-hud-vector-text]], [[azrael-panel-butt
   - Skipped for the game's ENDING (exit code 0x152908 == 0x66: outro movies, then credits) and under -Retro.
   - Other writers of 0x152176 (0x15313, 0x17488) are in-game events.
 - **ESC dead after loads (2026-10-10):** the fold-out's direction 0x1523E8 was stuck at -1 with nothing moving. Guard-SaveList resets it after 1 s unmoved (see [[azrael-title-menu]] round 7).
+
+## The confirm key's sheen (Josh, 2026-10-13)
+"When a user clicks the quit button in the system menu, the 'confirm' button should become active but also have a revolving effect on its outline clarifying that the user needs to click it ... an in-universe style revolving 'sheen' that slowly revolves on the button's outline ... anytime the player needs to confirm something after an initial action in the menu systems." Built in teal (with the SAVE / LOAD small print teal), then thinner and slower, then: "switched back to the amber/orange color rather than the teal" -- the sheen is amber and the small print is its original dim amber again. **Checked offline (scratch harness), NOT yet seen in game.**
+- The one confirm in the menus is the fold-out's OK key (`SysConfirm`: quit asking, or a slot / RESTART picked in the memory core's lists -- CONFIRM / COMMIT / RESTORE / RESTART). The title menu acts on a pick at once (no confirm step).
+- `VisorMenu.Button(..., active)`: lit faintly (amber 0.14, 0.32 hovered) with no frame of its own -- its outline is the sheen's track.
+- `VisorMenu.Sheen`: an amber rim (0.5, 1.2 px) and a head running round the outline once every `SheenSeconds` (3.0 s) -- a 38%-of-perimeter tail fading (power 1.8), a soft glow (5.5 px, 0.2) under a fine line (1.7 px), the head's first pieces in `AmberHi`; pieces split at the corners so it hugs the outline.

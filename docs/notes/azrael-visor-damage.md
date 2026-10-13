@@ -51,3 +51,11 @@ Josh (2026-10-10): static on each hit; more damage as health falls (scratches an
 - **Not done (could offer):** damage on the HUD panel itself.
 
 Related: [[azrael-visor-note]] (badge + health address), [[azrael-gpu-renderer]], [[azrael-optimisation-pass]], [[azrael-gpu-boot]].
+
+**The break moved to the TOP LEFT (Josh, 2026-10-10):** the system menu folds out on the right and the break hid it after a death. `VisorDamage.BreakLeft = true` mirrors the glass: the corner web anchors at (-2,-2), its pieces go out across the glass, and the claw rake (placed away from the break) goes to the right. The same seed, so every effect is kept. Nothing in FS_PRESENT is corner-specific: the red/inky dead display is the bDead field, which the corner block draws. The vitals monitor (lower left, top edge at about 0.68 vr) stays clear of the fully broken corner (about 0.64 vr deep at the edge). Not addressed: the memory core (left panel, READ LOG after a death) can sit under the break near death.
+
+**Damage fades behind open menus (Josh, 2026-10-10).**
+- `VisorMenu.ClearRects`: the open panels (memory core / reading / writing, system menu) as 0..1 picture rects, set in DrawOver; null when none is up.
+- `VisorDamage.Menus` (the watcher sets it each frame) eases `_clrK` in over 0.2 s and out over 0.3 s, keeping the last rects while it fades.
+- `GpuRaster.VisorClear` / `VisorClearK` -> uniforms uClr0/uClr1/uClrK. FS_PRESENT mixes back to catmull(s0), the untouched picture, inside the rects with a 14 px soft edge.
+- Offline: scratchpad `visor-clear-test.ps1`.

@@ -1,4 +1,5 @@
 {
+  "wet": { "_why": "Phase 2 (Josh, 2026-10-12): the font room, by its water -- lightly damp.", "strength": 0.7, "height": 35, "dark": 0.7, "floor": 0.3, "shine": 0.14, "gloss": 40, "puddles": 0.15, "puddleSize": 60, "ceiling": 0.1 },
   "_about": "The baptistery. 2026-10-08 (Josh): the modern water from SPAROOM applied here too -- the bath's water (ZQcutter01/02 at y -38 over zxwater at y -57, x 44..81, z 81..216) rippled, shiny and lit from below, with caustics on the bath and the wall beside it. Same look as SPAROOM's final settings, scaled to a bath: one lamp under its middle, a finer web, less height, and about half the light on the walls (the green moss turned the full strength neon).",
   "water": {
     "glow": "#2FD8C6",

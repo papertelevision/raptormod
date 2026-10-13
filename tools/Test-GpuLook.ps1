@@ -11,7 +11,21 @@ param(
     [double]$Relief = 1.0, [double]$AO = 0.6, [double]$Beam = 1.0, [switch]$Off, [switch]$LampOff, [switch]$MistOff, [switch]$NoParts, [double]$Seconds = 3, [double]$Walk = 70,
     [string]$Out = '', [string]$MistColor = '', [double]$MistDensity = -1, [double]$MistHeight = -1, [double]$MistMax = -1, [double]$BeamHaze = -1, [double]$BeamOuter = -1, [double]$BeamInner = -1, [double[]]$BeamOrg = $null, [switch]$NoLampShadow, [double]$BeamMax = -1, [double]$BeamFall = -1,
     [switch]$ReliefSharp, [double]$ReliefSharpK = -1, [double]$ReliefMid = -1, [double]$ReliefTile = -1,     # the SHARP (full-size) relief maps: steepness, broad share, scale
-    [switch]$NoPixelMip, [double]$GpuMipBias = 0, [double]$Anisotropy = 8, [switch]$NoDustMotes, [switch]$NoTorches, [double]$NormMipBias = -9, [double]$ReliefGain = -1, [double]$Detail = 0, [double]$DetailScale = -1, [double]$DetailAO = -1, [double]$DetailRough = -1, [double]$ReliefTint = -1, [double]$ReliefOpacity = -1, [double]$Flash = 0, [double]$FlashRange = 420, [double[]]$PlayerShadow = $null, [double]$PlayerYaw = 0, [switch]$Steady, [double]$LightShadowDeep = 0.35, [switch]$OldLightView, [switch]$BlackView, [double]$LightSoft = 4, [double]$LampSoft = 3, [switch]$NoVolume, [switch]$PresentTest, [switch]$VolFull, [string]$PaintMap = '', [switch]$NoPaint, [switch]$NoGi, [double]$GiStrength = -1, [double]$GiAmbient = -1, [double]$VolLit = -1, [double]$VolLitAir = -1, [switch]$NoArtLight                                    # mipmaps per pixel (or per triangle), bias, anisotropy
+    [switch]$NoPixelMip, [double]$GpuMipBias = 0, [double]$Anisotropy = 8, [switch]$NoDustMotes, [switch]$NoTorches, [double]$NormMipBias = -9, [double]$ReliefGain = -1, [double]$Detail = 0, [double]$DetailScale = -1, [double]$DetailAO = -1, [double]$DetailRough = -1, [double]$ReliefTint = -1, [double]$ReliefOpacity = -1, [double]$Flash = 0, [double]$FlashRange = 420, [double[]]$PlayerShadow = $null, [double]$PlayerYaw = 0, [switch]$Steady, [double]$LightShadowDeep = 0.35, [switch]$OldLightView, [switch]$BlackView, [double]$LightSoft = 4, [double]$LampSoft = 3, [switch]$NoVolume, [switch]$PresentTest, [switch]$VolFull, [string]$PaintMap = '', [switch]$NoPaint, [switch]$NoGi, [double]$GiStrength = -1, [double]$GiAmbient = -1, [double]$VolLit = -1, [double]$VolLitAir = -1, [switch]$NoArtLight,                                    # mipmaps per pixel (or per triangle), bias, anisotropy
+    # a CHARACTER stood in the room at its rest pose (-Character NIAMH), its box's foot at -CharAt x,y,z, -CharHeight units tall
+    # (its size in the game is the engine's; 0 = as exported), turned -CharYaw degrees; -NoGhost: a room's ghost drawn solid
+    [string]$Character = '', [double[]]$CharAt = $null, [double]$CharHeight = 0, [double]$CharYaw = 0, [switch]$NoGhost,
+    # TEXTURE QUALITY as the watcher's: Normal = replacement textures at most 2048 (scaled copies beside the folder), Ultra = as they are
+    [ValidateSet('Normal', 'Ultra')][string]$TextureQuality = 'Ultra',
+    # MATERIALS (rooms\_materials.json): -NoShine = none, -Shine = all of it x this
+    [switch]$NoShine, [double]$Shine = 1.0, [switch]$NoWet,     # (-NoWet: a wet room drawn dry, to compare)
+    [double]$WetStrength = -1, [double]$WetWalls = -1, [double]$WetPuddles = -1,      # (trying a wet room's numbers before they go in the room files)
+    [switch]$WetDebug,      # (the picture shows how wet (red), puddles (green), height over the floor (blue))
+    [switch]$NoRepair, [switch]$NoMix, [switch]$RepairDebug, [switch]$NoParallax, [double]$ParallaxDepth = 1.0, [double]$MaterializeAt = -1, [double]$XrayMargin = [double]::NaN,      # (-MaterializeAt s: the visor's materialize sweep, s seconds in; -XrayMargin: its lines through walls, how far behind -- -1 = every line)     # TEXTURE REPAIR (GpuRaster.SetRelay): off, or only the mix against repeats off
+    [double]$WaterSheen = -1,      # (the modern water's sheen, to compare; -1 = the room's)
+    [string]$RoomsDir = 'C:\Games\azrael-render\rooms',      # (the room files: a scratch copy to try settings)
+    # the replacement art's folder (as the watcher's -TexOverrideDir)
+    [string]$TexOverrideDir = 'C:\Games\azrael-textures\hires'
 )
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -20,14 +34,26 @@ Add-Type -Path @((Join-Path $toolDir 'Raster.cs'), (Join-Path $toolDir 'GpuRaste
 Add-Type -AssemblyName System.Drawing
 $wp = Join-Path $toolDir 'Watch-HostRender.ps1'; $tk = $null; $pe = $null
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($wp, [ref]$tk, [ref]$pe)
-foreach ($fn in 'ConvertTo-Rgb24', 'Get-RoomAtmosphere', 'Set-RoomAtmosphere', 'Update-RoomLights', 'Get-CharacterSig', 'Get-Room', 'Set-GpuAtmosphere', 'Set-GpuGi', 'Complete-GpuGi', 'Set-RoomTextureRules') { $fd = $ast.Find({ param($x) $x -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $x.Name -eq $fn }, $true); if ($fd) { . ([scriptblock]::Create($fd.Extent.Text)) } }
-function Say([string]$m, [string]$c = 'Gray') { }
-$RoomsDir = 'C:\Games\azrael-render\rooms'; $LampRoomOff = 0.82; $NoFog = $false; $NoDust = [bool]$NoDustMotes; $NoLights = [bool]$NoTorches; $NoMist = $false; $NoParticles = $false; $script:giBake = $null; $script:giSync = $true      # (bounced light: worked out here and now, or read from its cache)
+foreach ($fn in 'ConvertTo-Rgb24', 'Get-RoomAtmosphere', 'Set-RoomAtmosphere', 'Update-RoomLights', 'Get-CharacterSig', 'Get-Room', 'Set-GpuAtmosphere', 'Set-GpuGi', 'Complete-GpuGi', 'Set-RoomTextureRules', 'Set-GpuGhost', 'Set-RoomGhosts', 'Get-MaterialTable', 'Resolve-TexMaterial', 'Set-RoomMaterials', 'Set-GpuWet', 'Set-GpuRepair') { $fd = $ast.Find({ param($x) $x -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $x.Name -eq $fn }, $true); if ($fd) { . ([scriptblock]::Create($fd.Extent.Text)) } }
+function Say([string]$m, [string]$c = 'Gray') { if ($m -match 'REPLACEMENT ART|shared art') { Write-Host $m -ForegroundColor DarkGray } }      # (the watcher's chatter, but which art each texture got)
+$LampRoomOff = 0.82; $NoFog = $false; $NoDust = [bool]$NoDustMotes; $NoLights = [bool]$NoTorches; $NoMist = $false; $NoParticles = $false; $script:giBake = $null; $script:giSync = $true      # (bounced light: worked out here and now, or read from its cache)
 $CacheDir = 'C:\Games\azrael-render'; $TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX'; $Palette = 'C:\Games\azrael-inject\azrael-palette.pal'
-$W = 1600; $H = 928; $CacheRooms = 8; $TrueColour = $true; $NoRgb = $false; $TexOverrideDir = 'C:\Games\azrael-textures\hires'; $TexScale = 1; $NoReflections = $false
+$W = 1600; $H = 928; $CacheRooms = 8; $TrueColour = $true; $NoRgb = $false; $TexScale = 1; $NoReflections = $false
 $roomCache = New-Object System.Collections.Specialized.OrderedDictionary
+$script:texMax = $(if ($TextureQuality -eq 'Normal') { 2048 } else { 0 })
 $pal = [IO.File]::ReadAllBytes($Palette); $script:rgbLut = [AztTool.Raster]::BuildRgbLut($pal)
-$theRoom = Get-Room @($Room)      # (not $room: that IS $Room, the [string] parameter)
+if ($Character) {
+    # the room with the character in it, as the watcher builds it once the character is seen (its vertices are moved
+    # below: this process's own copy)
+    $theRoom = Get-Room @($Room) @([pscustomobject]@{ Xaf = $Character; Prefix = 'ZZ0001' })
+    $cp = @($theRoom.Parts | Where-Object { $_.IsCharacter }); $cv = $theRoom.V
+    $lo = @(1e9, 1e9, 1e9); $hi = @(-1e9, -1e9, -1e9)
+    foreach ($pt in $cp) { for ($i = $pt.VFirst; $i -lt $pt.VFirst + $pt.VCount; $i++) { for ($k = 0; $k -lt 3; $k++) { $q = $cv[$i * 3 + $k]; if ($q -lt $lo[$k]) { $lo[$k] = $q }; if ($q -gt $hi[$k]) { $hi[$k] = $q } } } }
+    $sc = $(if ($CharHeight -gt 0) { $CharHeight / [Math]::Max(1e-3, $hi[1] - $lo[1]) } else { 1.0 }); $at = $(if ($CharAt) { $CharAt } else { @(0, 0, 0) })
+    $ca = [Math]::Cos($CharYaw * [Math]::PI / 180); $sa = [Math]::Sin($CharYaw * [Math]::PI / 180); $mx = ($lo[0] + $hi[0]) / 2; $mz = ($lo[2] + $hi[2]) / 2
+    foreach ($pt in $cp) { for ($i = $pt.VFirst; $i -lt $pt.VFirst + $pt.VCount; $i++) { $dx = ($cv[$i * 3] - $mx) * $sc; $dz = ($cv[$i * 3 + 2] - $mz) * $sc; $cv[$i * 3] = [single]($at[0] + $dx * $ca + $dz * $sa); $cv[$i * 3 + 1] = [single]($at[1] + ($cv[$i * 3 + 1] - $lo[1]) * $sc); $cv[$i * 3 + 2] = [single]($at[2] - $dx * $sa + $dz * $ca) } }
+    "  {0}: {1} parts, {2:N0} units tall (x{3:N3}), foot at {4}" -f $Character, $cp.Count, (($hi[1] - $lo[1]) * $sc), $sc, ($at -join ', ')
+} else { $theRoom = Get-Room @($Room) }      # (not $room: that IS $Room, the [string] parameter)
 
 $r = New-Object AztTool.Raster($Width, $Height); $r.NearZ = [single]0.5; $r.SetVerticalFov(50); $r.EnableRgb()
 $r.SetLightTable([AztTool.Raster]::BuildLightTable($pal, 76, [single]2.4), 76, [single]2.4)
@@ -36,11 +62,15 @@ $r.ShadowDark = [single]0.38; $r.ShadowNear = [single]140; $r.ShadowFar = [singl
 if ($LampOff) { $r.LampRoom = [single]0.82; $r.LampPower = [single]0 } else { $r.LampRoom = [single]0.54; $r.LampPower = [single]1.68 }
 $script:motes = $null; $script:roomLights = @(); $script:atmClock = [Diagnostics.Stopwatch]::StartNew()
 $e = $null; $gpu = [AztTool.GpuRaster]::Create($Width, $Height, [ref]$e); if (-not $gpu) { throw $e }; if ($VolFull) { $gpu.VolHalf = $false }
+$gpu.ShineOn = -not $NoShine; $gpu.ShineGain = [single]$Shine; $gpu.ParallaxOn = -not $NoParallax
 $gpu.NearZ = [single]0.5; $gpu.SetVerticalFov(50); $gpu.BlackView = [bool]$BlackView; $gpu.LightSoft = [single]$LightSoft; $gpu.LampSoft = [single]$LampSoft; $gpu.LightShadowDeep = [single]$LightShadowDeep
 $gpu.ReliefSharpBuild = [bool]$ReliefSharp; $gpu.ReliefSharp = [bool]$ReliefSharp; if ($ReliefSharpK -ge 0) { $gpu.ReliefSharpK = [single]$ReliefSharpK }; if ($ReliefMid -ge 0) { $gpu.ReliefMid = [single]$ReliefMid }; if ($ReliefTile -gt 0) { $gpu.ReliefTile = [single]$ReliefTile }
 $gpu.PixelMip = -not $NoPixelMip; $gpu.PixelMipBias = [single]$GpuMipBias; $gpu.Anisotropy = [single]$Anisotropy; if ($NormMipBias -gt -9) { $gpu.NormMipBias = [single]$NormMipBias }; if ($ReliefGain -gt 0) { $gpu.ReliefGain = [single]$ReliefGain }; $gpu.Detail = [single]$Detail; if ($DetailScale -gt 0) { $gpu.DetailScale = [single]$DetailScale }; if ($DetailAO -ge 0) { $gpu.DetailAO = [single]$DetailAO }; if ($DetailRough -ge 0) { $gpu.DetailRough = [single]$DetailRough }; if ($ReliefTint -ge 0) { $gpu.ReliefTint = [single]$ReliefTint }; if ($ReliefOpacity -ge 0) { $gpu.ReliefOpacity = [single]$ReliefOpacity }
 $atm = Get-RoomAtmosphere @($Room); Set-RoomAtmosphere $r $atm $theRoom; if ($Steady) { foreach ($l in $script:roomLights) { $l.Flicker = 0 } }      # (-Steady: no torch flicker, so two renders compare)
 if (Get-Command Set-GpuAtmosphere -ErrorAction SilentlyContinue) { Set-GpuAtmosphere $gpu $atm $theRoom }; if ($PaintMap) { $gpu.SavePaintField($PaintMap); "  painted darkness: " + $gpu.PaintNote }; if ($NoPaint) { $gpu.PaintOn = $false }; if ($gpu.ArtOn) { "  light from the artwork: {0}; room tint #{1:X6}" -f $gpu.ArtNote, $gpu.RoomTint }
+if ($gpu.RelayNote) { "  texture repair: " + $gpu.RelayNote }; $script:sayHeights = $true; if ($NoMix) { $gpu.MixOn = $false }; $gpu.RelayDebug = [bool]$RepairDebug
+$gpu.WetDebug = $(if ($WetDebug) { 1 } else { 0 }); if ($WaterSheen -ge 0) { $gpu.WaterSheen = [single]$WaterSheen }; if ($WetStrength -ge 0) { $gpu.WetStrength = [single]$WetStrength }; if ($WetWalls -ge 0) { $gpu.WetWalls = [single]$WetWalls }; if ($WetPuddles -ge 0) { $gpu.WetPuddles = [single]$WetPuddles }
+if ($gpu.GroundNote) { "  wet surfaces: {0:P0}, walls {1:P0}, floors {2:P0}, puddles {3:P0}; floor heights {4}" -f $gpu.WetStrength, $gpu.WetWalls, $gpu.WetFloor, $gpu.WetPuddles, $gpu.GroundNote }
 if ($VolLit -ge 0) { $gpu.VolLit = [single]$VolLit }; if ($VolLitAir -ge 0) { $gpu.VolLitAir = [single]$VolLitAir }
 if ($GiStrength -ge 0) { $gpu.GiStrength = [single]$GiStrength }; if ($GiAmbient -ge 0) { $gpu.GiAmbient = [single]$GiAmbient }; if ($gpu.GiOn) { "  bounced light: {0}; strength {1}, room level x{2}" -f $gpu.GiNote, $gpu.GiStrength, $gpu.GiAmbient }
 if ($null -ne $script:volLevel) { $r.LampRoom = [single]$script:volLevel }      # (a volumetric-fog room: the level is held, flashlight or not)
@@ -119,6 +149,7 @@ try {
         foreach ($grp in @($theRoom.WaterGroups)) { if (-not $grp) { continue }; $tl = New-Object 'System.Collections.Generic.List[int]'; $ys = 0.0; $yn = 0; foreach ($wt in $grp.Parts) { $wy = $theRoom.V[$wt.VFirst * 3 + 1]; if ($cam[13] -le $wy + 1) { continue }; $tl.AddRange([int[]]$wt.TriVerts); $ys += $wy; $yn++ }; if ($yn) { $gpu.AddWater($tl.ToArray(), [single]($ys / $yn)) } }
         if ($script:motes) { $nm = $script:motes.Gather($r, $moteBuf); $gpu.SetMotes($moteBuf, $nm, $script:motes.Color, $script:motes.ColorDark) }
         if ($script:fx -and -not $Off -and -not $NoParts) { $np = $script:fx.Gather($r, $partBuf); $gpu.SetParticles($partBuf, $np) }
+        if ($MaterializeAt -ge 0 -and $f -eq $frames - 1) { $gpu.StartMaterializeAt($MaterializeAt); if (-not [double]::IsNaN($XrayMargin)) { $gpu.MatXrayMargin = [single]$XrayMargin } }
         $gpu.SetCameraWorld($cam); $gpu.CopyLighting($r)
         $gpu.Draw($theRoom.V, $theRoom.UV, $theRoom.T, $theRoom.TexIdx, $theRoom.Texes, $true, $true)
         $gpu.SetComposeMap($cxi, $cxf, $cxiR, $cxfR, $riy, $rwy)
@@ -135,6 +166,8 @@ try {
     # how steep the relief maps came out, per texture (mean and 90th percentile of the slope), old and sharp
     $st = @(); foreach ($tx in $theRoom.Texes) { $a = $gpu.ReliefStats($tx, $false); $b = $gpu.ReliefStats($tx, $true); if ($a) { $st += ,@($a[0], $a[1], $(if ($b) { $b[0] } else { 0 }), $(if ($b) { $b[1] } else { 0 }), $a[2], $(if ($b) { $b[2] } else { 0 })) } }
     if ($st.Count) { "  relief slope over {0} textures -- old (half size, ~{1:N0} px): mean {2:N3} p90 {3:N3}; sharp (~{4:N0} px): mean {5:N3} p90 {6:N3}; {7} sharp maps, {8:N0} MB" -f $st.Count, (($st | ForEach-Object { $_[4] } | Measure-Object -Average).Average), (($st | ForEach-Object { $_[0] } | Measure-Object -Average).Average), (($st | ForEach-Object { $_[1] } | Measure-Object -Average).Average), (($st | ForEach-Object { $_[5] } | Measure-Object -Average).Average), (($st | ForEach-Object { $_[2] } | Measure-Object -Average).Average), (($st | ForEach-Object { $_[3] } | Measure-Object -Average).Average), $gpu.SharpMaps, ($gpu.SharpBytes / 1MB) }
+    "  parallax depth: {0} height maps, {1:N1} MB, made in {2:N0} ms; depth {3} units, gone by {4:N0}; {5}" -f $gpu.HeightMaps, ($gpu.HeightBytes / 1MB), $gpu.HeightMs, $gpu.ParallaxDepth, $gpu.ParallaxFar, $gpu.ParallaxReport($theRoom.Texes)
+if ($MaterializeAt -ge 0) { "  materialize: lines through walls {0} edges" -f $gpu.LastXraySegs }
     $partsShown = $gpu.LastParticles; $realFrame = [int[]]$fin.Clone()     # (the timing re-draws below have no particles or dust left: save THIS frame)
     $tc = [Diagnostics.Stopwatch]::StartNew(); $gpu.Draw($theRoom.V, $theRoom.UV, $theRoom.T, $theRoom.TexIdx, $theRoom.Texes, $true, $true); $gpu.SetComposeMap($cxi, $cxf, $cxiR, $cxfR, $riy, $rwy); $gpu.PostCompose([single]0, $screen, 1600, 1600, 928, 0x101010, $bt, $bb, $vis); $gpu.ReadComposed($fin); $script:cardMs = $tc.Elapsed.TotalMilliseconds
     $tc.Restart(); $gpu.Relief = 0; $gpu.AO = 0; $gpu.Beam = 0; $gpu.MistOn = $false; $gpu.Draw($theRoom.V, $theRoom.UV, $theRoom.T, $theRoom.TexIdx, $theRoom.Texes, $true, $true); $gpu.PostCompose([single]0, $screen, 1600, 1600, 928, 0x101010, $bt, $bb, $vis); $gpu.ReadComposed($fin); "  the same frame with relief, corners, mist and beam off: {0:N1} ms" -f $tc.Elapsed.TotalMilliseconds
