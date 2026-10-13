@@ -92,3 +92,11 @@ dialog h3 { margin: 0 0 4px; color: var(--accent); }
 .ndetail .acts button { padding: 2px 9px; font-size: 12px; }
 .ndetail .acts button.ok { border-color: var(--done); color: #bfe8cf; } .ndetail .acts button.quiet { margin-left: auto; color: var(--dim); }
 .nback { margin-bottom: 6px; } .nback button { padding: 1px 8px; font-size: 12px; }
+
+/* Game look (2026-10-12): the switches over the view, as the game's keys */
+#lookBar { position: absolute; top: 8px; left: 8px; z-index: 5; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; max-width: calc(100% - 16px);
+  padding: 6px 10px; border-radius: 6px; background: rgba(10, 10, 12, 0.72); color: #ddd; font-size: 12px; }
+#lookBar label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
+#lookBar kbd { font: 11px ui-monospace, monospace; padding: 0 4px; border: 1px solid #555; border-radius: 3px; color: #bbb; }
+#lookMsg { color: #c9a227; white-space: nowrap; }
+#lookBtn.on { background: #c9a227; color: #111; border-color: #c9a227; }

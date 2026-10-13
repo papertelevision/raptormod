@@ -70,3 +70,5 @@ The fix is `-Hi 56` on the ramp search, level count unchanged.
 
 Related: [[azrael-story-log-scrollback]], [[azrael-palette-budget]],
 [[azrael-texture-cache-reserve]]
+
+**Space guard (2026-10-11):** RaptorMod's Space skip shares the key with the game's weapon toggle (0x136D8 -> 0x131E1), so a Space just after a line drew the weapon. The watcher's SpaceGuard (tools\Keys.cs) holds Space back for 1 s after any line ends; see [[azrael-vector-cursors]]. The overlay had no room for a game-side guard.

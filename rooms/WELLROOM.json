@@ -3,7 +3,8 @@
   "lights": [
     { "name": "torch on the west wall", "_note": "Room Review WELLROOM/4: on WELL_WALL05 at Josh's mark (-161.85, 10.86, -19.84), 15 units out along the wall's normal; as every torch", "x": -146.85, "y": 10.86, "z": -19.84, "dir": [ 1, 0, 0 ], "shadow": true, "color": "#FFB266", "power": 1.4, "range": 260, "flicker": 0.35, "torch": { "scale": 0.8, "wall": 15 } },
     { "name": "teal glow of the well (south-west wall)", "_note": "Room Review WELLROOM/5: the well's glow, a hazy teal like the spa's water (its water mist #7FE6DA, a little deeper), not too bright; on WELL_WALL02 at Josh's mark (-6.96, -18.04, -117.65), 15 units out; no graphic, no flicker. air = it shows in the dark air (hazy)", "x": 3.65, "y": -18.04, "z": -107.04, "dir": [ 0.707, 0, 0.707 ], "shadow": true, "color": "#5FD8CA", "power": 0.3, "range": 200, "flicker": 0, "air": 2 },
-    { "name": "teal glow of the well (east wall)", "_note": "Room Review WELLROOM/6: another, fainter, same teal; on WELL_WALL03 at Josh's mark (81.43, -4.12, -7.04), 15 units out", "x": 70.82, "y": -4.12, "z": -17.65, "dir": [ -0.707, 0, -0.707 ], "shadow": true, "color": "#5FD8CA", "power": 0.2, "range": 200, "flicker": 0, "air": 2 }
+    { "name": "teal glow of the well (east wall)", "_note": "Room Review WELLROOM/6: another, fainter, same teal; on WELL_WALL03 at Josh's mark (81.43, -4.12, -7.04), 15 units out", "x": 70.82, "y": -4.12, "z": -17.65, "dir": [ -0.707, 0, -0.707 ], "shadow": true, "color": "#5FD8CA", "power": 0.2, "range": 200, "flicker": 0, "air": 2 },
+    { "name": "dust in the air", "_note": "Room Review WELLROOM/7 (round 24, Josh: 'Dust particles in this room as well'): the floating, lit specks CORICORI has in its light shaft. Floating dust only comes with a spotlight's cone, so this is a spotlight with NO light (power 0, no shadow, no air, no bounce) -- a wide cone from under the ceiling (y 80; it is at 85 here) over Josh's mark on the well floor (-47.35, -41.45, -26.59), down to the floor: about 170 units round at the floor", "x": -47.35, "y": 80, "z": -26.59, "dir": [ 0, -1, 0 ], "cone": [ 40, 55 ], "shadow": false, "color": "#E0D0B8", "power": 0, "range": 1, "flicker": 0, "air": 0, "bounce": 0, "dust": { "count": 240, "size": 0.7, "fromLight": true } }
   ],
   "fog": null,
   "embers": { "rate": 0, "_note": "the torch's flame is the shader flame; no ember particles (as the other rooms)" },
@@ -27,5 +28,27 @@
     "distort": 50,
     "ripple": { "slope": 0.22, "size": 14, "speed": 0.55 },
     "caustics": { "strength": 2.05, "size": 20, "speed": 0.45, "height": 200, "fill": 0.24 }
+  },
+  "ghost": {
+    "_about": "Josh, 2026-10-11: Niamh, the floating lady, 'more ethereal ... look like a ghost and not a bunch of polygons' -- drawn by the card as glowing smoke (GpuRaster.DrawGhost): thin and bright at her outline, fuller through her body, fading from her waist into nothing below, smoke rising through her, a soft glow so no polygon edge shows, the room wobbling behind her, wisps shed from her hem, ribbons and hands, and a dim teal light of her own. Sizes are shares of her height. -NoGhost draws her solid.",
+    "characters": [ "NIAMH" ],
+    "color": "#BFF6F0",
+    "rim": "#E6FFFF",
+    "texture": 0.55,
+    "textureColour": 1.0,
+    "_textureColour": "Josh, 2026-10-11: 'add back her textures but leave the new effects' -- her own painted colours inside the glow, at full detail (0 = the glow's teal with her art's light and shade only)",
+    "opacity": 0.9,
+    "bright": 1.2,
+    "density": 20,
+    "rimGlow": 1.0,
+    "soft": 0.02,
+    "core": 1.0,
+    "glow": 0.6,
+    "fade": [ 0.12, 0.75 ],
+    "noise": { "amount": 0.5, "size": 0.08, "rise": 0.06 },
+    "shimmer": 3,
+    "breath": 0.08,
+    "wisps": { "rate": 10, "size": 0.025, "life": 3.2, "rise": 0.05, "spread": 0.03, "alpha": 0.4, "color": "#9FEDE4", "parts": [ "NSKIRT", "NIHAND", "NILEG" ] },
+    "light": { "power": 0.25, "color": "#8FE6DC", "range": 1.0, "air": 0.5, "height": 0.8 }
   }
 }

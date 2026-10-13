@@ -99,7 +99,7 @@ if (Test-Path $Palette) {
 $g = Get-AztGuestBase
 Write-Host ("guest pid {0}, MemBase 0x{1:X}" -f $g.ProcessId, $g.MemBase)
 function H1([uint32]$lin) { return [long]($g.MemBase + $lin + 0x1F0000) }   # obj1
-function H2([uint32]$lin) { return [long]($g.MemBase + $lin + 0x1F1000) }   # obj2
+function H2([uint32]$lin) { return [long]($g.MemBase + $lin + $g.Delta2) }   # obj2 (its delta moves with obj1's size: GuestBase found it)
 
 # -Restore is the way back from -Leave, which deliberately strands the viewport in
 # host-render mode. Nothing in the guest can clear aztSup3D, so without this the only

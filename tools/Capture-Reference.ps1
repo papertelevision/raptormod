@@ -41,7 +41,7 @@ $W = [int]$man.view.injW; $H = [int]$man.view.injH
 
 $g = Get-AztGuestBase
 function H1([uint32]$l) { [long]($g.MemBase + $l + 0x1F0000) }
-function H2([uint32]$l) { [long]($g.MemBase + $l + 0x1F1000) }
+function H2([uint32]$l) { [long]($g.MemBase + $l + $g.Delta2) }      # (obj2's delta moves with obj1's size: GuestBase found it)
 
 # ---- which room -------------------------------------------------------------
 $rooms = @(& (Join-Path $toolDir 'Find-LiveRoom.ps1') -TexDir $TexDir -Sym $Sym -Quiet)

@@ -1,8 +1,11 @@
 ---
 name: azrael-gun-sound
-description: SOLVED 2026-10-07 - the loading gate froze DOSBox (NtSuspendProcess, ~8 s) and that killed the Sound Blaster for the session (voices, gunfire, effects). Now the game is held in its own frame limiter. Never suspend DOSBox. Also - muzzle flash.
+description: "SOLVED 2026-10-07 - the loading gate froze DOSBox (NtSuspendProcess, ~8 s) and that killed the Sound Blaster for the session (voices, gunfire, effects). Now the game is held in its own frame limiter. Never suspend DOSBox. Also - muzzle flash."
 metadata:
+  node_type: memory
   type: project
+  originSessionId: 4bb44327-05db-4a50-ba64-31912f4aa648
+  modified: 2026-10-11T04:07:50.573Z
 ---
 
 Josh (2026-10-07): "the gunfire sound no longer plays when shooting". **Not yet solved; a probe is in.**
@@ -67,3 +70,17 @@ Josh (2026-10-07): "the gunfire sound no longer plays when shooting". **Not yet 
 - The boot cannot advance whether or not frames leak. The period park stays as well.
 - Tested offline: el is held at 0.5 s across an 11 s hold while the fake guest tried to move it on.
 - aztBootState 0x1351BE, aztBootT0 0x1351CA, aztBootEl 0x1351CE (overlay.sym).
+
+**Right-click "shooting the gun" (Josh, 2026-10-10): EXPLAINED, fix untested in game.**
+- The fire code is 0x15A5C: the LEFT-down case of the button switch at 0x1382C (sub-codes: 0 left down, 1 right down 0x15C75, 2 left up 0x15C50, 3 right up 0x15E4B), reached from event type 1 via the table at 0x1383C. It fires only in combat (0x14721C); ammo is 0x14694C.
+- The right-down case never reaches it (it only toggles the look via hook-rmb-down).
+- The watcher's `Step-ShotWatch` logs "SHOT RECORD n" with the last 0.6 s of L/R button, combat and mouselook on each shot.
+- **Josh's 2nd report: "only the first right click".** The record showed L0 throughout, R1 at -0.03 s, and the shot at the first right press. No left button was involved.
+- **CAUSE: stale title clicks.** DOSBox hands the game every click made on the title menu, and the game queues them in its input object [0x182DB8] while it waits at the title, where nothing reads them.
+  - A new game's opening movie drained them (0x20BD4's loop at 0x20C26).
+  - A LOAD skips the movie (title-loadskip-2003E), so the left click that picked Continue was still queued in play.
+  - The first new mouse event (the right press) made the pump 0x367A1 move it to the main queue: a left-down in combat, i.e. a shot.
+- **FIX: `GameGate.ClearGameInput` (LoadingScreen.cs), called at the top of ReleaseTitle.** It empties all five rings of [0x182DB8], at +0x16 / +0x22 / +0x2E / +0x3A (sub-queues) and +0x46 (main, popped by 0x36599).
+  - Each ring is: +0 count, +2 write index, +4 read index, +6 capacity, +8 data; events are 11 bytes.
+  - It sets read = write, then count = 0, with sanity checks. The game is still in its title loop, so nobody is reading.
+  - It logs "title: N queued input event(s) from the menu dropped before play".

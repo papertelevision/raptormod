@@ -44,7 +44,14 @@ $OBJ1_PAGES = 291
 $OBJ2_LIN   = 0x140000
 $OBJ2_FILE  = $DATA_PAGES + $OBJ1_PAGES * 4096      # 0x184A54
 $D1 = 0x1F0000
+# obj2 runs one page past obj1's END, so its delta follows obj1's vsize in this R.EXE's object table (0x1F1000 with the
+# old 52 KB overlay window, 0x224000 with the 256 KB one -- 2026-10-11; see GuestBase.ps1 Get-AztObj2Deltas)
 $D2 = 0x1F1000
+try {
+    $fsx = [IO.File]::Open($Exe, 'Open', 'Read', 'ReadWrite, Delete'); $vb = New-Object byte[] 4
+    try { [void]$fsx.Seek(0x290FC + 0xC4, 'Begin'); [void]$fsx.Read($vb, 0, 4) } finally { $fsx.Dispose() }
+    $D2 = $D1 + $OBJ1_LIN + ([long]([Math]::Ceiling([BitConverter]::ToUInt32($vb, 0) / 4096.0)) * 4096) + 0x1000 - $OBJ2_LIN
+} catch { }
 
 function Get-Dosbox {
     Get-Process -Name 'dosbox*' -ErrorAction SilentlyContinue | Select-Object -First 1

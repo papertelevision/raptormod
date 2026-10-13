@@ -54,3 +54,5 @@ Josh (2026-10-10) wants to work from several PCs with a normal GitHub workflow. 
 Fixes made along the way:
 - Build-HudV3/New/Wide/Overlay/Repalette default the stock game path in the body from $PSCommandPath ([[azrael-powershell-silent-traps]]).
 - Apply-AztMod's fresh copy skips AztMod and .claude.
+
+**Branches (2026-10-10, Josh: "adhere to the new github workflow"):** work happens on `dev`, which tracks origin/dev. `main` is the approved state: merge only when Josh says so. NO commits or pushes, and no asking to push, until Josh says so (2026-10-10). CLAUDE.md says the same.

@@ -1,11 +1,11 @@
 ---
 name: azrael-josh-hires-textures
-description: "Josh's own hi-res room textures (C:\\Games\\azrael-gfx\\decals\\<ROOM>\\updated) go into the true-colour override folder at 2048 via an install script; CORICORI done 2026-10-08. Layout and size rules."
+description: "Josh's own hi-res room textures (C:\\Games\\azrael-gfx\\decals\\<ROOM>\\updated) go into the true-colour override folder (4096; 2K tier in hires-2048) via Fit-RoomTextures; CORICORI done 2026-10-08. Layout and size rules. Twins (the same picture under other leaves) follow by themselves through the loader alias."
 metadata:
   node_type: memory
   type: project
   originSessionId: 4bb44327-05db-4a50-ba64-31912f4aa648
-  modified: 2026-10-10T03:49:22.589Z
+  modified: 2026-10-11T14:17:13.294Z
 ---
 
 Josh (2026-10-08): "very high resolution textures for the first room ... labeled the same as the current ones ... replace those in the game ... with the same normal mapping applied."
@@ -49,6 +49,43 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
 - **01-corirock went in WITHOUT a fit**: centre crop to 2:1, then 4096x2048. The fit wanted a 0.80 vertical squash (the original's lit part only), the MINEHEAD-39 failure.
 - Backup: hires-backup-coricori.
 
+**CORICORI FINAL set (2026-10-11, Josh: "my final textures ... the most high quality textures yet"):** 19 new files in `updated` (clean names, all 4096; 02-vstpap01 unchanged from 10-09, so skipped).
+- Staged 18 (all but 01 and 02) in the scratchpad: `Fit-RoomTextures -Room CORICORI -Src <stage> -Size 4096 -Backup C:\Games\azrael-textures\hires-backup-coricori-20261011`.
+  - Pass a NEW `-Backup`: the script only backs up a leaf that is not already in the backup folder, so the old folder would have let the 10-09 set be overwritten unsaved.
+- Mostly "none needed"; six got tiny corrections (zoom 0.988-1.008, shift <= 0.4%).
+- Flagged 0.71-0.73: 00-r12r5, 04-cor2wash, 07-ecrflra3. Outlines checked on the sheet; they line up, only interiors are redrawn.
+- 01-corirock is 4096x2048 (2:1, as the original), copied straight with no fit.
+- The GI bake signature samples the texture colours, so the room re-bakes by itself.
+- Relief: the settled settings are the watcher defaults (ReliefSharpRooms '*', micro 0.4 @ 0.8, tint 3, opacity 0.5, mid 0.35, gain 1.6). Sharp maps are made at the texture's FULL size: CORICORI = 25 maps, 1.67 GB; 3.3 GB of a 10 GB budget.
+
+**THE WHOLE GAME AT 4K: the scale (measured 2026-10-11, Josh plans to up-rez every texture):**
+- Content: 76 real rooms (portals.json minus the hidden dev copies) hold 1,946 texture files = **1,090 distinct images** (MD5), plus character rigs. 620 images are shared by 2+ rooms (all 173 decal folders).
+- Disk: about **5.6 GB** installed at 4096 on the long side (CORICORI masters average 6 MB), plus masters. The hires folder is 3.0 GB today.
+- Card memory per room (colour + full-size sharp relief, with mips):
+  - CORICORI 3.3 GB; average 2.4 GB; R22G 8.2 GB (56 textures); MODROOM1 7.1, DECK01 7.0, MINEHEAD 6.3.
+  - At 2048: average 0.6 GB, at most 2.0 GB.
+  - The budget is 10 GB on Josh's 8060S (48 GB shared memory), and RAM/8 (1.5-4 GB) elsewhere. Over budget used to mean ForgetTextures re-uploaded every frame; since 2026-10-12 the least recently used textures are evicted instead ([[azrael-room-cover]]).
+- Room entry: CORICORI's 20 4K PNG decodes took **2.7 s** (watch.log 01:36), against ~20 ms before. The biggest rooms would take ~7 s (ORRERY took 6.6 s on 2026-10-12, and Josh saw the 8-bit view the whole time). Decoding is now parallel, under a loading cover: [[azrael-room-cover]].
+- CPU copies: ~85 MB per 4K texture (int[] + mips), kept in `$script:AztUnitMem` for the session. Each room visited adds 1-4 GB; since 2026-10-12 this is capped by -TextureCacheGB (Limit-AztRgbCache, [[azrael-room-cover]]).
+- Drawing cost barely changes (mipmapped); the costs are memory and loading.
+- Before a game-wide push: fit-to-memory resolution (or GPU compression), fast/background loading, eviction; size tiers (4096 for big/close surfaces, 2048 for the rest).
+
+**THE GOAL: TEXTURE QUALITY Normal / Ultra (Josh, 2026-10-11).** A title-menu setting: Normal loads 2K textures, Ultra loads 4K.
+- Josh is re-rendering every texture himself first; 4K art goes to other rooms only as he delivers it.
+- Plumbing built:
+  - `Add-AztRgb -MaxSize` (LoadRoom.ps1): a replacement larger than MaxSize is read from a scaled copy in `<OverrideDir>-<MaxSize>` (`C:\Games\azrael-textures\hires-2048`), made once and remade when the master is newer (`Get-AztSizedOverride`, PNG header size via `Get-AztPngSize`). The RgbDir key includes the size.
+  - Watcher `-TextureQuality Normal|Ultra`, else `<GameDir>\raptormod-settings.json` "textureQuality", else **Ultra** (today's look while the menu says coming soon). `$script:texMax` 2048 / 0; logged as "texture quality: ...". Test-GpuLook has `-TextureQuality`.
+- MEASURED on CORICORI:
+  - Normal: 20 at 2048, 848 MB on the card, room load 1.0 s. The FIRST Normal load took 9.0 s, making the 20 copies (41 MB).
+  - Ultra: 20 at 4096, 3.3 GB, 3.1 s.
+  - Pre-make the copies offline before Normal ships, or the first entry of each room stalls.
+
+**ALL DOORS for Josh to up-rez (2026-10-11):** `Desktop\all doors`, 42 originals plus `_where these go.txt` (file -> every room: leaf it replaces).
+- Chosen from the decals as textures NAMED door/dor, deduplicated by MD5. spadoor alone is 11 rooms' leaves.
+- Left out (named "dor" but not door panels): ecrdor01 / ecrdor02 (CORICORI's door walls and inscription), dorcor, dotopdor, dowaldor, cha_ddor, clfdoor.
+- CORICORI's own door panel `20-spadoor` is NOT in decals\CORICORI, and it is a different picture from the shared spadoor. It was taken from C:\Games\azrael-render as `spadoor-coricori.png`.
+- To install the up-rez: each file name -> its leaves from the txt; Fit-RoomTextures per room, or copy to every leaf of a shared image.
+
 **LURKA (Room Review LURKA/1, 2026-10-09): the ChatGPT character textures installed at 2048.**
 - Source: `AztMod\design\incoming\lurka\1-l_bod.png`.. (1254x1254, named without the leading 0). They replace the 10/5 ESRGAN upscales.
 - Fit-RoomTextures works for a CHARACTER given a scratch `-Orig` folder holding a one-off `LURKA.mtl` plus the originals from `decals\LURKA`, and a `-Src` of renamed copies (`01-l_bod.png` ...).
@@ -68,3 +105,93 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
 - Install the same way as CORICORI: Fit-RoomTextures -Room MINEHEAD -Size 4096 once Josh says the files are in.- **MINEHEAD 39-minewal1 (2026-10-09, 1672x941, "not 4k but that's ok"):** Fit-RoomTextures FAILED on it and must not be used for textures like this. The original's only strong edges were the painted grid and its black falloff, exactly what the clean version removes, so the fit invented a 14% shift (score 0.19).
   - For a plain edge-to-edge surface with no layout features left, install WITHOUT a fit: centre-crop to the original's aspect, then scale (here 2048x1024).
   - The previous replacement is in hires-backup-minehead.
+
+**MINEMAZE 4K set (2026-10-11, Josh: "added new textures for MineMaze ... in a 2k-4k folder ... add the 4k textures ... the 2k can come later and are labeled 2k").**
+- Source `C:\Games\azrael-gfx\decals\MINEMAZE\4k-2k`: 22 at 4096 on the long side (01, 02, 04-23; 00-n_black and 03-baptapce not redone) plus `_2k` twins (left for the Normal tier; the plumbing makes its own 2048 copies until then). All match the originals' aspects (square, 128x256, 256x128).
+- **NAMES:** the decals call two of them `11-mmzgun#` / `14-mmzamul#`, but the MTL leaves (and the hires files) are `11-mmzgun_key` / `14-mmzamul_key` -- the exporter turns `#` into `_key`. Fit-RoomTextures' `^\d\d-[A-Za-z0-9_]+` stops at `#`, so stage renamed copies.
+- **18 through Fit-RoomTextures** (-Size 4096, -Backup `hires-backup-minemaze-20261011`): mostly "none needed", tiny fixes on 12/13/16/19/20 (zoom 0.978-1.004, shift <= 1.8%). Flagged 07/09/16/18/21/22 (0.35-0.74) checked on the sheet: the outlines line up; interiors are redrawn.
+- **04-ent_rope and 05-minelad1 WITHOUT the fit** (copied as delivered, 2048x4096 / 4096x2048): the fit wanted 0.80 x / 0.85 y squeezes chasing the painted light falloff (the MINEHEAD-39 failure) while the outlines already lined up. Note Fit-RoomTextures sizes by WIDTH (`H = Size*oh/ow`): a PORTRAIT texture at -Size 4096 would come out 4096x8192 -- don't run portraits through it at 4096.
+- **KEYED textures (11, 14): new `tools\Fill-KeyedTexture.ps1`.** The renderer cuts holes from the ORIGINAL's index-0 mask (GpuRaster uMask, nearest, 256 px) while the 4K colour is filtered and mipmapped, so any magenta in the art bleeds pink at the cut. AI art has no exact #FF00FF (~80-90% near-magenta, pink/purple edge blends, and a magenta CAST on the object itself). What works: keep the art inside the original's SOLID area (despilled: red and blue above green taken off both), replace bright magenta there and EVERYTHING in the original's holes with the nearest kept colour (multi-source flood). Two failed first: keying only bright magenta (purple edge blends flooded the background), and keying magenta of any brightness everywhere (ate the gun's dark purple-cast stock).
+- Shared leaves picked up the new art too (same original file): 06-all2chab -> WASHCORI; 08-or_tunnl -> AQUADUCT, FIGHT_R, SPAROOM, STAIRS2, STAIRS3.
+- Offline render (Test-GpuLook -Room MINEMAZE -TextureQuality Ultra): loads clean.
+- **Josh in game: "the stairs texture is only showing half the texture ... make sure all textures are accounted for".** The plank walkway is part `ramp1` (texture `05-minelad1`). Its UVs sample only a STRIP: u 0.367..1, rows 3.2-31.3% from the top. The original's slats fill exactly that strip (rows 4..38 of 128); the new art drew its planks in rows 2.3-15.3% (48..312 of 2048) with a smooth smeared band below. The ramp lays the strip across its width, so one half showed planks and the other a plain ramp.
+  - FIX: the plank rows 48..312 stretched (vertically, along the board grain) onto rows 64..623, black elsewhere, as in the original.
+  - The rope (`04-ent_rope`, part `chain`) was the same width as the original but 4.5% to the right (column-profile correlation: 23/512): moved 92 px left, black in the gap. Correlation 0.39 -> 0.53.
+- **NEW `tools\Test-TextureCoverage.ps1 -Room R`:** per texture, the UV triangles that use it are drawn into a mask, and inside it the original and the installed art are compared: correlation, edge energy (DETAIL MISSING < 0.7), and 8x8 cells where the original has detail and the new art is smooth ("SMOOTH IN n%"). On the delivered ramp it said smooth in 24%; after the fix it is clean. `-Only a,b -Sheet x.png` draws the flagged cells.
+  - MINEMAZE remaining flags checked and fine: 11-mmzgun_key (its outline matches the original's to 0.002; the metal is just darker and smoother) and 16-mmzsupp (cells near-black in both, mean 1-7: dither noise).
+  - Run it after every room install, before Josh plays it.
+- **Josh's own 2K set installed (same day, "fix for the 2k textures too")** into `C:\Games\azrael-textures\hires-2048` (the Normal tier's folder; backup folder `hires-2048-backup-minemaze-20261011`, empty: nothing was there).
+  - The 22 `_2k` files are exact halves of the 4K ones.
+  - 18 went through Fit-RoomTextures -Size 2048 -Dst hires-2048 (the same tiny fixes as at 4K).
+  - The rope and the walkway were RE-MEASURED on the 2K files: rope 23/512 again (46 px); planks rows 24..156 of 1024, stretched onto 32..311.
+  - Keyed 11/14 went through Fill-KeyedTexture.
+  - Test-TextureCoverage -Hires hires-2048 gives the same values and flags as 4K.
+- **HOW NORMAL USES THEM:** Get-AztSizedOverride takes a hires-2048 file as long as it is NEWER than its 4K master; otherwise it makes its own copy from the master.
+  - So **re-installing a 4K master later replaces that leaf's 2K with an automatic copy** -- redo the 2K after.
+  - A Normal render (Test-GpuLook -TextureQuality Normal) rewrote no hires-2048 file: it used Josh's.
+  - 00-n_black (512) and 03-baptapce (1024) are at or under 2048, so Normal reads them from hires directly.
+
+**Fit-RoomTextures changes (2026-10-12, for the opening rooms' batch):**
+- `-Size` is now the LONG side. It was the width, so a 128x256 original came out 4096x8192; portraits can go through the fit now.
+- `-MaxFix 0.08` REFUSES a big correction: zoom beyond 8%, or a shift beyond 4%. The picture is installed as delivered and flagged "big fix refused" (the MINEHEAD-39 / MINEMAZE rope failure, automated). 0 = no limit.
+- `-Report x.csv` writes the result table.
+- Josh's `4k-2k` folders: `NN-name.png` (4096 long side) plus `NN-name_2k.png` (exact halves). Fit skips the `_2k` twins by itself (their leaf is not in the MTL). Stage `#` -> `_key` copies.
+
+**THE OPENING ROOMS (2026-10-12, Josh's `4k-2k` folders):** WASHLOCK, WASHCORI, SPAROOM, MINEHEAD, BAPTIST, WELLROOM, ORRERY and the LURKA / RAPTOR characters (MINEMAZE was done 10-11).
+- **How:** scratchpad `tex-install-1012.ps1 -Tier 4k|2k [-Only rooms]`, rooms in play order (an earlier room wins a shared leaf).
+  - For each room: stage (`#` -> `_key`, skip list), then `Fit-RoomTextures -Size 4096|2048 -MaxFix 0.08 -Report <room>.csv -Sheet`, then Fill-KeyedTexture for `#` decals.
+  - Backups: `hires-backup-<room>-20261012` / `hires-2048-backup-<room>-20261012`.
+  - 4K first, then 2K, so every 2K file is newer than its master and Normal uses it.
+- **Leaves in each room (number that needed a fix):**
+
+  | Room | Leaves | Fixed |
+  |---|---|---|
+  | WASHLOCK | 12 | 4 |
+  | WASHCORI | 24 | 10 |
+  | SPAROOM | 17 | 6 |
+  | MINEHEAD | 48 | 23 |
+  | BAPTIST | 30 | 11 |
+  | WELLROOM | 27 | 5 |
+  | ORRERY | 30 | 9 |
+  | LURKA | 5 | 0 |
+  | RAPTOR | 12 | 12 |
+
+  The flagged ones were checked on the sheets: the outlines line up and the interiors are redrawn. 2K gives the same fixes.
+- **KEYED = `#` in the DECAL's name, not a leaf ending `_key`:**
+  - 16-mine_key and 05-wel_key are pictures of keys. The first run filled them; they were restored.
+  - 04-#brkkey's leaf is `04-_keybrkkey`.
+- **Kept the PREVIOUS version (redraws asked of Josh):**
+  - MINEHEAD 04-#brkkey and 07-mineton#: a strong magenta CAST on the objects (gold key pieces mauve, tongs purple).
+  - MINEHEAD 20-minemc02: malformed, the panel squeezed into the left 40%.
+  - Their 10-05 files are back in hires; they are 2048 or smaller, so Normal reads them as they are.
+- **MINEHEAD 06-minecha_key (the chain):** aligned by hand on the original's mask at both sizes (scratchpad `align-chain.ps1`); the fit failed on it.
+- **Shared leaves:**
+  - Kept from approved rooms: CORICORI's 11-or_tunnl, MINEMAZE's 08-or_tunnl and 06-all2chab.
+  - Delivered twice with different art: 05-all2cori from WASHCORI (not SPAROOM's) and 00-blood2_key from LURKA (not RAPTOR's).
+- **Characters' other models**, found by the MD5 of the original, get the installed result copied to their leaves:
+  - LURKA's l_bod -> the CL-* models' 02-l_bod and FIGHT's 07-l_bod;
+  - RAPTOR's 12 -> the AMRAP copies;
+  - the blood -> six characters' blood2_key.
+- **Checks:**
+  - scratchpad `check-2k.ps1`: in every room, every leaf over 2048 has Josh's 2K, newer than its master, at the master's aspect.
+  - Test-TextureCoverage at 2K == at 4K. WASHCORI is clean (04-n_black is black by design). ORRERY flags tun_flor / tun_wal1 / tun_top / or_panel (smooth in 10-34%), or_texs2 (4% sampled) and or_flord (smooth in 71%), identically at 4K, which Josh has seen in game ("These textures look great").
+- **What it cost on entry:** ORRERY's 32 4K textures took 6.6 s to decode, and Josh saw the 8-bit view all that time. The fix is [[azrael-room-cover]].
+- **SPAROOM's big pipe looked like a ROPE (Josh in game, 2026-10-12).**
+  - **Cause:** not a wrong texture. The pipe (PIPE = `09-spacop01`, parts spapipe01 / spipe1) repeats it ~22 times down its length, slanted (u drifts 0.57 per face). The art has dark bands along its top (0-16%) and bottom (80-100%), and on every repeat they line up into a spiral of dark grooves.
+  - The original game maps it the same way; at 256 px it was too soft to read as rope.
+  - **Fix:** a SEAMLESS version of Josh's art (scratchpad `pipe-seamless.ps1` + `SeamTex.cs`):
+    - rows 17-80% kept, stretched back to 4096;
+    - made seamless one axis at a time (a 20% cross-fade into itself shifted by half along that axis; doing both axes at once leaves steps mid-edge);
+    - tone x0.91;
+    - plus a box-halved 2K copy, written after the 4K so Normal uses it.
+  - The texture is used only by SPAROOM (also by its WHEEL); the dev copies use 02-spacop01.
+  - Backups: `hires-backup-sparoom-pipe-20261012` / `hires-2048-backup-sparoom-pipe-20261012`.
+  - Test-TextureCoverage will now flag 09 (the bands are gone on purpose).
+  - **Watch for the same thing** on any texture with dark edges that a model repeats many times.
+
+**SHARED PICTURES FOLLOW BY THEMSELVES (2026-10-12, loader alias -- [[azrael-texture-repair]] "Shared art out of step").** One original is exported under several leaves (other rooms, later-story variants, other character models). Installing art for ONE leaf is now enough:
+- every other leaf of the same picture whose own hires file is still the old 4x upscale loads the new art at run time (`tools\TexTwins.cs` via LoadRoom `Get-AztTwinArt`), 2K copies and companion maps included. Nothing is copied, so the hires folder stays one file per picture delivered.
+- So the old habit of copying an installed result to the twin leaves (LURKA's l_bod -> CL-* / FIGHT, RAPTOR -> AMRAP, blood -> six characters) is no longer needed for leaves on the upscale. It still matters only when a twin should show DIFFERENT art: give that leaf its own file (anything not exactly 4x the original counts as new art and is never overridden).
+- Install redraws at 4096 (Fit-RoomTextures -Size 4096). A redraw at exactly 4x its original (a 512 original at 2048) would read as an old upscale and could be swapped for a twin's art.
+- Fit-RoomTextures now prints which other leaves will show what it installed ("the same pictures elsewhere ... now show this art").
+- First run (2026-10-12): 342 leaves in 68 real rooms. The most changed: HINEAZF 40 (MINEHEAD's art), MINEHED2 31 (MINEHEAD), WELLDEMO 24 (WELLROOM), R8 23 (BAPTIST), ORERYL5 22 (ORRERY), R1 19 (CORICORI), R22G 17 (MINEHEAD), R7 13 (WELLROOM), SPAROOM3 / OLDSPA / SPAROOMX 11 each (SPAROOM, so the rope pipe is gone there too), MAZENEW 9 (MINEMAZE). In the opening rooms only two textures changed: MINEMAZE 03-baptapce (BAPTIST's) and CORICORI's door panel 20-spadoor, which is byte for byte SPAROOM's 13-spadoor and shows its new art.

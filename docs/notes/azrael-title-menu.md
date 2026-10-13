@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4bb44327-05db-4a50-ba64-31912f4aa648
-  modified: 2026-10-10T04:32:35.285Z
+  modified: 2026-10-11T14:17:07.299Z
 ---
 
 Josh (2026-10-10): the intro's title image becomes his 4K art (`art\title\title_4k.png`, 4096x2304, also on his desktop as title_4k.png) as a real title screen.
@@ -152,3 +152,26 @@ Related: [[azrael-intro-sequence]], [[azrael-gpu-boot]], [[azrael-memory-core]],
   - Hot spot in the middle. Size is CursorScale x W/1600, the visor's mapping, so it matches the in-game size (about 48 px on 2560 wide). Bilinear, with a soft shadow.
   - The drawn arrow is the fallback. Preview: `PreviewPointer` / `PreviewHover`.
   - Other cursors in MICE: DEFAULT (bow-tie, 3D view), LOOK, SCAN, TAKE, USE...
+
+**Round 10 (2026-10-11): THE OPTIONS PANEL.** Josh: "in the settings of the main menu we would have a texture quality setting: Normal/Ultra ... implement the menu item on the home menu, with that 'coming soon' in place on the actual new sub menu".
+- OPTIONS now opens a panel like LOAD's slot list: `_optOpen`, rows `O_TEX` / `O_BACK`, `DrawOptions`, header "RAPTOR H.U.D. // SYSTEM // OPTIONS".
+- TEXTURE QUALITY shows NORMAL / ULTRA, the current one underlined (`TitleScreen.TextureQuality`, from `GameGate.TitleTextureQuality` <- the watcher's quality), the line "NORMAL: 2K // ULTRA: 4K" and a COMING SOON tag.
+  - Picking it flashes "OFFLINE // COMING SOON". BACK or ESC closes the panel. STORY keeps the old soon flash.
+- Offline preview: `Preview` with `PreviewOptions` / `PreviewOsel` / `PreviewSoon` (scratchpad title-options-preview.ps1).
+- To make it live later: cycle the value on Enter / click, write `<GameDir>\raptormod-settings.json` {"textureQuality": "Normal"|"Ultra"}. The watcher reads it at start (see [[azrael-josh-hires-textures]]), so a change applies from the next launch, unless the room cache is reloaded.
+
+**Round 9 (2026-10-10): the title's clicks leaked into play.** The first right press after a load fired the gun: the click that picked Continue was still queued in the game. ReleaseTitle now empties the game's input rings first (`ClearGameInput`). See [[azrael-gun-sound]].
+
+**Round 11 (2026-10-11): clicks fell through to the menu behind a panel (Josh: "if I click somewhere in the options menu, it will accidentally click the load button ... you can only click the buttons that you see on screen").**
+- **CAUSE:** every click reaches the title TWICE: raw input at once, and the game's button word 0x182DA6 a frame or more later, once DOSBox passes it on. Both counted as a press.
+  - The options panel's BACK sits exactly over the main menu's LOAD.
+  - The first copy closed the panel; the second, 50-60 ms later, hit LOAD.
+  - Activate also used the remembered selection, which the hover updates only when its index changes, so it could reopen the panel just shut.
+- **FIX (TitleScreen.Press):**
+  - a press within ClickMerge 0.3 s of the last is the same click;
+  - no press counts for LayerSettle 0.3 s after a panel opens or closes (LayerChanged, which also resets the hover);
+  - a press acts on HitTest at the pointer in the layer on top NOW: it sets that layer's selection, then Activate.
+  - Keyboard activation is unchanged.
+- **Offline:** scratchpad title-click-test.ps1 (Press + TestLayer/TestCentre/TestHit). BACK then the duplicate leaves the menu shut (LOAD not opened); settling is ignored; an empty spot in a panel does nothing.
+
+**Round 12 (2026-10-11): STORY became RAPTOR DOCS.** The last row opens a panel like OPTIONS: MANUAL (the 1996 manual typeset in the visor's library) and CLASSIFIED DOCS (the box's print-outs between arrow pads, click to magnify); BACK / Esc in a reader go straight to the main menu. All of it is `tools\RaptorDocs.cs` (partial TitleScreen); the gate now compiles LoadingScreen.cs + RaptorDocs.cs + CursorShapes.cs with `/define:TITLE_GATE`. The click merge counts from the last press that ACTED (quick clicks on an arrow each turn a page). See [[azrael-raptor-docs]].

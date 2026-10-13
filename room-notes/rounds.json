@@ -1,5 +1,5 @@
 {
-    "current":  23,
+    "current":  24,
     "rounds":  [
                    {
                        "n":  1,
@@ -241,6 +241,21 @@
                                      "WELLROOM/4",
                                      "WELLROOM/5",
                                      "WELLROOM/6"
+                                 ]
+                   },
+                   {
+                       "n":  24,
+                       "started":  "2026-10-13T03:48:58.0143832Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-024",
+                       "files":  10,
+                       "notes":  [
+                                     "CORICORI/11",
+                                     "CORICORI/12",
+                                     "CORICORI/13",
+                                     "CORICORI/14",
+                                     "MINEMAZE/7",
+                                     "WASHCORI/4",
+                                     "WELLROOM/7"
                                  ]
                    }
                ]

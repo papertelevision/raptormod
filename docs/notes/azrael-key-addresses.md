@@ -113,3 +113,13 @@ hardcoded screen-coordinate immediates** in `0x10000`-`0x33000` (top repeats: 55
 640 x14, 480 x13, 320 x11), plus all HUD art is 640x480 8-bit PCX.
 
 Related: [[azrael-re-tooling]]
+
+**KEYS FOR TYPING (2026-10-11).**
+- Word **0x1525A0 is the PICTURE VIEW**, not a "save box": 0x16A80 sets it (with cursor 0x15210C), 0x16BE0 clears it. The key handler at 0x12BF0 gives it ESC (close) and 's'.
+- **The save-name entry is `[0x1523E0] != 0 && word [0x146948] in 0..4`** (0x12CCB: every key is text).
+- The stub's WASD hooks (AztKeyHook / AztKeyUpHook) tested only 0x1525A0, so W/A/S/D in a save name became movement keys (Josh: "anytime you save the game, WASD is disabled for typing").
+- **Now:** the overlay's AztFrameAll writes **aztTypingKeys** every frame = picture view, OR (save list AND sel <= 4 unsigned).
+  - It sits at a FIXED address: overlay +19 = **0x133013** (`$TYPING_KEYS_AT`, asserted). The stub is assembled before the overlay, and the cave has 0 bytes free.
+  - Both hooks read `cmp word [esi+0x133013],0`, the same 8 bytes as the old `[edi+0x1525A0]` test.
+  - Before the overlay loads, the BSS is zero, so the stock WASD remap applies.
+- Manifest diff: the two stub operands, plus rel32s into the overlay shifted. 442/442 installed. Not yet seen in game.

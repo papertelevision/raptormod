@@ -104,6 +104,9 @@ namespace AztTool
         bool Covering4Load { get { return _reboot && LoadCover; } }
         /// <summary>How long to hold the shutter beat for a Reveal() before giving up and getting out of the way.</summary>
         public int HoldMaxMs = 10000;
+        /// <summary>(Stopwatch ticks) the hold does not give up before this: the watcher keeps it ahead while it is still loading
+        /// the room's textures under the cover, a big room's can outlast HoldMaxMs on a slow machine.</summary>
+        public long HoldExtendUntil;
         /// <summary>The boot's own frame rate: the game draws its boot at about 24, so 40 is smooth at a fraction of the work.</summary>
         public int Fps = 40;
 
@@ -1365,13 +1368,18 @@ namespace AztTool
         void HudBeats(long el)
         {
             var hud = Hud; if (hud == null) return;
-            if (!_hudOut && (el >= U_text || _reboot))
+            if (!_hudOut && !HudWait && (el >= U_text || _reboot))
             {
                 _hudOut = true; if (hud.HoldOff) HudSlideSound(); hud.HoldOff = false;
                 if (!_reboot) { hud.PowerUp(hud.SlideSeconds + 0.15); Note(string.Format("visor boot: the HUD comes in at {0:N2} s", el / 1e6)); }
             }
             if (!_hudHealth && !_reboot && el >= U_text + (_lines.Length - 1) * U_line) { _hudHealth = true; hud.BootHealth(); }
         }
+        /// <summary>A LOAD HOLDS THE HUD (Josh, 2026-10-13: the HUD's slide-in played behind the loading panel): while set, the
+        /// boot never lets the HUD go by itself (its beats, a re-boot, the game reaching play) -- the watcher does, with HudIn().</summary>
+        public volatile bool HudWait;
+        /// <summary>Let the HUD in now (with its slide-in sound if it was held back): the watcher, once a load's panel is gone.</summary>
+        public void HudIn() { HudWait = false; ReleaseHud(); }
         void ReleaseHud() { var hud = Hud; if (hud != null) { if (hud.HoldOff) HudSlideSound(); hud.HoldOff = false; } _hudOut = true; }
 
         // =====================================================================================
@@ -2196,7 +2204,7 @@ namespace AztTool
                     // it away, fired the HUD's power-up before any boot, and -- once the hum came in -- held the hum at its
                     // settled level through the intro and all of play. Josh, 2026-10-07: "the hum is continuing through
                     // the gameplay and sometimes in the intro videos".)
-                    if (state != 1) { _sawEnd = true; if (state == 2 && Hud != null && Hud.HoldOff) ReleaseHud(); if (Sound != null) Sound.Hum(0); continue; }
+                    if (state != 1) { _sawEnd = true; if (state == 2 && Hud != null && Hud.HoldOff && !HudWait) ReleaseHud(); if (Sound != null) Sound.Hum(0); continue; }
                     else if (_sawEnd)
                     {
                         // A NEW BOOT (the first, or the short re-boot after a load).
@@ -2242,7 +2250,7 @@ namespace AztTool
                 HudBeats(elHost);
                 if (mode == M_LIVE && !Covering4Load) { SoundBeats(elHost); HeartBeats(elHost); }
                 if (Sound != null) Sound.Hum(Covering4Load ? 0 : mode == M_LIVE ? HumAt(elHost) : HumSettle);
-                if (_mode == M_HOLD && _holdClock.ElapsedMilliseconds > HoldMaxMs)
+                if (_mode == M_HOLD && _holdClock.ElapsedMilliseconds > HoldMaxMs && Stopwatch.GetTimestamp() > Interlocked.Read(ref HoldExtendUntil))
                 {
                     lock (_gate) { if (_mode == M_HOLD) _mode = M_DONE; }
                     ReleaseHud();
@@ -2871,7 +2879,9 @@ namespace AztTool
         // ---- the game's own copy ---------------------------------------------------------------
         // Where the game keeps the loaded HUDTOP: its data pointer and word count (Build-HudTop.ps1's
         // notes on the loader at 0x109B8), obj2 addresses.
-        const int A_PTR = 0x1523CC, A_COUNT = 0x1523C4, D2 = 0x1F1000;
+        const int A_PTR = 0x1523CC, A_COUNT = 0x1523C4;
+        /// <summary>obj2's runtime delta (the watcher's; it moves with obj1's size -- 0x1F1000 with the old overlay window).</summary>
+        public long D2 = 0x1F1000;
         /// <summary>Hide (keyIndex >= 0) or restore (-1) the game's dithered copy. Only ever writes over
         /// data that is byte-for-byte the file it came from (or our own patch of it). Returns what it did.</summary>
         public string SetGameCopy(int pid, long memBase, int keyIndex)

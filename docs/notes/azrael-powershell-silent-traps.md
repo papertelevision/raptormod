@@ -157,3 +157,9 @@ Related: [[azrael-powershell-utf8-trap]], [[azrael-re-tooling]], [[azrael-geomet
 
 ## A failed edit that still writes (2026-10-08)
 Under the default ErrorActionPreference a failing expression (IndexOf out of range, Substring) only prints an error and leaves the variable $null; the next line's [IO.File]::WriteAllText then wrote an EMPTY CORICORI.json. Any read-modify-write of a settings file: set $ErrorActionPreference = 'Stop' (or check the new text is non-empty and parses) BEFORE writing. The rooms-history round snapshots are the backup.
+
+## One .cs file in two Add-Types: "Cannot add type ... already exists" (2026-10-11)
+
+PowerShell refuses a type NAME it has already added in the session -- public or internal, it makes no difference. The watcher compiles the title (loading gate) and the renderer as two Add-Types, and both needed the cursor shapes (`tools\CursorShapes.cs`): the second compile failed outright, which would have ended the watcher. Referencing the first assembly is not possible either (in-memory, no path).
+
+**How to apply:** give one copy another name with a define. CursorShapes.cs declares `TitleShapes` under `#if TITLE_GATE`, else `CursorShapes`, and the gate compiles with `-CompilerParameters` (`$cp.CompilerOptions = '/define:TITLE_GATE'`; `-CompilerParameters` replaces `-ReferencedAssemblies`, so add `System.dll` and `System.Drawing.dll` to `$cp.ReferencedAssemblies` yourself; `GenerateInMemory = $true`). Test the two compiles together in ONE fresh `powershell` -- each alone passes. See [[azrael-raptor-docs]].

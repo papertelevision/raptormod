@@ -101,6 +101,7 @@ namespace AztTool
         [DllImport("opengl32.dll")] static extern void glReadPixels(int x, int y, int w, int h, uint fmt, uint type, int[] px);
         [DllImport("opengl32.dll", EntryPoint = "glReadPixels")] static extern void glReadPixelsF(int x, int y, int w, int h, uint fmt, uint type, float[] px);
         [DllImport("opengl32.dll", EntryPoint = "glReadPixels")] static extern void glReadPixelsN(int x, int y, int w, int h, uint fmt, uint type, IntPtr offset);
+        [DllImport("opengl32.dll")] static extern void glScissor(int x, int y, int w, int h);
         [DllImport("opengl32.dll")] static extern void glDrawArrays(uint mode, int first, int count);
         [DllImport("opengl32.dll")] static extern void glFinish();
 
@@ -152,7 +153,7 @@ namespace AztTool
         D_UniV glUniform1fv, glUniform2fv, glUniform3fv, glUniform4fv; D_UniIV glUniform1iv; D_UniMat glUniformMatrix4fv, glUniformMatrix3fv;
         D_FbTex glFramebufferTexture2D; D_RbStorage glRenderbufferStorage; D_FbRb glFramebufferRenderbuffer; D_CheckFb glCheckFramebufferStatus;
         D_ClipControl glClipControl; D_Blit glBlitFramebuffer; D_BlendColor glBlendColor;
-        D_BufN glBufferDataN; D_MapRange glMapBufferRange; D_Unmap glUnmapBuffer; D_UInt glGenerateMipmap;
+        D_BufN glBufferDataN; D_MapRange glMapBufferRange; D_Unmap glUnmapBuffer; D_UInt glGenerateMipmap, glBlendEquation;
 
         T Get<T>(string name, bool required = true) where T : class
         {
@@ -180,6 +181,7 @@ namespace AztTool
         const uint GL_DEPTH_TEST = 0x0B71, GL_CULL_FACE = 0x0B44, GL_STENCIL_TEST = 0x0B90, GL_BLEND = 0x0BE2, GL_POLYGON_OFFSET_FILL = 0x8037, GL_PROGRAM_POINT_SIZE = 0x8642;
         const uint GL_BACK = 0x0405, GL_CCW = 0x0901, GL_CW = 0x0900;
         const uint GL_ALWAYS = 0x0207, GL_EQUAL = 0x0202, GL_GREATER = 0x0204, GL_GEQUAL = 0x0206, GL_KEEP = 0x1E00, GL_REPLACE = 0x1E01;
+        const uint GL_SCISSOR_TEST = 0x0C11, GL_FUNC_ADD = 0x8006, GL_MAX = 0x8008;
         const uint GL_ONE = 1, GL_ONE_MINUS_SRC_ALPHA = 0x0303, GL_CONSTANT_ALPHA = 0x8003, GL_ONE_MINUS_CONSTANT_ALPHA = 0x8004, GL_SRC_ALPHA = 0x0302, GL_DST_COLOR = 0x0306;
         const uint GL_TRIANGLES = 0x0004, GL_POINTS = 0x0000;
         const uint GL_COLOR_BUFFER_BIT = 0x4000, GL_DEPTH_BUFFER_BIT = 0x0100, GL_STENCIL_BUFFER_BIT = 0x0400;
@@ -267,10 +269,246 @@ namespace AztTool
         public float MipBias = -0.35f;
         public float Anisotropy = 8f;               // anisotropic filtering, with PixelMip (2026-10-07; was 1 = off, as the processor's renderer has none). Set before textures go up.
 
+        /// <summary>MATERIALS (2026-10-12, Josh: "Shine where it belongs"): each texture's highlight (Raster.Tex.Shine, Gloss,
+        /// Metal, ShineVary -- the watcher sets them from rooms\_materials.json). ShineOn / ShineGain: all of it, and how strong
+        /// (the watcher's -NoShine / -Shine / F6). ShineLampX/Y: where the lamp's highlight comes from (view space: the lamp
+        /// pair's middle). GlowGain: a companion glow map's texels at that many times their own colour, at least.
+        /// ReliefHeightK: a companion height map's relief steepness (it replaces the art's brightness; -1 = ReliefSharpK).</summary>
+        public bool ShineOn = true; public float ShineGain = 1f, ShineLampX = 0f, ShineLampY = 8f, GlowGain = 1f, ReliefHeightK = -1f;
+        /// <summary>THE RELIEF (normal mapping) and the micro relief, off and on in play (Josh, 2026-10-12: "a toggle for the normal
+        /// mapping as well so I can compare all three effects" -- with the shine (ShineOn) and the wet (WetOn)). The maps stay
+        /// on the card; only their use is switched.</summary>
+        public bool ReliefOn = true;
+        /// <summary>THE VISOR MATERIALIZES THE ROOM (Josh, 2026-10-13: "When ANALYZING ENVIRONMENT reaches 100%, surfaces sweep in
+        /// from a scan wireframe to full texture in a fast wave, as if the HUD has just rendered the room ... the teal color we've
+        /// used"; round 2: "the wave happens too quickly ... a much more smooth/sleek animation, so slow it down but also have a
+        /// lingering trail after the main illuminations. Perhaps some dot based small pixels also surrounding the trailing pulse
+        /// effects. Also we need to see the full wireframe being outlined in the outward manner even if they extend beyond the
+        /// players visibility" and "make the water join the wave too"). StartMaterialize: TWO fronts run out from the eye, each
+        /// easing up to speed from rest -- the WIRE front (MatWireSpeed units/s) draws the polygons' teal outlines outward over
+        /// dark glass; MatDelay later the TEXTURE front (MatSpeed) turns them to full texture with a glow band, and behind it the
+        /// outlines linger and fade over MatTrail seconds with specks of light (MatDots) about the fronts and in the trail. It
+        /// runs until the texture front has passed the room's farthest corner from where the sweep began (its reach, measured
+        /// on the first frame) and the trail has died -- nothing is cut off. The water's surface fades in with the texture
+        /// front. MatBand = the fronts' width (units). Colours: ScanWire.Teal / TealFlare. MaterializeOn: -NoMaterialize.</summary>
+        public bool MaterializeOn = true;
+        public float MatSpeed = 1100f, MatWireSpeed = 950f, MatDelay = 0.6f, MatBand = 80f, MatTrail = 0.35f, MatDots = 1f, MatReach = 1400f;
+        public int MatColor = 0x5FD8C0, MatFlare = 0xCFFFF4;
+        Stopwatch _matClock; double _matOffset; float _matReach = -1f;
+        float _mfTex, _mfWire, _matT; bool _matNow; readonly Stopwatch _matIdle = Stopwatch.StartNew();
+        /// <summary>A LOAD'S DARK GLASS (Josh, 2026-10-13: "not displaying any of the game until all loading is complete"): while
+        /// set, the room is drawn as the sweep's start -- dark glass, no outlines yet -- so a loading panel fading out shows
+        /// nothing of the game; StartMaterialize lets it go.</summary>
+        public volatile bool MatHold;
+        /// <summary>The sweep for the visor's "Scanning..." label (ScanWire.cs ScanTag): how far the texture front has crossed
+        /// the room (0..1), and the label's strength (1 while the outlines are up, fading with the trail; 0 = no sweep).</summary>
+        public float MatProgress, MatTagK;
+        /// <summary>A sweep is running.</summary>
+        public bool Materializing { get { return _matClock != null; } }
+        public void StartMaterialize() { StartMaterializeAt(0); }
+        /// <summary>...as if it had started `seconds` ago (the offline test's way to a moment of it).</summary>
+        public void StartMaterializeAt(double seconds) { MatHold = false; if (!MaterializeOn) return; _matClock = Stopwatch.StartNew(); _matOffset = seconds; _matReach = -1f; _matSweep++; }
+        static float EaseFront(double u) { return u <= 0 ? 0f : (float)(u - (1.0 - Math.Exp(-3.0 * u)) / 3.0); }      // (from rest up to full speed, smoothly)
+        /// <summary>This frame's fronts (and, on the sweep's first frame, how far the room reaches from the eye).</summary>
+        void UpdateMaterialize(float[] vx)
+        {
+            _matNow = false; MatProgress = 0f; MatTagK = 0f;
+            if (_matClock == null)
+            {
+                if (MatHold && MaterializeOn) { _matNow = true; _mfTex = 0f; _mfWire = 0f; _matT = (float)(_matIdle.Elapsed.TotalSeconds % 1000.0); }
+                return;
+            }
+            if (_matReach < 0f)
+            {
+                float ex = _camWorld[12], ey = _camWorld[13], ez = _camWorld[14], m2 = 0f;
+                if (vx != null) for (int i = 0; i + 2 < vx.Length; i += 3) { float dx = vx[i] - ex, dy = vx[i + 1] - ey, dz = vx[i + 2] - ez, d2 = dx * dx + dy * dy + dz * dz; if (d2 > m2) m2 = d2; }
+                _matReach = m2 > 1f ? Math.Min(4000f, (float)Math.Sqrt(m2)) : MatReach;
+            }
+            double t = _matClock.Elapsed.TotalSeconds + _matOffset; _matT = (float)t;
+            _mfWire = EaseFront(t) * MatWireSpeed; _mfTex = EaseFront(t - MatDelay) * MatSpeed;
+            if (_mfTex > _matReach + MatSpeed * MatTrail + 3f * MatBand) { _matClock = null; return; }
+            _matNow = true;
+            MatProgress = Math.Min(1f, _mfTex / Math.Max(1f, _matReach));
+            float tagEnd = _mfTex - _matReach, tagLen = MatSpeed * MatTrail + MatBand;
+            MatTagK = tagEnd <= 0f ? 1f : Math.Max(0f, 1f - tagEnd / Math.Max(1f, tagLen));
+        }        public void StopMaterialize() { _matClock = null; _matNow = false; MatHold = false; }
+        /// <summary>PARALLAX DEPTH (Josh, 2026-10-12, phase 4a: "Mortar lines, planks and stone blocks appear sunken as you move
+        /// past, using the height we already compute. Flat walls and floors gain real depth"): each texture gets a height map
+        /// (HeightOf: a companion "_height" map where there is one, else the art's own brightness with its painted light taken
+        /// away -- dark grooves deep), and the room's shader steps the view ray into it (parallax occlusion mapping), so the
+        /// texture is read where the ray meets the sunken surface. ParallaxDepth: how far below the face its deepest texel
+        /// lies (world units; x a room's "parallax"); ParallaxFar: gone by this distance (it fades from half way); ParallaxSteps:
+        /// the most steps along a ray (glancing views take them all). Switched with the relief (ReliefOn, the watcher's F7);
+        /// ONLY WHERE A TEXTURE'S MATERIAL TAKES IT (Raster.Tex.Parallax: stone, floor and rock walls and floors -- Josh, in game
+        /// 2026-10-12: "cool in some cases and others not ... the bridge in the spa room ... looks weirdly bumpy and unnatural ...
+        /// limit this to walls and floors, but not the wooden plank style floors"), and not on art whose grain runs one way
+        /// (planks named like stone: ParallaxGrainMax) unless named by hand;
+        /// none on shiny surfaces (their material's relief 0), what moves, faces mixed against repeats, reflections.</summary>
+        public bool ParallaxOn = true; public float ParallaxDepth = 1f, ParallaxFar = 260f, ParallaxGrainMax = 0.58f; public int ParallaxSteps = 24;
+        /// <summary>WALLS AND FLOORS (Josh, 2026-10-12): a texture takes the parallax only where it covers at least ParallaxShellArea
+        /// square units of the room in triangles of ParallaxShellMean on average (SetParallaxShell, per room) -- the room's own
+        /// walls and floors; props (a figure, a sign, a mirror, a pillar) stay flat unless named by hand.</summary>
+        public float ParallaxShellArea = 5000f, ParallaxShellMean = 100f;
+        bool SurfacePom(Raster.Tex t) { return t != null && t.Parallax > 0f && !t.Moves && (t.ParallaxSet || _pomShell.Contains(t)); }
+        readonly HashSet<Raster.Tex> _pomShell = new HashSet<Raster.Tex>();
+        /// <summary>This room's wall-and-floor textures (see ParallaxShellArea). Returns how many.</summary>
+        public int SetParallaxShell(float[] vx, int[] idx, int[] triTex, Raster.Tex[] texes)
+        {
+            _pomShell.Clear();
+            if (vx == null || idx == null || triTex == null || texes == null) return 0;
+            var sum = new double[texes.Length]; var cnt = new int[texes.Length]; int nT = Math.Min(idx.Length / 3, triTex.Length), nV = vx.Length / 3;
+            for (int t = 0; t < nT; t++)
+            {
+                int ti = triTex[t]; if (ti < 0 || ti >= texes.Length || texes[ti] == null) continue;
+                int a = idx[t * 3], b = idx[t * 3 + 1], c = idx[t * 3 + 2]; if (a >= nV || b >= nV || c >= nV) continue;
+                double e1x = vx[b * 3] - vx[a * 3], e1y = vx[b * 3 + 1] - vx[a * 3 + 1], e1z = vx[b * 3 + 2] - vx[a * 3 + 2], e2x = vx[c * 3] - vx[a * 3], e2y = vx[c * 3 + 1] - vx[a * 3 + 1], e2z = vx[c * 3 + 2] - vx[a * 3 + 2];
+                double cx = e1y * e2z - e1z * e2y, cy = e1z * e2x - e1x * e2z, cz = e1x * e2y - e1y * e2x;
+                sum[ti] += 0.5 * Math.Sqrt(cx * cx + cy * cy + cz * cz); cnt[ti]++;
+            }
+            var tot = new Dictionary<Raster.Tex, double[]>();
+            for (int i = 0; i < texes.Length; i++) { if (texes[i] == null || cnt[i] == 0) continue; double[] s; if (!tot.TryGetValue(texes[i], out s)) { s = new double[2]; tot[texes[i]] = s; } s[0] += sum[i]; s[1] += cnt[i]; }
+            foreach (var kv in tot) if (kv.Value[0] >= ParallaxShellArea && kv.Value[0] / kv.Value[1] >= ParallaxShellMean) _pomShell.Add(kv.Key);
+            return _pomShell.Count;
+        }
+        /// <summary>The card has a 19th texture unit for the height maps (UNIT_HEIGHT); without one there is no parallax.</summary>
+        public bool DepthUnitOk; public int HeightMaps; public long HeightBytes; public double HeightMs;
+        /// <summary>THE WATER'S SHEEN (Josh, 2026-10-12: "a glossy sheen ... applied to water surfaces to reflect the lights"): the
+        /// modern water's broad soft highlight of the lamp and the lights (a room's water block "sheen", "sheenGloss"), under
+        /// the materials' switch. Water drawn without the modern water takes its material's ("water" in _materials.json).</summary>
+        public float WaterSheen = 0.35f, WaterSheenGloss = 30f;
+        /// <summary>The card has a 17th texture unit for the companion maps (UNIT_MAT); without one they are left out.</summary>
+        public bool MatUnitOk;
+        /// <summary>WET SURFACES (Josh, 2026-10-12, phase 2: damp caves and the spa rooms): a room's "wet" block (the watcher
+        /// sets these and SetGround). WetStrength 0..1; WetHeight: how far up the walls the damp reaches above the floor
+        /// beneath them (units, a ragged line); WetDark: the colour's level at full wet; WetFloor: floors' dampness; WetShine /
+        /// WetGloss: the water film's highlight; WetPuddles: the share of the (level) floor under puddles, WetPuddleSize their
+        /// scale (units); WetWalls: the walls' share (Josh, caves: half); WetCeiling: ceilings' dampness. WetOn: all of it (the
+        /// watcher's F5 / -NoWet). Each texture's share is its material's (Raster.Tex.Wet). (Trickles down the walls were
+        /// tried and taken out: Josh, 2026-10-12, "the dripping water on the walls isn't working".)</summary>
+        public bool WetOn = true;
+        public float WetStrength = 1f, WetHeight = 45f, WetDark = 0.62f, WetFloor = 0.45f, WetShine = 0.16f, WetGloss = 40f, WetPuddles = 0.3f, WetPuddleSize = 70f;
+        public float WetWalls = 1f, WetCeiling = 0.15f;
+        /// <summary>The art's dark parts stay dry (Josh, 2026-10-12, CORICORI): the wet fades in from WetDarkFrom to WetDarkTo of
+        /// the texture's brightness round each point (0..255, a coarse copy of the art about 64 texels across).</summary>
+        public float WetDarkFrom = 10f, WetDarkTo = 45f;
+        /// <summary>The card has an 18th texture unit for the floor's height (UNIT_GROUND); without one no room is wet.</summary>
+        public bool WetUnitOk;
+        /// <summary>Testing: 1 = draw how wet (red), puddles (green), height over the floor (blue) instead of the room.</summary>
+        public int WetDebug;
+        public string GroundNote = "";
+        uint _groundTex; float _gx0, _gz0, _gInv;
+        /// <summary>No room's floor heights: nothing is wet.</summary>
+        public void ClearGround() { if (_groundTex != 0) { glDeleteTextures(1, new[] { _groundTex }); _groundTex = 0; } GroundNote = ""; }
+        /// <summary>THE FLOOR UNDER EVERY POINT of a room, for its damp: per cell (x, z) the height of the lowest surface facing up
+        /// with room above it, of those within 150 units of the cell's highest -- under a walkway the damp rises from the water.
+        /// Which way a floor's winding faces is read from the room itself (its lowest level faces up); metal (pipes) is no
+        /// floor, nor a top with under 30 units of room above it. Cells beside the floor take their neighbours' (walls stand on
+        /// its edge); the rest far below (dry). False if the room has no floor.</summary>
+        public bool SetGround(float[] v, int[] t, int[] triTex, Raster.Tex[] texes, float cell)
+        {
+            ClearGround();
+            if (v == null || t == null || triTex == null || cell < 1f || v.Length < 9) return false;
+            float x0 = float.MaxValue, x1 = float.MinValue, z0 = float.MaxValue, z1 = float.MinValue;
+            for (int i = 0; i + 2 < v.Length; i += 3) { x0 = Math.Min(x0, v[i]); x1 = Math.Max(x1, v[i]); z0 = Math.Min(z0, v[i + 2]); z1 = Math.Max(z1, v[i + 2]); }
+            while ((x1 - x0) / cell > 1000 || (z1 - z0) / cell > 1000) cell *= 2f;
+            int nx = (int)Math.Ceiling((x1 - x0) / cell) + 3, nz = (int)Math.Ceiling((z1 - z0) / cell) + 3;
+            float gx0 = x0 - cell, gz0 = z0 - cell;
+            int nT = Math.Min(t.Length / 3, triTex.Length);
+            // the faces that lie flat-ish (|ny| > 0.6), each with its signed facing and middle height
+            var flat = new List<int>(); var fy = new List<float>(); var fs = new List<float>(); var fa = new List<float>();
+            for (int k = 0; k < nT; k++)
+            {
+                int ti = triTex[k]; if (ti < 0 || texes == null || ti >= texes.Length || texes[ti] == null) continue;
+                if (texes[ti].Metal >= 0.4f) continue;          // (a pipe's top or a wheel is not a floor: the wall under it is no wetter)
+                int a = t[k * 3] * 3, b = t[k * 3 + 1] * 3, c = t[k * 3 + 2] * 3;
+                float ux = v[b] - v[a], uy = v[b + 1] - v[a + 1], uz = v[b + 2] - v[a + 2], wx = v[c] - v[a], wy = v[c + 1] - v[a + 1], wz = v[c + 2] - v[a + 2];
+                float nx3 = uy * wz - uz * wy, ny3 = uz * wx - ux * wz, nz3 = ux * wy - uy * wx; float nl = (float)Math.Sqrt(nx3 * nx3 + ny3 * ny3 + nz3 * nz3);
+                if (nl < 1e-6f || Math.Abs(ny3 / nl) < 0.6f) continue;
+                flat.Add(k); fs.Add(ny3 / nl); fy.Add((v[a + 1] + v[b + 1] + v[c + 1]) / 3f); fa.Add(nl * 0.5f);
+            }
+            if (flat.Count == 0) { GroundNote = "no floor"; return false; }
+            // which sign is up: the lowest fifth of the flat faces (by area) are floors
+            var order = new int[flat.Count]; for (int i = 0; i < order.Length; i++) order[i] = i;
+            var keys = fy.ToArray(); Array.Sort(keys, order);
+            double total = 0; foreach (var ar in fa) total += ar;
+            double acc = 0, vote = 0; foreach (int i in order) { if (acc > total * 0.2) break; acc += fa[i]; vote += fa[i] * Math.Sign(fs[i]); }
+            float upSign = vote >= 0 ? 1f : -1f;
+            var g = new float[nx * nz]; for (int i = 0; i < g.Length; i++) g[i] = float.NaN;
+            int ups = 0, hidden = 0; var sCell = new List<int>(); var sY = new List<float>();
+            for (int f = 0; f < flat.Count; f++)
+            {
+                if (fs[f] * upSign <= 0f) continue;          // facing down: a ceiling
+                int k = flat[f], a = t[k * 3] * 3, b = t[k * 3 + 1] * 3, c = t[k * 3 + 2] * 3;
+                // a floor has room above it: a box's top hidden in a wall (SPAROOM's doors, their tops at the lintel) has none
+                {
+                    float mx = (v[a] + v[b] + v[c]) / 3f, my = (v[a + 1] + v[b + 1] + v[c + 1]) / 3f, mz = (v[a + 2] + v[b + 2] + v[c + 2]) / 3f;
+                    if (Raster.RayDistance(v, t, triTex, mx, my + 0.5f, mz, 0f, 1f, 0f, 40f) < 30f) { hidden++; continue; }
+                }
+                ups++;
+                float ax = v[a], az = v[a + 2], ay = v[a + 1], bx = v[b], bz = v[b + 2], by = v[b + 1], cx = v[c], cz = v[c + 2], cy = v[c + 1];
+                float den = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz); if (Math.Abs(den) < 1e-6f) continue;
+                int i0 = Math.Max(0, (int)Math.Floor((Math.Min(ax, Math.Min(bx, cx)) - gx0) / cell)), i1 = Math.Min(nx - 1, (int)Math.Floor((Math.Max(ax, Math.Max(bx, cx)) - gx0) / cell));
+                int j0 = Math.Max(0, (int)Math.Floor((Math.Min(az, Math.Min(bz, cz)) - gz0) / cell)), j1 = Math.Min(nz - 1, (int)Math.Floor((Math.Max(az, Math.Max(bz, cz)) - gz0) / cell));
+                bool any = false;
+                for (int j = j0; j <= j1; j++) for (int i = i0; i <= i1; i++)
+                {
+                    float px = gx0 + (i + 0.5f) * cell, pz = gz0 + (j + 0.5f) * cell;
+                    float l1 = ((bz - cz) * (px - cx) + (cx - bx) * (pz - cz)) / den, l2 = ((cz - az) * (px - cx) + (ax - cx) * (pz - cz)) / den, l3 = 1f - l1 - l2;
+                    if (l1 < -0.02f || l2 < -0.02f || l3 < -0.02f) continue;
+                    sCell.Add(j * nx + i); sY.Add(l1 * ay + l2 * by + l3 * cy); any = true;
+                }
+                if (!any)
+                {   // (smaller than a cell: its middle counts)
+                    int i = (int)Math.Floor(((ax + bx + cx) / 3f - gx0) / cell), j = (int)Math.Floor(((az + bz + cz) / 3f - gz0) / cell);
+                    if (i >= 0 && i < nx && j >= 0 && j < nz) { sCell.Add(j * nx + i); sY.Add((ay + by + cy) / 3f); }
+                }
+            }
+            // each cell: the LOWEST floor there, of those within 150 units of its highest -- the damp rises from the water under
+            // a walkway, and a box's top higher up (a door's lintel) is not where the floor is; far below is not this room
+            var gmax = new float[nx * nz]; for (int i = 0; i < gmax.Length; i++) gmax[i] = float.NaN;
+            for (int s = 0; s < sCell.Count; s++) { int o = sCell[s]; if (float.IsNaN(gmax[o]) || sY[s] > gmax[o]) gmax[o] = sY[s]; }
+            for (int s = 0; s < sCell.Count; s++) { int o = sCell[s]; float y = sY[s]; if (y < gmax[o] - 150f) continue; if (float.IsNaN(g[o]) || y < g[o]) g[o] = y; }
+            // the floor's edge carried a few cells outward (the walls stand there), the rest far below
+            for (int pass = 0; pass < 4; pass++)
+            {
+                var n2 = (float[])g.Clone();
+                for (int j = 0; j < nz; j++) for (int i = 0; i < nx; i++)
+                {
+                    if (!float.IsNaN(g[j * nx + i])) continue;
+                    float best = float.NaN;
+                    for (int dj = -1; dj <= 1; dj++) for (int di = -1; di <= 1; di++)
+                    {
+                        int ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= nx || jj >= nz) continue;
+                        float q = g[jj * nx + ii]; if (!float.IsNaN(q) && (float.IsNaN(best) || q > best)) best = q;
+                    }
+                    n2[j * nx + i] = best;
+                }
+                g = n2;
+            }
+            int known = 0; for (int i = 0; i < g.Length; i++) { if (float.IsNaN(g[i])) g[i] = -100000f; else known++; }
+            var ids = new uint[1]; glGenTextures(1, ids); _groundTex = ids[0];
+            glBindTexture(GL_TEXTURE_2D, _groundTex);
+            var h = GCHandle.Alloc(g, GCHandleType.Pinned);
+            try { glTexImage2DN(GL_TEXTURE_2D, 0, 0x822E /* R32F */, nx, nz, 0, 0x1903 /* RED */, 0x1406 /* FLOAT */, h.AddrOfPinnedObject()); }
+            finally { h.Free(); }
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            Check("the room's floor heights");
+            _gx0 = gx0; _gz0 = gz0; _gInv = 1f / cell;
+            GroundNote = string.Format("{0}x{1} cells of {2:0} units, {3} of {4} flat faces are floors (winding {5}; {6} facing up with no room above them left out), {7} cells under a floor or beside one", nx, nz, cell, ups, flat.Count, upSign > 0 ? "+y" : "-y", hidden, known);
+            return true;
+        }
         // per texture: the picture (with its own mip chain) and the hole mask
-        class GTex { public uint Rgb, Mask, Norm, NormHi; public long Bytes; public byte[] ArtSrc, IdxSrc; }
+        // (Used: the Upload call that last needed it, for evicting the least recently used; SharpB: its sharp relief map's share of Bytes;
+        // Mat: its companion maps (smoothness, height, glow), MatSrc the Tex.MatPx they came from)
+        class GTex { public uint Rgb, Mask, Norm, NormHi, Mat, Height; public long Bytes, Used, SharpB, MatB, HeightB; public int MatHas; public byte[] ArtSrc, IdxSrc; public int[] MatSrc, HeightSrc; public float Grain, HeightShade; public bool HeightDone; }
         readonly Dictionary<Raster.Tex, GTex> _tex = new Dictionary<Raster.Tex, GTex>();
         public long TextureBytes;
+        long _useStamp;
+        /// <summary>Textures dropped from the card to stay under MaxTextureBytes (least recently used first, never the room's own).</summary>
+        public long Evicted;
         // textures held on the card at most. Was a fixed 1.5 GB; Josh's own 4096 room textures (2026-10-08) need ~1.4 GB
         // in one room with their relief maps, and a room over the budget re-uploads every frame. So: 1/8 of the
         // machine's memory (the card's memory is the computer's own on these machines), between 1.5 and 4 GB.
@@ -359,6 +597,7 @@ namespace AztTool
             glFramebufferRenderbuffer = Get<D_FbRb>("glFramebufferRenderbuffer"); glCheckFramebufferStatus = Get<D_CheckFb>("glCheckFramebufferStatus");
             glBlitFramebuffer = Get<D_Blit>("glBlitFramebuffer"); glBlendColor = Get<D_BlendColor>("glBlendColor");
             glBufferDataN = Get<D_BufN>("glBufferData"); glMapBufferRange = Get<D_MapRange>("glMapBufferRange"); glUnmapBuffer = Get<D_Unmap>("glUnmapBuffer"); glGenerateMipmap = Get<D_UInt>("glGenerateMipmap");
+            glBlendEquation = Get<D_UInt>("glBlendEquation", false);
             glClipControl = Get<D_ClipControl>("glClipControl", false);
             glTexImage3D = Get<D_TexImage3D>("glTexImage3D", false);
             if (glClipControl == null) throw new InvalidOperationException("the graphics driver has no glClipControl (OpenGL 4.5)");
@@ -378,6 +617,7 @@ namespace AztTool
               glEnableVertexAttribArray(2); glVertexAttribPointer(2, 2, GL_FLOAT, 0, 40, new IntPtr(32)); glBindVertexArray(0); }
             { var nid = new uint[1]; glGenFramebuffers(1, nid); _normFbo = nid[0]; }
             LocateUniforms();
+            { var mu = new int[1]; glGetIntegerv(0x8872, mu); MatUnitOk = mu[0] > UNIT_MAT; WetUnitOk = mu[0] > UNIT_GROUND; DepthUnitOk = mu[0] > UNIT_HEIGHT; }      // (MAX_TEXTURE_IMAGE_UNITS: the companion maps', the floor heights' and the height maps' units)
 
             var ids = new uint[1];
             // the picture: colour, and depth + stencil as a texture (copied for the water's test)
@@ -465,18 +705,40 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec2 aUv;
 layout(location = 2) in vec4 aTri;      // facing toward the lamp, then the face normal (view space)
 layout(location = 3) in float aLod;     // the face's texel density as a mip level, before depth
+layout(location = 4) in vec4 aRange;    // TEXTURE REPAIR: the part of the texture a re-laid face ping-pongs in (lo u, lo v, size u, size v)
+layout(location = 5) in float aFix;     // and its flags: 1 / 2 ping-pong along u / v, 4 / 8 mixed against repeats along u / v
 uniform mat4 uView; uniform vec2 uF; uniform float uNear; uniform float uOffY;
-out vec2 vUv; out vec3 vView; out vec4 vTri; out float vLod; out vec3 vWorld;
+out vec2 vUv; out vec3 vView; out vec4 vTri; out float vLod; out vec3 vWorld; flat out vec4 vRange; flat out int vFix;
+out vec3 vBary;      // (the materialize sweep's outlines: which corner, as every triangle has its own three on the card)
 invariant gl_Position;
 void main() {
     vec4 p = uView * vec4(aPos, 1.0);
-    vUv = aUv; vView = p.xyz; vTri = aTri; vLod = aLod; vWorld = aPos;
+    vUv = aUv; vView = p.xyz; vTri = aTri; vLod = aLod; vWorld = aPos; vRange = aRange; vFix = int(aFix + 0.5);
+    int corner = gl_VertexID % 3; vBary = vec3(corner == 0 ? 1.0 : 0.0, corner == 1 ? 1.0 : 0.0, corner == 2 ? 1.0 : 0.0);
     // screen = centre + (x, -y) * focal / z, as Raster.Prepare; depth = near / z
     gl_Position = vec4(p.x * uF.x, -p.y * uF.y + uOffY * p.z, uNear, p.z);
 }";
         const string FS_MAIN = @"#version 400 core
-in vec2 vUv; in vec3 vView; in vec4 vTri; in float vLod; in vec3 vWorld;
+in vec2 vUv; in vec3 vView; in vec4 vTri; in float vLod; in vec3 vWorld; flat in vec4 vRange; flat in int vFix; in vec3 vBary;
 uniform mat4 uView;
+// THE VISOR MATERIALIZES THE ROOM (GpuRaster.StartMaterialize): uMatz = the texture front's distance from the eye (units), the
+// fronts' width, the wire front's distance, on; uMatX = its clock (s), the trail's fade (s), the texture front's speed, the
+// specks; uMatC / uMatF the scan's teal and its flare (0..255)
+uniform vec4 uMatz, uMatX; uniform vec3 uMatC, uMatF;
+// TEXTURE REPAIR (GpuRaster.SetRelay): uMixOn -- surfaces that repeat their texture get it twice, shifted by amounts that change
+// slowly across them (one change every 1 / uMixScale tiles or so), blended: the repeating grid breaks up
+uniform int uMixOn; uniform float uMixScale; uniform int uRelayDebug;     // (testing: folded faces red, evened blue, mixed green, objects re-laid whole magenta)
+// PARALLAX DEPTH (GpuRaster.Parallax*): this texture's height map (1 = the face, 0 = uPom.x units below it), uPomK its share
+// (0: none, or what moves), uPom = depth, gone by (units away), most steps
+uniform int uPomOn; uniform sampler2D uHeight; uniform float uPomK; uniform vec3 uPom;
+vec2 gMixA = vec2(0.0), gMixB = vec2(0.0); float gMixT = 0.0;
+// a texture read with the mix (k: how much smaller the map is laid than the colour, uNormTile)
+vec4 fetchMix(sampler2D s, vec2 p, vec2 dx, vec2 dy, float l, float k, bool grad) {
+    vec4 a = grad ? textureGrad(s, p + gMixA * k, dx, dy) : textureLod(s, p + gMixA * k, l);
+    if (gMixT <= 0.0) return a;
+    vec4 b = grad ? textureGrad(s, p + gMixB * k, dx, dy) : textureLod(s, p + gMixB * k, l);
+    return mix(a, b, gMixT);
+}
 uniform sampler2D uTex; uniform sampler2D uMask;
 uniform float uFlip; uniform float uNear; uniform vec2 uCentre;
 // the helmet lamp
@@ -511,6 +773,10 @@ uniform int uFogOn; uniform vec3 uFog; uniform vec3 uFogCol;     // near, 1/(far
 uniform int uRefl; uniform float uDim; uniform sampler2D uSurf;
 // relief: the texture's bump map, bending the surface's direction pixel by pixel
 uniform sampler2D uNorm; uniform float uRelief, uNormLod;     // uNormLod: 0 for a sharp (full-size) map, -1 for a half-size one
+// this texture's share of the relief and micro relief (its material's 'relief': Josh, 2026-10-12, 'remove ... the relief mapping
+// on shiny surfaces, because that makes them all look more grainy and textured where they should be shiny' -- metals,
+// polished stone, glass, water 0)
+uniform float uReliefK;
 // a sharp map holds two layers (fine in xy, broad in zw) mixed here, and can be laid smaller than the colour (uNormTile)
 uniform int uNormBands; uniform float uNormFine, uNormMid, uNormTile;
 // PER-PIXEL MIPMAPS: the copy of the texture chosen from how fast it runs across the screen at THIS pixel, both ways
@@ -538,6 +804,26 @@ uniform int uGiOn; uniform sampler3D uGi; uniform vec4 uGiBox; uniform ivec3 uGi
 // channel (1 = the art's well-lit level), shading the room's level and the bounce -- never the placed lights or the lamp.
 // uRoomTint: the room's level in a colour (the art's own bright colour, 1 = white)
 uniform int uArtOn; uniform vec3 uRoomTint;
+// MATERIALS (2026-10-12, Josh: 'Shine where it belongs. Your helmet lamp would glint off brass and gold, give wet stone a
+// sheen, and leave wood and cloth dull'): highlights of the lamp and the placed lights, per texture (Raster.Tex.Shine ...):
+// uShine how strong (0 = matte), uGloss how tight (a Blinn exponent), uMetal how much the highlight takes the surface's own
+// colour rather than the light's, uShineVary how much the art's brightness sets it texel by texel. uLampPos: the lamp (view
+// space; the pair's middle). COMPANION MAPS in uMat (uMatHas: 1 smoothness, 2 height, 4 glow): smoothness replaces the art's
+// guess (0.5 = the material as it is), glow draws those texels at their own colour whatever the light (x uGlowK).
+uniform int uShineOn; uniform float uShine, uGloss, uMetal, uShineVary; uniform vec3 uLampPos;
+uniform sampler2D uMat; uniform int uMatHas; uniform float uGlowK;
+// WET SURFACES (Josh, 2026-10-12, phase 2: 'in the rooms with dripping like damp caves, and of course the spa room ... the
+// lower walls and floors get a darker wet look with a glossy sheen ... and puddles reflect your lamp'): how wet each pixel is --
+// walls damp up to a ragged line uWetA.y above the floor beneath them (uGround: the lowest floor per x, z), floors damp all
+// over (a cave's not at all: only its puddles) with puddles on LEVEL floor, ceilings a little -- times this texture's share
+// (uWetK: its material's 'wet'). (The trickles down the walls are gone: Josh, 'the dripping water on the walls isn't working'.)
+uniform int uWetOn; uniform float uWetK;
+uniform vec4 uWetA;      // strength, damp height (units), the colour's level at full wet, floors' dampness
+uniform vec4 uWetB;      // the film's shine, its gloss, puddles (share of the floor), puddle size (units)
+uniform vec4 uWetC;      // walls' share (Josh, caves: half), ceilings' dampness, the art's brightness the wet starts at / is full at (0..255)
+uniform sampler2D uGround; uniform vec4 uGroundBox;      // x0, z0, 1 / cell size: the floor's height per cell (unknown = far below)
+uniform int uWetDebug;   // (testing: 1 = the picture is how wet (red), puddles (green), height over the floor (blue, 0..2 x the damp height))
+float groundAt(vec2 xz) { return texture(uGround, (xz - uGroundBox.xy) * uGroundBox.z / vec2(textureSize(uGround, 0))).r; }
 float artAt(vec2 st) {
     ivec2 sz = textureSize(uMask, 0);
     vec2 p = st * vec2(sz) - 0.5, f = fract(p); ivec2 i = ivec2(floor(p));
@@ -661,11 +947,51 @@ float pcss(sampler2D m, ivec2 o, vec2 lo, vec2 hi, vec2 s, float lz, float lim, 
     return sum / 16.0;
 }
 void main() {
-    vec2 st = vec2(vUv.x, uFlip > 0.5 ? 1.0 - vUv.y : vUv.y);
-    vec2 gx = dFdx(st), gy = dFdy(st);                      // (taken before any pixel can be discarded)
+    // a re-laid face ping-pongs inside its part of the texture (vRange); the slopes are taken unfolded and turned with the
+    // mirror, so the copies and the relief's directions stay right across each fold
+    vec2 uvF = vUv, sg = vec2(1.0);
+    if ((vFix & 1) != 0) { float t = mod((uvF.x - vRange.x) / vRange.z, 2.0); sg.x = t > 1.0 ? -1.0 : 1.0; uvF.x = vRange.x + (t > 1.0 ? 2.0 - t : t) * vRange.z; }
+    if ((vFix & 2) != 0) { float t = mod((uvF.y - vRange.y) / vRange.w, 2.0); sg.y = t > 1.0 ? -1.0 : 1.0; uvF.y = vRange.y + (t > 1.0 ? 2.0 - t : t) * vRange.w; }
+    vec2 st = vec2(uvF.x, uFlip > 0.5 ? 1.0 - uvF.y : uvF.y), stU = vec2(vUv.x, uFlip > 0.5 ? 1.0 - vUv.y : vUv.y);
+    vec2 gx = dFdx(stU) * sg, gy = dFdy(stU) * sg;          // (taken before any pixel can be discarded)
     float fwW = max(length(dFdx(vWorld)), length(dFdy(vWorld))) + 1e-6;     // world units per pixel (the water's caustics)
+    vec3 pq1 = dFdx(vView), pq2 = dFdy(vView);
+    vec3 baryW = max(fwidth(vBary), vec3(1e-5));             // (the outlines' width in pixels: taken before any discard)
+    // PARALLAX DEPTH: the view ray stepped into the height map from where it meets the face, the texture read where it meets
+    // the sunken surface (between the last two steps) -- mortar, plank gaps and stone joints sit below the face and shift as
+    // you move. The face's texture directions in the world come from how st runs across the screen (as the relief's).
+    float pomD = uPomOn != 0 && (vFix & 12) == 0 ? uPom.x * uPomK * uRelief * uReliefK * (1.0 - smoothstep(uPom.y * 0.5, uPom.y, vView.z)) : 0.0;      // (and fading out at glancing views: below)
+    if (pomD > 0.001) {
+        vec3 Nf = normalize(vTri.yzw), Vv = normalize(-vView); if (dot(Nf, Vv) < 0.0) Nf = -Nf;
+        vec3 q2p = cross(pq2, Nf), q1p = cross(Nf, pq1); float det = dot(pq1, q2p);
+        if (abs(det) > 1e-20) {
+            vec3 gu = (q2p * gx.x + q1p * gy.x) / det, gv = (q2p * gx.y + q1p * gy.y) / det;      // st per world unit, along the face
+            float vn = dot(Vv, Nf); vec3 vt = Vv - Nf * vn; pomD *= smoothstep(0.12, 0.4, vn);      // (at a glance the offsets run away: a smear)
+            vec2 full = -vec2(dot(vt, gu), dot(vt, gv)) / max(vn, 0.3) * pomD;                    // st moved at the full depth
+            int n = int(mix(uPom.z, uPom.z * 0.35, vn));
+            float dl = 1.0 / float(n), layer = 0.0; vec2 duv = full * dl, p = st;
+            float d = 1.0 - textureGrad(uHeight, p, gx, gy).r, dPrev = d;
+            for (int i = 0; i < 64; i++) {
+                if (i >= n || layer >= d) break;
+                p += duv; layer += dl; dPrev = d; d = 1.0 - textureGrad(uHeight, p, gx, gy).r;
+            }
+            float fa = dPrev - (layer - dl), fb = d - layer;
+            if (layer > 0.0 && fa - fb > 1e-5) p -= duv * (1.0 - clamp(fa / (fa - fb), 0.0, 1.0));
+            st = p;
+        }
+    }
     if (texture(uMask, st).r < 0.5 / 255.0) discard;        // palette index 0: a hole in the texture
     float artK = uArtOn != 0 ? artAt(st) : 1.0;
+    if (uRelayDebug != 0 && (vFix & 28) != 0) { oColor = (vFix & 64) != 0 ? vec4(1.0, 0.0, 1.0, 1.0) : vec4((vFix & 48) == 16 ? 1.0 : 0.0, (vFix & 12) != 0 ? 1.0 : 0.0, (vFix & 32) != 0 ? 1.0 : 0.0, 1.0); return; }
+    // the mix against repeats: which of eight shifts (only along the ways the surface repeats), from slow noise over the tiles
+    float mixF = -1.0;
+    if (uMixOn != 0 && (vFix & 12) != 0) {
+        vec2 ax = vec2((vFix & 4) != 0 ? 1.0 : 0.0, (vFix & 8) != 0 ? 1.0 : 0.0);
+        float n = clamp(noised(vec3(st * uMixScale, 3.7)).x * 0.75 + 0.5, 0.0, 0.999) * 8.0, ia = floor(n);
+        uvec3 ha = pcg3d(uvec3(uint(ia), 17u, 5u)), hb = pcg3d(uvec3(uint(ia) + 1u, 17u, 5u));
+        gMixA = vec2(ha.xy >> 8u) * (1.0 / 16777216.0) * ax; gMixB = vec2(hb.xy >> 8u) * (1.0 / 16777216.0) * ax;
+        mixF = n - ia;
+    }
     if (uRefl != 0) {
         float sd = texelFetch(uSurf, ivec2(gl_FragCoord.xy), 0).r;
         if (gl_FragCoord.z >= sd * 0.998) discard;          // not beyond the water's surface
@@ -673,15 +999,23 @@ void main() {
     float w = vView.z;
     // which copies of the texture: the face's density plus this pixel's depth, blended between two
     float lod = vLod + log2(max(1.0, w));
-    vec3 tex = (uPixelMip != 0 ? textureGrad(uTex, st, gx * uMipK, gy * uMipK) : textureLod(uTex, st, max(lod, 0.0))).rgb * 255.0;
+    vec4 tex4 = fetchMix(uTex, st, gx * uMipK, gy * uMipK, max(lod, 0.0), 1.0, uPixelMip != 0);
+    if (mixF >= 0.0) {
+        // the second shift, blended where the noise crosses over -- sooner where the two copies already look alike
+        vec4 c1 = uPixelMip != 0 ? textureGrad(uTex, st + gMixB, gx * uMipK, gy * uMipK) : textureLod(uTex, st + gMixB, max(lod, 0.0));
+        gMixT = smoothstep(0.3, 0.7, mixF - 0.15 * dot(tex4.rgb - c1.rgb, vec3(1.0)));
+        tex4 = mix(tex4, c1, gMixT);
+    }
+    vec3 tex = tex4.rgb * 255.0;
     // RELIEF. The face's own normal, turned toward the eye; then bent by the bump map in the
     // face's texture directions (worked out from how the texture runs across the screen).
     vec3 N = normalize(vTri.yzw), Vd = normalize(-vView);
     if (dot(N, Vd) < 0.0) N = -N;
     vec3 Np = N; float reliefK = 1.0, cavK = 1.0;
-    if (uRelief > 0.0) {
+    float relK = uRelief * uReliefK;                        // (none on a shiny surface: see uReliefK)
+    if (relK > 0.0) {
         vec2 sn = st * uNormTile; float kn = uNormMipK * uNormTile;
-        vec4 nm = uPixelMip != 0 ? textureGrad(uNorm, sn, gx * kn, gy * kn) : textureLod(uNorm, sn, max(lod + uNormLod + log2(uNormTile), 0.0));
+        vec4 nm = fetchMix(uNorm, sn, gx * kn, gy * kn, max(lod + uNormLod + log2(uNormTile), 0.0), uNormTile, uPixelMip != 0);
         vec3 nt;
         if (uNormBands != 0) {
             // each layer back to a slope (a normal's x,y over its z), mixed, and made a normal again
@@ -696,7 +1030,7 @@ void main() {
         vec3 dp2perp = cross(dp2, N), dp1perp = cross(N, dp1);
         vec3 T = dp2perp * du1.x + dp1perp * du2.x, B = dp2perp * du1.y + dp1perp * du2.y;
         float mx = max(dot(T, T), dot(B, B));
-        if (mx > 1e-30) { float im = inversesqrt(mx); Np = normalize((T * nt.x + B * nt.y) * im * uRelief + N * max(nt.z, 0.2)); }
+        if (mx > 1e-30) { float im = inversesqrt(mx); Np = normalize((T * nt.x + B * nt.y) * im * relK + N * max(nt.z, 0.2)); }
         // MICRO RELIEF over that: layers of noise in the world, coarse to fine, each half the size of the last and
         // turned so no grid lines up with the walls. Each layer's slope is kept the same whatever its size
         // (height = amplitude x size), and it fades out as its bumps near two pixels across -- detail up close, no
@@ -713,9 +1047,9 @@ void main() {
                 gs += transpose(R) * n.yzw * (amp * k); hs += n.x * amp * k;
                 R = M * R; amp *= uDetailRough; size *= 0.5;
             }
-            vec3 gv = mat3(uView) * gs * uDetail;
+            vec3 gv = mat3(uView) * gs * (uDetail * uReliefK);
             Np = normalize(Np - (gv - dot(gv, Np) * Np));
-            cavK = 1.0 - uReliefOp * uDetailAO * clamp(-hs * 1.5, 0.0, 1.0);    // the hollows a shade darker (tinted below)
+            cavK = 1.0 - uReliefOp * uDetailAO * uReliefK * clamp(-hs * 1.5, 0.0, 1.0);    // the hollows a shade darker (tinted below)
             tex *= cavK;
         }
         // the lamp sits at the eye: how much more (or less) squarely this pixel faces it than the face does
@@ -730,6 +1064,74 @@ void main() {
         reliefK = mix(1.0, reliefK, uReliefOp);
         Np = normalize(mix(N, Np, uReliefOp));
     }
+    // HOW WET THIS IS (see uWetOn): 0..1, and how much of it is a puddle (a mirror-flat film)
+    float wet = 0.0, puddle = 0.0;
+    if (uWetOn != 0 && uRefl == 0 && uWetK > 0.0) {
+        vec3 nw = transpose(mat3(uView)) * N;               // the face's normal in the room (its side toward the eye)
+        float up = nw.y;
+        if (up > 0.6) {
+            // a floor: damp all over, puddles where low noise is high (two sizes, so their edges are not round) -- only on
+            // LEVEL floor: water does not lie on a slope (Josh: on CORICORI's slanting tiles 'the puddles defy gravity')
+            if (uWetB.z > 0.0 && up > 0.975) {
+                float pn = noised(vec3(vWorld.xz / max(uWetB.w, 1.0), 3.7)).x * 0.75 + noised(vec3(vWorld.xz / max(uWetB.w * 0.35, 1.0), 9.1)).x * 0.25;
+                float th = 0.32 * (0.5 - uWetB.z);
+                puddle = smoothstep(th, th + 0.035, pn) * smoothstep(0.975, 0.993, up);
+            }
+            wet = max(uWetA.w, puddle);
+        } else if (up < -0.5) {
+            wet = uWetC.y;                                  // a ceiling
+        } else {
+            // a wall (or a slope): damp from the floor beneath it up to a ragged line
+            float gy = groundAt(vWorld.xz + nw.xz * 6.0);
+            float h = (vWorld.y - gy) / max(uWetA.y, 1.0);
+            // (the ragged line only where it can fall: the noise moves it at most 0.45 either way)
+            if (h <= 0.0) wet = 1.0;
+            else if (h < 1.45) wet = 1.0 - smoothstep(0.45, 1.0, h + noised(vWorld * 0.05 + vec3(5.3)).x * 0.5 + noised(vWorld * 0.17).x * 0.15);
+            wet *= uWetC.x;                                 // (the walls' share: a cave's half)
+        }
+        // THE ART'S DARK PARTS STAY DRY (Josh, 2026-10-12, CORICORI: 'some of the wet effect is on black portions of the textures,
+        // which kind of goes against the artwork ... map out the dark portions of the texture and have the wet areas fade into the
+        // darkness'): a coarse copy of the texture (about 64 texels across, whatever its size) maps where its art is painted
+        // dark, and the wet fades out into it (uWetC.z -> .w); a texel painted black on its own takes none either
+        {
+            vec2 tz = vec2(textureSize(uTex, 0));
+            float lcoarse = dot(textureLod(uTex, st, max(0.0, log2(max(tz.x, tz.y) / 64.0))).rgb * 255.0, vec3(0.30, 0.59, 0.11));
+            float lhere = dot(tex, vec3(0.30, 0.59, 0.11));
+            float lit = smoothstep(uWetC.z, max(uWetC.w, uWetC.z + 1.0), lcoarse) * smoothstep(2.0, 12.0, lhere);
+            wet *= lit; puddle *= lit;
+        }
+        float k = uWetA.x * uWetK;
+        wet = clamp(wet * k, 0.0, 1.0); puddle = clamp(puddle * k, 0.0, 1.0);
+        if (uWetDebug != 0) { float hd = (vWorld.y - groundAt(vWorld.xz + nw.xz * 6.0)) / max(uWetA.y, 1.0); oColor = vec4(wet, puddle, clamp(hd * 0.5, 0.0, 1.0), 1.0); return; }
+        // darker and a little richer where wet (it soaks in), darker still under standing water
+        float lw = dot(tex, vec3(0.30, 0.59, 0.11));
+        tex = max(mix(vec3(lw), tex, 1.0 + 0.25 * wet), vec3(0.0)) * (mix(1.0, uWetA.z, wet) * (1.0 - 0.18 * puddle));
+    }
+    vec3 Ns = Np;                                           // (the normal the highlights see: a water film fills the bumps; a puddle is flat)
+    if (wet > 0.0) Ns = normalize(mix(Np, N, clamp(0.3 * wet + puddle, 0.0, 1.0)));
+    // THE SHINE HERE: the material's strength, shaped per texel by the companion smoothness map -- or, without one, by the
+    // art itself: brighter than its surroundings (a coarser copy of the same texture) shines more, painted dark does not
+    float shineK = 0.0, glossK = max(uGloss, 1.0), glowK = 0.0;
+    if (uShineOn != 0 && uRefl == 0 && (uShine > 0.0 || uMatHas != 0 || wet > 0.0)) {
+        vec4 mt = vec4(0.5, 0.5, 0.0, 1.0);
+        if (uMatHas != 0) mt = fetchMix(uMat, st, gx * uMipK, gy * uMipK, max(lod, 0.0), 1.0, uPixelMip != 0);
+        if ((uMatHas & 1) != 0) {
+            shineK = uShine * 2.0 * mt.r; glossK = max(uGloss * exp2(3.0 * (mt.r - 0.5)), 1.0);
+        } else if (uShine > 0.0) {
+            float lc = dot(tex, vec3(0.30, 0.59, 0.11));
+            vec2 tsz = vec2(textureSize(uTex, 0));      // (the level from this pixel's own slopes, taken before any discard)
+            float lq = (uPixelMip != 0 ? max(log2(max(max(length(gx * tsz), length(gy * tsz)), 1e-6)), 0.0) : max(lod, 0.0)) + 4.0;
+            float lm = dot(textureLod(uTex, st, lq).rgb * 255.0, vec3(0.30, 0.59, 0.11));
+            shineK = uShine * clamp(1.0 + uShineVary * (lc - lm) / max(lm, 12.0), 0.0, 2.5) * smoothstep(3.0, 24.0, lc);
+        }
+        if ((uMatHas & 4) != 0) glowK = mt.b;
+        // a film of water over it: more shine and a tighter highlight -- a puddle much tighter
+        if (wet > 0.0) {
+            shineK = mix(shineK, uWetB.x * (1.0 + 5.0 * puddle), wet);
+            glossK = mix(glossK, uWetB.y * (1.0 + 5.0 * puddle), wet);
+        }
+    }
+    float specL = 0.0; vec3 specC = vec3(0.0);      // (the lamp's highlight, and the placed lights' in their colours)
     // the room's level plus the lamp: cone by angle off the beam's centre, falloff by depth
     float g = 1.0, gFlat = 1.0, occF = 0.0, roomPart = 0.0;
     if (uLampOn != 0) {
@@ -760,6 +1162,11 @@ void main() {
                 baseK = 1.0 - uShadow.z * occ;                // and the shadow is darker than the room
             }
         }
+        // its highlight: Blinn, toward the lamp from the bent surface (the pair's middle, just above the eye)
+        if (shineK > 0.0 && lampF > 0.0) {
+            vec3 Ls = normalize(uLampPos - vView), Hs = normalize(Ls + Vd);
+            specL = uLampPower * lampF * pow(max(dot(Ns, Hs), 0.0), glossK) * (glossK + 2.0) * 0.125 * max(dot(Ns, Ls), 0.0);
+        }
         float roomK = uLampRoom * (uGiOn != 0 ? uGiAmb : 1.0) * artK;      // (the reflection too: it shows the same room)
         g = roomK * baseK + vTri.x * reliefK * uLampPower * lampF;
         gFlat = roomK * baseK + vTri.x * uLampPower * lampF;       // the same light with the surface left flat
@@ -784,7 +1191,7 @@ void main() {
             float d2 = max(dot(dl, dl), 1.0);
             // facing the light, with relief: the bent normal on the light's side of the face
             float sideL = dot(dl, N) >= 0.0 ? 1.0 : -1.0;
-            float facingL = uRelief > 0.0 ? max(dot(dl, Np) * sideL, 0.0) : abs(dot(dl, vTri.yzw));
+            float facingL = relK > 0.0 ? max(dot(dl, Np) * sideL, 0.0) : abs(dot(dl, vTri.yzw));
             float att = facingL / (sqrt(d2) * (1.0 + d2 * uLightP[i].w));
             if (uLightCone[i].y > -1.5) att *= soft((dot(-dl, uLightDir[i]) * inversesqrt(d2) - uLightCone[i].y) / max(uLightCone[i].x - uLightCone[i].y, 1e-3));
             if (uLightMapOn[i] != 0) {
@@ -822,6 +1229,11 @@ void main() {
             }
             vec3 lc = uLightC[i] * mix(vec3(1.0), uLightTintM[i], smoothstep(uLightTintD[i].x, uLightTintD[i].y, sqrt(d2))) * att;
             gain += lc; lightG += lc * (uLightCone[i].y > -1.5 ? 1.0 : exp(-d2 * uLitR));      // (all round: only near it, as the flashlight's cone; a spot: in its beam)
+            // its highlight, in its own colour (att already holds the facing, the distance and the shadow)
+            if (shineK > 0.0 && att > 0.0) {
+                vec3 Hl = normalize(dl * inversesqrt(d2) + Vd);
+                specC += lc * (pow(max(dot(Ns, Hl), 0.0), glossK) * (glossK + 2.0) * 0.125);
+            }
         }
         // DEEPER SHADOWS (Josh, 2026-10-07: 'a touch darker'): a placed light's shadow also takes some of the room's
         // own level, as much as that light dominates there -- so it never darkens where the light hardly reached,
@@ -871,12 +1283,60 @@ void main() {
             col *= tq / max(dot(tq, vec3(0.30, 0.59, 0.11)), 1e-3);
         }
     }
+    // THE HIGHLIGHTS, over that: the light's own colour on a non-metal (a little more at a grazing angle, as wet floors and
+    // polished stone show), the surface's own colour on a metal (gold glints gold)
+    if (shineK > 0.0) {
+        vec3 hue = tex / max(max(tex.r, max(tex.g, tex.b)), 1.0);
+        float fres = mix(1.0 + 2.0 * pow(1.0 - max(dot(Ns, Vd), 0.0), 5.0), 1.0, uMetal);
+        vec3 hl = (specL * vec3(1.0, 0.97, 0.92) + specC) * mix(vec3(1.0), hue, uMetal) * (255.0 * shineK * fres);
+        // a wet film's glints are bright but never a white blob: a flat wet door square to the lamp tops out at a sheen
+        // (softly, at ~uWetA's limit); standing water is a mirror and is not held back
+        // (held by its brightness, keeping its colour: a torch beside a wet wall is a warm sheen, not a pale wash)
+        if (wet > 0.0) {
+            float lim = mix(4096.0, 80.0, wet * (1.0 - puddle)), lh = dot(hl, vec3(0.30, 0.59, 0.11));
+            if (lh > 1e-3) hl *= lim * (1.0 - exp(-lh / lim)) / lh;
+        }
+        col += hl;
+        // a PUDDLE mirrors the room a little: the bounced light coming from where its reflection points, by the angle
+        if (puddle > 0.0 && uGiOn != 0) {
+            vec3 Rw = transpose(mat3(uView)) * reflect(-Vd, N);
+            float fr = 0.04 + 0.96 * pow(1.0 - max(dot(N, Vd), 0.0), 5.0);
+            col += uGiK * giAt(vWorld, Rw) * (255.0 * 0.6 * fr * puddle);
+        }
+    }
+    // what GLOWS (a companion glow map): at least its own painted colour, whatever the light
+    if (glowK > 0.0) col = max(col, tex * (uGlowK * glowK));
     col = min(col, vec3(255.0));
     if (uFogOn != 0 && uRefl == 0) {
         float ff = soft((w - uFog.x) * uFog.y) * uFog.z;
         col += (uFogCol - col) * ff;
     }
-    // LIT BY A PLACED LIGHT, in alpha (0..1): the compose's fog lets this much more of the surface through (uVolLit) --
+    // THE VISOR MATERIALIZES THE ROOM (Josh, 2026-10-13): the WIRE front draws the polygons' outlines outward over dark glass
+    // (flaring as it passes); the TEXTURE front follows, the surface coming up in full under a soft band of light; behind it
+    // the outlines linger and fade (uMatX.y seconds), and specks of light twinkle about both fronts and in the trail.
+    if (uMatz.w > 0.5 && uRefl == 0) {
+        float d = length(vView), band = uMatz.y;
+        float behindT = uMatz.x - d, behindW = uMatz.z - d;
+        vec3 eb = smoothstep(vec3(0.0), baryW * 1.5, vBary);
+        float edge = 1.0 - min(min(eb.x, eb.y), eb.z);
+        float drawn = smoothstep(-0.3 * band, 0.3 * band, behindW);
+        float wireHot = exp(-abs(behindW) / (0.45 * band));
+        float reveal = smoothstep(-0.25 * band, 1.4 * band, behindT);
+        float front = exp(-abs(behindT) / (0.6 * band));
+        float trail = behindT > 0.0 ? 1.0 - smoothstep(0.35, 1.0, behindT / (uMatX.z * uMatX.y)) : 0.0;      // (the lines recede along the path, just behind the texture front)
+        float lines = drawn * (mix(0.55, 1.0, max(wireHot, front)) * (1.0 - reveal) + max(front, 0.75 * trail) * reveal);
+        col = col * reveal + uMatC * (0.022 * drawn * (1.0 - reveal));
+        col += uMatC * (edge * lines) + uMatF * (edge * (0.85 * front + 0.5 * wireHot * drawn)) + uMatC * (0.12 * front + 0.035 * trail);
+        // the specks: one pixel in each 3 x 3 cell lights, at random, re-drawn 12 times a second; densest at the fronts
+        vec2 cell = floor(gl_FragCoord.xy / 3.0), inC = gl_FragCoord.xy - cell * 3.0;
+        if (uMatX.w > 0.0 && all(lessThan(abs(inC - 1.5), vec2(0.6)))) {
+            uvec3 hs = pcg3d(uvec3(uvec2(ivec2(cell) + ivec2(4096)), uint(uMatX.x * 12.0)));
+            float hr = float(hs.x >> 8u) * (1.0 / 16777216.0), hb = float(hs.y >> 8u) * (1.0 / 16777216.0);
+            float dens = uMatX.w * (0.028 * front + 0.014 * trail * (1.0 - front) + 0.012 * wireHot * drawn * (1.0 - reveal));
+            if (hr < dens) col += mix(uMatC, uMatF, hb) * (0.6 + 0.6 * hb);
+        }
+        col = min(col, vec3(255.0));
+    }    // LIT BY A PLACED LIGHT, in alpha (0..1): the compose's fog lets this much more of the surface through (uVolLit) --
     // the torches' and the shaft's light cut through the darkness from any distance, as the flashlight's does
     oColor = vec4(col / 255.0, uRefl != 0 ? 0.0 : 1.0 - exp(-2.5 * dot(lightG, vec3(0.30, 0.59, 0.11))));
 }";
@@ -931,11 +1391,18 @@ uniform int uDropN; uniform vec4 uDrop[16]; uniform float uDropK;     // drips l
 uniform float uShine, uF0, uSpec, uDistort, uLightSpec;
 uniform int uLampOn; uniform float uLampPower, uLampRange, uFpx, uSpill, uHalo; uniform vec4 uCones; uniform vec2 uLampC;
 uniform int uLightN; uniform vec4 uLightP[4]; uniform vec3 uLightC[4];
+// THE WATER'S SHEEN (Josh, 2026-10-12: 'can this shiny effect, like a glossy sheen, be applied to water surfaces to reflect
+// the lights?'): a broad soft highlight of the lamp and the lights round the sharp glints, as the wet stone has -- how strong
+// (0 = none; the materials' F6 switches it), how tight; held under a soft limit so it never glares
+uniform float uSheen, uSheenGloss;
+// the materialize sweep (GpuRaster.StartMaterialize): the surface fades in as the texture front passes it (uMatz as the room's)
+uniform vec4 uMatz;
 out vec4 oColor;
 " + NOISE_GLSL + @"
 float soft(float t) { t = clamp(t, 0.0, 1.0); return t * t * (3.0 - 2.0 * t); }
 " + WATER_GLSL + @"
 void main() {
+    float matR = uMatz.w > 0.5 ? smoothstep(-0.25 * uMatz.y, 1.4 * uMatz.y, uMatz.x - length(vView)) : 1.0;
     float fw = max(length(dFdx(vWorld)), length(dFdy(vWorld))) + 1e-6;
     // RIPPLES: three layers of moving noise, each half the size of the last and turned; a layer whose waves would be only
     // a few pixels across fades out
@@ -966,7 +1433,7 @@ void main() {
     float fres = uF0 + (1.0 - uF0) * pow(1.0 - cv, 5.0);
     float glow = glowAt(vWorld.xz);
     if (uPass == 0) {
-        oColor = vec4(uGlowCol * (uDots * glow * (1.0 - 0.6 * fres)), 0.0);
+        oColor = vec4(uGlowCol * (uDots * glow * (1.0 - 0.6 * fres)) * matR, 0.0);
         return;
     }
     // the reflection where the ripple bends it (pixels; less far off). Alpha 1 in the reflection = nothing reflected there
@@ -976,7 +1443,8 @@ void main() {
     vec4 r0 = texture(uReflTex, gl_FragCoord.xy / sz), r1 = texture(uReflTex, (gl_FragCoord.xy + off) / sz);
     vec3 refl = mix(r1.rgb, r0.rgb, clamp(r1.a, 0.0, 1.0));
     // glints off the ripples: the flashlight (at the eye, so straight back) and the placed lights
-    vec3 Nv = normalize(mat3(uView) * N), Vv = normalize(-vView), spec = vec3(0.0);
+    vec3 Nv = normalize(mat3(uView) * N), Vv = normalize(-vView), spec = vec3(0.0), sheen = vec3(0.0);
+    float sg = max(uSheenGloss, 1.0), sk = (sg + 2.0) * 0.125;
     if (uLampOn != 0) {
         vec2 d = gl_FragCoord.xy - uLampC;
         float cs = inversesqrt(1.0 + min(dot(d, d) / (uFpx * uFpx), 2.0));
@@ -985,6 +1453,7 @@ void main() {
         float dd = min(vView.z, 2046.0) / uLampRange;
         float hv = max(dot(Nv, Vv), 0.0);
         spec += vec3(1.0, 0.96, 0.88) * (uLampPower * cone / (1.0 + dd * dd) * (pow(hv, 90.0) * 1.6 + pow(hv, 16.0) * 0.1));
+        if (uSheen > 0.0) sheen += vec3(1.0, 0.96, 0.88) * (uLampPower * cone / (1.0 + dd * dd) * pow(hv, sg) * sk);
     }
     for (int i = 0; i < 4; i++) {
         if (i >= uLightN) break;
@@ -994,36 +1463,44 @@ void main() {
         // a torch's orange from clipping to white; a faint broad sheen round the sharp glint)
         vec3 lc = uLightC[i] * uLightC[i];
         spec += lc * (uLightSpec * (pow(hv, 140.0) * 0.55 + pow(hv, 24.0) * 0.05) / (1.0 + d2 * uLightP[i].w));
+        if (uSheen > 0.0) sheen += lc * (pow(hv, sg) * sk / (1.0 + d2 * uLightP[i].w));
     }
     spec *= uSpec;
+    // the sheen, by the angle as a reflection is (more at a grazing look), softly held under 0.4
+    sheen *= uSheen * (0.35 + 0.65 * fres);
+    spec += 0.4 * (1.0 - exp(-sheen / 0.4));
     // the light from under the water, shimmering with the same web as the walls, less where the surface mirrors more
     float c = caustic(vWorld.xz, uTime, uCaus.y * 0.9, uCaus.z, fw);
     vec3 under = uGlowCol * (uGlow * glow * (0.6 + 0.9 * c) * (1.0 - 0.7 * fres));
     float sh = clamp(fres * uShine, 0.0, 0.85);
-    oColor = vec4(refl * sh + spec + under, 1.0 - sh);
+    oColor = vec4((refl * sh + spec + under) * matR, 1.0 - sh * matR);
 }";
         // Depth only: the lamp's and the lights' views, and marking the water. Same position
         // arithmetic as the picture (invariant), so a surface lands at exactly its own depth.
         const string VS_DEPTH = @"#version 400 core
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec2 aUv;
+layout(location = 4) in vec4 aRange; layout(location = 5) in float aFix;     // (texture repair: where a re-laid face's holes are)
 uniform mat4 uView; uniform vec2 uF; uniform float uNear; uniform float uOffY;
-out vec2 vUv; out vec3 vW;
+out vec2 vUv; out vec3 vW; flat out vec4 vRange; flat out int vFix;
 invariant gl_Position;
 void main() {
     vec4 p = uView * vec4(aPos, 1.0);
-    vUv = aUv; vW = aPos;
+    vUv = aUv; vW = aPos; vRange = aRange; vFix = int(aFix + 0.5);
     gl_Position = vec4(p.x * uF.x, -p.y * uF.y + uOffY * p.z, uNear, p.z);
 }";
         const string FS_DEPTH = @"#version 400 core
-in vec2 vUv; in vec3 vW;
+in vec2 vUv; in vec3 vW; flat in vec4 vRange; flat in int vFix;
 uniform sampler2D uMask; uniform float uFlip; uniform int uNoMask;
 // a placed light's own view: a prop (its torch's sconce) this near the light casts nothing from it -- light pos, reach^2 (0 = off)
 uniform vec4 uSkip;
 void main() {
     if (uSkip.w > 0.0) { vec3 d = vW - uSkip.xyz; if (dot(d, d) < uSkip.w) discard; }
     if (uNoMask == 0) {
-        vec2 st = vec2(vUv.x, uFlip > 0.5 ? 1.0 - vUv.y : vUv.y);
+        vec2 uvF = vUv;
+        if ((vFix & 1) != 0) { float t = mod((uvF.x - vRange.x) / vRange.z, 2.0); uvF.x = vRange.x + (t > 1.0 ? 2.0 - t : t) * vRange.z; }
+        if ((vFix & 2) != 0) { float t = mod((uvF.y - vRange.y) / vRange.w, 2.0); uvF.y = vRange.y + (t > 1.0 ? 2.0 - t : t) * vRange.w; }
+        vec2 st = vec2(uvF.x, uFlip > 0.5 ? 1.0 - uvF.y : uvF.y);
         if (texture(uMask, st).r < 0.5 / 255.0) discard;    // a hole stops no light
     }
 }";
@@ -1525,6 +2002,8 @@ void main() {
         int _vN; readonly float[] _vP = new float[16], _vC = new float[12], _vF = new float[12], _vAx = new float[54], _vB = new float[36], _vK = new float[16], _vR = new float[4], _vM = new float[12], _vT = new float[8]; readonly uint[] _vTex = new uint[4];
         int mLampMaps, mLampMap0, mLampMap1, mLampOff, mLampMapF, mLampMapSize, mShadow, mSFade;
         int mNorm, mRelief, mNormLod, mNormBands, mNormFine, mNormMid, mNormTile, mPixelMip, mMipK, mNormMipK, mReliefGain, mReliefTint, mReliefOp, mDetail, mDetailScale, mDetailAO, mDetailRough, mDetailOct;
+        int mShineOn, mShine, mGloss, mMetal, mShineVary, mLampPos, mMat, mMatHas, mGlowK;
+        int mWetOn, mWetK, mWetA, mWetB, mWetC, mGround, mGroundBox, mTime, mReliefK, mMixOn, mMixScale, mPomK, mPomOn, mHeight, mMatz, mMatC, mMatF, mMatX;
         // the lamp's shadow maps as this frame's picture used them (the compose lights the air with them)
         int _cMaps; readonly float[] _cOff = new float[4], _cF = new float[3]; readonly int[] _cSize = new int[2]; readonly uint[] _cTex = new uint[2];
         int mCubeAx, mLightCount, mLightP, mLightC, mLightMapOn, mLightMap0, mLightAx, mLightMapF, mFogOn, mFog, mFogCol, mRefl, mDim, mSurf;
@@ -1544,11 +2023,16 @@ void main() {
             mLightMapOn = glGetUniformLocation(p, "uLightMapOn[0]"); mLightMap0 = glGetUniformLocation(p, "uLightMap[0]"); mLightAx = glGetUniformLocation(p, "uLightAx[0]"); mLightMapF = glGetUniformLocation(p, "uLightMapF[0]"); mCubeAx = glGetUniformLocation(p, "uCubeAx[0]");
             mFogOn = glGetUniformLocation(p, "uFogOn"); mFog = glGetUniformLocation(p, "uFog"); mFogCol = glGetUniformLocation(p, "uFogCol");
             mRefl = glGetUniformLocation(p, "uRefl"); mDim = glGetUniformLocation(p, "uDim"); mSurf = glGetUniformLocation(p, "uSurf");
-            mNorm = glGetUniformLocation(p, "uNorm"); mRelief = glGetUniformLocation(p, "uRelief"); mNormLod = glGetUniformLocation(p, "uNormLod");
+            mNorm = glGetUniformLocation(p, "uNorm"); mRelief = glGetUniformLocation(p, "uRelief"); mReliefK = glGetUniformLocation(p, "uReliefK"); mNormLod = glGetUniformLocation(p, "uNormLod");
             mNormBands = glGetUniformLocation(p, "uNormBands"); mNormFine = glGetUniformLocation(p, "uNormFine"); mNormMid = glGetUniformLocation(p, "uNormMid"); mNormTile = glGetUniformLocation(p, "uNormTile");
             mPixelMip = glGetUniformLocation(p, "uPixelMip"); mMipK = glGetUniformLocation(p, "uMipK"); mNormMipK = glGetUniformLocation(p, "uNormMipK"); mReliefGain = glGetUniformLocation(p, "uReliefGain"); mReliefTint = glGetUniformLocation(p, "uReliefTint"); mReliefOp = glGetUniformLocation(p, "uReliefOp");
             mDetail = glGetUniformLocation(p, "uDetail"); mDetailScale = glGetUniformLocation(p, "uDetailScale"); mDetailAO = glGetUniformLocation(p, "uDetailAO");
             mDetailRough = glGetUniformLocation(p, "uDetailRough"); mDetailOct = glGetUniformLocation(p, "uDetailOct");
+            mShineOn = glGetUniformLocation(p, "uShineOn"); mShine = glGetUniformLocation(p, "uShine"); mGloss = glGetUniformLocation(p, "uGloss"); mMetal = glGetUniformLocation(p, "uMetal");
+            mShineVary = glGetUniformLocation(p, "uShineVary"); mLampPos = glGetUniformLocation(p, "uLampPos"); mMat = glGetUniformLocation(p, "uMat"); mMatHas = glGetUniformLocation(p, "uMatHas"); mGlowK = glGetUniformLocation(p, "uGlowK");
+            mWetOn = glGetUniformLocation(p, "uWetOn"); mWetK = glGetUniformLocation(p, "uWetK"); mWetA = glGetUniformLocation(p, "uWetA"); mWetB = glGetUniformLocation(p, "uWetB"); mWetC = glGetUniformLocation(p, "uWetC");
+            mGround = glGetUniformLocation(p, "uGround"); mGroundBox = glGetUniformLocation(p, "uGroundBox"); mTime = glGetUniformLocation(p, "uTime");
+            mMixOn = glGetUniformLocation(p, "uMixOn"); mMixScale = glGetUniformLocation(p, "uMixScale"); mPomK = glGetUniformLocation(p, "uPomK"); mPomOn = glGetUniformLocation(p, "uPomOn"); mHeight = glGetUniformLocation(p, "uHeight"); mMatz = glGetUniformLocation(p, "uMatz"); mMatC = glGetUniformLocation(p, "uMatC"); mMatF = glGetUniformLocation(p, "uMatF"); mMatX = glGetUniformLocation(p, "uMatX");
             p = _pDepth;
             dView = glGetUniformLocation(p, "uView"); dF = glGetUniformLocation(p, "uF"); dNear = glGetUniformLocation(p, "uNear");
             dMask = glGetUniformLocation(p, "uMask"); dFlip = glGetUniformLocation(p, "uFlip"); dNoMask = glGetUniformLocation(p, "uNoMask");
@@ -1558,8 +2042,8 @@ void main() {
             p = _pComp; cPic = glGetUniformLocation(p, "uPic"); cScreen = glGetUniformLocation(p, "uScreen"); cMap = glGetUniformLocation(p, "uMap");
             cKey = glGetUniformLocation(p, "uKey"); cBlack = glGetUniformLocation(p, "uBlack"); cBand = glGetUniformLocation(p, "uBand"); cVisor = glGetUniformLocation(p, "uVisor"); cK = glGetUniformLocation(p, "uK"); cSize = glGetUniformLocation(p, "uSize");
         }
-        // texture units: 0 colour, 1 holes, 2-3 lamp maps, 4-11 light maps, 12 the depth copy
-        const int UNIT_LAMP = 2, UNIT_LIGHT = 4, UNIT_SURF = 12, UNIT_NORM = 13, UNIT_REFL = 14;
+        // texture units: 0 colour, 1 holes, 2-3 lamp maps, 4-11 light maps, 12 the depth copy (15 the bounce, 16 the companion maps)
+        const int UNIT_LAMP = 2, UNIT_LIGHT = 4, UNIT_SURF = 12, UNIT_NORM = 13, UNIT_REFL = 14, UNIT_MAT = 16, UNIT_GROUND = 17, UNIT_HEIGHT = 18;
 
         // ---- lighting: a copy of the processor renderer's settings, taken every frame ---------
         bool _lampOn; float _lampRoom, _lampPower, _lampRange = 550f, _spill, _halo, _cIn, _cOut, _cHIn, _cHOut, _lampCx, _lampCy;
@@ -1578,7 +2062,7 @@ void main() {
             _lampCx = r.LampCx; _lampCy = r.LampCy;
             _sBias = r.ShadowBias; _sSoft = r.ShadowSoft; _sDark = r.ShadowDark; _sNear = r.ShadowNear; _sFar = r.ShadowFar; _lsBias = r.LightShadowBias;
             _fogOn = r.Fog32 && r.Fog32Far > r.Fog32Near; _fogNear = r.Fog32Near; _fogFar = r.Fog32Far; _fogMax = r.Fog32Max; _fogColor = r.FogColor32;
-            _nLights = Math.Min(r.LightCount, Raster.MaxLights);
+            _nLights = Math.Min(r.LightCount, Raster.MaxLights); _nRoomLights = _nLights;
             Array.Copy(r.Lights, _lightsW, Raster.MaxLights * 8);
             MipBias = r.MipBias;
         }
@@ -1735,22 +2219,61 @@ void main() {
         // ---- textures --------------------------------------------------------------------------
         /// <summary>Make sure every texture of a room is on the card (each is uploaded once and
         /// shared between rooms, like the Tex objects themselves). Returns how many were new.</summary>
-        public int Upload(Raster.Tex[] texes)
+        public int Upload(Raster.Tex[] texes) { return UploadSome(texes, int.MaxValue); }
+        /// <summary>At most `max` of a room's textures that are not on the card yet (or lack the sharp relief map this room
+        /// wants) go up now; the rest stay for later. Over budget, the least recently used textures of OTHER rooms are
+        /// dropped first. Every texture named is marked as used now. Returns how many went up. (The watcher uploads a new
+        /// room a few at a time under its loading cover, so the first frame of the room never stalls; Draw does the rest.)</summary>
+        public int UploadSome(Raster.Tex[] texes, int max)
         {
-            var sw = Stopwatch.StartNew(); int n = 0;
+            var sw = Stopwatch.StartNew(); int n = 0; long stamp = ++_useStamp;
+            if (TextureBytes > MaxTextureBytes) Evict(texes, MaxTextureBytes * 85 / 100);
             foreach (var t in texes)
             {
                 if (t == null) continue;
                 GTex have;
                 if (_tex.TryGetValue(t, out have))
                 {   // already here (shared with a room met earlier): give it a sharp map if this room wants them
-                    if (ReliefSharpBuild && have.NormHi == 0) { long b0 = have.Bytes; have.NormHi = MakeSharpRelief(have.Rgb, t, ref have.Bytes); TextureBytes += have.Bytes - b0; }
+                    have.Used = stamp;
+                    if (ReliefSharpBuild && have.NormHi == 0 && n < max) { long b0 = have.Bytes; have.NormHi = SharpFor(have, t); have.SharpB = have.Bytes - b0; TextureBytes += have.Bytes - b0; n++; }
                     continue;
                 }
-                _tex[t] = Make(t); n++;
+                if (n >= max) continue;
+                var g = Make(t); g.Used = stamp; _tex[t] = g; n++;
             }
             TexturesUploaded += n; LastUploadMs = sw.Elapsed.TotalMilliseconds;
             return n;
+        }
+        /// <summary>How many of these textures still have to go up (or still want their sharp relief map).</summary>
+        public int MissingCount(Raster.Tex[] texes)
+        {
+            int n = 0; var seen = new HashSet<Raster.Tex>();
+            foreach (var t in texes)
+            {
+                if (t == null || !seen.Add(t)) continue;
+                GTex have; if (!_tex.TryGetValue(t, out have) || (ReliefSharpBuild && have.NormHi == 0)) n++;
+            }
+            return n;
+        }
+        /// <summary>THE CARD AS A CACHE (Josh, 2026-10-12: "cache these textures per game session so they don't have to load
+        /// everytime a player enters a room"): over budget, drop the least recently used textures that this room does not use,
+        /// until at most `target` bytes are held -- so the rooms visited last stay on the card. (It used to drop EVERY texture,
+        /// and a 4K room is 3.5-4.6 GB with its relief maps: by the third room each entry uploaded all of its art again.)</summary>
+        void Evict(Raster.Tex[] keep, long target)
+        {
+            var k = new HashSet<Raster.Tex>(); foreach (var t in keep) if (t != null) k.Add(t);
+            var old = new List<KeyValuePair<Raster.Tex, GTex>>();
+            foreach (var kv in _tex) if (!k.Contains(kv.Key)) old.Add(kv);
+            old.Sort((a, b) => a.Value.Used.CompareTo(b.Value.Used));
+            foreach (var kv in old)
+            {
+                if (TextureBytes <= target) break;
+                var g = kv.Value;
+                glDeleteTextures(6, new[] { g.Rgb, g.Mask, g.Norm, g.NormHi, g.Mat, g.Height });     // (0 is ignored)
+                TextureBytes -= g.Bytes; if (g.NormHi != 0) { SharpBytes -= g.SharpB; SharpMaps--; }
+                if (g.Height != 0) { HeightBytes -= g.HeightB; HeightMaps--; }
+                _tex.Remove(kv.Key); Evicted++;
+            }
         }
         GTex Make(Raster.Tex t)
         {
@@ -1781,7 +2304,7 @@ void main() {
             // (no texture LOD bias: the shader works out the level itself, MipBias included, as Raster does)
             if (Anisotropy > 1f) glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, Anisotropy);
             // the sharp relief map where it is wanted (everywhere since 2026-10-07), else the first, half-size kind
-            if (ReliefSharpBuild) g.NormHi = MakeSharpRelief(g.Rgb, t, ref g.Bytes);
+            if (ReliefSharpBuild) { long b0 = g.Bytes; g.NormHi = SharpFor(g, t); g.SharpB = g.Bytes - b0; }
             else g.Norm = MakeRelief(g.Rgb, t, ref g.Bytes);
             // the holes: palette index 0, at the palette texture's own size, nearest texel -- as Raster decides them
             // (and the light from the artwork in its second channel: BuildArtLight)
@@ -1795,6 +2318,10 @@ void main() {
             g.Bytes += (long)t.W * t.H * 2;
             TextureBytes += g.Bytes;
             Check("uploading a texture");
+            // its companion maps (smoothness, height, glow), when it has them (counted by MakeMat itself)
+            if (MatUnitOk && t.MatPx != null) MakeMat(t, g);
+            // its height map, for the parallax depth, if its material takes it (counted by MakeHeight itself)
+            if (SurfacePom(t)) MakeHeight(t, g);
             return g;
         }
         // RELIEF MAPS, made on the card when a texture arrives: from the texture's own brightness,
@@ -1843,7 +2370,154 @@ void main() {
     oColor = vec4(n * 0.5 + 0.5, 1.0);
 }";
         // THE SHARP MAPS (see ReliefSharp): full size, two channels, their own mipmaps
-        uint MakeSharpRelief(uint rgb, Raster.Tex t, ref long bytes)
+        // A texture's sharp relief map, from a companion HEIGHT map when it has one (Josh's own depth: what is raised and
+        // what is sunk, not guessed from the paint's brightness), else from its colour as always
+        uint SharpFor(GTex g, Raster.Tex t)
+        {
+            if (t.MatPx == null || (t.MatHas & 2) == 0 || t.MatW < 4 || t.MatH < 4) return MakeSharpRelief(g.Rgb, t, ref g.Bytes);
+            var px = new int[t.MatPx.Length];
+            for (int i = 0; i < px.Length; i++) { int h = (t.MatPx[i] >> 8) & 255; px[i] = unchecked((int)0xFF000000) | (h << 16) | (h << 8) | h; }
+            var ids = new uint[1]; glGenTextures(1, ids); uint src = ids[0];
+            glBindTexture(GL_TEXTURE_2D, src);
+            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, t.MatW, t.MatH, 0, GL_BGRA, GL_UNSIGNED_BYTE, px);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_REPEAT); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_LINEAR_MIPMAP_LINEAR);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            try { return MakeSharpRelief(src, t, ref g.Bytes, ReliefHeightK > 0f ? ReliefHeightK : ReliefSharpK); }
+            finally { glDeleteTextures(1, new[] { src }); }
+        }
+        /// <summary>Which of these textures take the parallax depth now, and which the art's plank check keeps flat.</summary>
+        public string ParallaxReport(Raster.Tex[] texes)
+        {
+            var on = new List<string>(); var planks = new List<string>(); var props = new List<string>(); var seen = new HashSet<Raster.Tex>();
+            foreach (var t in texes)
+            {
+                if (t == null || !seen.Add(t) || t.Parallax <= 0f || t.Moves) continue;
+                if (!t.ParallaxSet && !_pomShell.Contains(t)) { props.Add(t.Leaf); continue; }
+                GTex g; if (!_tex.TryGetValue(t, out g) || g.Height == 0) continue;
+                if (t.ParallaxSet || g.Grain <= ParallaxGrainMax) on.Add(t.Leaf); else planks.Add(string.Format("{0} ({1:N2})", t.Leaf, g.Grain));
+            }
+            return string.Format("{0} textures: {1}{2}{3}", on.Count, string.Join(", ", on), planks.Count > 0 ? "; kept flat as planks (grain): " + string.Join(", ", planks) : "", props.Count > 0 ? "; kept flat as not wall or floor: " + string.Join(", ", props) : "");
+        }        // HEIGHT MAPS (the parallax depth): one channel, 1 = the face, 0 = ParallaxDepth below it, with its own mipmaps
+        void MakeHeight(Raster.Tex t, GTex g)
+        {
+            if (g.Height != 0) { glDeleteTextures(1, new[] { g.Height }); g.Height = 0; g.Bytes -= g.HeightB; TextureBytes -= g.HeightB; HeightBytes -= g.HeightB; HeightMaps--; g.HeightB = 0; }
+            g.HeightSrc = t.MatPx; g.HeightDone = true; g.Grain = 0f; g.HeightShade = t.ParallaxShade;
+            if (!DepthUnitOk || t.Moves) return;
+            var hsw = Stopwatch.StartNew(); int w, h; float grain; byte[] hb = HeightOf(t, out w, out h, out grain, t.ParallaxShade); HeightMs += hsw.Elapsed.TotalMilliseconds; g.Grain = grain; if (hb == null) return;
+            var ids = new uint[1]; glGenTextures(1, ids); g.Height = ids[0];
+            glBindTexture(GL_TEXTURE_2D, g.Height);
+            glTexImage2DB(GL_TEXTURE_2D, 0, (int)GL_R8, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, hb);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_REPEAT); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_LINEAR_MIPMAP_LINEAR);
+            if (Anisotropy > 1f) glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, Anisotropy);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            g.HeightB = (long)w * h * 4 / 3; g.Bytes += g.HeightB; TextureBytes += g.HeightB; HeightBytes += g.HeightB; HeightMaps++;
+            Check("uploading a height map");
+        }
+        /// <summary>A texture's height (0..255, 255 = the face): its companion height map where it has one (Josh's own depth, at
+        /// most 1024 across), else its art's GROOVES (at most 512 across): narrow dark lines -- mortar, plank gaps, cracks, the
+        /// joints between stones -- found as the art's brightness closed (dilated, then eroded, by a square ~1/128 of it across)
+        /// minus the brightness, spread to full depth at the 98th percentile and softened a texel. Faces stay at the top: painted
+        /// light and shade, and the carving painted into the art, are not taken for height (first tried 2026-10-12: brightness
+        /// as height made cobbles shaggy and carved pillars shred). Null: no art to read.</summary>
+        static byte[] HeightOf(Raster.Tex t, out int w, out int h, out float grain, float shade)
+        {
+            w = h = 0; grain = 0f;
+            if (t.MatPx != null && (t.MatHas & 2) != 0 && t.MatW >= 4 && t.MatH >= 4 && t.MatPx.Length >= t.MatW * t.MatH)
+            {
+                int f = 1; while (t.MatW / f > 1024 || t.MatH / f > 1024) f *= 2;
+                w = t.MatW / f; h = t.MatH / f; var o = new byte[w * h];
+                for (int y = 0; y < h; y++)
+                    for (int x = 0; x < w; x++)
+                    {
+                        int s = 0; for (int j = 0; j < f; j++) for (int i = 0; i < f; i++) s += (t.MatPx[(y * f + j) * t.MatW + x * f + i] >> 8) & 255;
+                        o[y * w + x] = (byte)(s / (f * f));
+                    }
+                return o;
+            }
+            if (t.Rgb == null || t.Rgb.Length == 0) return null;
+            int b = 0; while (b + 1 < t.Rgb.Length && (t.Rgb[b].W > 512 || t.Rgb[b].H > 512)) b++;
+            var B = t.Rgb[b]; w = B.W; h = B.H; if (w < 8 || h < 8 || B.Px == null) return null;
+            var L = new float[w * h];
+            for (int i = 0; i < L.Length; i++) { int q = B.Px[i]; L[i] = 0.30f * ((q >> 16) & 255) + 0.59f * ((q >> 8) & 255) + 0.11f * (q & 255); }
+            // the GRAIN: how much the art's brightness runs one way (its gradients' coherence, 0 none .. 1 all one way) -- planks
+            // 0.52-0.65, cobbles and rock 0.02-0.22, carved stone walls up to 0.53 (measured 2026-10-12)
+            { double xx = 0, yy = 0, xy = 0;
+              for (int y = 0; y < h; y++) for (int x = 0; x < w; x++)
+              { double ddx = L[y * w + (x + 1) % w] - L[y * w + (x + w - 1) % w], ddy = L[((y + 1) % h) * w + x] - L[((y + h - 1) % h) * w + x]; xx += ddx * ddx; yy += ddy * ddy; xy += ddx * ddy; }
+              grain = (float)(Math.Sqrt((xx - yy) * (xx - yy) + 4 * xy * xy) / Math.Max(1e-9, xx + yy)); }
+            int r = Math.Max(2, Math.Max(w, h) / 128);
+            var cl = MinMax(MinMax(MinMax(MinMax(L, w, h, r, true, 1), w, h, r, false, 1), w, h, r, true, 0), w, h, r, false, 0);
+            var g = new float[w * h]; for (int i = 0; i < g.Length; i++) g[i] = Math.Max(0f, cl[i] - L[i]);
+            // a texel's softening (3x3), so the grooves' walls are not stairs
+            var sg = MinMax(g, w, h, 1, true, 2); sg = MinMax(sg, w, h, 1, false, 2);
+            var smp = new List<float>(sg.Length / 5 + 1); for (int i = 0; i < sg.Length; i += 5) smp.Add(sg[i]);
+            smp.Sort(); float top = Math.Max(4f, smp[(int)(smp.Count * 0.98)]);
+            var ob = new byte[w * h];
+            if (shade <= 0f)
+            {
+                for (int i = 0; i < sg.Length; i++) ob[i] = (byte)(255 - Math.Max(0, Math.Min(255, (int)(sg[i] / top * 255f + 0.5f))));
+                return ob;
+            }
+            // SHADING: the art's brightness, softened a little (r 2) minus a copy 16x broader (the painted light pool, a torch's
+            // glow, taken away), spread 2..98% -- bright areas bulge, dark ones sink; then the grooves carved into it
+            int rs = Math.Max(1, Math.Max(w, h) / 256), rb = Math.Max(4, Math.Max(w, h) / 16);
+            var fine = MinMax(MinMax(L, w, h, rs, true, 2), w, h, rs, false, 2);
+            var broad = MinMax(MinMax(L, w, h, rb, true, 2), w, h, rb, false, 2);
+            var sh = new float[w * h]; for (int i = 0; i < sh.Length; i++) sh[i] = fine[i] - broad[i];
+            var s2 = new List<float>(sh.Length / 5 + 1); for (int i = 0; i < sh.Length; i += 5) s2.Add(sh[i]);
+            s2.Sort(); float lo = s2[(int)(s2.Count * 0.02)], hi = Math.Max(lo + 1f, s2[(int)(s2.Count * 0.98)]);
+            float k = Math.Min(1f, shade);
+            for (int i = 0; i < sh.Length; i++)
+            {
+                float s = Math.Max(0f, Math.Min(1f, (sh[i] - lo) / (hi - lo))), gv = Math.Max(0f, Math.Min(1f, sg[i] / top));
+                float v = (1f - k) * (1f - gv) + k * s * (1f - 0.7f * gv);
+                ob[i] = (byte)Math.Max(0, Math.Min(255, (int)(v * 255f + 0.5f)));
+            }
+            return ob;
+        }
+        /// <summary>Along x or y, radius r, wrapping (the textures repeat): op 1 = max (dilate), 0 = min (erode), 2 = mean (a box
+        /// blur). Rows (or columns) in parallel; the wrap is a lookup, not a modulo per tap (~30 ms a texture before, 2026-10-12).</summary>
+        static float[] MinMax(float[] a, int w, int h, int r, bool alongX, int op)
+        {
+            var o = new float[a.Length]; int len = alongX ? w : h, lines = alongX ? h : w;
+            var wrap = new int[len + 2 * r]; for (int i = 0; i < wrap.Length; i++) wrap[i] = ((i - r) % len + len) % len;
+            System.Threading.Tasks.Parallel.For(0, lines, line =>
+            {
+                var buf = new float[len];
+                for (int i = 0; i < len; i++) buf[i] = alongX ? a[line * w + i] : a[i * w + line];
+                for (int i = 0; i < len; i++)
+                {
+                    float m = op == 1 ? float.MinValue : (op == 0 ? float.MaxValue : 0f);
+                    for (int k = 0; k <= 2 * r; k++)
+                    {
+                        float v = buf[wrap[i + k]];
+                        if (op == 1) { if (v > m) m = v; } else if (op == 0) { if (v < m) m = v; } else m += v;
+                    }
+                    if (op == 2) m /= 2 * r + 1;
+                    if (alongX) o[line * w + i] = m; else o[i * w + line] = m;
+                }
+            });
+            return o;
+        }        // A texture's companion maps on the card: one RGBA picture (R smoothness, G height, B glow) with its own mipmaps
+        void MakeMat(Raster.Tex t, GTex g)
+        {
+            if (g.Mat != 0) { glDeleteTextures(1, new[] { g.Mat }); g.Mat = 0; g.Bytes -= g.MatB; TextureBytes -= g.MatB; g.MatB = 0; }
+            g.MatSrc = t.MatPx; g.MatHas = 0;
+            if (t.MatPx == null || t.MatW < 1 || t.MatH < 1 || t.MatPx.Length < t.MatW * t.MatH) return;
+            var ids = new uint[1]; glGenTextures(1, ids); g.Mat = ids[0];
+            glBindTexture(GL_TEXTURE_2D, g.Mat);
+            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, t.MatW, t.MatH, 0, GL_BGRA, GL_UNSIGNED_BYTE, t.MatPx);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_REPEAT); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_LINEAR_MIPMAP_LINEAR);
+            if (Anisotropy > 1f) glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, Anisotropy);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            g.MatHas = t.MatHas; g.MatB = (long)t.MatW * t.MatH * 4 * 4 / 3; g.Bytes += g.MatB; TextureBytes += g.MatB;
+            Check("uploading a texture's companion maps");
+        }
+        uint MakeSharpRelief(uint rgb, Raster.Tex t, ref long bytes) { return MakeSharpRelief(rgb, t, ref bytes, ReliefSharpK); }
+        uint MakeSharpRelief(uint rgb, Raster.Tex t, ref long bytes, float k)
         {
             if (_pNorm2 == 0) _pNorm2 = Link(VS_CLEAR, FS_NORM2, "sharp relief maps");
             var ids = new uint[1]; glGenTextures(1, ids); uint nt = ids[0];
@@ -1864,7 +2538,7 @@ void main() {
             glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, rgb);
             glUniform1i(glGetUniformLocation(_pNorm2, "uAlb"), 0);
             glUniform2f(glGetUniformLocation(_pNorm2, "uTexel"), 1f / nw, 1f / nh);
-            glUniform1f(glGetUniformLocation(_pNorm2, "uK"), has ? ReliefSharpK : 0f);
+            glUniform1f(glGetUniformLocation(_pNorm2, "uK"), has ? k : 0f);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             glBindTexture(GL_TEXTURE_2D, nt); glGenerateMipmap(GL_TEXTURE_2D);
             glBindFramebuffer(GL_FRAMEBUFFER, _fbo); glBindVertexArray(0);
@@ -1912,12 +2586,445 @@ void main() {
         /// <summary>Drop every texture from the card (they are uploaded again as rooms need them).</summary>
         public void ForgetTextures()
         {
-            foreach (var g in _tex.Values) glDeleteTextures(4, new[] { g.Rgb, g.Mask, g.Norm, g.NormHi });     // (0 is ignored)
-            _tex.Clear(); TextureBytes = 0; SharpBytes = 0; SharpMaps = 0;
+            foreach (var g in _tex.Values) glDeleteTextures(6, new[] { g.Rgb, g.Mask, g.Norm, g.NormHi, g.Mat, g.Height });     // (0 is ignored)
+            _tex.Clear(); TextureBytes = 0; SharpBytes = 0; SharpMaps = 0; HeightBytes = 0; HeightMaps = 0;
+        }
+
+        // ---- TEXTURE REPAIR (Josh, 2026-10-12, phase 3: "Fix badly stretched textures automatically. Find faces where the
+        // original texture coordinates stretch or smear the art ... and give those faces the texture laid evenly from the world
+        // instead" and "Hide the repeats. Big surfaces that repeat one texture many times (floors, pipes, rock walls) get it
+        // mixed ... across the surface") ----------------------------------------------------------------------------------
+        // Worked out once per room (SetRelay) from its geometry and its ORIGINAL art; Build swaps the coordinates in face by
+        // face. A face is SMEARED when its texture coordinates lie in a line (the 1996 models mapped slabs, steps, doors and
+        // frames from the front, so their sides streak one row of texels across), STRETCHED when one way runs over
+        // RelayStretch times as many units per texel as the other. Repaired:
+        //  1. FOLDED: beside an intact face of the same texture, a face takes that face's art mirrored over the edge they share
+        //     -- the edge lines up exactly and the art stays in the part of the texture the modeller chose (ping-ponged inside
+        //     it if the face is deeper than that part). Flat neighbours of a folded face carry on the same fold.
+        //  2. EVENED: a run of stretched faces touching no intact face of the same texture (where a seam would show) has its
+        //     coordinates scaled the stretched way about the run's middle to an even density, ping-ponged inside the part of
+        //     the texture the run used unless it used the whole width.
+        // Left alone: faces whose original footprint is one flat colour (a black plane sampling a dark corner is meant to be
+        // black), garbage coordinates (-1.7e38 in the 1996 files), what moves, and a room's "repair": {"skip": [names]}.
+        // MIXED: a surface whose coordinates run over RelayMixFrom tiles one way gets the texture twice, shifted by amounts that
+        // change slowly across it, blended -- the repeating grid breaks up. Only along the ways it repeats (a pipe's length,
+        // not round it); never on art with holes (chains, ropes) or folded faces. RelayOn: all of it (the watcher's F11).
+        public bool RelayOn = true, MixOn = true, RelayDebug;
+        public float RelayStretch = 4f, RelayMinArea = 20f, RelayFlatStd = 6f, RelayMixFrom = 1.5f, RelayMixScale = 0.6f, RelayBoxAniso = 1.8f, RelayBoxClosed = 0.75f;
+        public int RelayFolded, RelayEvened, RelayFlat, RelayLeft, RelayBad, RelayMixed, RelayBoxed;
+        public string RelayNote = "";
+        int[] _relIdx; int _relN; long _relSig; float[] _relUv, _relRange; byte[] _relFlags; bool _relLive;
+        public void ClearRelay() { _relIdx = null; _relN = 0; _relUv = null; _relRange = null; _relFlags = null; RelayNote = ""; RelayFolded = RelayEvened = RelayFlat = RelayLeft = RelayBad = RelayMixed = RelayBoxed = 0; }
+        struct EKey : IEquatable<EKey>
+        {
+            public long A, B;
+            public EKey(long a, long b) { if (a < b) { A = a; B = b; } else { A = b; B = a; } }
+            public bool Equals(EKey o) { return A == o.A && B == o.B; }
+            public override bool Equals(object o) { return o is EKey && Equals((EKey)o); }
+            public override int GetHashCode() { return (A * 1000003L ^ B).GetHashCode(); }
+        }
+        static long PKey(float[] v, int i)
+        {   // a corner's place to 1/20 unit (faces of different parts meet at equal positions, not equal vertex numbers)
+            long x = (long)Math.Round(v[i * 3] * 20.0) & 0x1FFFFF, y = (long)Math.Round(v[i * 3 + 1] * 20.0) & 0x1FFFFF, z = (long)Math.Round(v[i * 3 + 2] * 20.0) & 0x1FFFFF;
+            return (x << 42) | (y << 21) | z;
+        }
+        static long IdxSig(int[] idx)
+        {   // (a cheap fingerprint of the triangle list: the same room's, or another's)
+            long s = idx.Length; int step = Math.Max(1, idx.Length / 61);
+            for (int i = 0; i < idx.Length; i += step) s = s * 31 + idx[i];
+            return s;
+        }
+        /// <summary>The fold of a face over an edge: E0 + s*E (along it) + h*D (into the intact face), then that face's own
+        /// mapping of (s, h) to texture coordinates; Lo/Size: the part of the texture it ping-pongs in.</summary>
+        sealed class Fold { public double Ex, Ey, Ez, Ux, Uy, Uz, Dx, Dy, Dz, S0, H0, U0, V0, UdS, UdH, VdS, VdH, HMax; public float LoU, LoV, SizeU, SizeV; }
+        /// <summary>How far face t reaches from the line through corners i0, i1 (its depth off that edge).</summary>
+        static double DepthFrom(float[] vx, int[] idx, int t, int i0, int i1)
+        {
+            double ux = vx[i1 * 3] - vx[i0 * 3], uy = vx[i1 * 3 + 1] - vx[i0 * 3 + 1], uz = vx[i1 * 3 + 2] - vx[i0 * 3 + 2], ul = Math.Sqrt(ux * ux + uy * uy + uz * uz), m = 0;
+            if (ul < 1e-9) return 0; ux /= ul; uy /= ul; uz /= ul;
+            for (int k = 0; k < 3; k++)
+            {
+                int vi = idx[t * 3 + k]; double px = vx[vi * 3] - vx[i0 * 3], py = vx[vi * 3 + 1] - vx[i0 * 3 + 1], pz = vx[vi * 3 + 2] - vx[i0 * 3 + 2], s = px * ux + py * uy + pz * uz;
+                double rx = px - s * ux, ry = py - s * uy, rz = pz - s * uz; m = Math.Max(m, Math.Sqrt(rx * rx + ry * ry + rz * rz));
+            }
+            return m;
+        }
+        /// <summary>How far face t reaches from fold f's edge.</summary>
+        static double FoldDepth(Fold f, float[] vx, int[] idx, int t)
+        {
+            double m = 0;
+            for (int k = 0; k < 3; k++)
+            {
+                int vi = idx[t * 3 + k]; double px = vx[vi * 3] - f.Ex, py = vx[vi * 3 + 1] - f.Ey, pz = vx[vi * 3 + 2] - f.Ez, s = px * f.Ux + py * f.Uy + pz * f.Uz;
+                double rx = px - s * f.Ux, ry = py - s * f.Uy, rz = pz - s * f.Uz; m = Math.Max(m, Math.Sqrt(rx * rx + ry * ry + rz * rz));
+            }
+            return m;
+        }
+        /// <summary>Work out the room's texture repair (see above) from its triangles as Build will be given them. pal: the
+        /// original palette (the art's own colours, for the flat-colour test); flipV as the draws; skip: texture names left as
+        /// they are. Returns a line for the log.</summary>
+        public string SetRelay(float[] vx, float[] uv, int[] idx, int[] triTex, Raster.Tex[] texes, byte[] pal, bool flipV, string[] skip)
+        {
+            ClearRelay();
+            if (vx == null || uv == null || idx == null || triTex == null || texes == null) return RelayNote = "no room";
+            var skipSet = new HashSet<string>(skip ?? new string[0], StringComparer.OrdinalIgnoreCase);
+            int nT = Math.Min(idx.Length / 3, triTex.Length), nV = vx.Length / 3;
+            var cls = new byte[nT];                   // 0 not ours, 1 intact, 2 smeared, 3 stretched, 4 garbage
+            var area = new float[nT]; var nrm = new float[nT * 3]; var logAn = new float[nT]; var flat = new bool[nT]; var dens = new float[nT];     // (dens: an intact face's texels per unit)
+            var pk = new long[nV]; for (int i = 0; i < nV; i++) pk[i] = PKey(vx, i);
+            Func<int, Raster.Tex> TexOf = t => { int ti = triTex[t]; return ti >= 0 && ti < texes.Length ? texes[ti] : null; };
+            for (int t = 0; t < nT; t++)
+            {
+                var tx = TexOf(t); if (tx == null || tx.Moves || tx.Ghost || tx.Idx == null || tx.Material == "water") continue;      // (water: the modern water's own look)
+                if (tx.Leaf != null && skipSet.Contains(tx.Leaf)) continue;
+                int a = idx[t * 3], b = idx[t * 3 + 1], c = idx[t * 3 + 2];
+                if (a >= nV || b >= nV || c >= nV || a * 2 + 1 >= uv.Length || b * 2 + 1 >= uv.Length || c * 2 + 1 >= uv.Length) continue;
+                double e1x = vx[b * 3] - vx[a * 3], e1y = vx[b * 3 + 1] - vx[a * 3 + 1], e1z = vx[b * 3 + 2] - vx[a * 3 + 2];
+                double e2x = vx[c * 3] - vx[a * 3], e2y = vx[c * 3 + 1] - vx[a * 3 + 1], e2z = vx[c * 3 + 2] - vx[a * 3 + 2];
+                double cx = e1y * e2z - e1z * e2y, cy = e1z * e2x - e1x * e2z, cz = e1x * e2y - e1y * e2x, cl = Math.Sqrt(cx * cx + cy * cy + cz * cz);
+                if (cl < 2e-6) continue;
+                area[t] = (float)(0.5 * cl); nrm[t * 3] = (float)(cx / cl); nrm[t * 3 + 1] = (float)(cy / cl); nrm[t * 3 + 2] = (float)(cz / cl);
+                float ua = uv[a * 2], va = uv[a * 2 + 1], ub = uv[b * 2], vb = uv[b * 2 + 1], uc = uv[c * 2], vc = uv[c * 2 + 1];
+                if (!(Math.Abs(ua) < 1e4f && Math.Abs(va) < 1e4f && Math.Abs(ub) < 1e4f && Math.Abs(vb) < 1e4f && Math.Abs(uc) < 1e4f && Math.Abs(vc) < 1e4f)) { cls[t] = 4; RelayBad++; continue; }
+                double du1 = (ub - ua) * tx.W, dv1 = (vb - va) * tx.H, du2 = (uc - ua) * tx.W, dv2 = (vc - va) * tx.H, det = du1 * dv2 - du2 * dv1;
+                if (Math.Abs(det) * 0.5 < 1e-3 * Math.Max(1.0, area[t])) { cls[t] = area[t] > RelayMinArea ? (byte)2 : (byte)0; }
+                else
+                {
+                    double pux = (e1x * dv2 - e2x * dv1) / det, puy = (e1y * dv2 - e2y * dv1) / det, puz = (e1z * dv2 - e2z * dv1) / det;
+                    double pvx = (e2x * du1 - e1x * du2) / det, pvy = (e2y * du1 - e1y * du2) / det, pvz = (e2z * du1 - e1z * du2) / det;
+                    double lu = Math.Sqrt(pux * pux + puy * puy + puz * puz), lv = Math.Sqrt(pvx * pvx + pvy * pvy + pvz * pvz);
+                    logAn[t] = (float)Math.Log(Math.Max(1e-9, lu) / Math.Max(1e-9, lv));      // > 0: stretched along u
+                    cls[t] = Math.Abs(logAn[t]) > Math.Log(RelayStretch) && area[t] > RelayMinArea ? (byte)3 : (byte)1;
+                    if (cls[t] == 1) dens[t] = (float)Math.Sqrt(Math.Abs(det) * 0.5 / area[t]);
+                }
+                if (cls[t] >= 2 && pal != null && pal.Length >= 768) flat[t] = FlatArt(tx, pal, flipV, ua, va, ub, vb, uc, vc);
+                if (flat[t]) RelayFlat++;
+            }
+            // the edges, by place
+            var edges = new Dictionary<EKey, List<int>>();
+            for (int t = 0; t < nT; t++)
+            {
+                if (cls[t] == 0 || cls[t] == 4) continue;
+                for (int e = 0; e < 3; e++)
+                {
+                    var k = new EKey(pk[idx[t * 3 + e]], pk[idx[t * 3 + (e + 1) % 3]]); List<int> l;
+                    if (!edges.TryGetValue(k, out l)) { l = new List<int>(2); edges[k] = l; }
+                    l.Add(t * 3 + e);
+                }
+            }
+            Func<int, int, EKey> EdgeOf = (t, e) => new EKey(pk[idx[t * 3 + e]], pk[idx[t * 3 + (e + 1) % 3]]);
+            Func<int, bool> Mendable = t => (cls[t] == 2 || cls[t] == 3) && !flat[t];
+            var fold = new Fold[nT]; var newUv = new float[nT * 6]; var range = new float[nT * 4]; var flags = new byte[nT];
+            // 1. FOLDS: each mendable face's best intact neighbour (the longest shared edge), longest first
+            // a face flush with an intact face of its texture (sharing an edge, under ~25 degrees apart) would open a seam there if
+            // it changed: those stay as they are
+            Func<int, bool> Flush = t =>
+            {
+                var tx = TexOf(t);
+                for (int e = 0; e < 3; e++)
+                {
+                    List<int> l; if (!edges.TryGetValue(EdgeOf(t, e), out l)) continue;
+                    foreach (int ge in l)
+                    {
+                        int g = ge / 3; if (g == t || cls[g] != 1 || !ReferenceEquals(TexOf(g), tx)) continue;
+                        if (Math.Abs(nrm[t * 3] * nrm[g * 3] + nrm[t * 3 + 1] * nrm[g * 3 + 1] + nrm[t * 3 + 2] * nrm[g * 3 + 2]) > 0.9) return true;
+                    }
+                }
+                return false;
+            };
+            var cand = new List<double[]>();          // {shared edge's length, face, its edge, the intact face}
+            for (int t = 0; t < nT; t++)
+            {
+                if (!Mendable(t) || Flush(t)) continue;
+                var tx = TexOf(t); double best = 0; int bestE = -1, bestG = -1;
+                for (int e = 0; e < 3; e++)
+                {
+                    List<int> l; if (!edges.TryGetValue(EdgeOf(t, e), out l)) continue;
+                    int i0 = idx[t * 3 + e], i1 = idx[t * 3 + (e + 1) % 3];
+                    double dx = vx[i1 * 3] - vx[i0 * 3], dy = vx[i1 * 3 + 1] - vx[i0 * 3 + 1], dz = vx[i1 * 3 + 2] - vx[i0 * 3 + 2], len = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                    foreach (int ge in l)
+                    {
+                        int g = ge / 3; if (g == t || cls[g] != 1 || !ReferenceEquals(TexOf(g), tx)) continue;
+                        // only round a corner (a flat run would show the mirror), and only a face no deeper than the one it
+                        // borrows from (a step's riser off its tread, a slab's edge off its top, a door's side off its face)
+                        double d = nrm[t * 3] * nrm[g * 3] + nrm[t * 3 + 1] * nrm[g * 3 + 1] + nrm[t * 3 + 2] * nrm[g * 3 + 2];
+                        if (Math.Abs(d) > 0.9) continue;
+                        if (DepthFrom(vx, idx, t, i0, i1) > DepthFrom(vx, idx, g, i0, i1) * 1.05 + 0.5) continue;
+                        if (len > best) { best = len; bestE = e; bestG = g; }
+                    }
+                }
+                if (bestG >= 0) cand.Add(new double[] { best, t, bestE, bestG });
+            }
+            cand.Sort((p, q) => q[0].CompareTo(p[0]));
+            var queue = new Queue<int>();
+            foreach (var cd in cand)
+            {
+                int t = (int)cd[1], e = (int)cd[2], g = (int)cd[3]; if (fold[t] != null) continue;
+                var f = MakeFold(vx, uv, idx, pk, t, e, g); if (f == null) continue;
+                fold[t] = f; queue.Enqueue(t);
+                while (queue.Count > 0)
+                {   // the flat neighbours of a folded face carry on its fold
+                    int r = queue.Dequeue(); ApplyFold(fold[r], vx, idx, r, newUv, range, flags); RelayFolded++;
+                    var tr = TexOf(r);
+                    for (int e2 = 0; e2 < 3; e2++)
+                    {
+                        List<int> l; if (!edges.TryGetValue(EdgeOf(r, e2), out l)) continue;
+                        foreach (int qe in l)
+                        {
+                            int q = qe / 3; if (q == r || fold[q] != null || !Mendable(q) || !ReferenceEquals(TexOf(q), tr)) continue;
+                            double d = nrm[r * 3] * nrm[q * 3] + nrm[r * 3 + 1] * nrm[q * 3 + 1] + nrm[r * 3 + 2] * nrm[q * 3 + 2];
+                            if (Math.Abs(d) < 0.95 || FoldDepth(fold[r], vx, idx, q) > fold[r].HMax * 1.05 + 0.5 || Flush(q)) continue;
+                            fold[q] = fold[r]; queue.Enqueue(q);
+                        }
+                    }
+                }
+            }
+            // 2. EVENED: runs of stretched faces (connected, same texture) touching no intact face of their texture
+            var seen = new bool[nT]; var run = new List<int>();
+            for (int t0 = 0; t0 < nT; t0++)
+            {
+                if (seen[t0] || fold[t0] != null || cls[t0] != 3 || flat[t0]) continue;
+                run.Clear(); queue.Enqueue(t0); seen[t0] = true; bool touches = false; var tx = TexOf(t0);
+                while (queue.Count > 0)
+                {
+                    int r = queue.Dequeue(); run.Add(r);
+                    for (int e2 = 0; e2 < 3; e2++)
+                    {
+                        List<int> l; if (!edges.TryGetValue(EdgeOf(r, e2), out l)) continue;
+                        foreach (int qe in l)
+                        {
+                            int q = qe / 3; if (q == r || !ReferenceEquals(TexOf(q), tx)) continue;
+                            if (cls[q] == 1 && Math.Abs(nrm[r * 3] * nrm[q * 3] + nrm[r * 3 + 1] * nrm[q * 3 + 1] + nrm[r * 3 + 2] * nrm[q * 3 + 2]) > 0.9) touches = true;     // (round a corner -- a pipe's end -- no seam shows)
+                            if (!seen[q] && fold[q] == null && cls[q] == 3 && !flat[q]) { seen[q] = true; queue.Enqueue(q); }
+                        }
+                    }
+                }
+                if (touches) continue;
+                double sa = 0, sl = 0, cu = 0, cv = 0, u0 = 1e9, u1 = -1e9, v0 = 1e9, v1 = -1e9;
+                foreach (int r in run)
+                {
+                    sa += area[r]; sl += area[r] * logAn[r];
+                    for (int k = 0; k < 3; k++) { int vi = idx[r * 3 + k]; double u = uv[vi * 2], v = uv[vi * 2 + 1]; cu += area[r] * u / 3; cv += area[r] * v / 3; u0 = Math.Min(u0, u); u1 = Math.Max(u1, u); v0 = Math.Min(v0, v); v1 = Math.Max(v1, v); }
+                }
+                double la = sl / Math.Max(1e-9, sa); cu /= Math.Max(1e-9, sa); cv /= Math.Max(1e-9, sa);
+                double ku = la > 0 ? Math.Min(64, Math.Exp(la)) : 1, kv = la < 0 ? Math.Min(64, Math.Exp(-la)) : 1;
+                bool pu = ku > 1 && u1 - u0 > 1e-4 && u1 - u0 < 0.98, pv = kv > 1 && v1 - v0 > 1e-4 && v1 - v0 < 0.98;
+                foreach (int r in run)
+                {
+                    for (int k = 0; k < 3; k++) { int vi = idx[r * 3 + k]; newUv[r * 6 + k * 2] = (float)(cu + ku * (uv[vi * 2] - cu)); newUv[r * 6 + k * 2 + 1] = (float)(cv + kv * (uv[vi * 2 + 1] - cv)); }
+                    range[r * 4] = (float)u0; range[r * 4 + 1] = (float)v0; range[r * 4 + 2] = (float)(u1 - u0); range[r * 4 + 3] = (float)(v1 - v0);
+                    flags[r] = (byte)(16 | 32 | (pu ? 1 : 0) | (pv ? 2 : 0)); RelayEvened++;
+                }
+            }
+            // 3. BOXED: a solid object of one texture (its faces joined by edges, RelayBoxClosed) stretched on the whole (RelayBoxAniso)
+            //    -- a low-poly rock whose texture was projected from one side (Josh, 2026-10-12, CORICORI's save-point rock: "one of
+            //    the more obvious smearing textures"): the WHOLE object re-laid from the world, each face along its main axis (box
+            //    mapping) at the object's own texel density (its intact faces', else the room's), its middle on the middle of the
+            //    texture coordinates it had, ping-ponged inside the part of the texture it used. Never on art with holes.
+            var keyed = new Dictionary<Raster.Tex, bool>();
+            Func<Raster.Tex, bool> Keyed = tk => { bool k0; if (!keyed.TryGetValue(tk, out k0)) { var src = tk.IdxOrig ?? tk.Idx; int z = 0; for (int i = 0; i < src.Length; i++) if (src[i] == 0) z++; k0 = z > src.Length / 200; keyed[tk] = k0; } return k0; };
+            double roomDens = WMedian(dens, area, null, nT);
+            var comp = new int[nT]; int stamp = 0;
+            Array.Clear(seen, 0, nT);
+            for (int t0 = 0; t0 < nT; t0++)
+            {
+                if (seen[t0] || cls[t0] < 1 || cls[t0] > 3) continue;
+                var tx = TexOf(t0);
+                run.Clear(); queue.Enqueue(t0); seen[t0] = true;
+                while (queue.Count > 0)
+                {
+                    int r = queue.Dequeue(); run.Add(r);
+                    for (int e2 = 0; e2 < 3; e2++)
+                    {
+                        List<int> l; if (!edges.TryGetValue(EdgeOf(r, e2), out l)) continue;
+                        foreach (int qe in l) { int q = qe / 3; if (!seen[q] && cls[q] >= 1 && cls[q] <= 3 && ReferenceEquals(TexOf(q), tx)) { seen[q] = true; queue.Enqueue(q); } }
+                    }
+                }
+                // (stretched ON THE WHOLE -- its faces' area-weighted anisotropy, a smear counting as 8x -- with at least two badly
+                // stretched or smeared: the save-point rock's side is only 2-3x per face, but the sharp new art streaks at that)
+                double tot = 0, la = 0; int nBad = 0;
+                foreach (int r in run) { tot += area[r]; la += area[r] * (cls[r] == 2 ? Math.Log(8) : Math.Abs(logAn[r])); if (Mendable(r)) nBad++; }
+                if (nBad < 2 || la < Math.Log(RelayBoxAniso) * tot || Keyed(tx)) continue;
+                // (and only a SOLID object -- most of its edges shared by two of its own faces: a rock, a block. An open sheet --
+                // a cave wall -- keeps its own laying: MINEMAZE's walls carry a torch's glow painted where the torch is)
+                stamp++; foreach (int r in run) comp[r] = stamp;
+                int eIn = 0, eAll = 0;
+                foreach (int r in run)
+                    for (int e2 = 0; e2 < 3; e2++)
+                    {
+                        eAll++; List<int> l; if (!edges.TryGetValue(EdgeOf(r, e2), out l)) continue;
+                        foreach (int qe in l) if (qe / 3 != r && comp[qe / 3] == stamp) { eIn++; break; }
+                    }
+                if (eIn < RelayBoxClosed * eAll) continue;
+                double d = WMedian(dens, area, run, 0); if (!(d > 0)) d = roomDens; if (!(d > 0)) continue;
+                double sa = 0, ox = 0, oy = 0, oz = 0, cu = 0, cv = 0, u0 = 1e9, u1 = -1e9, v0 = 1e9, v1 = -1e9;
+                foreach (int r in run)
+                    for (int k = 0; k < 3; k++)
+                    {
+                        int vi = idx[r * 3 + k]; double w = area[r] / 3.0, u = uv[vi * 2], v = uv[vi * 2 + 1];
+                        sa += w; ox += w * vx[vi * 3]; oy += w * vx[vi * 3 + 1]; oz += w * vx[vi * 3 + 2]; cu += w * u; cv += w * v;
+                        u0 = Math.Min(u0, u); u1 = Math.Max(u1, u); v0 = Math.Min(v0, v); v1 = Math.Max(v1, v);
+                    }
+                ox /= sa; oy /= sa; oz /= sa; cu /= sa; cv /= sa;
+                double ku = d / tx.W, kv = (flipV ? 1 : -1) * d / tx.H;      // (the art's top up the world)
+                bool pu = u1 - u0 > 1e-4 && u1 - u0 < 0.98, pv = v1 - v0 > 1e-4 && v1 - v0 < 0.98;
+                foreach (int r in run)
+                {
+                    // (a PICTURE face -- laid evenly over a quarter or more of the texture each way, a chest's front -- keeps its own
+                    // laying. A rock's faces each sample a small patch: all of them are re-laid, or its streaky patches stay)
+                    if (cls[r] == 1 && Math.Abs(logAn[r]) <= Math.Log(1.5))
+                    {
+                        float fu0 = Math.Min(uv[idx[r * 3] * 2], Math.Min(uv[idx[r * 3 + 1] * 2], uv[idx[r * 3 + 2] * 2])), fu1 = Math.Max(uv[idx[r * 3] * 2], Math.Max(uv[idx[r * 3 + 1] * 2], uv[idx[r * 3 + 2] * 2]));
+                        float fv0 = Math.Min(uv[idx[r * 3] * 2 + 1], Math.Min(uv[idx[r * 3 + 1] * 2 + 1], uv[idx[r * 3 + 2] * 2 + 1])), fv1 = Math.Max(uv[idx[r * 3] * 2 + 1], Math.Max(uv[idx[r * 3 + 1] * 2 + 1], uv[idx[r * 3 + 2] * 2 + 1]));
+                        if (fu1 - fu0 >= 0.25f && fv1 - fv0 >= 0.25f) continue;
+                    }
+                    double ax = Math.Abs(nrm[r * 3]), ay = Math.Abs(nrm[r * 3 + 1]), az = Math.Abs(nrm[r * 3 + 2]);
+                    for (int k = 0; k < 3; k++)
+                    {
+                        int vi = idx[r * 3 + k]; double px = vx[vi * 3] - ox, py = vx[vi * 3 + 1] - oy, pz = vx[vi * 3 + 2] - oz, s, h;
+                        if (ay >= ax && ay >= az) { s = px; h = pz; }                                     // (a top or underside: laid flat)
+                        else if (ax >= az) { s = pz * Math.Sign(nrm[r * 3]); h = py; }                     // (a side facing along x)
+                        else { s = -px * Math.Sign(nrm[r * 3 + 2]); h = py; }                              // (a side facing along z)
+                        newUv[r * 6 + k * 2] = (float)(cu + s * ku); newUv[r * 6 + k * 2 + 1] = (float)(cv + h * kv);
+                    }
+                    range[r * 4] = (float)u0; range[r * 4 + 1] = (float)v0; range[r * 4 + 2] = (float)(u1 - u0); range[r * 4 + 3] = (float)(v1 - v0);
+                    flags[r] = (byte)(16 | 64 | (pu ? 1 : 0) | (pv ? 2 : 0)); fold[r] = null; RelayBoxed++;
+                }
+            }
+            for (int t = 0; t < nT; t++) if (Mendable(t) && (flags[t] & 16) == 0) RelayLeft++;
+            // 3. MIXED: surfaces (connected, same texture, intact or evened without a ping-pong that way) whose coordinates run
+            //    over RelayMixFrom tiles one way, on art without holes
+            var tiles = new Dictionary<Raster.Tex, bool[]>();
+            Array.Clear(seen, 0, nT);
+            Func<int, int, float> U = (t, k) => (flags[t] & 16) != 0 ? newUv[t * 6 + k * 2] : uv[idx[t * 3 + k] * 2];
+            Func<int, int, float> V = (t, k) => (flags[t] & 16) != 0 ? newUv[t * 6 + k * 2 + 1] : uv[idx[t * 3 + k] * 2 + 1];
+            Func<int, bool> Mixable = t => (cls[t] == 1 || cls[t] == 3) && fold[t] == null && (flags[t] & 64) == 0;
+            for (int t0 = 0; t0 < nT; t0++)
+            {
+                if (seen[t0] || !Mixable(t0)) continue;
+                var tx = TexOf(t0); bool k0;
+                k0 = Keyed(tx);
+                run.Clear(); queue.Enqueue(t0); seen[t0] = true;
+                double u0 = 1e9, u1 = -1e9, v0 = 1e9, v1 = -1e9;
+                while (queue.Count > 0)
+                {
+                    int r = queue.Dequeue(); run.Add(r);
+                    for (int k = 0; k < 3; k++) { u0 = Math.Min(u0, U(r, k)); u1 = Math.Max(u1, U(r, k)); v0 = Math.Min(v0, V(r, k)); v1 = Math.Max(v1, V(r, k)); }
+                    for (int e2 = 0; e2 < 3; e2++)
+                    {
+                        List<int> l; if (!edges.TryGetValue(EdgeOf(r, e2), out l)) continue;
+                        foreach (int qe in l) { int q = qe / 3; if (!seen[q] && Mixable(q) && ReferenceEquals(TexOf(q), tx)) { seen[q] = true; queue.Enqueue(q); } }
+                    }
+                }
+                if (k0) continue;
+                // (only along a way the art tiles cleanly: shifting a texture with dark or unmatched edges scatters its seam
+                // about the surface instead of hiding it -- Test-TextureTiling.ps1 lists those for the art)
+                bool[] clean; if (!tiles.TryGetValue(tx, out clean)) { clean = TilesClean(tx, pal); tiles[tx] = clean; }
+                bool mu = u1 - u0 >= RelayMixFrom && clean[0], mv = v1 - v0 >= RelayMixFrom && clean[1];
+                if (!mu && !mv) continue;
+                foreach (int r in run)
+                {
+                    bool ru = mu && (flags[r] & 1) == 0, rv = mv && (flags[r] & 2) == 0;
+                    if (ru || rv) { flags[r] |= (byte)((ru ? 4 : 0) | (rv ? 8 : 0)); RelayMixed++; }
+                }
+            }
+            _relIdx = idx; _relN = nT; _relSig = IdxSig(idx); _relUv = newUv; _relRange = range; _relFlags = flags;
+            RelayNote = string.Format("{0} faces folded over an edge, {1} evened, {6} in objects re-laid whole, {2} mixed against repeats; left as they were: {3} flat colour, {4} that would seam, {5} with garbage coordinates", RelayFolded, RelayEvened, RelayMixed, RelayFlat, RelayLeft, RelayBad, RelayBoxed);
+            return RelayNote;
+        }
+        /// <summary>Whether the original art tiles cleanly along u (its left and right edges) and along v (top and bottom): neither
+        /// edge band (6% deep) much darker than its middle, and the two edges meeting (their brightness along the edge, smoothed
+        /// over 5 texels, within 35% of the middle's). As Test-TextureTiling.ps1's DARK EDGES / SEAM.</summary>
+        static bool[] TilesClean(Raster.Tex tx, byte[] pal)
+        {
+            if (pal == null || pal.Length < 768) return new[] { true, true };
+            var src = tx.IdxOrig ?? tx.Idx; int W = tx.W, H = tx.H;
+            Func<int, int, double> L = (x, y) => { int p = src[y * W + x] * 3; return 0.30 * pal[p] + 0.59 * pal[p + 1] + 0.11 * pal[p + 2]; };
+            Func<int, int, int, int, double> Mean = (x0, y0, x1, y1) => { double s = 0; int n = 0; for (int y = y0; y < y1; y++) for (int x = x0; x < x1; x++) { s += L(x, y); n++; } return n > 0 ? s / n : 0; };
+            int bx = Math.Max(1, W * 6 / 100), by = Math.Max(1, H * 6 / 100);
+            double mid = Mean(W / 4, H / 4, W * 3 / 4, H * 3 / 4), m = Math.Max(mid, 1);
+            if (mid < 12) return new[] { true, true };          // (art this dark shows no seam)
+            double top = Mean(0, 0, W, by) / m, bot = Mean(0, H - by, W, H) / m, left = Mean(0, 0, bx, H) / m, right = Mean(W - bx, 0, W, H) / m;
+            double tb = 0, lr = 0;
+            for (int x = 0; x < W; x++) { double a = 0, b = 0; for (int k = -2; k <= 2; k++) { int xx = ((x + k) % W + W) % W; a += L(xx, 0); b += L(xx, H - 1); } tb += Math.Abs(a - b) / 5; }
+            for (int y = 0; y < H; y++) { double a = 0, b = 0; for (int k = -2; k <= 2; k++) { int yy = ((y + k) % H + H) % H; a += L(0, yy); b += L(W - 1, yy); } lr += Math.Abs(a - b) / 5; }
+            tb /= W * m; lr /= H * m;
+            return new[] { left >= 0.6 && right >= 0.6 && lr <= 0.35, top >= 0.6 && bot >= 0.6 && tb <= 0.35 };
+        }
+        /// <summary>The area-weighted median of v (its positive values) over the faces in `list` (null: the first n).</summary>
+        static double WMedian(float[] v, float[] w, List<int> list, int n)
+        {
+            var ks = new List<KeyValuePair<float, float>>(); double tw = 0;
+            if (list != null) { foreach (int i in list) if (v[i] > 0) { ks.Add(new KeyValuePair<float, float>(v[i], w[i])); tw += w[i]; } }
+            else for (int i = 0; i < n; i++) if (v[i] > 0) { ks.Add(new KeyValuePair<float, float>(v[i], w[i])); tw += w[i]; }
+            if (ks.Count == 0) return 0;
+            ks.Sort((a, b) => a.Key.CompareTo(b.Key)); double acc = 0;
+            foreach (var kv in ks) { acc += kv.Value; if (acc >= tw * 0.5) return kv.Key; }
+            return ks[ks.Count - 1].Key;
+        }        /// <summary>The original art under a face's three texture coordinates is one flat colour (or black, or all holes).</summary>
+        bool FlatArt(Raster.Tex tx, byte[] pal, bool flipV, float ua, float va, float ub, float vb, float uc, float vc)
+        {
+            var src = tx.IdxOrig ?? tx.Idx; int W = tx.W, H = tx.H, n = 0; double s = 0, s2 = 0;
+            for (int i = 0; i <= 4; i++)
+                for (int j = 0; i + j <= 4; j++)
+                {
+                    float a = i / 4f, b = j / 4f, c = 1f - a - b;
+                    double u = a * ua + b * ub + c * uc, v = a * va + b * vb + c * vc; if (flipV) v = 1.0 - v;
+                    int x = Math.Min(W - 1, Math.Max(0, (int)Math.Floor((u - Math.Floor(u)) * W))), y = Math.Min(H - 1, Math.Max(0, (int)Math.Floor((v - Math.Floor(v)) * H)));
+                    int p = src[y * W + x]; if (p == 0) continue;
+                    double L = 0.30 * pal[p * 3] + 0.59 * pal[p * 3 + 1] + 0.11 * pal[p * 3 + 2]; s += L; s2 += L * L; n++;
+                }
+            if (n < 3) return true;
+            double m = s / n, sd = Math.Sqrt(Math.Max(0, s2 / n - m * m));
+            return sd < RelayFlatStd || m < 6;
+        }
+        /// <summary>Face t's edge e lies on intact face g: g's mapping, read mirrored back across that edge.</summary>
+        static Fold MakeFold(float[] vx, float[] uv, int[] idx, long[] pk, int t, int e, int g)
+        {
+            int i0 = idx[t * 3 + e], i1 = idx[t * 3 + (e + 1) % 3];
+            double ex = vx[i0 * 3], ey = vx[i0 * 3 + 1], ez = vx[i0 * 3 + 2];
+            double ux = vx[i1 * 3] - ex, uy = vx[i1 * 3 + 1] - ey, uz = vx[i1 * 3 + 2] - ez, ul = Math.Sqrt(ux * ux + uy * uy + uz * uz);
+            if (ul < 1e-6) return null; ux /= ul; uy /= ul; uz /= ul;
+            // g's corner off the edge, and the way into g from the edge
+            int third = -1;
+            for (int k = 0; k < 3; k++) { int gi = idx[g * 3 + k]; if (pk[gi] != pk[i0] && pk[gi] != pk[i1]) third = gi; }
+            if (third < 0) return null;
+            double wx = vx[third * 3] - ex, wy = vx[third * 3 + 1] - ey, wz = vx[third * 3 + 2] - ez, ws = wx * ux + wy * uy + wz * uz;
+            double dx = wx - ws * ux, dy = wy - ws * uy, dz = wz - ws * uz, dl = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            if (dl < 1e-6) return null; dx /= dl; dy /= dl; dz /= dl;
+            // g's (s, h) -> (u, v), from its three corners
+            var s = new double[3]; var h = new double[3]; var tu = new double[3]; var tv = new double[3];
+            float lu0 = float.MaxValue, lv0 = float.MaxValue, lu1 = float.MinValue, lv1 = float.MinValue;
+            for (int k = 0; k < 3; k++)
+            {
+                int gi = idx[g * 3 + k]; double px = vx[gi * 3] - ex, py = vx[gi * 3 + 1] - ey, pz = vx[gi * 3 + 2] - ez;
+                s[k] = px * ux + py * uy + pz * uz; h[k] = px * dx + py * dy + pz * dz; tu[k] = uv[gi * 2]; tv[k] = uv[gi * 2 + 1];
+                lu0 = Math.Min(lu0, uv[gi * 2]); lu1 = Math.Max(lu1, uv[gi * 2]); lv0 = Math.Min(lv0, uv[gi * 2 + 1]); lv1 = Math.Max(lv1, uv[gi * 2 + 1]);
+            }
+            double s1 = s[1] - s[0], h1 = h[1] - h[0], s2 = s[2] - s[0], h2 = h[2] - h[0], det = s1 * h2 - s2 * h1;
+            if (Math.Abs(det) < 1e-9) return null;
+            var f = new Fold { Ex = ex, Ey = ey, Ez = ez, Ux = ux, Uy = uy, Uz = uz, Dx = dx, Dy = dy, Dz = dz, S0 = s[0], H0 = h[0], U0 = tu[0], V0 = tv[0], HMax = Math.Max(h[0], Math.Max(h[1], h[2])) };
+            f.UdS = ((tu[1] - tu[0]) * h2 - (tu[2] - tu[0]) * h1) / det; f.UdH = ((tu[2] - tu[0]) * s1 - (tu[1] - tu[0]) * s2) / det;
+            f.VdS = ((tv[1] - tv[0]) * h2 - (tv[2] - tv[0]) * h1) / det; f.VdH = ((tv[2] - tv[0]) * s1 - (tv[1] - tv[0]) * s2) / det;
+            f.LoU = lu0; f.LoV = lv0; f.SizeU = lu1 - lu0; f.SizeV = lv1 - lv0;
+            return f;
+        }
+        /// <summary>Face t's corners through fold f: along the edge as they are, their distance from it laid into the intact face.</summary>
+        static void ApplyFold(Fold f, float[] vx, int[] idx, int t, float[] newUv, float[] range, byte[] flags)
+        {
+            for (int k = 0; k < 3; k++)
+            {
+                int vi = idx[t * 3 + k]; double px = vx[vi * 3] - f.Ex, py = vx[vi * 3 + 1] - f.Ey, pz = vx[vi * 3 + 2] - f.Ez;
+                double s = px * f.Ux + py * f.Uy + pz * f.Uz, rx = px - s * f.Ux, ry = py - s * f.Uy, rz = pz - s * f.Uz, h = Math.Sqrt(rx * rx + ry * ry + rz * rz);
+                newUv[t * 6 + k * 2] = (float)(f.U0 + f.UdS * (s - f.S0) + f.UdH * (h - f.H0));
+                newUv[t * 6 + k * 2 + 1] = (float)(f.V0 + f.VdS * (s - f.S0) + f.VdH * (h - f.H0));
+            }
+            range[t * 4] = f.LoU; range[t * 4 + 1] = f.LoV; range[t * 4 + 2] = f.SizeU; range[t * 4 + 3] = f.SizeV;
+            flags[t] = (byte)(16 | (f.SizeU > 1e-4f ? 1 : 0) | (f.SizeV > 1e-4f ? 2 : 0));
         }
 
         // ---- vertex sets -----------------------------------------------------------------------
-        const int VSTRIDE = 10;                     // floats per vertex: x y z, u v, facing nx ny nz, lod
+        const int VSTRIDE = 15;                     // floats per vertex: x y z, u v, facing nx ny nz, lod, ping-pong lo u v size u v, repair flags
         class VSet { public uint Vao, Vbo; public float[] Verts = new float[0]; public int[] Start = new int[1], Count = new int[0], Fill = new int[0]; public int Kept, Nt; }
         VSet _main, _mirror, _cast;
         // THE PLAYER'S SHADOW BODY (ScanWire.BodyTris): triangles in world space that cast into the PLACED LIGHTS' shadow
@@ -1944,6 +3051,8 @@ void main() {
             glEnableVertexAttribArray(1); glVertexAttribPointer(1, 2, GL_FLOAT, 0, VSTRIDE * 4, new IntPtr(12));
             glEnableVertexAttribArray(2); glVertexAttribPointer(2, 4, GL_FLOAT, 0, VSTRIDE * 4, new IntPtr(20));
             glEnableVertexAttribArray(3); glVertexAttribPointer(3, 1, GL_FLOAT, 0, VSTRIDE * 4, new IntPtr(36));
+            glEnableVertexAttribArray(4); glVertexAttribPointer(4, 4, GL_FLOAT, 0, VSTRIDE * 4, new IntPtr(40));
+            glEnableVertexAttribArray(5); glVertexAttribPointer(5, 1, GL_FLOAT, 0, VSTRIDE * 4, new IntPtr(56));
             return s;
         }
         /// <summary>Triangles grouped by texture, each corner carrying Raster's per-triangle numbers
@@ -1979,8 +3088,15 @@ void main() {
                 float nl = (float)Math.Sqrt(nx * nx + ny * ny + nz * nz), tnx = 0f, tny = 0f, tnz = 1f;
                 if (nl > 1e-12f) { tnx = nx / nl; tny = ny / nl; tnz = nz / nl; }
                 Raster.Tex tx = texes[ti];
+                // TEXTURE REPAIR (SetRelay): this face's own coordinates if it was re-laid, its ping-pong and mix flags
+                int rf = _relLive && t < _relN ? _relFlags[t] : 0;
+                float ua, va, ub, vb, uc, vc;
+                if ((rf & 16) != 0) { int r6 = t * 6; ua = _relUv[r6]; va = _relUv[r6 + 1]; ub = _relUv[r6 + 2]; vb = _relUv[r6 + 3]; uc = _relUv[r6 + 4]; vc = _relUv[r6 + 5]; }
+                else { ua = uv[a * 2]; va = uv[a * 2 + 1]; ub = uv[b * 2]; vb = uv[b * 2 + 1]; uc = uv[c * 2]; vc = uv[c * 2 + 1]; }
+                float rLoU = 0f, rLoV = 0f, rSzU = 0f, rSzV = 0f;
+                if ((rf & 3) != 0) { int r4 = t * 4; rLoU = _relRange[r4]; rLoV = _relRange[r4 + 1]; rSzU = _relRange[r4 + 2]; rSzV = _relRange[r4 + 3]; }
                 float tw0 = tx.Rgb != null ? tx.Rgb[0].W : tx.W, th0 = tx.Rgb != null ? tx.Rgb[0].H : tx.H;
-                float du1 = (uv[b * 2] - uv[a * 2]) * tw0, dv1 = (uv[b * 2 + 1] - uv[a * 2 + 1]) * th0, du2 = (uv[c * 2] - uv[a * 2]) * tw0, dv2 = (uv[c * 2 + 1] - uv[a * 2 + 1]) * th0;
+                float du1 = (ub - ua) * tw0, dv1 = (vb - va) * th0, du2 = (uc - ua) * tw0, dv2 = (vc - va) * th0;
                 float texArea = Math.Abs(du1 * dv2 - du2 * dv1), worldArea = nl, lod = -100f;
                 if (texArea > 1e-6f && worldArea > 1e-6f)
                 {
@@ -1992,8 +3108,9 @@ void main() {
                 {
                     int vi = k == 0 ? a : (k == 1 ? b : c), q = o + k * VSTRIDE;
                     verts[q] = vx[vi * 3]; verts[q + 1] = vx[vi * 3 + 1]; verts[q + 2] = vx[vi * 3 + 2];
-                    verts[q + 3] = uv[vi * 2]; verts[q + 4] = uv[vi * 2 + 1];
+                    verts[q + 3] = k == 0 ? ua : (k == 1 ? ub : uc); verts[q + 4] = k == 0 ? va : (k == 1 ? vb : vc);
                     verts[q + 5] = facing; verts[q + 6] = tnx; verts[q + 7] = tny; verts[q + 8] = tnz; verts[q + 9] = lod;
+                    verts[q + 10] = rLoU; verts[q + 11] = rLoV; verts[q + 12] = rSzU; verts[q + 13] = rSzV; verts[q + 14] = rf;
                 }
             }
             s.Kept = kept; s.Nt = nt;
@@ -2012,6 +3129,7 @@ void main() {
             for (int i = 0; i < s.Nt; i++)
             {
                 if (s.Count[i] == 0) continue;
+                if (GhostOn && texes[i].Ghost) continue;          // (a ghost: drawn as smoke by DrawGhost, casting nothing, in no reflection)
                 if (!colour && texes[i].NoCast) continue;        // (the shadow views: what casts no shadow is left out)
                 if (!colour) { bool prop = _pTex != null && Array.IndexOf(_pTex, texes[i]) >= 0; glUniform4f(glGetUniformLocation(_pDepth, "uSkip"), _skip[0], _skip[1], _skip[2], prop ? _skip[3] : 0f); }
                 GTex g = _tex[texes[i]];
@@ -2026,6 +3144,23 @@ void main() {
                     glUniform1f(mReliefTint, sharp ? Math.Max(0f, ReliefTint) : 0f);
                     glUniform1f(mReliefOp, sharp ? Math.Max(0f, Math.Min(1f, ReliefOpacity)) : 1f);
                     glUniform1f(mDetail, texes[i].Moves ? 0f : _detailNow);          // (no world-laid grain on what moves)
+                    // its material: how it shines; its companion maps, if it has them
+                    var tm = texes[i];
+                    glUniform1f(mShine, tm.Shine * ShineGain); glUniform1f(mGloss, tm.Gloss); glUniform1f(mMetal, tm.Metal); glUniform1f(mShineVary, tm.ShineVary); glUniform1f(mWetK, tm.Wet); glUniform1f(mReliefK, tm.Relief);
+                    if (MatUnitOk)
+                    {
+                        if (tm.MatPx != null && !ReferenceEquals(g.MatSrc, tm.MatPx)) MakeMat(tm, g);      // (new or changed maps; none = keep what the card has)
+                        glActiveTexture(GL_TEXTURE0 + (uint)UNIT_MAT); glBindTexture(GL_TEXTURE_2D, g.Mat);
+                        glUniform1i(mMatHas, g.Mat != 0 ? g.MatHas : 0);
+                    }
+                    if (DepthUnitOk)
+                    {
+                        bool pom = SurfacePom(tm);
+                        if (pom && (!g.HeightDone || !ReferenceEquals(g.HeightSrc, tm.MatPx) || g.HeightShade != tm.ParallaxShade)) MakeHeight(tm, g);      // (a room that wants it of a texture met without; new companion maps; another shading share)
+                        glActiveTexture(GL_TEXTURE0 + (uint)UNIT_HEIGHT); glBindTexture(GL_TEXTURE_2D, g.Height);
+                        // (the art's plank check: grain all one way -- planks, boards -- takes none unless named by hand)
+                        glUniform1f(mPomK, pom && g.Height != 0 && (tm.ParallaxSet || g.Grain <= ParallaxGrainMax) ? tm.Parallax : 0f);
+                    }
                 }
                 // CHARACTERS DOUBLE-SIDED (Josh, 2026-10-09, Room Review LURKA/2: "the skirt texture needs to be placed on both
                 // sides"): what moves (characters, creatures) is drawn with no back-face culling -- their cloth is single panels
@@ -2058,10 +3193,16 @@ void main() {
                 // the card's memory is the computer's own on this kind of machine: past a ceiling,
                 // start again from the textures this room needs (a room's set goes up in ~20 ms)
                 // the props (a torch...) join the room's own geometry here, so everything below treats them as room
+                // the room's texture repair applies while these are the triangles it was worked out for (props join after them)
+                UpdateMaterialize(vx);      // (the visor's materialize sweep: this frame's fronts)
+                _relLive = RelayOn && _relFlags != null && idx.Length / 3 >= _relN && (ReferenceEquals(idx, _relIdx) || IdxSig(idx) == _relSig);
                 if (_pT.Count > 0 && _pTex != null) MergeProps(ref vx, ref uv, ref idx, ref triTex, ref texes);
-                if (TextureBytes > MaxTextureBytes) ForgetTextures();
-                Upload(texes);
+                Upload(texes);          // (over budget it drops the least recently used textures of other rooms first: Evict)
                 Build(_main, vx, uv, idx, triTex, texes, _view);
+                // a ghost in the room: where she is this frame, and her own faint light (one more placed light, no shadows)
+                _nLights = _nRoomLights;
+                GhostBounds(vx, idx, triTex, texes);
+                AddGhostLight();
                 // the pools' boxes, for the light they throw onto the room (modern water only)
                 _wBoxN = 0;
                 if (WaterFx)
@@ -2149,7 +3290,13 @@ void main() {
                 // 3b. HOLOGRAMS (the intro's chalice, standing in the room)
                 LastHoloSegs = 0;
                 if (_holos.Count > 0) DrawHolos();
+                // 3b'. THE SWEEP'S LINES THROUGH THE WALLS (the materialize sweep: the room's edges the room hides)
+                LastXraySegs = 0;
+                if (_matNow && _matClock != null && MatXray) DrawXray(vx, idx, triTex, texes);
                 if (_flames.Count > 0) DrawFlames();
+                // 3c. A GHOST, as smoke over the room as it stands (before the dust and particles, her wisps among them)
+                LastGhostDrawn = false;
+                if (GhostOn && _ghostHave) DrawGhost(texes, flipV);
                 // 4. DUST
                 LastMotes = 0;
                 if (_moteN > 0) { DrawMotes(); LastMotes = _moteN; }
@@ -2317,11 +3464,36 @@ void main() {
             glUniform3f(mFogCol, (_fogColor >> 16) & 255, (_fogColor >> 8) & 255, _fogColor & 255);
             // reflection
             glUniform1i(mRefl, refl ? 1 : 0); glUniform1f(mDim, WaterDim); glUniform1i(mSurf, UNIT_SURF);
-            glUniform1i(mNorm, UNIT_NORM); glUniform1f(mRelief, refl ? 0f : Relief);
+            glUniform1i(mNorm, UNIT_NORM); glUniform1f(mRelief, refl || !ReliefOn ? 0f : Relief); glUniform1f(mReliefK, 1f);
             glUniform1f(mNormFine, ReliefFine); glUniform1f(mNormMid, ReliefMid); glUniform1f(mReliefGain, 99f); glUniform1f(mReliefTint, 0f); glUniform1f(mReliefOp, 1f);
-            _detailNow = refl ? 0f : Detail; glUniform1f(mDetail, _detailNow); glUniform1f(mDetailScale, Math.Max(0.05f, DetailScale)); glUniform1f(mDetailAO, DetailAO);
+            _detailNow = refl || !ReliefOn ? 0f : Detail; glUniform1f(mDetail, _detailNow); glUniform1f(mDetailScale, Math.Max(0.05f, DetailScale)); glUniform1f(mDetailAO, DetailAO);
             glUniform1f(mDetailRough, DetailRough); glUniform1i(mDetailOct, Math.Max(1, Math.Min(6, DetailOctaves)));
+            // materials: the switch, where the lamp's highlight comes from, the companion maps' unit (set per texture in DrawSet)
+            glUniform1i(mShineOn, ShineOn && ShineGain > 0f && !refl ? 1 : 0); glUniform3f(mLampPos, ShineLampX, ShineLampY, 0f);
+            glUniform1i(mMat, MatUnitOk ? UNIT_MAT : 0); glUniform1i(mMatHas, 0); glUniform1f(mShine, 0f); glUniform1f(mGlowK, GlowGain);
+            // wet surfaces: the room's settings and its floor heights (each texture's share in DrawSet)
+            bool wetNow = WetOn && WetUnitOk && _groundTex != 0 && !refl && WetStrength > 0f;
+            glUniform1i(mWetOn, wetNow ? 1 : 0); glUniform1f(mWetK, 0f); glUniform1i(mGround, WetUnitOk ? UNIT_GROUND : 0);
+            glUniform1i(glGetUniformLocation(_pMain, "uWetDebug"), WetDebug);
+            if (wetNow)
+            {
+                glUniform4f(mWetA, Math.Min(1f, WetStrength), Math.Max(1f, WetHeight), WetDark, WetFloor);
+                glUniform4f(mWetB, WetShine, Math.Max(1f, WetGloss), Math.Max(0f, Math.Min(1f, WetPuddles)), Math.Max(1f, WetPuddleSize));
+                glUniform4f(mWetC, Math.Max(0f, Math.Min(1f, WetWalls)), Math.Max(0f, Math.Min(1f, WetCeiling)), WetDarkFrom, WetDarkTo);
+                glUniform4f(mGroundBox, _gx0, _gz0, _gInv, 0f); glUniform1f(mTime, Time);
+                glActiveTexture(GL_TEXTURE0 + (uint)UNIT_GROUND); glBindTexture(GL_TEXTURE_2D, _groundTex); glActiveTexture(GL_TEXTURE0);
+            }
             glUniform1i(mPixelMip, PixelMip ? 1 : 0); glUniform1f(mMipK, (float)Math.Pow(2, PixelMipBias)); glUniform1f(mNormMipK, (float)Math.Pow(2, PixelMipBias + NormMipBias));
+            // texture repair: the mix against repeats (the re-laid coordinates themselves go in with the vertices: Build)
+            glUniform1i(mMixOn, RelayOn && MixOn ? 1 : 0); glUniform1f(mMixScale, Math.Max(0.05f, RelayMixScale)); glUniform1i(glGetUniformLocation(_pMain, "uRelayDebug"), RelayDebug ? 1 : 0);
+            // parallax depth: with the relief, never in a reflection (each texture's share in DrawSet)
+            glUniform1i(mPomOn, ParallaxOn && DepthUnitOk && ReliefOn && !refl && ParallaxDepth > 0f ? 1 : 0); glUniform1f(mPomK, 0f);
+            glUniform1i(mHeight, DepthUnitOk ? UNIT_HEIGHT : 0);
+            glUniform3f(glGetUniformLocation(_pMain, "uPom"), Math.Max(0f, ParallaxDepth), Math.Max(1f, ParallaxFar), Math.Max(2, Math.Min(64, ParallaxSteps)));
+            // the materialize sweep (UpdateMaterialize): both fronts, its clock, trail, the texture front's speed, the specks
+            glUniform4f(mMatz, _mfTex, Math.Max(1f, MatBand), _mfWire, _matNow && !refl ? 1f : 0f);
+            glUniform4f(mMatX, _matT, Math.Max(0.05f, MatTrail), Math.Max(1f, MatSpeed), Math.Max(0f, MatDots));
+            glUniform3f(mMatC, (MatColor >> 16) & 255, (MatColor >> 8) & 255, MatColor & 255); glUniform3f(mMatF, (MatFlare >> 16) & 255, (MatFlare >> 8) & 255, MatFlare & 255);
             glActiveTexture(GL_TEXTURE0 + (uint)UNIT_SURF); glBindTexture(GL_TEXTURE_2D, refl ? _surfTex : 0);
             glActiveTexture(GL_TEXTURE0);
             // the light out of the water onto the room (not into the reflection)
@@ -2352,6 +3524,7 @@ void main() {
             float[] V = _view; float tx = V[12], ty = V[13], tz = V[14];
             glUniform3f(L("uEye"), -(V[0] * tx + V[1] * ty + V[2] * tz), -(V[4] * tx + V[5] * ty + V[6] * tz), -(V[8] * tx + V[9] * ty + V[10] * tz));
             glUniform1f(L("uTime"), Time);
+            glUniform4f(L("uMatz"), _mfTex, Math.Max(1f, MatBand), _mfWire, _matNow ? 1f : 0f);      // (the water fades in with the materialize sweep's texture front)
             glActiveTexture(GL_TEXTURE0 + (uint)UNIT_REFL); glBindTexture(GL_TEXTURE_2D, _reflTex); glActiveTexture(GL_TEXTURE0);
             glUniform1i(L("uReflTex"), UNIT_REFL);
             WaterGlowUniforms(p);
@@ -2360,6 +3533,7 @@ void main() {
             glUniform3f(L("uRip"), RippleSlope, Math.Max(1f, RippleSize), RippleSpeed);
             glUniform1i(L("uDropN"), DropRipple > 0f ? _dropsN : 0); glUniform4fv(L("uDrop[0]"), 16, _dropsGl); glUniform1f(L("uDropK"), DropRipple);
             glUniform1f(L("uShine"), WaterShine); glUniform1f(L("uF0"), WaterF0); glUniform1f(L("uSpec"), WaterSpec); glUniform1f(L("uDistort"), WaterDistort); glUniform1f(L("uLightSpec"), WaterLightSpec);
+            glUniform1f(L("uSheen"), ShineOn ? WaterSheen * ShineGain : 0f); glUniform1f(L("uSheenGloss"), WaterSheenGloss);
             glUniform1i(L("uLampOn"), _lampOn ? 1 : 0); glUniform1f(L("uLampPower"), _lampPower); glUniform1f(L("uLampRange"), _lampRange);
             glUniform1f(L("uFpx"), FocalPx); glUniform1f(L("uSpill"), _spill); glUniform1f(L("uHalo"), _halo);
             glUniform4f(L("uCones"), _cIn, _cOut, _cHIn, _cHOut); glUniform2f(L("uLampC"), W * 0.5f + _lampCx, VHf * 0.5f + _lampCy);
@@ -2716,7 +3890,17 @@ uniform int uShadeOn; uniform sampler2D uShade; uniform int uShadeRows; uniform 
 uniform int uDmgOn; uniform sampler2D uDmgPaint, uDmgFx, uDmgPaint0, uDmgFx0; uniform float uSweep;
 uniform float uLevel, uHit, uHitAge, uSeed, uTime, uBeat, uRefract, uViewRows, uDeath;
 uniform int uWidOn; uniform sampler2D uWid; uniform vec4 uWidRect;
+// behind the visor's open menus the damage fades away (VisorDamage.Menus): up to two rectangles, 0..1 of the window
+uniform vec4 uClr0, uClr1; uniform float uClrK;
+// THE VISOR'S LABEL (ScanWire.cs ScanTag: Scanning... while the room materializes), premultiplied, at window px x, y, w, h
+uniform int uTagOn; uniform sampler2D uTag; uniform vec4 uTagRect;
 out vec4 oColor;
+vec3 tagOver(vec3 c, vec2 wp) {
+    if (uTagOn == 0) return c;
+    vec2 q = (wp - uTagRect.xy) / uTagRect.zw;
+    if (q.x < 0.0 || q.y < 0.0 || q.x >= 1.0 || q.y >= 1.0) return c;
+    vec4 w = texture(uTag, q); return c * (1.0 - w.a) + w.rgb;
+}
 // one picture pixel, with the visor's shading as VisorShade.Draw lays it (k + k/128, out of 256, toward the colour)
 vec3 px(ivec2 p) {
     p = clamp(p, ivec2(0), uSrc - 1);
@@ -2742,8 +3926,8 @@ float hash(vec2 p) { p = fract(p * vec2(443.897, 441.423)); p += dot(p, p.yx + 1
 void main() {
     // the window's rows count up from its bottom; the picture's rows from its top
     vec2 wp = vec2(gl_FragCoord.x, uDst.y - gl_FragCoord.y), uv = wp / uDst, k = vec2(uSrc) / uDst;
-    vec2 s = wp * k - 0.5;
-    if (uDmgOn == 0) { oColor = vec4(clamp(catmull(s), 0.0, 1.0), 1.0); return; }
+    vec2 s = wp * k - 0.5, s0 = s;
+    if (uDmgOn == 0) { oColor = vec4(clamp(tagOver(clamp(catmull(s), 0.0, 1.0), wp), 0.0, 1.0), 1.0); return; }
     // the glass: this layer -- while the glass mends, faded in over the last one (uSweep 0..1; below 0 = none)
     vec4 fx = texture(uDmgFx, uv), paint = texture(uDmgPaint, uv);
     vec2 tx = 1.0 / vec2(textureSize(uDmgFx, 0));
@@ -2826,7 +4010,16 @@ void main() {
         acc = acc * (1.0 - sl) * (1.0 + roll) + grain;
         if (uDeath > 0.0) { float l3 = dot(acc, vec3(0.30, 0.59, 0.11)); acc = mix(acc, vec3(l3) * vec3(0.9, 0.82, 0.8), 0.55 * uDeath) * (1.0 - 0.35 * uDeath); }
     }
-    oColor = vec4(clamp(acc, 0.0, 1.0), 1.0);
+    // BEHIND AN OPEN MENU (Josh, 2026-10-10): the picture as it is -- the panel and the world behind it, no glass damage --
+    // softly edged (14 window px), faded in and out with the panel
+    if (uClrK > 0.0) {
+        float m = 0.0;
+        if (uClr0.z > uClr0.x) { vec2 e = min(uv - uClr0.xy, uClr0.zw - uv) * uDst; m = max(m, smoothstep(0.0, 14.0, min(e.x, e.y))); }
+        if (uClr1.z > uClr1.x) { vec2 e = min(uv - uClr1.xy, uClr1.zw - uv) * uDst; m = max(m, smoothstep(0.0, 14.0, min(e.x, e.y))); }
+        m *= uClrK;
+        if (m > 0.0) acc = mix(acc, catmull(s0), m);
+    }
+    oColor = vec4(clamp(tagOver(clamp(acc, 0.0, 1.0), wp), 0.0, 1.0), 1.0);
 }";
         /// <summary>Draw into this window from now on (its pixel format is set to the context's; once per window).</summary>
         public bool AttachPresent(IntPtr hwnd)
@@ -2948,8 +4141,30 @@ void main() {
                     glActiveTexture(GL_TEXTURE0 + 6); glBindTexture(GL_TEXTURE_2D, _widTex); glUniform1i(L("uWid"), 6);
                     glUniform4f(L("uWidRect"), _widX, _widY, _widW, _widH);
                 }
+                // behind the open menus: the damage cleared
+                var vc = VisorClear; float vk = vc != null && vc.Length >= 4 ? VisorClearK : 0f;
+                glUniform1f(L("uClrK"), vk);
+                glUniform4f(L("uClr0"), vk > 0 ? vc[0] : 0f, vk > 0 ? vc[1] : 0f, vk > 0 ? vc[2] : 0f, vk > 0 ? vc[3] : 0f);
+                glUniform4f(L("uClr1"), vk > 0 && vc.Length >= 8 ? vc[4] : 0f, vk > 0 && vc.Length >= 8 ? vc[5] : 0f, vk > 0 && vc.Length >= 8 ? vc[6] : 0f, vk > 0 && vc.Length >= 8 ? vc[7] : 0f);
             }
+            // the visor's label (ScanTag)
+            bool tag = TagOn && _tagTex != 0;
+            glUniform1i(L("uTagOn"), tag ? 1 : 0);
+            if (tag) { glActiveTexture(GL_TEXTURE0 + 7); glBindTexture(GL_TEXTURE_2D, _tagTex); glUniform1i(L("uTag"), 7); glUniform4f(L("uTagRect"), _tagX, _tagY, _tagW, _tagH); glActiveTexture(GL_TEXTURE0); }
             glDrawArrays(GL_TRIANGLES, 0, 3);
+        }
+        /// <summary>The visor's label (ScanWire.cs ScanTag; premultiplied ARGB, top row first) at window px x, y (its top
+        /// left), laid over the picture in the present pass while TagOn.</summary>
+        public bool TagOn;
+        uint _tagTex; int _tagTW, _tagTH; float _tagX, _tagY, _tagW, _tagH;
+        public void SetTag(int[] px, int w, int h, float x, float y)
+        {
+            if (px == null || w <= 0 || h <= 0) { TagOn = false; return; }
+            if (_tagTex == 0) _tagTex = NewLinearTex();
+            glBindTexture(GL_TEXTURE_2D, _tagTex);
+            if (w != _tagTW || h != _tagTH) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0); glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, px); _tagTW = w; _tagTH = h; }
+            else glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, px);
+            _tagX = x; _tagY = y; _tagW = w; _tagH = h; TagOn = true;
         }
         // ---- THE DAMAGED VISOR (Josh, 2026-10-10): see ScanWire.cs VisorDamage, which draws the glass's layer and the vitals
         // monitor and sets these each frame; the present pass lays them over the picture (FS_PRESENT) ---------------------
@@ -2957,6 +4172,9 @@ void main() {
         /// the hit's tearing, time (s), the heart's pulse 0..1, the cracks' refraction (px at 1920 wide), the repair sweep's
         /// line (0..1 down the window; below 0 = none), the view's share of the window's rows, the vitals monitor on.</summary>
         public bool VisorOn, VisorWidget; public float VisorLevel, VisorHit, VisorHitAge = 9, VisorSeed, VisorTime, VisorBeat, VisorRefract = 3.5f, VisorSweep = -1, VisorViewRows = 1, VisorDeath;
+        /// <summary>Behind the visor's open menus the damage is cleared: up to two rectangles (x0, y0, x1, y1, 0..1 of the
+        /// window) and how far it is faded in (0..1). Null / 0 = none.</summary>
+        public volatile float[] VisorClear; public float VisorClearK;
         /// <summary>The present window's size at the last present (the damage layer is drawn for it).</summary>
         public int PresentW, PresentH;
         uint[] _dmgPaint = new uint[2], _dmgFx = new uint[2]; int _dmgCur; uint _widTex; int _widTW, _widTH; float _widX, _widY, _widW, _widH;
@@ -3266,6 +4484,10 @@ void main() {
                     px[y * N + x] = ((int)Math.Min(255, r) << 16) | ((int)Math.Min(255, g) << 8) | (int)Math.Min(255, b);
                 }
                 var tx = new Raster.Tex(idx, N, N); tx.SetRgb(px, N, N); tx.NoCast = k != 0; _pTex[k] = tx;      // (only the wooden stake casts a shadow: Josh, MINEMAZE/4)
+                // their materials (rooms\_materials.json's wood and iron; the coals dull)
+                if (k == 0) { tx.Material = "wood"; tx.Shine = 0.03f; tx.Gloss = 8f; tx.ShineVary = 0.8f; tx.Wet = 0.5f; }
+                else if (k == 1) { tx.Material = "iron"; tx.Shine = 0.22f; tx.Gloss = 26f; tx.Metal = 0.5f; tx.ShineVary = 1.5f; tx.Wet = 0.3f; tx.Relief = 0.4f; }
+                else tx.Material = "matte";
             }
         }
         // value noise, tiled every 64 cells (seamless as the texture repeats at whole frequencies)
@@ -3686,6 +4908,531 @@ void main() {
             glUniform1f(L("uWidth"), HoloCore * res); glUniform1f(L("uAlpha"), 0.95f); glUniform1i(L("uCore"), 1); glDrawArrays(GL_TRIANGLES, 0, n);
             glDisable(GL_BLEND); glDepthMask(1); glBindVertexArray(0);
         }
+
+        // ---- THE SWEEP SEES THROUGH WALLS (Josh, 2026-10-13: "Is it possible to see these wireframes through walls? Many of
+        // the rooms have the player positioned behind a door on first arrival, and I see only the wireframes of a small portion
+        // of the room ... so the player sees the full room mapping wireframe would be ideal") ------------------------------------
+        // Every edge of the room's own geometry -- not what moves, not the invisible volumes, and not an edge between two faces
+        // of one flat surface (the room's shape, not its triangulation) -- as lines of a constant width on the screen (the
+        // holograms' quads, cut at the near plane), drawn ONLY where the room hides them: each line pixel is tested against a
+        // copy of the picture's depth and kept when it lies more than MatXrayMargin (a share of the distance) + 2 units behind
+        // what is shown; the room's own pass draws the outlines that are in view. Timed and faded as those are (the same fronts
+        // from the eye: drawn as the wire front reaches the line's own distance, gone with the texture front's trail), a little
+        // dimmer (MatXrayK). The edges are gathered once a sweep (BuildXray, ~1 ms) and kept on the card.
+        public bool MatXray = true; public float MatXrayK = 0.6f, MatXrayMargin = 0.03f, MatXrayCore = 0.8f, MatXrayHalo = 3f;
+        public int LastXraySegs;
+        uint _pXray, _xVao, _xVbo; int _xN, _xBuiltFor = -1, _matSweep;
+        const int XSTRIDE = 8;      // a vertex: end A, end B, (end, side)
+        const string VS_XRAY = @"#version 400 core
+layout(location = 0) in vec3 aA; layout(location = 1) in vec3 aB; layout(location = 2) in vec2 aES;
+uniform mat4 uView; uniform vec2 uF; uniform float uNear, uOffY; uniform vec2 uHalf; uniform float uWidth;
+out vec3 vW; out float vSide;
+vec4 clipOf(vec3 w) { vec4 p = uView * vec4(w, 1.0); return vec4(p.x * uF.x, -p.y * uF.y + uOffY * p.z, uNear, p.z); }
+void main() {
+    vec3 wa = aA, wb = aB; vec4 a = clipOf(wa), b = clipOf(wb);
+    vSide = aES.y; vW = wa;
+    float lim = max(uNear, 1.0);
+    if (a.w < lim && b.w < lim) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }      // (all of it behind the eye)
+    // (one end behind the eye: the line cut where it crosses the near plane)
+    if (a.w < lim) { wa = mix(wa, wb, (lim - a.w) / (b.w - a.w)); a = clipOf(wa); }
+    if (b.w < lim) { wb = mix(wb, wa, (lim - b.w) / (a.w - b.w)); b = clipOf(wb); }
+    vec2 sa = a.xy / a.w * uHalf, sb = b.xy / b.w * uHalf, d = sb - sa; float l = length(d);
+    vec2 dn = l > 1e-4 ? d / l : vec2(1.0, 0.0), n = vec2(-dn.y, dn.x);
+    bool atB = aES.x > 0.5; vec4 c = atB ? b : a; vW = atB ? wb : wa;
+    vec2 s = c.xy / c.w * uHalf + n * (aES.y * uWidth) + dn * ((atB ? 0.5 : -0.5) * uWidth);
+    gl_Position = vec4(s / uHalf * c.w, c.z, c.w);
+}";
+        const string FS_XRAY = @"#version 400 core
+in vec3 vW; in float vSide;
+uniform sampler2D uDepth; uniform float uNear, uMargin, uK; uniform int uCore;
+uniform vec4 uMatz, uMatX; uniform vec3 uEye, uCol, uFlare;
+out vec4 oColor;
+void main() {
+    // only where the room hides it (reversed depth: uNear / depth = the distance along the view)
+    float dS = texelFetch(uDepth, ivec2(gl_FragCoord.xy), 0).r;
+    float zF = uNear / max(gl_FragCoord.z, 1e-12);
+    if (dS > 0.0 && zF < (uNear / dS) * (1.0 + uMargin) + 2.0) discard;
+    // the sweep at this point of the line, as the room's own outlines have it (FS_MAIN)
+    float d = length(vW - uEye), band = uMatz.y;
+    float behindT = uMatz.x - d, behindW = uMatz.z - d;
+    float drawn = smoothstep(-0.3 * band, 0.3 * band, behindW);
+    if (drawn <= 0.001) discard;
+    float wireHot = exp(-abs(behindW) / (0.45 * band));
+    float reveal = smoothstep(-0.25 * band, 1.4 * band, behindT);
+    float front = exp(-abs(behindT) / (0.6 * band));
+    float trail = behindT > 0.0 ? 1.0 - smoothstep(0.35, 1.0, behindT / (uMatX.z * uMatX.y)) : 0.0;
+    float lines = drawn * (mix(0.55, 1.0, max(wireHot, front)) * (1.0 - reveal) + max(front, 0.75 * trail) * reveal);
+    float e = abs(vSide);
+    float a = uCore != 0 ? 1.0 - smoothstep(0.45, 1.0, e) : (1.0 - e) * (1.0 - e);
+    oColor = vec4((uCol * lines + uFlare * (0.6 * wireHot * drawn)) * (a * uK), 0.0);
+}";
+        /// <summary>The room's edges for the lines through the walls: 6 vertices (two triangles) an edge.</summary>
+        float[] BuildXray(float[] vx, int[] idx, int[] triTex, Raster.Tex[] texes, out int nVerts)
+        {
+            int nv = vx.Length / 3; var canon = new int[nv]; var at = new Dictionary<long, int>(nv);
+            for (int v = 0; v < nv; v++)
+            {
+                long kx = (long)Math.Round(vx[v * 3] * 20.0) + (1L << 20), ky = (long)Math.Round(vx[v * 3 + 1] * 20.0) + (1L << 20), kz = (long)Math.Round(vx[v * 3 + 2] * 20.0) + (1L << 20);
+                long k = ((kx & 0x1FFFFF) << 42) | ((ky & 0x1FFFFF) << 21) | (kz & 0x1FFFFF);
+                int c; if (!at.TryGetValue(k, out c)) { c = v; at[k] = v; }
+                canon[v] = c;
+            }
+            // an edge: its ends, the first face's normal, how many faces share it, whether two of them lie flat together
+            var edges = new Dictionary<long, int>(); var eA = new List<int>(); var eB = new List<int>(); var eN = new List<float[]>(); var eCount = new List<int>(); var eFlat = new List<bool>();
+            int nt = Math.Min(idx.Length / 3, triTex.Length);
+            for (int t = 0; t < nt; t++)
+            {
+                int tt = triTex[t]; if (tt < 0 || tt >= texes.Length || texes[tt] == null || texes[tt].Moves || texes[tt].Ghost) continue;
+                int i0 = canon[idx[t * 3]], i1 = canon[idx[t * 3 + 1]], i2 = canon[idx[t * 3 + 2]];
+                if (i0 == i1 || i1 == i2 || i0 == i2) continue;
+                float ux = vx[i1 * 3] - vx[i0 * 3], uy = vx[i1 * 3 + 1] - vx[i0 * 3 + 1], uz = vx[i1 * 3 + 2] - vx[i0 * 3 + 2];
+                float wx = vx[i2 * 3] - vx[i0 * 3], wy = vx[i2 * 3 + 1] - vx[i0 * 3 + 1], wz = vx[i2 * 3 + 2] - vx[i0 * 3 + 2];
+                float nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx, nl = (float)Math.Sqrt(nx * nx + ny * ny + nz * nz);
+                if (nl < 1e-6f) continue;
+                var nrm = new[] { nx / nl, ny / nl, nz / nl };
+                for (int s = 0; s < 3; s++)
+                {
+                    int a = s == 0 ? i0 : s == 1 ? i1 : i2, b = s == 0 ? i1 : s == 1 ? i2 : i0;
+                    long ek = (long)Math.Min(a, b) * nv + Math.Max(a, b); int e;
+                    if (!edges.TryGetValue(ek, out e)) { edges[ek] = eA.Count; eA.Add(a); eB.Add(b); eN.Add(nrm); eCount.Add(1); eFlat.Add(false); continue; }
+                    int cnt = ++eCount[e]; var n0 = eN[e];
+                    eFlat[e] = cnt == 2 && Math.Abs(n0[0] * nrm[0] + n0[1] * nrm[1] + n0[2] * nrm[2]) > 0.9995f;
+                }
+            }
+            int keep = 0; for (int e = 0; e < eA.Count; e++) if (!eFlat[e]) keep++;
+            var f = new float[keep * 6 * XSTRIDE]; int o = 0;
+            for (int e = 0; e < eA.Count; e++)
+            {
+                if (eFlat[e]) continue;
+                int a = eA[e], b = eB[e];
+                for (int v = 0; v < 6; v++)
+                {
+                    float end = (v == 1 || v == 2 || v == 4) ? 1f : 0f, side = (v == 2 || v == 4 || v == 5) ? 1f : -1f;
+                    f[o] = vx[a * 3]; f[o + 1] = vx[a * 3 + 1]; f[o + 2] = vx[a * 3 + 2]; f[o + 3] = vx[b * 3]; f[o + 4] = vx[b * 3 + 1]; f[o + 5] = vx[b * 3 + 2];
+                    f[o + 6] = end; f[o + 7] = side; o += XSTRIDE;
+                }
+            }
+            nVerts = keep * 6;
+            return f;
+        }
+        void DrawXray(float[] vx, int[] idx, int[] triTex, Raster.Tex[] texes)
+        {
+            if (_pXray == 0)
+            {
+                _pXray = Link(VS_XRAY, FS_XRAY, "the sweep's lines through walls");
+                var ids = new uint[1]; glGenVertexArrays(1, ids); _xVao = ids[0]; glBindVertexArray(_xVao);
+                glGenBuffers(1, ids); _xVbo = ids[0]; glBindBuffer(GL_ARRAY_BUFFER, _xVbo);
+                int st = XSTRIDE * 4; int[] sizes = { 3, 3, 2 }; int off = 0;
+                for (int a = 0; a < 3; a++) { glEnableVertexAttribArray((uint)a); glVertexAttribPointer((uint)a, sizes[a], GL_FLOAT, 0, st, new IntPtr(off * 4)); off += sizes[a]; }
+            }
+            if (_xBuiltFor != _matSweep)
+            {
+                _xBuiltFor = _matSweep;
+                var verts = BuildXray(vx, idx, triTex, texes, out _xN);
+                glBindVertexArray(_xVao); glBindBuffer(GL_ARRAY_BUFFER, _xVbo);
+                if (_xN > 0) glBufferDataF(GL_ARRAY_BUFFER, new IntPtr((long)_xN * XSTRIDE * 4), verts, GL_STREAM_DRAW);
+            }
+            LastXraySegs = _xN / 6; if (_xN == 0) return;
+            Blit(_fbo, _surfFbo);      // (the picture's depth as it stands, for each line pixel's test)
+            glBindFramebuffer(GL_FRAMEBUFFER, _fbo); glViewport(0, 0, W, H);
+            glUseProgram(_pXray); Func<string, int> L = s => glGetUniformLocation(_pXray, s);
+            glUniformMatrix4fv(L("uView"), 1, 0, _view); glUniform2f(L("uF"), _focal * VHf / W, _focal * VHf / H);
+            glUniform1f(L("uNear"), NearZ); glUniform1f(L("uOffY"), OffY); glUniform2f(L("uHalf"), W * 0.5f, H * 0.5f);
+            float[] V = _view; float tx = V[12], ty = V[13], tz = V[14];
+            glUniform3f(L("uEye"), -(V[0] * tx + V[1] * ty + V[2] * tz), -(V[4] * tx + V[5] * ty + V[6] * tz), -(V[8] * tx + V[9] * ty + V[10] * tz));
+            glUniform4f(L("uMatz"), _mfTex, Math.Max(1f, MatBand), _mfWire, 1f);
+            glUniform4f(L("uMatX"), _matT, Math.Max(0.05f, MatTrail), Math.Max(1f, MatSpeed), Math.Max(0f, MatDots));
+            glUniform3f(L("uCol"), ((MatColor >> 16) & 255) / 255f, ((MatColor >> 8) & 255) / 255f, (MatColor & 255) / 255f);
+            glUniform3f(L("uFlare"), ((MatFlare >> 16) & 255) / 255f, ((MatFlare >> 8) & 255) / 255f, (MatFlare & 255) / 255f);
+            glUniform1f(L("uMargin"), Math.Max(0f, MatXrayMargin));
+            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, _surfTex); glUniform1i(L("uDepth"), 0);
+            glDisable(GL_DEPTH_TEST); glDepthMask(0); glDisable(GL_CULL_FACE); glDisable(GL_STENCIL_TEST);
+            glEnable(GL_BLEND); glBlendFunc(GL_ONE, GL_ONE); glColorMask(1, 1, 1, 0);      // (alpha: the placed lights' share, for the fog -- left alone)
+            glBindVertexArray(_xVao);
+            float res = H / 1200f;
+            glUniform1f(L("uWidth"), MatXrayHalo * res); glUniform1f(L("uK"), MatXrayK * 0.22f); glUniform1i(L("uCore"), 0); glDrawArrays(GL_TRIANGLES, 0, _xN);
+            glUniform1f(L("uWidth"), MatXrayCore * res); glUniform1f(L("uK"), MatXrayK); glUniform1i(L("uCore"), 1); glDrawArrays(GL_TRIANGLES, 0, _xN);
+            glDisable(GL_BLEND); glColorMask(1, 1, 1, 1); glEnable(GL_DEPTH_TEST); glDepthFunc(GL_GREATER); glDepthMask(1); glBindVertexArray(0);
+            Check("the sweep's lines through walls");
+        }
+
+        // ---- A GHOST (Josh, 2026-10-11, WELLROOM: Niamh, the floating lady -- "more ethereal ... transparent ghost-like ...
+        // look like a ghost and not a bunch of polygons") --------------------------------------------------------------------
+        // The characters a room's "ghost" block names (their textures carry Tex.Ghost) are left out of the room's own pass,
+        // its shadow views and its reflections, and drawn here as glowing smoke over the picture:
+        //   1. her SHAPE, at half size: how thick she is along each ray (nearest and farthest surface, max-blended) and the
+        //      colours of her nearest surface -- both hidden behind the room by its depth;
+        //   2. the LAYER: thin at her outline, fuller through her body (1 - exp(-density x thickness)); whole above GhostFadeHigh
+        //      of her height, gone below GhostFadeLow; 3D smoke drifting up through her, eating her outline; her painted face
+        //      and dress as light and shade in the glow's colour; a brighter rim where she is thin;
+        //   3. a SOFT copy (a Gaussian blur GhostSoft of her height across) for the glow, so no polygon edge survives;
+        //   4. laid over the picture -- a share of the sharp layer (GhostCore: her face stays readable) and the soft one --
+        //      with the room behind her wobbling as through heat haze (GhostShimmer pixels at 1080 rows), and the fog cleared
+        //      over her (the picture's alpha: what the placed lights light comes through the dark).
+        // Her own faint light (AddGhostLight) goes with her: one more placed light, no shadows. Every size is a share of HER
+        // HEIGHT as she stands in the room (her size is the engine's). The processor's picture (F9) draws her as before.
+        public bool GhostOn;
+        public int GhostColor = 0xBFF6F0, GhostRimColor = 0xE6FFFF;
+        /// <summary>How much of her painted art shows as light and shade (0 = one even glow), the most opaque she gets, how
+        /// fast she thickens (per her height of thickness), the thinnest she counts as (a single cloth panel), the rim.</summary>
+        public float GhostTexture = 0.55f, GhostOpacity = 0.6f, GhostDensity = 8f, GhostMinThick = 0.01f, GhostRim = 1f;
+        /// <summary>How brightly she glows against how much of the room she hides (1 = as much light as she hides).</summary>
+        public float GhostBright = 1.8f;
+        /// <summary>HER TEXTURES (Josh, 2026-10-11): how much of her own painted colours shows inside the glow, at the picture's
+        /// full detail (0 = the glow's colour with her art's light and shade only, 1 = her art's colours).</summary>
+        public float GhostTexColour = 0f;
+        /// <summary>The glow's blur (share of her height), and the sharp layer's and the soft glow's shares over the picture.</summary>
+        public float GhostSoft = 0.02f, GhostCore = 0.6f, GhostGlow = 0.8f;
+        /// <summary>Height shares: nothing of her below Low, all of her above High.</summary>
+        public float GhostFadeLow = 0.02f, GhostFadeHigh = 0.72f;
+        /// <summary>The smoke: how much it eats her outline (0..1), its size and how fast it rises (shares of her height, /s).</summary>
+        public float GhostNoise = 0.7f, GhostNoiseSize = 0.12f, GhostNoiseRise = 0.06f;
+        /// <summary>The heat-haze wobble behind her (pixels at 1080 rows) and her slow breathing (share of her glow).</summary>
+        public float GhostShimmer = 3f, GhostBreath = 0.08f;
+        /// <summary>Her light: strength (0 = none), reach (half as bright this many of her heights away), its part in the fog,
+        /// how high in her it sits (share of her height), colour.</summary>
+        public float GhostLight = 0.25f, GhostLightRange = 1f, GhostLightAir = 1.5f, GhostLightHeight = 0.8f; public int GhostLightColor = 0x8FE6DC;
+        public int LastGhostTris; public bool LastGhostDrawn; public string GhostError;
+        /// <summary>Her box this frame (world x0 y0 z0 x1 y1 z1).</summary>
+        public readonly float[] GhostBox = new float[6];
+        bool _ghostHave; int _nRoomLights;
+        uint _pGhostGeo, _pGhostBuild, _pGhostBlur, _pGhostComp;
+        uint _gThickFbo, _gThickTex, _gSurfFbo, _gSurfTex, _gSurfDepth, _gLayerFbo, _gLayerTex, _gBgFbo, _gBgTex, _gFullFbo, _gFullTex, _gFullDepth; int _gW, _gH;
+        readonly uint[] _gBlurFbo = new uint[2], _gBlurTex = new uint[2];
+        // her shape (VS_MAIN's corners): mode 0 = thickness (-nearest z, farthest z, covered), 1 = her nearest surface's colour
+        const string FS_GHOST_GEO = @"#version 400 core
+in vec2 vUv; in vec3 vView; in vec4 vTri; in float vLod; in vec3 vWorld;
+uniform sampler2D uTex; uniform sampler2D uMask; uniform sampler2D uDepth;
+uniform float uFlip, uNear; uniform vec2 uScale; uniform int uMode;
+out vec4 oColor;
+void main() {
+    vec2 st = vec2(vUv.x, uFlip > 0.5 ? 1.0 - vUv.y : vUv.y);
+    if (texture(uMask, st).r < 0.5 / 255.0) discard;        // palette index 0: a hole in her texture
+    // behind the room (a wall or a pillar between her and the eye): the room's depth is near / z, greater = nearer
+    ivec2 q = clamp(ivec2(gl_FragCoord.xy * uScale), ivec2(0), textureSize(uDepth, 0) - 1);
+    if (texelFetch(uDepth, q, 0).r > uNear / max(vView.z, 1e-3) * 1.0005) discard;
+    if (uMode == 0) { oColor = vec4(-vView.z, vView.z, 1.0, 0.0); return; }
+    oColor = vec4(texture(uTex, st).rgb, 1.0);
+}";
+        // the layer: premultiplied glow, alpha = how much of the room she hides
+        const string FS_GHOST_BUILD = @"#version 400 core
+uniform sampler2D uThick, uSurf; uniform vec2 uScale, uCentre; uniform float uFpx; uniform mat4 uCamWorld;
+uniform vec2 uBoxY; uniform vec3 uCol, uRimCol;
+uniform float uTexK, uOpacity, uDensity, uMinThick, uRim, uTime, uBreath, uBright, uTexCol;
+uniform vec2 uFade; uniform vec3 uNoise;
+out vec4 oColor;
+" + NOISE_GLSL + @"
+float fbm(vec3 p) { float s = 0.0, a = 0.5; for (int o = 0; o < 3; o++) { s += a * noised(p).x; p = p * 2.03 + vec3(1.7, 9.2, 3.1); a *= 0.5; } return s; }
+void main() {
+    ivec2 p = ivec2(gl_FragCoord.xy);
+    vec4 th = texelFetch(uThick, p, 0);
+    if (th.b <= 0.0) { oColor = vec4(0.0); return; }
+    float hg = max(uBoxY.y - uBoxY.x, 1.0);
+    float zn = -th.r, thick = max(th.g - zn, uMinThick * hg) / hg;
+    // her nearest surface, back in the room
+    vec2 fc = (vec2(p) + 0.5) * uScale;
+    vec3 Vv = vec3((fc.x - uCentre.x) / uFpx * zn, (uCentre.y - fc.y) / uFpx * zn, zn);
+    vec3 P = (uCamWorld * vec4(Vv, 1.0)).xyz;
+    float h = clamp((P.y - uBoxY.x) / hg, 0.0, 1.0);
+    // smoke drifting up through her (its size and speed in shares of her height)
+    float sz = max(uNoise.y * hg, 0.5);
+    float n = clamp(0.5 + 1.2 * fbm((P - vec3(0.0, uTime * uNoise.z * hg, 0.0)) / sz), 0.0, 1.0);
+    float fade = smoothstep(uFade.x, uFade.y, h + (n - 0.5) * 0.3 * uNoise.x);      // (its edge wisps too)
+    float dens = 1.0 - exp(-uDensity * thick), edge = 1.0 - dens;
+    float wisp = smoothstep(0.15, 0.85, n);
+    float body = fade * mix(1.0, wisp, uNoise.x * edge);                           // the outline breaks into smoke, the middle holds
+    body *= mix(1.0, 0.75 + 0.5 * wisp, 0.5 * uNoise.x);                          // and the smoke moves inside her too (gently)
+    // her painted face and dress as light and shade in the glow -- or in her own colours (uTexCol) -- the smoke's swirls brighter
+    vec3 sc = texelFetch(uSurf, p, 0).rgb;
+    float tl = dot(sc, vec3(0.30, 0.59, 0.11));
+    vec3 base = mix(uCol * mix(1.0, 0.5 + 0.8 * tl, uTexK), sc, uTexCol) * (0.85 + 0.3 * n);
+    float a = clamp(uOpacity * uBreath * (0.3 + 0.7 * dens) * body, 0.0, 1.0);
+    // where she is thin (a cloth panel, an outline) the rim's colour, glowing without hiding anything
+    vec3 rim = uRimCol * (uRim * uBreath * edge * edge * fade * mix(1.0, wisp, 0.5 * uNoise.x));
+    // (premultiplied: she glows more brightly than she hides -- uBright)
+    oColor = vec4(base * a * uBright + rim * 0.3 * a, a);
+}";
+        const string FS_GHOST_BLUR = @"#version 400 core
+uniform sampler2D uSrc; uniform ivec2 uDir; uniform float uSigma; uniform int uR;
+out vec4 oColor;
+void main() {
+    ivec2 p = ivec2(gl_FragCoord.xy), mx = textureSize(uSrc, 0) - 1;
+    vec4 s = vec4(0.0); float ws = 0.0, k = -0.5 / (uSigma * uSigma);
+    for (int i = -uR; i <= uR; i++) {
+        float w = exp(float(i * i) * k);
+        s += w * texelFetch(uSrc, clamp(p + uDir * i, ivec2(0), mx), 0); ws += w;
+    }
+    oColor = s / ws;
+}";
+        // over the picture: the room behind her (wobbling), the sharp layer's share, the soft glow; alpha = the fog cleared
+        const string FS_GHOST_COMP = @"#version 400 core
+uniform sampler2D uBg, uLayer, uSoft; uniform vec2 uSize, uTexel; uniform float uTime, uShimmer, uCore, uGlow, uRim, uReach;
+// her own colours at the picture's full size (her nearest surface; alpha 1 where she is), and how much of them shows
+uniform sampler2D uFull; uniform float uTexCol, uBright;
+out vec4 oColor;
+" + NOISE_GLSL + @"
+void main() {
+    vec2 fc = gl_FragCoord.xy, uv = fc / uSize;
+    // the sharp layer a little softened (3 x 3 taps a half-size texel apart): no stair-stepped outline survives
+    vec4 sharp = vec4(0.0);
+    for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) sharp += texture(uLayer, uv + vec2(i, j) * uTexel) * (float(2 - abs(i)) * float(2 - abs(j)) / 16.0);
+    vec4 soft = texture(uSoft, uv);
+    float m = clamp(soft.a * 2.5 + sharp.a, 0.0, 1.0);
+    vec2 o = vec2(0.0);
+    if (m > 0.002 && uShimmer > 0.0) {
+        vec3 q = vec3(fc / (uSize.y * 0.025), uTime * 0.7);
+        o = vec2(noised(q).x, noised(q + vec3(31.7, 11.3, 5.1)).x) * (uShimmer * m);
+    }
+    vec3 bg = texture(uBg, (fc + o) / uSize).rgb;
+    float here = texelFetch(uBg, ivec2(fc), 0).a;
+    // the sharp layer only well inside her outline -- where the soft copy holds most of it -- so no polygon edge shows;
+    // toward the outline she is the glow alone
+    // how far inside her: the soft copy's alpha against the fullest of her near here (eight taps a glow's width out) --
+    // 1 deep inside, a half at her outline, toward 0 past it, whatever her thickness there
+    float A = sharp.a;
+    for (int k = 0; k < 8; k++) { float an = float(k) * 0.785398; A = max(A, texture(uLayer, uv + vec2(cos(an), sin(an)) * uReach * uTexel).a); }
+    float r = A > 1e-3 ? clamp(soft.a / A, 0.0, 1.0) : 0.0;
+    float core = uCore * smoothstep(0.3, 0.65, r);
+    // HER TEXTURES (Josh, 2026-10-11: 'add back her textures but leave the new effects'): inside her, her painted colours
+    // at full detail, as see-through as the layer there (its alpha carries the fade and the smoke)
+    vec4 tf = texelFetch(uFull, ivec2(fc), 0);
+    vec3 coreC = mix(sharp.rgb, tf.rgb * sharp.a * uBright, uTexCol * tf.a);
+    // the glow brighter toward her outline and past it (her rim, as light in the air round her)
+    vec3 L = coreC * core + soft.rgb * (uGlow * (1.0 + uRim * (1.0 - r)));
+    float a = clamp(sharp.a * core + soft.a * uGlow * 0.7, 0.0, 0.95);
+    // her light SCREENED over what shows through her (never past white: over a torch-lit wall she stays a pale shape)
+    vec3 c = bg * (1.0 - a);
+    oColor = vec4(1.0 - (1.0 - c) * (1.0 - min(L, vec3(1.0))), max(here, 0.9 * m));
+}";
+        /// <summary>Where the ghost is this frame: the box round her triangles (those whose texture is a ghost's).</summary>
+        void GhostBounds(float[] vx, int[] idx, int[] triTex, Raster.Tex[] texes)
+        {
+            _ghostHave = false; LastGhostTris = 0;
+            if (!GhostOn) return;
+            float x0 = float.MaxValue, y0 = float.MaxValue, z0 = float.MaxValue, x1 = float.MinValue, y1 = float.MinValue, z1 = float.MinValue;
+            int n = 0, nTri = idx.Length / 3, nt = texes.Length;
+            for (int t = 0; t < nTri; t++)
+            {
+                int ti = triTex[t]; if (ti < 0 || ti >= nt || texes[ti] == null || !texes[ti].Ghost) continue;
+                for (int k = 0; k < 3; k++)
+                {
+                    int v = idx[t * 3 + k] * 3; float x = vx[v], y = vx[v + 1], z = vx[v + 2];
+                    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z;
+                }
+                n++;
+            }
+            LastGhostTris = n;
+            if (n == 0 || y1 - y0 < 0.5f) return;
+            GhostBox[0] = x0; GhostBox[1] = y0; GhostBox[2] = z0; GhostBox[3] = x1; GhostBox[4] = y1; GhostBox[5] = z1;
+            _ghostHave = true;
+        }
+        /// <summary>Her faint light, one more placed light (all round, no shadows) at GhostLightHeight of her, breathing with her.</summary>
+        void AddGhostLight()
+        {
+            if (!GhostOn || !_ghostHave || GhostLight <= 0f || _nLights >= Raster.MaxLights) return;
+            int i = _nLights, b = i * 8; float hgt = GhostBox[4] - GhostBox[1];
+            float k = GhostLight * (1f - GhostBreath * 0.5f * (1f - (float)Math.Sin(Time * 1.1)));
+            _lightsW[b] = (GhostBox[0] + GhostBox[3]) * 0.5f; _lightsW[b + 1] = GhostBox[1] + hgt * GhostLightHeight; _lightsW[b + 2] = (GhostBox[2] + GhostBox[5]) * 0.5f;
+            _lightsW[b + 3] = ((GhostLightColor >> 16) & 255) / 255f * k; _lightsW[b + 4] = ((GhostLightColor >> 8) & 255) / 255f * k; _lightsW[b + 5] = (GhostLightColor & 255) / 255f * k;
+            _lightsW[b + 6] = Math.Max(10f, GhostLightRange * hgt); _lightsW[b + 7] = 0f;
+            SetLightSpot(i, 0f, -1f, 0f, 0f, 0f, GhostLightAir, 0f, 0f); SetLightTint(i, 1f, 1f, 1f, 0f, 1f); _airFirst[i] = false;
+            _nLights++;
+        }
+        void DrawGhost(Raster.Tex[] texes, bool flipV)
+        {
+            try { LastGhostDrawn = GhostPasses(texes, flipV); }
+            catch (Exception e) { GhostError = e.Message; GhostOn = false; while (glGetError() != 0) { } }       // (she is drawn as before from the next frame)
+            finally
+            {
+                // as the passes after this one expect
+                glDisable(GL_SCISSOR_TEST); glDisable(GL_BLEND); if (glBlendEquation != null) glBlendEquation(GL_FUNC_ADD);
+                glColorMask(1, 1, 1, 1); glEnable(GL_DEPTH_TEST); glDepthFunc(GL_GREATER); glDepthMask(1);
+                glBindFramebuffer(GL_FRAMEBUFFER, _fbo); glViewport(0, 0, W, H); glActiveTexture(GL_TEXTURE0); glBindVertexArray(0);
+            }
+        }
+        bool GhostPasses(Raster.Tex[] texes, bool flipV)
+        {
+            if (glBlendEquation == null) throw new InvalidOperationException("the graphics driver has no glBlendEquation");
+            if (_pGhostGeo == 0)
+            {
+                _pGhostGeo = Link(VS_MAIN, FS_GHOST_GEO, "the ghost's shape");
+                _pGhostBuild = Link(VS_CLEAR, FS_GHOST_BUILD, "the ghost's smoke");
+                _pGhostBlur = Link(VS_CLEAR, FS_GHOST_BLUR, "the ghost's glow");
+                _pGhostComp = Link(VS_CLEAR, FS_GHOST_COMP, "the ghost over the picture");
+            }
+            EnsureGhostTargets();
+            float hgt = GhostBox[4] - GhostBox[1];
+            // where she is on the screen (her box's corners) and how far away
+            float[] V = _view; float fpx = FocalPx, cy = VHf * 0.5f;
+            float sx0 = float.MaxValue, sy0 = float.MaxValue, sx1 = float.MinValue, sy1 = float.MinValue; bool behind = false, seen = false;
+            for (int c = 0; c < 8; c++)
+            {
+                float x = GhostBox[(c & 1) != 0 ? 3 : 0], y = GhostBox[(c & 2) != 0 ? 4 : 1], z = GhostBox[(c & 4) != 0 ? 5 : 2];
+                float ex = x * V[0] + y * V[4] + z * V[8] + V[12], ey = x * V[1] + y * V[5] + z * V[9] + V[13], ez = x * V[2] + y * V[6] + z * V[10] + V[14];
+                if (ez < NearZ * 4f) { behind = true; continue; }
+                seen = true;
+                float px = W * 0.5f + ex * fpx / ez, py = cy - ey * fpx / ez;
+                sx0 = Math.Min(sx0, px); sx1 = Math.Max(sx1, px); sy0 = Math.Min(sy0, py); sy1 = Math.Max(sy1, py);
+            }
+            if (!seen) return false;
+            float mx = (GhostBox[0] + GhostBox[3]) * 0.5f, my = (GhostBox[1] + GhostBox[4]) * 0.5f, mz = (GhostBox[2] + GhostBox[5]) * 0.5f;
+            float zc = Math.Max(NearZ * 4f, mx * V[2] + my * V[6] + mz * V[10] + V[14]);
+            float sigma = Math.Max(0.5f, Math.Min(16f, GhostSoft * hgt * fpx / zc * 0.5f));      // (pixels at half size)
+            int rad = Math.Min(40, (int)Math.Ceiling(sigma * 2.5f));
+            float shim = Math.Max(0f, GhostShimmer) * H / 1080f;
+            int margin = (int)(rad * 2 + shim + 8);
+            int rx0 = 0, ry0 = 0, rx1 = W, ry1 = H;
+            if (!behind)
+            {
+                if (sx1 < -margin || sy1 < -margin || sx0 > W + margin || sy0 > H + margin) return false;
+                rx0 = Math.Max(0, (int)Math.Floor(sx0) - margin); ry0 = Math.Max(0, (int)Math.Floor(sy0) - margin);
+                rx1 = Math.Min(W, (int)Math.Ceiling(sx1) + margin); ry1 = Math.Min(H, (int)Math.Ceiling(sy1) + margin);
+            }
+            if (rx1 - rx0 < 2 || ry1 - ry0 < 2) return false;
+            int hx0 = rx0 / 2, hy0 = ry0 / 2, hx1 = Math.Min(_gW, rx1 / 2 + 2), hy1 = Math.Min(_gH, ry1 / 2 + 2);
+            float scX = (float)W / _gW, scY = (float)H / _gH;
+
+            // 1. HER SHAPE, half size, in her box only
+            glDisable(GL_CULL_FACE); glDisable(GL_STENCIL_TEST); glColorMask(1, 1, 1, 1);
+            uint pg = _pGhostGeo; Func<string, int> L = s => glGetUniformLocation(pg, s);
+            glUseProgram(pg);
+            glUniformMatrix4fv(L("uView"), 1, 0, _view);
+            glUniform2f(L("uF"), _focal * VHf / W, _focal * VHf / H); glUniform1f(L("uOffY"), OffY); glUniform1f(L("uNear"), NearZ);
+            glUniform1f(L("uFlip"), flipV ? 1f : 0f); glUniform2f(L("uScale"), scX, scY);
+            glUniform1i(L("uTex"), 0); glUniform1i(L("uMask"), 1); glUniform1i(L("uDepth"), 2);
+            glActiveTexture(GL_TEXTURE0 + 2); glBindTexture(GL_TEXTURE_2D, _depthTex);
+            glEnable(GL_SCISSOR_TEST); glScissor(hx0, hy0, hx1 - hx0, hy1 - hy0);
+            glBindVertexArray(_main.Vao);
+            //    a. how thick: the nearest and the farthest of her surfaces along each ray, every face counted
+            glBindFramebuffer(GL_FRAMEBUFFER, _gThickFbo); glViewport(0, 0, _gW, _gH);
+            glClearColor(-60000f, 0f, 0f, 0f); glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST); glDepthMask(0);
+            glEnable(GL_BLEND); glBlendEquation(GL_MAX); glBlendFunc(GL_ONE, GL_ONE);
+            glUniform1i(L("uMode"), 0); GhostBatches(texes);
+            glDisable(GL_BLEND); glBlendEquation(GL_FUNC_ADD);
+            //    b. the colours of her nearest surface
+            glBindFramebuffer(GL_FRAMEBUFFER, _gSurfFbo);
+            glClearColor(0f, 0f, 0f, 0f); glClearDepth(0.0); glDepthMask(1); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glEnable(GL_DEPTH_TEST); glDepthFunc(GL_GREATER);
+            glUniform1i(L("uMode"), 1); GhostBatches(texes);
+            //    c. her own colours at full size, for her textures inside the glow (GhostTexColour)
+            bool full = GhostTexColour > 0f;
+            if (full)
+            {
+                EnsureGhostFull();
+                glBindFramebuffer(GL_FRAMEBUFFER, _gFullFbo); glViewport(0, 0, W, H); glScissor(rx0, ry0, rx1 - rx0, ry1 - ry0);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glUniform2f(L("uScale"), 1f, 1f); GhostBatches(texes); glUniform2f(L("uScale"), scX, scY);
+                glViewport(0, 0, _gW, _gH); glScissor(hx0, hy0, hx1 - hx0, hy1 - hy0);
+            }
+            glDisable(GL_DEPTH_TEST); glDepthMask(0);
+
+            // 2. THE LAYER (the glow and blur pictures cleared whole: the blur reads past her box)
+            glBindVertexArray(_eVao);
+            glDisable(GL_SCISSOR_TEST);
+            glBindFramebuffer(GL_FRAMEBUFFER, _gLayerFbo); glClear(GL_COLOR_BUFFER_BIT);
+            for (int k = 0; k < 2; k++) { glBindFramebuffer(GL_FRAMEBUFFER, _gBlurFbo[k]); glClear(GL_COLOR_BUFFER_BIT); }
+            glEnable(GL_SCISSOR_TEST);
+            glBindFramebuffer(GL_FRAMEBUFFER, _gLayerFbo);
+            uint pb = _pGhostBuild; Func<string, int> B = s => glGetUniformLocation(pb, s);
+            glUseProgram(pb);
+            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, _gThickTex);
+            glActiveTexture(GL_TEXTURE0 + 1); glBindTexture(GL_TEXTURE_2D, _gSurfTex);
+            glUniform1i(B("uThick"), 0); glUniform1i(B("uSurf"), 1);
+            glUniform2f(B("uScale"), scX, scY); glUniform2f(B("uCentre"), W * 0.5f, cy); glUniform1f(B("uFpx"), fpx);
+            glUniformMatrix4fv(B("uCamWorld"), 1, 0, _camWorld);
+            glUniform2f(B("uBoxY"), GhostBox[1], GhostBox[4]);
+            glUniform3f(B("uCol"), ((GhostColor >> 16) & 255) / 255f, ((GhostColor >> 8) & 255) / 255f, (GhostColor & 255) / 255f);
+            glUniform3f(B("uRimCol"), ((GhostRimColor >> 16) & 255) / 255f, ((GhostRimColor >> 8) & 255) / 255f, (GhostRimColor & 255) / 255f);
+            glUniform1f(B("uTexK"), Math.Max(0f, Math.Min(1f, GhostTexture))); glUniform1f(B("uOpacity"), Math.Max(0f, Math.Min(1f, GhostOpacity)));
+            glUniform1f(B("uDensity"), Math.Max(0f, GhostDensity)); glUniform1f(B("uMinThick"), Math.Max(0.001f, GhostMinThick)); glUniform1f(B("uRim"), Math.Max(0f, GhostRim));
+            glUniform1f(B("uTime"), Time); glUniform1f(B("uBreath"), 1f - GhostBreath * 0.5f * (1f - (float)Math.Sin(Time * 1.1))); glUniform1f(B("uBright"), Math.Max(0f, GhostBright));
+            glUniform1f(B("uTexCol"), Math.Max(0f, Math.Min(1f, GhostTexColour)));
+            glUniform2f(B("uFade"), GhostFadeLow, Math.Max(GhostFadeLow + 0.01f, GhostFadeHigh));
+            glUniform3f(B("uNoise"), Math.Max(0f, Math.Min(1f, GhostNoise)), Math.Max(0.01f, GhostNoiseSize), GhostNoiseRise);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+
+            // 3. THE SOFT COPY: across, then down
+            uint pu = _pGhostBlur; Func<string, int> U = s => glGetUniformLocation(pu, s);
+            glUseProgram(pu);
+            glUniform1f(U("uSigma"), sigma); glUniform1i(U("uR"), rad); glUniform1i(U("uSrc"), 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindFramebuffer(GL_FRAMEBUFFER, _gBlurFbo[0]); glBindTexture(GL_TEXTURE_2D, _gLayerTex); glUniform2i(U("uDir"), 1, 0); glDrawArrays(GL_TRIANGLES, 0, 3);
+            glBindFramebuffer(GL_FRAMEBUFFER, _gBlurFbo[1]); glBindTexture(GL_TEXTURE_2D, _gBlurTex[0]); glUniform2i(U("uDir"), 0, 1); glDrawArrays(GL_TRIANGLES, 0, 3);
+
+            // 4. OVER THE PICTURE: the picture as it stands copied out (her box), then she is laid over it
+            glDisable(GL_SCISSOR_TEST);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, _fbo); glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _gBgFbo);
+            glBlitFramebuffer(rx0, ry0, rx1, ry1, rx0, ry0, rx1, ry1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            glBindFramebuffer(GL_FRAMEBUFFER, _fbo); glViewport(0, 0, W, H);
+            glEnable(GL_SCISSOR_TEST); glScissor(rx0, ry0, rx1 - rx0, ry1 - ry0);
+            uint pc = _pGhostComp; Func<string, int> C = s => glGetUniformLocation(pc, s);
+            glUseProgram(pc);
+            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, _gBgTex);
+            glActiveTexture(GL_TEXTURE0 + 1); glBindTexture(GL_TEXTURE_2D, _gLayerTex);
+            glActiveTexture(GL_TEXTURE0 + 2); glBindTexture(GL_TEXTURE_2D, _gBlurTex[1]);
+            glActiveTexture(GL_TEXTURE0 + 3); glBindTexture(GL_TEXTURE_2D, full ? _gFullTex : _gSurfTex);
+            glUniform1i(C("uBg"), 0); glUniform1i(C("uLayer"), 1); glUniform1i(C("uSoft"), 2); glUniform1i(C("uFull"), 3);
+            glUniform1f(C("uTexCol"), full ? Math.Min(1f, GhostTexColour) : 0f); glUniform1f(C("uBright"), Math.Max(0f, GhostBright));
+            glUniform2f(C("uSize"), W, H); glUniform1f(C("uTime"), Time); glUniform1f(C("uShimmer"), shim);
+            glUniform1f(C("uCore"), Math.Max(0f, GhostCore)); glUniform1f(C("uGlow"), Math.Max(0f, GhostGlow)); glUniform1f(C("uRim"), Math.Max(0f, GhostRim));
+            glUniform2f(C("uTexel"), 1f / _gW, 1f / _gH);
+            glUniform1f(C("uReach"), sigma * 2f);         // (half-size texels: two of the glow's sigmas)
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            Check("drawing the ghost");
+            return true;
+        }
+        void GhostBatches(Raster.Tex[] texes)
+        {
+            var s = _main;
+            for (int i = 0; i < s.Nt && i < texes.Length; i++)
+            {
+                if (s.Count[i] == 0 || texes[i] == null || !texes[i].Ghost) continue;
+                GTex g; if (!_tex.TryGetValue(texes[i], out g)) continue;
+                glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g.Rgb);
+                glActiveTexture(GL_TEXTURE0 + 1); glBindTexture(GL_TEXTURE_2D, g.Mask);
+                glDrawArrays(GL_TRIANGLES, s.Start[i] * 3, s.Count[i] * 3);
+            }
+            glActiveTexture(GL_TEXTURE0);
+        }
+        void EnsureGhostTargets()
+        {
+            if (_gThickTex != 0) return;
+            _gW = (W + 1) / 2; _gH = (H + 1) / 2;
+            _gThickTex = GhostTex(_gW, _gH, GL_RGBA16F, GL_RGBA, GL_FLOAT, false); _gThickFbo = GhostFbo(_gThickTex, 0, "the ghost's thickness");
+            _gSurfTex = GhostTex(_gW, _gH, GL_RGBA8, GL_BGRA, GL_UNSIGNED_BYTE, false); _gSurfDepth = GhostTex(_gW, _gH, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, false);
+            _gSurfFbo = GhostFbo(_gSurfTex, _gSurfDepth, "the ghost's colours");
+            _gLayerTex = GhostTex(_gW, _gH, GL_RGBA16F, GL_RGBA, GL_FLOAT, true); _gLayerFbo = GhostFbo(_gLayerTex, 0, "the ghost's smoke");
+            for (int k = 0; k < 2; k++) { _gBlurTex[k] = GhostTex(_gW, _gH, GL_RGBA16F, GL_RGBA, GL_FLOAT, true); _gBlurFbo[k] = GhostFbo(_gBlurTex[k], 0, "the ghost's glow"); }
+            _gBgTex = GhostTex(W, H, GL_RGBA8, GL_BGRA, GL_UNSIGNED_BYTE, true); _gBgFbo = GhostFbo(_gBgTex, 0, "the picture behind the ghost");
+            glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
+        }
+        // her colours at full size: made the first time a ghost asks for her textures
+        void EnsureGhostFull()
+        {
+            if (_gFullTex != 0) return;
+            _gFullTex = GhostTex(W, H, GL_RGBA8, GL_BGRA, GL_UNSIGNED_BYTE, false); _gFullDepth = GhostTex(W, H, GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, false);
+            _gFullFbo = GhostFbo(_gFullTex, _gFullDepth, "the ghost's colours at full size");
+        }
+        uint GhostTex(int w, int h, uint ifmt, uint fmt, uint type, bool linear)
+        {
+            var ids = new uint[1]; glGenTextures(1, ids);
+            glBindTexture(GL_TEXTURE_2D, ids[0]);
+            glTexImage2DN(GL_TEXTURE_2D, 0, (int)ifmt, w, h, 0, fmt, type, IntPtr.Zero);
+            int f = (int)(linear ? GL_LINEAR : GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, f); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, f);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (int)GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (int)GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+            return ids[0];
+        }
+        uint GhostFbo(uint colour, uint depth, string what)
+        {
+            var ids = new uint[1]; glGenFramebuffers(1, ids); glBindFramebuffer(GL_FRAMEBUFFER, ids[0]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colour, 0);
+            if (depth != 0) glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth, 0);
+            Complete(what);
+            return ids[0];
+        }
         public double LastFinishMs;
         public bool ReadPending { get { return _readPending; } }
         /// <summary>Finished pictures held back for a sudden black band (see FinishRead).</summary>
@@ -3793,7 +5540,7 @@ void main() {
                         foreach (var s in _slots) if (s != null) { glDeleteTextures(1, new[] { s.Tex }); glDeleteFramebuffers(1, new[] { s.Fbo }); }
                         if (_depthTex != 0) glDeleteTextures(2, new[] { _depthTex, _surfTex });
                         if (_fbo != 0) glDeleteFramebuffers(2, new[] { _fbo, _surfFbo });
-                        foreach (var p in new[] { _pSharp, _pComp, _pNorm, _pPart, _pWater, _pPresent, _pHolo, _pFlame }) if (p != 0) glDeleteProgram(p);
+                        foreach (var p in new[] { _pSharp, _pComp, _pNorm, _pPart, _pWater, _pPresent, _pHolo, _pFlame, _pXray }) if (p != 0) glDeleteProgram(p);
                         foreach (var tx in new[] { _shadeTex, _picTex, _volTex }) if (tx != 0) glDeleteTextures(1, new[] { tx });
                         if (_volFbo != 0) glDeleteFramebuffers(1, new[] { _volFbo });
                         DetachPresent();

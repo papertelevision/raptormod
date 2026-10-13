@@ -29,14 +29,23 @@
   <span class="sep"></span>
   <button id="roomNote" title="A note about the whole room">Note on room</button>
   <button id="renderBtn" title="Render the room's REAL look from here: lights, fog, shadows, from its current settings (about 10 s). Key: R">Render view</button>
+  <button id="lookBtn" title="Game look: the room drawn LIVE by the game's own renderer -- its lights, fog, shadows and the texture effects -- as you move. The first time takes a few seconds. Key: G">Game look</button>
   <span id="status"></span>
 </header>
 <main>
   <div id="view">
     <canvas id="c"></canvas>
     <div id="hover"></div>
+    <div id="lookBar" hidden>
+      <label title="The helmet lamp"><input type="checkbox" id="lk_lamp"> Flashlight <kbd>L</kbd></label>
+      <label title="Wet surfaces (the game's F5)"><input type="checkbox" id="lk_wet"> Wet <kbd>5</kbd></label>
+      <label title="Surface shine (the game's F6)"><input type="checkbox" id="lk_shine"> Shine <kbd>6</kbd></label>
+      <label title="Relief and parallax depth (the game's F7)"><input type="checkbox" id="lk_relief"> Relief + depth <kbd>7</kbd></label>
+      <label title="Texture repair: re-laid faces, mixed repeats (the game's F11)"><input type="checkbox" id="lk_repair"> Texture repair <kbd>8</kbd></label>
+      <span id="lookMsg"></span>
+    </div>
     <div id="renderBox" hidden><div class="rb-head"><span id="renderMsg"></span><button id="renderClose" title="Close">&times;</button></div><img id="renderImg" alt="the renderer's view" hidden></div>
-    <div id="help">Fly: WASD / arrows move &middot; Q/E or Space/C down/up &middot; Shift faster &middot; drag turn, right-drag pan, wheel zoom &middot; F: walk &middot; click to leave a note</div>
+    <div id="help">Fly: WASD / arrows move &middot; Q/E or Space/C down/up &middot; Shift faster &middot; drag turn, right-drag pan, wheel zoom &middot; F: walk &middot; G: game look &middot; click to leave a note</div>
   </div>
   <aside id="side">
     <section>

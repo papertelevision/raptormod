@@ -155,25 +155,30 @@ namespace AztTool
         /// <summary>Where the page surface's pixels are (host address; 0 = unknown) and its size.</summary>
         public void SetBook(long hostPixels, int w, int h) { _bookAddr = hostPixels; _bookW = w; _bookH = h; }
         public long BookReads, BookFails;
+        // FROM THE BLEED ROW, NOT PanelTop (Josh, 2026-10-11: the page was "cut off by some portions of the bottom UI's
+        // shape"). The view's compose leaves the game's drawings out from OwnFromRow (the art's bleed over the view) down,
+        // and this drew the page only from PanelTop -- so rows OwnFromRow..976 of the page showed black: a band across it.
+        int BookFrom { get { return Math.Max(Top, Math.Min(OwnFromRow, PanelTop)); } }
         void ReadBook()
         {
             _bookClock.Restart();
-            int rows = Math.Min(_bookH, ScreenH) - PanelTop;
+            int from = BookFrom, rows = Math.Min(_bookH, ScreenH) - from;
             if (_bookAddr == 0 || _bookW <= 0 || _bookW > 4096 || rows <= 0) { _bookMask = null; return; }
             int n = rows * _bookW;
             if (_bookMask == null || _bookMask.Length != n) _bookMask = new byte[n];
             IntPtr got;
-            if (!ReadProcessMemory(_proc, new IntPtr(_bookAddr + (long)PanelTop * _bookW), _bookMask, new IntPtr(n), out got) || got.ToInt64() != n) { _bookMask = null; BookFails++; return; }
-            BookReads++;
+            if (!ReadProcessMemory(_proc, new IntPtr(_bookAddr + (long)from * _bookW), _bookMask, new IntPtr(n), out got) || got.ToInt64() != n) { _bookMask = null; BookFails++; return; }
+            _bookMaskFrom = from; BookReads++;
         }
+        int _bookMaskFrom = PanelTop;
         void ComposeBook()
         {
             Array.Clear(_work, 0, _work.Length);                        // clear: the view's window shows through
-            int top = Math.Max(0, (int)Math.Ceiling(WY(PanelTop)));
+            int from = _bookMaskFrom, top = Math.Max(0, (int)Math.Ceiling(WY(from)));
             const int black = unchecked((int)0xFF000000);
             for (int y = top; y < _wh; y++)
             {
-                int iy = (int)Math.Floor((y + _wy + 0.5 - _oy) / _s), mr = iy - PanelTop, row = y * _ww;
+                int iy = (int)Math.Floor((y + _wy + 0.5 - _oy) / _s), mr = iy - from, row = y * _ww;
                 bool rowOk = _bookMask != null && _cur != null && iy >= Top && iy < ScreenH && mr >= 0 && (mr + 1) * _bookW <= _bookMask.Length;
                 for (int x = 0; x < _ww; x++)
                 {
@@ -573,7 +578,7 @@ namespace AztTool
         // live part copied somewhere else does not carry the cursor with it (it is drawn on its own)
         int PxNoCursor(int gx, int gy)
         {
-            if (_haveRef && gx >= CursorX - 12 && gx < CursorX + 72 && gy >= CursorY - 12 && gy < CursorY + 72) return _ref[(gy - Top) * _stride + gx] & 0xFFFFFF;
+            if (_haveRef && !_blankCur && gx >= CursorX - 12 && gx < CursorX + 72 && gy >= CursorY - 12 && gy < CursorY + 72) return _ref[(gy - Top) * _stride + gx] & 0xFFFFFF;
             return (_stab ?? _cur)[(gy - Top) * _stride + gx] & 0xFFFFFF;
         }
         // THE REFERENCE, every reading: the screen itself everywhere but a box around the cursor. In
@@ -584,8 +589,15 @@ namespace AztTool
         int[] _sprDx = new int[(CurBoxL + CurBoxR) * (CurBoxL + CurBoxR)], _sprDy = new int[(CurBoxL + CurBoxR) * (CurBoxL + CurBoxR)];
         int _sprN; bool[] _learned = new bool[(CurBoxL + CurBoxR) * (CurBoxL + CurBoxR)]; bool _haveLearned;
         public long CursorHeals;
+        // THE GAME DRAWS NO CURSOR while the host's vector cursor is up (CursorIcons.cs blanks its bitmap; Overlay.GameCursorBlank).
+        // Then there is nothing to tell apart: the reference is the screen itself, nothing is learnt and no cursor is drawn here.
+        // (Without this the box round a resting pointer was never refreshed -- the text under it stayed OLD -- and changing text
+        // there was "learnt" as the cursor's shape and redrawn wherever the pointer went.)
+        bool _blankCur; public long BlankCursorReadings;
         void UpdateRef()
         {
+            _blankCur = Overlay.GameCursorBlank;
+            if (_blankCur) { _sprN = 0; _haveLearned = false; Buffer.BlockCopy(_cur, 0, _ref, 0, _cur.Length * 4); _haveRef = true; BlankCursorReadings++; return; }
             int rows = ScreenH - Top;
             int cx0 = Math.Max(0, CursorX - CurBoxL), cx1 = Math.Min(ScreenW, CursorX + CurBoxR);
             int cy0 = Math.Max(0, CursorY - CurBoxL - Top), cy1 = Math.Min(rows, CursorY + CurBoxR - Top);
@@ -825,6 +837,14 @@ namespace AztTool
         /// word 0x14747A its row pitch, word 0x152B32 the conversation list's scroll. MemBase turns a guest pointer into a
         /// host address.</summary>
         public long MemBase, LogObjAddr, FontGoldAddr, FontCyanAddr, FontInvAddr, InvWidgetAddr, InvPitchAddr, ConvScrollAddr;
+        /// <summary>Host address of word 0x162B34, the conversation's option count; the options' ends follow it (0x162B36[i],
+        /// words: the text surface's row where option i ends -- the table AztConvHit's click walks).</summary>
+        public long ConvOptAddr;
+        /// <summary>Host address of word 0x152B28: a conversation line is being spoken (no options list up meanwhile).</summary>
+        public long ConvSpeakAddr;
+        /// <summary>Conversation frames whose screen check failed but kept the last good placement (a torn reading: the game
+        /// repaints its box -- fill, then text -- every frame); the option the pointer is over (-1 none).</summary>
+        public long TextHolds; public int HoverOption = -1;
         public bool HostText = true;
         public string TextFace = "Consolas"; public bool TextBold = true; public double TextEm = 17.5;      // (the visor's face, Josh 2026-10-09, at the game sheets' own em)
         /// <summary>The game's palette (0xRRGGBB): gold (56) and cyan (55) for the log. Null = their stock colours.</summary>
@@ -953,6 +973,13 @@ namespace AztTool
             return true;
         }
         int _lastFirst = int.MinValue, _lastDx, _sampleTop;
+        int _goodDelta = int.MinValue; bool _convWas, _listWas; readonly Stopwatch _goodClock = Stopwatch.StartNew();
+        /// <summary>How long a conversation's screen check may fail before the placement is looked for again (s).</summary>
+        public double ConvHoldSeconds = 1.5;
+        /// <summary>How long nothing may agree before the game's own pixels are shown instead (s).</summary>
+        public double ConvGiveUpSeconds = 4.0;
+        // the last good shift of each mode: an options list sits 2 px further in than the spoken lines (every session's log)
+        int _listDx = 2, _logDx = 0; bool _confirmed;
         /// <summary>BLANK LINES SHORTER (Josh, 2026-10-09: "the linespacing is perfect for textwrapping, but the line breaks
         /// are too wide"): an empty line between paragraphs takes this share of a line. The newest line keeps its place at
         /// the box's bottom and the text above closes up (showing a little more of the history). Not in a conversation --
@@ -989,18 +1016,66 @@ namespace AztTool
             if (!conv && LogBoxClosed != null && LogBoxOpen != null) { _ownLog = true; return LogOwn(e, ycur, w, h); }
             int maxOff = Math.Max(0, h - rec[3]), s = Math.Min(Word(LogScrollAddr), maxOff), first = maxOff - s;
             int cs = ConvScrollAddr != 0 && conv ? Word(ConvScrollAddr) : 0;
-            if (cs != 0) first = cs - 2;                                   // (the conversation list mid-scroll: blitted from row cs at y 2)
+            // AN OPTIONS LIST is blitted from surface row cs (its scroll) at y 2 -- the FIRST list too, which sits unscrolled
+            // at cs 0 (Josh, 2026-10-10: "when the dialogue options first appear ... still glitchy": cs 0 used to mean "not
+            // a list", so the first list was placed by the log's maths, never lined up and showed the game's pixels)
+            // (the option count is only zeroed when the NEXT list is built, so it outlives a choice: a list is up when there
+            // are options and nobody is speaking -- 0x152B28; the other placement is still tried before a search)
+            int optN = conv && ConvOptAddr != 0 ? Word(ConvOptAddr) : 0;
+            bool speaking = conv && ConvSpeakAddr != 0 && Word(ConvSpeakAddr) != 0;
+            bool listMode = cs != 0 || (optN > 0 && optN <= MaxOptions && !speaking);
+            int altFirst = listMode ? first : cs - 2;
+            if (listMode) first = cs - 2;
+            // A NEW MODE STARTS FROM THE GAME'S MATHS, NOT FROM NOTHING (Josh, 2026-10-11: "sometimes still gets stuck in the old
+            // text, no hover effects"): every session's log has the list at row cs - 2, +2 px and the spoken lines at the log's
+            // rows, 0 px -- but a new list or a new conversation used to forget everything, so the first readings (the game
+            // repaints its box -- fill, then text -- and DOSBox's screen lags its memory) found an empty box ("best 0%") and
+            // showed the game's pixels until a later reading agreed, up to a second. Now each mode starts trusted, at its own
+            // last good dx, and the usual hold covers the torn readings.
+            // (until the screen confirms it, a failed check searches at once -- the maths could be wrong -- and only a search
+            // that finds nothing either, an empty box, keeps the maths)
+            if (listMode != _listWas) { _listWas = listMode; _goodDelta = 0; _goodClock.Restart(); _lastDx = listMode ? _listDx : _logDx; _confirmed = false; }
+            // STEADY (Josh, 2026-10-10: the conversation text "flickers"): the game repaints its box every frame -- fills it,
+            // then draws the text -- so a reading between the two finds nothing to agree with. The placement is the game's
+            // own maths (+ the offset last confirmed); a failed check keeps it, and only a check failing for a whole
+            // ConvHoldSeconds goes looking (Search); the game's pixels only if nothing has ever lined up.
+            if (conv != _convWas) { _convWas = conv; _goodDelta = 0; _goodClock.Restart(); _lastDx = listMode ? _listDx : _logDx; _confirmed = false; }
+            int mathFirst = first; if (_goodDelta != int.MinValue) first = mathFirst + _goodDelta;
             ScreenInkMap(rec[0] - AlignPad, vy0, Math.Min(w, rec[2]) + 2 * AlignPad, vy1 - vy0);
             int dx = _lastDx, inks; double ok = Agree(first, dx, rec[1], vy0, vy1, 2, out inks);
-            if (ok < 0.8 && inks > 40 && _lastFirst != int.MinValue) { int ik; double a = Agree(_lastFirst, dx, rec[1], vy0, vy1, 2, out ik); if (a > ok) { ok = a; first = _lastFirst; } }
-            if (ok < 0.8 && inks > 40)
+            if (ok >= 0.8 || inks <= 40) { if (inks > 40) { _goodDelta = first - mathFirst; _goodClock.Restart(); _confirmed = true; } }
+            else if (_goodDelta != int.MinValue && _confirmed && _goodClock.Elapsed.TotalSeconds < ConvHoldSeconds) { TextHolds++; }
+            else
             {
-                int f2, d2; Search(rec[1], vy0, vy1, out f2, out d2);
-                int ik; double a = Agree(f2, d2, rec[1], vy0, vy1, 2, out ik);
-                if (a < 0.8) { TextFallbacks++; TextNote = string.Format("log does not line up with the screen (best {0:P0} at row {1}, {2:+0;-0;0} px)", Math.Max(a, ok), f2, d2); return false; }
-                ok = a; first = f2; dx = d2;
+                // (another placement counts only where there IS text to compare: "nothing" agreeing with an empty box -- a torn
+                // reading -- scored 100% and was kept as the offset, sending the next real frames astray: the "row -172" lines)
+                Func<int, int, double> tryAt = (f, d) => { int ik; double a = Agree(f, d, rec[1], vy0, vy1, 2, out ik); return ik > 40 ? a : 0; };
+                for (int d = -6; d <= 6 && ok < 0.8; d++)
+                {
+                    if (d == 0) continue; double a = tryAt(first, _lastDx + d);
+                    if (a > ok) { ok = a; dx = _lastDx + d; }
+                }
+                if (ok < 0.8 && _lastFirst != int.MinValue) { double a = tryAt(_lastFirst, dx); if (a > ok) { ok = a; first = _lastFirst; } }
+                if (ok < 0.8 && altFirst != first) { double a = tryAt(altFirst, dx); if (a > ok) { ok = a; first = altFirst; } }
+                if (ok < 0.8)
+                {
+                    int f2, d2; Search(rec[1], vy0, vy1, out f2, out d2);
+                    double a = tryAt(f2, d2);
+                    if (a >= 0.8) { ok = a; first = f2; dx = d2; }
+                    else if (_goodDelta == int.MinValue || _goodClock.Elapsed.TotalSeconds > ConvGiveUpSeconds)
+                    {
+                        // (nothing has agreed for ConvGiveUpSeconds: the screen really shows something else -- the game's pixels,
+                        // with what the check saw, for the log)
+                        TextFallbacks++;
+                        TextNote = string.Format("log does not line up with the screen (best {0:P0} at row {1}, {2:+0;-0;0} px; {3}, scroll {4}, {5} options, speaking {6}, box {7}, {8} ink px)", Math.Max(a, ok), f2, d2, listMode ? "options list" : "spoken lines", cs, optN, speaking ? "yes" : "no", BoxOpen ? "open" : "closed", inks);
+                        return false;
+                    }
+                    else { TextHolds++; first = mathFirst + _goodDelta; dx = _lastDx; }      // (keep the game's maths with the last good offset -- never the flicker back to pixels)
+                }
+                if (ok >= 0.8) { _goodDelta = first - mathFirst; _goodClock.Restart(); _confirmed = true; }
             }
             _lastFirst = first; _lastDx = dx;
+            if (ok >= 0.8) { if (listMode) _listDx = dx; else _logDx = dx; }
             int lh = _logFonts[0].H;
             // the lines' places (game rows on screen): the game's own, or closed up round blank lines
             var tops = new System.Collections.Generic.List<int>(); var ys = new System.Collections.Generic.List<double>();
@@ -1030,6 +1105,8 @@ namespace AztTool
                     var clip = RectangleF.FromLTRB((float)WX(rec[0]) + sx, (float)WY(vy0), (float)WX(rec[0] + rec[2]) + sx, (float)WY(vy1));
                     gfx.SetClip(clip);
                     gfx.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit; gfx.SmoothingMode = SmoothingMode.AntiAlias;
+                    HoverOption = -1;
+                    if (conv) OptionHover(gfx, rec, first, dx, sx, vy0, vy1, lh, h);
                     string sample = null; _sampleTop = int.MinValue;
                     for (int i = tops.Count - 1; i >= 0; i--)
                     {
@@ -1050,6 +1127,66 @@ namespace AztTool
             finally { hnd.Free(); }
             TextFrames++; TextNote = string.Format("log in vector type ({0:P0} matches the screen at row {1}, {2:+0;-0;0} px)", ok, first, dx);
             return true;
+        }
+        // THE OPTION UNDER THE POINTER (Josh, 2026-10-10: dialogue options "hard to click ... clickable naturally"): the game
+        // gives no hover feedback at all. Its click (AztConvHit -> 0x180C0) takes the first option whose end row is below the
+        // pointer's row, so that option is the one lit here -- what lights is what a click will pick: an amber glass bar
+        // across its lines with the visor's brackets. Option i's lines run from option i-1's end; the first option's top is
+        // found from the text (its lines upward in the same font, to a blank line).
+        public int HoverInk = 0xFFB040;
+        // AS MANY OPTIONS AS THE GAME DRAWS (Josh, 2026-10-11: a 17-option list "reverts to the game text"): the game adds an
+        // option's end to 0x162B36[] for every option it fits, until the list nears the surface's bottom (0x17FF6: y < H - 80,
+        // 598 rows in the mod) -- about 28 one-line options. The cap was 16: past it the list was not seen as a list (the log's
+        // maths placed it) and the hover gave up. Anything past this is a bad reading.
+        const int MaxOptions = 64;
+        void OptionHover(Graphics gfx, int[] rec, int first, int dx, int sx, int vy0, int vy1, int lh, int surfH)
+        {
+            if (ConvOptAddr == 0 || lh <= 0) return;
+            var ob = Bytes(ConvOptAddr, 2 + 2 * MaxOptions); if (ob == null) return;
+            int n = BitConverter.ToUInt16(ob, 0); if (n <= 0 || n > MaxOptions) return;
+            int cx = CursorX, cy = CursorY;
+            if (cx < rec[0] || cx >= rec[0] + rec[2] || cy < vy0 || cy >= vy1) return;
+            int row = cy - rec[1] + first, idx = -1;
+            var e = new int[n]; for (int i = 0; i < n; i++) e[i] = BitConverter.ToInt16(ob, 2 + 2 * i);
+            for (int i = 0; i < n; i++) if (row < e[i]) { idx = i; break; }
+            if (idx < 0) return;
+            int bot = e[idx], top;
+            if (idx > 0) top = e[idx - 1];
+            else
+            {
+                // the first option: its lines upward from its end, in its font, until a blank line (at most four)
+                top = bot - lh; int font = -1;
+                for (int k = 1; k <= 4; k++)
+                {
+                    int t = bot - k * lh; if (t < 0 || t + lh > surfH) break;
+                    var runs = DecodeLine(t); int f = -1; foreach (var q in runs) if (q.Ok) { f = q.Font; break; }
+                    if (f < 0) break; if (font < 0) font = f; else if (f != font) break;
+                    top = t;
+                }
+                if (row < top) return;          // (above the options: the game would still take the first -- nothing is lit)
+            }
+            if (bot <= top) return;
+            HoverOption = idx;
+            double gy0 = Math.Max(vy0, rec[1] + (top - first) - 1), gy1 = Math.Min(vy1, rec[1] + (bot - first) + 1);
+            if (gy1 - gy0 < 4) return;
+            // (within the recess the ART shows -- wider than the game's box, whose first list sits only 2 px in)
+            double artL = LogBoxOpen != null ? LogBoxOpen[0] + 6 : rec[0] + 2, artR = LogBoxOpen != null ? LogBoxOpen[0] + LogBoxOpen[2] - 6 : rec[0] + rec[2] - 6;
+            float x0 = (float)WX(Math.Max(artL, rec[0] + dx - 10)) + sx, x1 = (float)WX(Math.Min(artR, rec[0] + rec[2] - 6)) + sx, y0 = (float)WY(gy0), y1 = (float)WY(gy1);
+            var r = RectangleF.FromLTRB(x0, y0, x1, y1);
+            var clipWas = gfx.Clip; gfx.ResetClip(); gfx.SetClip(RectangleF.FromLTRB(x0 - 4, (float)WY(vy0), x1 + 4, (float)WY(vy1)));
+            int ink = HoverInk; Func<int, Color> C = a => Color.FromArgb(Math.Max(0, Math.Min(255, a)), (ink >> 16) & 255, (ink >> 8) & 255, ink & 255);
+            using (var lg = new LinearGradientBrush(r, C(0), C(0), 0f))
+            {
+                var cb = new ColorBlend(); cb.Positions = new[] { 0f, 0.08f, 0.85f, 1f }; cb.Colors = new[] { C(70), C(46), C(26), C(0) }; lg.InterpolationColors = cb;
+                gfx.FillRectangle(lg, r);
+            }
+            float L = (float)Math.Max(5, 7 * _s), th = (float)Math.Max(1.5, 1.6 * _s);
+            using (var p = new Pen(C(230), th))
+            {
+                gfx.DrawLines(p, new[] { new PointF(x0 + L, y0), new PointF(x0, y0), new PointF(x0, y1), new PointF(x0 + L, y1) });
+                gfx.DrawLines(p, new[] { new PointF(x1 - L, y0), new PointF(x1, y0), new PointF(x1, y1), new PointF(x1 - L, y1) });
+            }
+            gfx.Clip = clipWas;
         }
         // ---- THE LOG'S OWN LAYOUT (Josh, 2026-10-10: the top line showed cut off under the frame -- "it displays too high ...
         // display as if that is the top of the text when collapsed, with proper padding on top, and the same padding ... when
@@ -1509,7 +1646,14 @@ namespace AztTool
             return (int[])_work.Clone();
         }
         /// <summary>TESTING: the page surface's rows from PanelTop down (what ReadBook would read), for TestCompose with BookView.</summary>
-        public void TestBook(byte[] rowsFromPanelTop, int w, int h) { _bookMask = rowsFromPanelTop; _bookW = w; _bookH = h; }
+        public void TestBook(byte[] rowsFromPanelTop, int w, int h) { _bookMask = rowsFromPanelTop; _bookW = w; _bookH = h; _bookMaskFrom = PanelTop; }
+        /// <summary>TESTING: the whole page surface (rows from 0); the panel keeps the rows it reads in play (from BookFrom).</summary>
+        public void TestBookSurface(byte[] surface, int w, int h)
+        {
+            int from = BookFrom, rows = Math.Min(h, ScreenH) - from; var m = new byte[rows * w];
+            Array.Copy(surface, from * w, m, 0, m.Length); _bookMask = m; _bookW = w; _bookH = h; _bookMaskFrom = from;
+        }
+        public int TestBookFrom { get { return BookFrom; } }
         /// <summary>TESTING: scroll the host-laid log by `lines` text lines (+ = back through the history), as the wheel does.</summary>
         public void TestLogScroll(int lines) { _logWant += lines; }
         /// <summary>TESTING: the slide position TestCompose draws at.</summary>

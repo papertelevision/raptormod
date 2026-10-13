@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 4bb44327-05db-4a50-ba64-31912f4aa648
-  modified: 2026-10-10T00:34:30.398Z
+  modified: 2026-10-11T04:48:23.351Z
 ---
 
 Josh's Room Review round 23: six WELLROOM notes. `rooms\WELLROOM.json` is new.
@@ -24,5 +24,6 @@ Josh's Room Review round 23: six WELLROOM notes. `rooms\WELLROOM.json` is new.
   - teal #5FD8CA (no flicker, air 2) at (3.65, -18.04, -107.04) power 0.3 and (70.82, -4.12, -17.65) power 0.2. 0.35 made a hot spot on the pale wall.
   - gi with ambient 0.6; embers off.
 - Josh's note-3 viewer camera sits ABOVE the ceiling (y 105). Test from inside the room.
+- **The ghost (2026-10-11):** Niamh (rig NIAMH) is drawn as glowing smoke with wisps and her own dim light, via the room's `ghost` block. See [[azrael-ghost]].
 
 Related: [[azrael-modern-water]], [[azrael-art-light]], [[azrael-painted-darkness-props]], [[azrael-room-review]].

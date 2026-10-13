@@ -156,3 +156,7 @@ sync mechanism — that is where emulator work may yet be justified.
 
 Related: [[azrael-camera-transform]], [[azrael-scene-graph]], [[aztmod-patch-framework]],
 [[azrael-le-image-layout]], [[azrael-xaf-scene-format]]
+
+## 2026-10-11: THE WINDOW IS 256 KB -- obj2's delta moved
+
+obj2's runtime delta is NOT a constant: obj2 runs one page past obj1's end, and obj1 grew (vsize 0x130000 -> 0x163000), so +0x1F1000 became **+0x224000**. obj1's +0x1F0000 is unchanged. Never hard-code it: GuestBase.ps1 returns .Delta2 (found from the needles, the installed header's candidate first), the gate has .D2, the watcher has Get-GuestD2. See [[azrael-overlay-read-limit]].

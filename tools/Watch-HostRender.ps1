@@ -284,6 +284,42 @@ param(
     # exported file (08-ecrflra2.png) replaces its colours, at any size. The game's files are
     # not touched and the game's own texture memory is not involved.
     [string]$TexOverrideDir = 'C:\Games\azrael-textures\hires',
+    # TEXTURE QUALITY (Josh, 2026-10-11): Normal = replacement textures at most 2048 on their long side (a scaled copy, made
+    # once beside the folder), Ultra = as large as they are (4096). Empty: the player's choice in <GameDir>\raptormod-settings.json
+    # ("textureQuality"; the title's Options will offer it -- "coming soon" for now), else Ultra.
+    [string]$TextureQuality = '',
+    # THE ROOM'S LOADING COVER (tools\RoomCover.cs, Josh 2026-10-12: "we shouldnt see the 256 version"): from a room change
+    # until the new room's first frame, the visor goes dark with "RAPTOR H.U.D. // ANALYZING ENVIRONMENT" and a percentage at
+    # the top of the view, while its textures decode (several at once) and go up to the card. -NoRoomCover: the old way.
+    [switch]$NoRoomCover,
+    # THE SESSION'S TEXTURE CACHE: decoded room textures kept for the session up to this many GB (the least recently visited
+    # rooms give theirs up first). 0 = a quarter of the computer's memory, between 2 and 16 GB.
+    [double]$TextureCacheGB = 0,
+    # MATERIALS (Josh, 2026-10-12: "Shine where it belongs"): every texture's highlight under the lamp and the placed lights,
+    # from rooms\_materials.json (graphics card only). -NoShine: none; -Shine: all of it x this; -ShineKey (0x75 = F6, 0 = none)
+    # switches it in play, to compare on the same wall.
+    [switch]$NoShine, [double]$Shine = 1.0, [int]$ShineKey = 0x75,
+    # WET SURFACES (Josh, 2026-10-12, phase 2): the damp caves' and the spa rooms' "wet" block (rooms\_defaults.json classes,
+    # a room's own file). -NoWet: none; -WetKey (0x74 = F5, 0 = none) switches it in play.
+    [switch]$NoWet, [int]$WetKey = 0x74,
+    # THE RELIEF (normal mapping) off and on in play, in the true-colour picture (Josh, 2026-10-12: "a toggle for the normal
+    # mapping as well so I can compare all three effects"): -ReliefKey (0x76 = F7, which there did nothing; 0 = none). Each of
+    # the three switches (F5 wet, F6 shine, F7 relief) says what it did on the visor.
+    [int]$ReliefKey = 0x76,
+    # TEXTURE REPAIR (Josh, 2026-10-12, phase 3: "Fix badly stretched textures ... Hide the repeats"): faces whose 1996 texture
+    # coordinates smear or stretch the art re-laid, repeating surfaces mixed (GpuRaster.SetRelay; a room's "repair" block:
+    # {"skip": [texture names], "mix": false, "stretch", "flat"}, or "repair": null for none). -NoRepair: none; -RepairKey
+    # (0x7A = F11, 0 = none) switches it in play, with a note on the visor like F5-F7.
+    [switch]$NoRepair, [int]$RepairKey = 0x7A,
+    # PARALLAX DEPTH (Josh, 2026-10-12, phase 4a: "Mortar lines, planks and stone blocks appear sunken as you move past"): the
+    # card steps into each texture's height map (GpuRaster.Parallax*), close up, with the relief (F7 switches both).
+    # -NoParallax: none; -ParallaxDepth: how deep its deepest texel lies (world units); a room's "parallax": x that (null: none).
+    [switch]$NoParallax, [double]$ParallaxDepth = 1.0,
+    # THE VISOR MATERIALIZES THE ROOM (Josh, 2026-10-13): once ANALYZING ENVIRONMENT reaches 100% (the room cover lifts), once a
+    # loaded game is handed over, and once a new game's boot animation is done, the room sweeps in from the scan's teal wireframe
+    # to full texture in a fast wave (GpuRaster.StartMaterialize). -NoMaterialize: none.
+    [switch]$NoMaterialize,
+
     # THE PICTURE IS DRAWN AT THE SIZE IT IS SHOWN, WHATEVER THE DISPLAY. Nothing here names a
     # resolution: the size is measured from where the game's viewport actually sits on this
     # screen (1440x835 on 1920x1080, 2134x1238 on 2560x1600, 2880x1670 on 4K). -TcScale draws
@@ -362,6 +398,9 @@ param(
     # THE DAMAGED VISOR: the glass scratched, dirtied, cracked and finally broken as the health falls, a hit's static, the
     # vitals monitor near death (ScanWire.cs VisorDamage, in the card's present pass). -NoVisorDamage: clean glass.
     [switch]$NoVisorDamage,
+    # GHOSTS: the characters a room's "ghost" block names (WELLROOM: Niamh) drawn by the card as glowing smoke, shedding
+    # wisps, with a faint light of their own (GpuRaster.DrawGhost). -NoGhost: drawn as solid models, as before.
+    [switch]$NoGhost,
     # THE TITLE MENU: the 4K title with Continue / Load / Options / Quit / Story, shown by the loading gate while the game
     # holds its title stage (Build-AztMod $ENABLE_TITLE_MENU). -NoTitleMenu (or -Retro): the game's own title, waiting for a key.
     [switch]$NoTitleMenu,
@@ -389,6 +428,13 @@ param(
     # edges with the seam filled. OFF BY DEFAULT since 2026-10-07: in game it broke button highlighting and
     # picking up items (holding the game's "pointer hidden" flag evidently gates both). -HostPointer to try it.
     [switch]$HostPointer,
+    # THE GAME'S CURSORS AS ANIMATED VECTORS (tools\CursorIcons.cs, Josh 2026-10-11): its 30 interaction cursors traced into
+    # the visor's glowing lines, each with its own small animation, drawn at the game's own cursor (hover and picking stay
+    # the game's); its bitmaps are blanked in its memory meanwhile and put back after. -NoIconCursor: the game's bitmaps.
+    [switch]$NoIconCursor,
+    # SPACE AFTER A SPOKEN LINE (tools\Keys.cs SpaceGuard, Josh 2026-10-11): Space skips a line, and the game's Space also
+    # draws the weapon -- so for a second after a line ends Space is not passed to the game. -NoSpaceGuard: always passed.
+    [switch]$NoSpaceGuard,
     [switch]$UnderPanelSeeThrough,
     # ATMOSPHERE (true colour only): fog, floating dust and placed lights, per room, from
     # -RoomsDir\_defaults.json (classes of rooms, e.g. every cave) and -RoomsDir\<ROOM>.json
@@ -536,6 +582,17 @@ $toolDir = Split-Path -Parent $PSCommandPath
 if (-not $Sym)     { $Sym      = Join-Path $toolDir '..\AztMod.overlay.sym' }
 if (-not $Manifest) { $Manifest = Join-Path $toolDir '..\AztMod.manifest.json' }
 New-Item -ItemType Directory -Force (Split-Path $LogFile -Parent) | Out-Null
+# TEXTURE QUALITY (see -TextureQuality): the switch, else the player's settings file, else Ultra; Normal caps replacement
+# textures at 2048 ($script:texMax, read by Get-Room's Add-AztRgb)
+$script:texQuality = [string]$TextureQuality
+if (-not $script:texQuality) { try { $sp = Join-Path $GameDir 'raptormod-settings.json'; if (Test-Path $sp) { $script:texQuality = [string](Get-Content $sp -Raw | ConvertFrom-Json).textureQuality } } catch { } }
+$script:texQuality = $(if ($script:texQuality -match '^\s*normal\s*$') { 'Normal' } else { 'Ultra' })
+$script:texMax = $(if ($script:texQuality -eq 'Normal') { 2048 } else { 0 })
+# the session's texture cache (see -TextureCacheGB; Limit-AztRgbCache in LoadRoom.ps1)
+$script:texCacheBytes = [long]$(if ($TextureCacheGB -gt 0) { $TextureCacheGB * 1GB } else {
+    $ram = 16GB; try { $ram = [long](Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory } catch { }
+    [Math]::Max(2GB, [Math]::Min(16GB, $ram / 4)) })
+$script:rgbProgress = $null; $script:roomCover = $null; $script:roomCoverPainter = $null
 
 # ONE WATCHER AT A TIME, ENFORCED.
 #
@@ -577,7 +634,12 @@ if ($Launch) {
     }
     if (-not $NoLoadingScreen) {
         try {
-            Add-Type -Path (Join-Path $toolDir 'LoadingScreen.cs') -ReferencedAssemblies 'System.Drawing' -ErrorAction Stop
+            # (with the title's RAPTOR DOCS and its own copy of the cursor icons: TITLE_GATE names that copy TitleShapes, so the
+            # renderer's CursorShapes, compiled below, is not refused as a type "that already exists")
+            $gateCp = New-Object System.CodeDom.Compiler.CompilerParameters
+            [void]$gateCp.ReferencedAssemblies.Add('System.dll'); [void]$gateCp.ReferencedAssemblies.Add('System.Drawing.dll')
+            $gateCp.CompilerOptions = '/define:TITLE_GATE'; $gateCp.GenerateInMemory = $true
+            Add-Type -Path @((Join-Path $toolDir 'LoadingScreen.cs'), (Join-Path $toolDir 'RaptorDocs.cs'), (Join-Path $toolDir 'CursorShapes.cs')) -CompilerParameters $gateCp -ErrorAction Stop
             $symText = [IO.File]::ReadAllText((Resolve-Path $Sym).Path)
             $sb = [regex]::Match($symText, '(?m)^0x([0-9A-Fa-f]+)\s+aztInjBufPtr\s*$'); $ss = [regex]::Match($symText, '(?m)^0x([0-9A-Fa-f]+)\s+aztBootState\s*$')
             if (-not $sb.Success -or -not $ss.Success) { throw 'aztInjBufPtr / aztBootState are not in the overlay symbol map' }
@@ -589,8 +651,10 @@ if ($Launch) {
             $gt.VoicePath = Join-Path $ld 'loading-voice.wav'; $gt.TrackPath = Join-Path $ld 'loading-track.wav'; $gt.TrackGain = $LoadingTrackGain; $gt.VoiceGain = $LoadingVoiceGain
             $gt.Sound = -not ($NoBootSound -or $NoLoadingSound)
             # the title menu (LoadingScreen.cs TitleScreen): the art, and where the saves are for Continue / Load
-            $gt.TitleOn = -not ($NoTitleMenu -or $Retro); $gt.TitleImage = (Join-Path $toolDir '..\art\title\title_4k.png'); $gt.SaveDir = (Join-Path $GameDir 'GAME\AZRAEL')
+            $gt.TitleOn = -not ($NoTitleMenu -or $Retro); $gt.TitleImage = (Join-Path $toolDir '..\art\title\title_4k.png'); $gt.SaveDir = (Join-Path $GameDir 'GAME\AZRAEL'); $gt.TitleTextureQuality = $script:texQuality.ToUpperInvariant()
             $gt.TitleMusic = (Join-Path $toolDir '..\art\title\title-music.wav')      # (KREEPY3, Josh's soundtrack, looped under the menu)
+            $gt.TitleDocs = (Join-Path $GameDir 'raptordocs')                         # (RAPTOR DOCS: the manual and the print-outs -- tools\Build-RaptorDocs.ps1)
+            $gt.TitleRoomLoad = [bool]($TrueColour -and -not $NoRgb)                  # (a title load's bar carries the room's textures: Set-LoadProgress)
             $gt.Stage(0.6, 6)
             $gt.Start($gamePid0, (Join-Path $GameDir 'GAME\AZRAEL\R.EXE'), [Convert]::ToInt32($sb.Groups[1].Value, 16), [Convert]::ToInt32($ss.Groups[1].Value, 16))
             $script:gate = $gt
@@ -601,8 +665,8 @@ if ($Launch) {
 . (Join-Path $toolDir 'LoadRoom.ps1')
 Add-Type -Path @((Join-Path $toolDir 'Raster.cs'), (Join-Path $toolDir 'Quantize.cs'), (Join-Path $toolDir 'HostView.cs'),
                  (Join-Path $toolDir 'SceneGraph.cs'), (Join-Path $toolDir 'Keys.cs'), (Join-Path $toolDir 'Overlay.cs'), (Join-Path $toolDir 'Motes.cs'),
-                 (Join-Path $toolDir 'GpuRaster.cs'), (Join-Path $toolDir 'GiBake.cs'), (Join-Path $toolDir 'Particles.cs'), (Join-Path $toolDir 'Panel.cs'), (Join-Path $toolDir 'Pointer.cs'),
-                 (Join-Path $toolDir 'BootHd.cs'), (Join-Path $toolDir 'ScanWire.cs')) `
+                 (Join-Path $toolDir 'GpuRaster.cs'), (Join-Path $toolDir 'GiBake.cs'), (Join-Path $toolDir 'Particles.cs'), (Join-Path $toolDir 'Panel.cs'), (Join-Path $toolDir 'Pointer.cs'), (Join-Path $toolDir 'CursorShapes.cs'), (Join-Path $toolDir 'CursorIcons.cs'),
+                 (Join-Path $toolDir 'BootHd.cs'), (Join-Path $toolDir 'ScanWire.cs'), (Join-Path $toolDir 'RoomCover.cs'), (Join-Path $toolDir 'TexTwins.cs')) `
          -ReferencedAssemblies 'System.Drawing', 'System.Web.Extensions' -ErrorAction Stop
 # ProcMem (RdU32 and every other guest read here) was only compiled inside Get-AztGuestBase, so when the loading
 # gate had already found the game -- and that search was skipped -- the first read threw and ended the watcher
@@ -757,6 +821,18 @@ function Get-GamePid {
     if ($p) { return $p.Id } else { return 0 }
 }
 function HostLin([uint32]$l) { [long]($g.MemBase + $l + 0x1F0000) }
+# OBJ2'S RUNTIME DELTA -- it is NOT fixed: obj2 runs one page past obj1's end, and obj1 grew for a 256 KB overlay window
+# (2026-10-11: 0x1F1000 became 0x224000). The guest's own value (aztCamDelta2, once the overlay has written it), else what
+# the attach found from the needles ($g.Delta2: GuestBase.ps1 / the gate's D2), else the old layout's.
+function Get-GuestD2 {
+    $d = [uint32]0
+    if ($S_delta2 -and $g) { try { $d = RdU32 (HostLin $S_delta2) } catch { $d = [uint32]0 } }
+    if (-not $d -and $g -and $g.PSObject.Properties['Delta2'] -and $g.Delta2) { $d = [uint32]$g.Delta2 }
+    if (-not $d) { $d = [uint32]0x1F1000 }
+    return $d
+}
+# The game's STACK lives in obj2 (ESP 0x386340 in the 2026-10-04 crashes, delta 0x1F1000): it moves with obj2's delta.
+function Get-StackLo { [uint32](0x37E000 + ([long](Get-GuestD2) - 0x1F1000)) }
 function RdU32([long]$h) {
     # the session's own open handle when there is one: ProcMem.Read opens and closes the
     # process for every call, and this runs several times a frame
@@ -804,19 +880,19 @@ $script:rapWalkNoted = $false; $script:rapD2 = [uint32]0; $script:rapWalkErr = '
 function Write-StallStack {
     try {
         $d1 = $(if ($S_delta1) { RdU32 (HostLin $S_delta1) } else { [uint32]0x1F0000 })
-        $lo = [uint32]0x37E000; $len = 0xC000
+        $lo = Get-StackLo; $len = 0xC000
         $sb = [AztTool.ProcMem]::Read($g.ProcessId, (GuestPtr $lo), $len)
         if (-not $sb) { Say 'stall: the stack region was not readable' Yellow; return }
         $dir = Split-Path $LogFile -Parent
         [IO.File]::WriteAllBytes((Join-Path $dir 'stallstack.bin'), $sb)
         $out = New-Object System.Collections.Generic.List[string]
         $out.Add(("# guest stalled {0:yyyy-MM-dd HH:mm:ss}, room {1}, obj1 delta 0x{2:X}" -f (Get-Date), $script:rapRoom, $d1))
-        $out.Add('# stackaddr  built-linear   (raw region 0x37E000..0x38A000 saved as stallstack.bin)')
+        $out.Add(('# stackaddr  built-linear   (raw region 0x{0:X}..0x{1:X} saved as stallstack.bin)' -f $lo, ($lo + $len)))
         for ($i = 0; $i -lt $len; $i += 4) {
             $v = [BitConverter]::ToUInt32($sb, $i)
             if ($v -lt $d1) { continue }
             $b = [uint32]($v - $d1)
-            if ($b -ge 0x10000 -and $b -lt 0x140000) { $out.Add(('0x{0:X8}  0x{1:X8}' -f ($lo + $i), $b)) }
+            if ($b -ge 0x10000 -and $b -lt 0x173000) { $out.Add(('0x{0:X8}  0x{1:X8}' -f ($lo + $i), $b)) }     # (obj1 runs to 0x173000 with the 256 KB overlay window)
         }
         [IO.File]::WriteAllLines((Join-Path $dir 'stallstack.txt'), $out)
         Say ("guest has taken no frame for 3 s -- {0} stack candidates written to stallstack.txt" -f ($out.Count - 2)) Yellow
@@ -1548,7 +1624,25 @@ function Get-CharacterSig($chars) { (@($chars | ForEach-Object { '{0}={1}' -f $_
 
 function Get-Room([string[]]$rooms, $chars = @()) {
     $key = ($rooms -join '+') + '|' + (Get-CharacterSig $chars)
-    if ($roomCache.Contains($key)) { return $roomCache[$key] }
+    if ($roomCache.Contains($key)) {
+        # (met before: its painted colours are normally still decoded -- unless the session's texture cache gave them up to
+        # stay under -TextureCacheGB, and then they are decoded again here, under the room's loading cover)
+        $rm = $roomCache[$key]
+        if ($TrueColour -and -not $NoRgb) {
+            try {
+                $rgbClock = [Diagnostics.Stopwatch]::StartNew()
+                $rgbSt = Add-AztRgb -Names (@($rooms) + @($chars | Where-Object { $_ } | ForEach-Object { [string]$_.Xaf })) -CacheDir $CacheDir -Pal $pal -OverrideDir $rm.RgbDir -MaxSize ([int]$script:texMax) -Progress $script:rgbProgress
+                [AztTool.Raster]::EnsureRgb($rm.Texes, $pal)
+                if ($rgbSt.FromFile -or $rgbSt.FromPalette) {
+                    Say ("  true colour textures decoded again (the session cache had let them go): {0} painted, {1} ms" -f $rgbSt.FromFile, $rgbClock.ElapsedMilliseconds) Cyan
+                    $unitsHere = @(@($rooms) + @($chars | Where-Object { $_ } | ForEach-Object { [string]$_.Xaf }))
+                    $lim = Limit-AztRgbCache -Keep $unitsHere -CapBytes $script:texCacheBytes
+                    if ($lim.Dropped.Count) { Say ("  texture cache: {0} let go to stay under {1:N1} GB ({2}); {3:N1} GB held" -f $lim.Dropped.Count, ($script:texCacheBytes / 1GB), ($lim.Dropped -join ', '), ($lim.Bytes / 1GB)) DarkCyan }
+                }
+            } catch { Say ("  true colour textures failed: {0}" -f $_.Exception.Message) Yellow }
+        }
+        return $rm
+    }
     $rm = Import-AztRoom -Rooms $rooms -Characters @($chars) -CacheDir $CacheDir -TexDir $TexDir -Palette $Palette -Width $W -Height $H
     # the shrunk copies the texture filter reads; built once per texture (they are shared
     # between rooms), a few milliseconds for a whole room
@@ -1558,14 +1652,21 @@ function Get-Room([string[]]$rooms, $chars = @()) {
         try {
             $rgbClock = [Diagnostics.Stopwatch]::StartNew()
             $dirNow = $TexOverrideDir
-            $rgbSt = Add-AztRgb -Names (@($rooms) + @($chars | Where-Object { $_ } | ForEach-Object { [string]$_.Xaf })) -CacheDir $CacheDir -Pal $pal -OverrideDir $dirNow
+            $unitsHere = @(@($rooms) + @($chars | Where-Object { $_ } | ForEach-Object { [string]$_.Xaf }))
+            $rgbSt = Add-AztRgb -Names $unitsHere -CacheDir $CacheDir -Pal $pal -OverrideDir $dirNow -MaxSize ([int]$script:texMax) -Progress $script:rgbProgress
             [AztTool.Raster]::EnsureRgb($rm.Texes, $pal)
             $rm | Add-Member -NotePropertyName RgbDir -NotePropertyValue $dirNow -Force
             if ($rgbSt.Replaced.Count) { Say ("  REPLACEMENT ART from {0}: {1}" -f $dirNow, ($rgbSt.Replaced -join ', ')) Green }
+            if ($rgbSt.TwinError) { Say ("  shared art (twins' new art) not worked out, each texture keeps its own: {0}" -f $rgbSt.TwinError) Yellow }
+            if ($rgbSt.Companions) { Say ("  companion maps (shine / height / glow) for {0} of them" -f $rgbSt.Companions) Green }
+            if (@($rgbSt.CompanionErrors).Count) { Say ("  companion maps that would not load: {0}" -f (@($rgbSt.CompanionErrors) -join '; ')) Yellow }
             if ($rgbSt.FromFile -or $rgbSt.FromPalette) {
                 Say ("  true colour textures: {0} painted originals, {1} from the palette, {2} ms{3}" -f $rgbSt.FromFile, $rgbSt.FromPalette, $rgbClock.ElapsedMilliseconds, `
                     $(if ($rgbSt.Bad.Count) { '  ** texture order did not match for ' + ($rgbSt.Bad -join ', ') + ': palette colours used' } else { '' })) Cyan
             }
+            # the session's texture cache stays under -TextureCacheGB: the rooms met longest ago give their colours up first
+            $lim = Limit-AztRgbCache -Keep $unitsHere -CapBytes $script:texCacheBytes
+            if ($lim.Dropped.Count) { Say ("  texture cache: {0} let go to stay under {1:N1} GB ({2}); {3:N1} GB held" -f $lim.Dropped.Count, ($script:texCacheBytes / 1GB), ($lim.Dropped -join ', '), ($lim.Bytes / 1GB)) DarkCyan }
         } catch { Say ("  true colour textures failed: {0}" -f $_.Exception.Message) Yellow }
     }
     # ...and the enlarged set, when the experiment is on. Kept beside the originals so the
@@ -1797,7 +1898,170 @@ function Restore-Viewport {
 # the same reason.
 # NOTHING TO DRAW THIS FRAME: ride out a blink (skip the frame, the window keeps the last
 # picture and the game keeps getting the key), hand the viewport back only if it lasts.
+# ---- THE ROOM'S LOADING COVER (tools\RoomCover.cs; Josh, 2026-10-12: "When entering a room, I will see the 256 color version
+# of the game ... for a good while as the textures load ... a simple in world loading display on the viewport, top center ...
+# 'Raptor H.U.D - Analyzing Environment...' with a loading number counting up to 100% as the room loads. The key is we
+# shouldnt see the 256 version"). On a room change the viewport goes to the game for its own first frames of the new room (the
+# engine-draw pulse below), then the room is recognised, its textures decoded and sent to the card -- seconds of 8-bit picture
+# on a first entry of a 4K room. Now, from the moment the jump is seen, the card's window shows this cover instead (held fresh,
+# so it never hides), presented ~35 times a second from wherever the watcher is: the pulse, the decoding (-Progress of
+# Add-AztRgb), the upload. The game draws on underneath, hidden. Its percentage: the pulse to 12, recognised 14, the textures
+# decoded to 70, on the card to 98, then 100 and the room's first frame.
+function Start-RoomCover([string]$why) {
+    if ($NoRoomCover -or $script:roomCover -or -not $script:gpu -or -not $script:ov -or -not $script:ov.GlPresent -or -not $script:tcRaster) { return }
+    if (Test-LoadUi) { return }      # (a game being loaded or booted: its own panel / the visor boot covers the room -- Set-LoadProgress)
+    if (-not $script:roomCoverPainter) { $script:roomCoverPainter = New-Object AztTool.RoomCover }
+    $script:roomCoverPainter.Reset()
+    $script:roomCover = [pscustomobject]@{ Clock = [Diagnostics.Stopwatch]::StartNew(); Target = 0.02; Stage = 'pulse'; Why = $why; LastShow = -1.0; Shows = 0; WaitFrom = 0.0; Hold = 0L; NothingSince = $null }
+    $script:rgbProgress = { param($d, $t) Set-RoomCoverTarget (0.15 + 0.55 * $d / [Math]::Max(1, $t)) 'textures' }
+    Show-RoomCover -Force
+}
+function Set-RoomCoverTarget([double]$v, [string]$stage) {
+    $c = $script:roomCover; if (-not $c) { return }
+    if ($v -gt $c.Target) { $c.Target = [Math]::Min(1.0, $v) }
+    if ($stage) { $c.Stage = $stage }
+    Show-RoomCover
+}
+function Show-RoomCover([switch]$Force) {
+    $c = $script:roomCover; if (-not $c) { return }
+    $t = $c.Clock.Elapsed.TotalSeconds
+    if (-not $Force -and ($t - $c.LastShow) -lt 0.028) { return }      # (~35 a second)
+    $c.LastShow = $t
+    $gq = $script:gpu; $o = $script:ov; $tr = $script:tcRaster
+    if (-not $gq -or -not $o -or -not $tr -or -not $o.GlPresent) { Stop-RoomCover 'the card no longer presents'; return }
+    try {
+        $pw = [int]$tr.W; $ph = [int]$tr.H
+        $pic = $script:roomCoverPainter.Render($pw, $ph, $o.ViewRowsOf($ph), $t, $c.Target)
+        $c.Hold = [Diagnostics.Stopwatch]::GetTimestamp() + [Diagnostics.Stopwatch]::Frequency; $o.HoldFreshUntil = $c.Hold      # (a second ahead: it never hides)
+        if ($gq.PresentPicture($pic, $pw, $ph)) { $o.NoteGlFrame(); $c.Shows++ }
+    } catch { Say ("room cover failed: {0} -- off for this room" -f $_.Exception.Message) Yellow; $script:roomCover = $null; $script:rgbProgress = $null }
+}
+# AFTER A LOAD, THE LOADING PANEL GOES FIRST (Josh, 2026-10-13: "the game is still loading in the background of the load screen,
+# so I dont see the wireframe effect after loading a game ... I never see the UI spanning in from the left/right because it's
+# always happening in the background behind the loading screen"): from a load's start (a title load's pick, the memory core's
+# reading) until the title's window and the memory core's panel are both gone (and the re-boot no longer covers), the HUD is
+# held back and the room's materialize waits; then the HUD slides in (its sound) and the room materializes, in view.
+# THE LOAD WAITS FOR A STEADY VIEW (Josh, 2026-10-13: "the game starts, hidden, behind the loading screen, and when it hands
+# off to the viewport the visor animation is complete already, and the new wireframe animation is choppy. It should load the
+# game and the textures all together, not displaying any of the game until all loading is complete"). MEASURED (watch.log
+# 09:06:58): the title was told the view was back on the renderer's FIRST frame -- the same second as the true colour
+# search, the 24 scanner wireframes and the panel's first build, frames at ~38 ms -- and the boot thread had let the HUD go
+# the moment the game reached play, behind the title. Now, while a load's panel is up: the HUD is held (BootHd.HudWait), the
+# room is dark glass (GpuRaster.MatHold: a panel fading out shows nothing of the game), and the panel is told the view is
+# back (the title's TitleLoadShown, the memory core's FinishReading) only once the frames are steady: the last
+# LoadSteadyFrames each within 1.5x their median + 4 ms, at least 0.6 s after the view came up (12 s at most).
+$script:viewUpAt = $null; $script:loadFrameAt = $null; $script:loadFrames = $null; $script:titleShowDue = $false; $script:loadSteadySaid = $false
+$LoadSteadyFrames = 12
+function Set-LoadViewUp { if (-not $script:viewUpAt) { $script:viewUpAt = [Diagnostics.Stopwatch]::StartNew(); $script:loadFrameAt = $null; $script:loadFrames = New-Object 'System.Collections.Generic.List[double]' } }
+function Test-LoadViewSteady {
+    if (-not $script:viewUpAt) { return $false }
+    $age = $script:viewUpAt.Elapsed.TotalSeconds; $f = $script:loadFrames; $nf = $LoadSteadyFrames
+    $ok = $false; $med = 0.0
+    if ($age -ge 0.6 -and $f.Count -ge $nf) {
+        $last = $f.GetRange($f.Count - $nf, $nf).ToArray(); [Array]::Sort($last); $med = $last[[int]($nf / 2)]
+        $ok = $last[$nf - 1] -le 1.5 * $med + 4
+    }
+    if (-not $ok -and $age -gt 12) { $ok = $true; if (-not $script:loadSteadySaid) { Say ("load: the frames never settled in 12 s ({0} drawn) -- the loading panel lets go anyway" -f $f.Count) DarkYellow } }
+    elseif ($ok -and -not $script:loadSteadySaid) { Say ("load: the view is steady ({0} frames of ~{1:N0} ms, {2:N1} s after it came up) -- the loading panel lets go" -f $nf, $med, $age) DarkCyan }
+    if ($ok) { $script:loadSteadySaid = $true }
+    return $ok
+}
+function Complete-TitleLoad {
+    if ($script:gate) { $script:gate.TitleLoadShown(); $script:gate.PickedSlot = -1 }
+    $script:titleReadAt = $null; $script:titleReadSeen = $false; $script:titleShowDue = $false
+}
+function Request-TitleLoadShown { Set-LoadViewUp; $script:titleShowDue = $true }
+function Step-LoadGuard {
+    $ldNow = ($script:gate -and $script:gate.PickedSlot -ge 0) -or ($script:visorMenu -and $script:visorMenu.ReadWait)
+    if ($ldNow -and -not $script:loadGuard) {
+        $script:loadGuard = $true; $script:loadGuardAt = [Diagnostics.Stopwatch]::StartNew(); $script:viewUpAt = $null; $script:titleShowDue = $false; $script:loadSteadySaid = $false
+        Say 'load: the HUD and the materialize wait until the loading panel is gone; the room stays dark until the view is steady' DarkCyan
+    }
+    if (-not $script:loadGuard) { return }
+    if ($script:gpu -and -not $NoMaterialize) { $script:gpu.MatHold = $true }
+    if ($script:bootHd) { $script:bootHd.HudWait = $true }
+    # (the frames' pace since the view came up)
+    if ($script:viewUpAt) { if ($script:loadFrameAt) { $script:loadFrames.Add($script:loadFrameAt.Elapsed.TotalMilliseconds); $script:loadFrameAt.Restart() } else { $script:loadFrameAt = [Diagnostics.Stopwatch]::StartNew() } }
+    if ($script:titleShowDue -and (Test-LoadViewSteady)) { Complete-TitleLoad }
+    $panelUp = $ldNow -or ($script:gate -and $script:gate.TitleShowing) -or ($script:visorMenu -and $script:visorMenu.AnyPlaying) -or ($script:bootHd -and $script:bootHd.Covering)
+    # (a safety net: a panel that never says it has gone must not keep the HUD away for good)
+    if ($panelUp -and $script:loadGuardAt -and $script:loadGuardAt.Elapsed.TotalSeconds -gt 45) { Say 'load: still a loading panel after 45 s -- the HUD comes in anyway' DarkYellow; $panelUp = $false }
+    if ($panelUp) { if ($script:panel) { $script:panel.HoldOff = $true }; $script:matPending = $null; return }
+    $script:loadGuard = $false; $script:loadGuardAt = $null; $script:viewUpAt = $null; $script:loadFrameAt = $null; $script:titleShowDue = $false
+    if ($script:bootHd) { $script:bootHd.HudIn() } elseif ($script:panel) { $script:panel.HoldOff = $false }
+    # (the room's dark glass holds until the sweep starts, on the next frame: StartMaterialize lets it go)
+    if ($NoMaterialize -and $script:gpu) { $script:gpu.MatHold = $false }
+    $script:matPending = 'the loaded game is in view (its loading panel gone)'
+}
+function Stop-RoomCover([string]$how) {
+    $c = $script:roomCover; if (-not $c) { return }
+    if ($how -eq 'ready') {
+        $script:matPending = 'the room is in (ANALYZING ENVIRONMENT 100%)'      # (the room's first real frame materializes it)
+        # 100% shown before the room comes up (a quarter of a second at most)
+        $c.Target = 1.0; $fin = [Diagnostics.Stopwatch]::StartNew()
+        while ($script:roomCover -and $script:roomCoverPainter.Shown -lt 0.999 -and $fin.ElapsedMilliseconds -lt 250) { Show-RoomCover -Force; [Threading.Thread]::Sleep(16) }
+    }
+    # Ready: the 100% picture stays held until the room's first frame replaces it. Anything else (a movie, a menu, the same
+    # room): the hold is let go, so whatever comes next is not hidden behind it (the visor menu's own hold is left alone).
+    elseif ($script:ov -and $c.Hold -and $script:ov.HoldFreshUntil -eq $c.Hold) { $script:ov.HoldFreshUntil = 0 }
+    Say ("  room cover: {0:N0} ms on screen, {1} pictures ({2}; {3})" -f $c.Clock.ElapsedMilliseconds, $c.Shows, $how, $c.Why) DarkCyan
+    $script:roomCover = $null; $script:rgbProgress = $null
+}
+# ---- A GAME LOAD CARRIES ITS ROOM (Josh, 2026-10-12: "we need those textures to be loaded when loading a game as well, but that
+# needs to be lumped into the core loading UI/animation as part of the loading process. Currently the game still shows the 256
+# version when loading"). MEASURED on a load into MINEHEAD (watch.log 13:05:16): the reading panel and the re-boot's cover held
+# while the room was recognised and its textures decoded, but the 48 4K textures went to the card in the room's FIRST FRAME --
+# after the cover had let go -- and the card took 3.3 s over them with nothing new to show: the 8-bit picture. Now a load (the
+# title's reading, the memory core's, or the visor boot) gets the same as a room change: textures decoded AND sent to the card
+# AND finished on it before the first frame, with the loading panel's bar following them (VisorMenu / TitleScreen
+# .LoadProgress: the archive is its first 30%, the room the rest) and the re-boot's cover kept up past HoldMaxMs while it works.
+function Test-LoadUi {
+    [bool](($script:gate -and $script:gate.PickedSlot -ge 0) -or ($script:visorMenu -and $script:visorMenu.ReadWait) -or ($script:bootHd -and $script:bootHd.Covering))
+}
+function Set-LoadProgress([double]$p) {
+    $p = [Math]::Max(0.0, [Math]::Min(1.0, $p))
+    if ($script:gate -and $script:gate.PickedSlot -ge 0) { try { $script:gate.TitleLoadProgress($p) } catch { } }
+    if ($script:visorMenu -and $script:visorMenu.ReadWait) { $script:visorMenu.LoadProgress = [single]$p }
+    if ($script:bootHd -and $script:bootHd.Covering) { $script:bootHd.HoldExtendUntil = [Diagnostics.Stopwatch]::GetTimestamp() + 3 * [Diagnostics.Stopwatch]::Frequency }
+    Step-LoadRepaint
+}
+# THE LOAD'S PANEL KEEPS MOVING while the renderer works under it. In the GPU mode the card's window is the one on screen
+# (Overlay.GlPresent), and the re-boot's own pictures (BootHd, its thread) go to the overlay's other window -- unseen; they
+# only keep the card's window from going stale. So the memory core's reading panel was redrawn only by Repaint-HeldPicture
+# between passes of the loop, and stood still for as long as a room's textures took. Now ~30 times a second from wherever
+# the work is (Set-LoadProgress) and from the re-boot's wait. (A title load: the title's own window is in front, no picture yet.)
+$script:loadRepaintAt = $null
+function Step-LoadRepaint {
+    if (-not ($script:visorMenu -and $script:visorMenu.ReadPlaying -and $script:gpuClean -and $script:gpu -and $script:ov -and $script:ov.GlPresent)) { return }
+    if ($script:loadRepaintAt -and $script:loadRepaintAt.ElapsedMilliseconds -lt 30) { return }
+    if ($script:loadRepaintAt) { $script:loadRepaintAt.Restart() } else { $script:loadRepaintAt = [Diagnostics.Stopwatch]::StartNew() }
+    try { Repaint-HeldPicture } catch { }
+}
+# A ROOM'S TEXTURES TO THE CARD BEFORE ITS FIRST FRAME: one at a time (so whatever covers the change keeps moving: $onFrac gets
+# 0..1), then waited for -- Finish: the card's copies, mipmaps and relief maps done -- or the first frame waits on them instead.
+function Send-RoomTextures($rm, [scriptblock]$onFrac) {
+    $gq = $script:gpu; $upClock = [Diagnostics.Stopwatch]::StartNew()
+    $miss0 = $gq.MissingCount($rm.Texes); $ev0 = $gq.Evicted; $upN = 0; $prev = [int]::MaxValue; $stuck = 0
+    if ($miss0 -le 0) { if ($onFrac) { & $onFrac 1.0 }; return }
+    while ($upClock.Elapsed.TotalSeconds -lt 20) {
+        $left = $gq.MissingCount($rm.Texes); if ($left -le 0) { break }
+        if ($left -ge $prev) { if (++$stuck -ge 3) { break } } else { $stuck = 0 }      # (one that never counts as sent: Draw has it)
+        $prev = $left
+        if ($onFrac) { & $onFrac (1 - $left / [Math]::Max(1, $miss0)) }
+        $upN += $gq.UploadSome($rm.Texes, 1)
+    }
+    # (the room's cover cannot be redrawn while the card finishes: held up a while longer)
+    if ($script:roomCover -and $script:ov) { $script:roomCover.Hold = [Diagnostics.Stopwatch]::GetTimestamp() + 3 * [Diagnostics.Stopwatch]::Frequency; $script:ov.HoldFreshUntil = $script:roomCover.Hold }
+    $upMs = $upClock.ElapsedMilliseconds; $gq.Finish(); $finMs = $upClock.ElapsedMilliseconds - $upMs
+    if ($onFrac) { & $onFrac 1.0 }
+    Say ("  textures to the card before the room's first frame: {0} in {1:N0} ms, finished on the card {2:N0} ms later; {3:N1} GB held there ({4} let go, least recently used)" -f $upN, $upMs, $finMs, ($gq.TextureBytes / 1GB), ($gq.Evicted - $ev0)) Cyan
+}
 function Step-NothingToDraw([ref]$flag, [string]$why, [int]$sleepMs) {
+    # (the loading cover stays up through a short gap -- a load can blink -- but not over a movie or a menu)
+    if ($script:roomCover) {
+        if (-not $script:roomCover.NothingSince) { $script:roomCover.NothingSince = [Diagnostics.Stopwatch]::StartNew() }
+        if ($script:roomCover.NothingSince.Elapsed.TotalSeconds -gt 1.5) { Stop-RoomCover ("nothing to draw for 1.5 s: " + $why) } else { Show-RoomCover }
+    }
     if (-not $script:nothingClock) { $script:nothingClock = [Diagnostics.Stopwatch]::StartNew() }
     if ($flag.Value -and $script:nothingClock.ElapsedMilliseconds -lt $HandBackAfterMs) { $script:nothingSkips++; [Threading.Thread]::Sleep(2); return }
     if ($flag.Value) { Say ("nothing to draw for {0:N0} ms ({1}) -- handing the viewport back" -f $script:nothingClock.ElapsedMilliseconds, $why) DarkGray }
@@ -1931,10 +2195,18 @@ function Close-TrueColour {
 # Started once true colour is running (it reads the same DOSBox surface the overlay found), and
 # stopped with it. Everything about the design comes from AztMod\art\wide (Build-HudWide.ps1).
 function Stop-WidePanel {
-    # the pointer first: it gives the game its own pointer back
+    # the pointer first: it gives the game its own pointer back (and the vector cursors put the game's bitmaps back)
+    if ($script:iconCursor) { try { $script:iconCursor.Dispose() } catch { }; $script:iconCursor = $null }
     if ($script:pointer) { try { $script:pointer.Dispose() } catch { }; $script:pointer = $null }
     if ($script:panel) { try { $script:panel.Dispose() } catch { }; $script:panel = $null }
     if ($script:ov) { $script:ov.HideRect = $null; $script:ov.HideFromRow = [int]::MaxValue }; if ($script:gpu) { $script:gpu.HideRect = $null; $script:gpu.HideFromRow = [int]::MaxValue }
+}
+# A SWITCH SAYS WHAT IT DID (F5 wet, F6 shine, F7 relief: Josh compares them in play and cannot see the log) -- a short
+# readout typed on the visor, not dismissed by the flashlight as a room's own readout is
+$script:toggleNoteAt = $null
+function Show-ToggleNote([string]$text) {
+    if (-not $script:ov) { return }
+    try { (Get-VisorNote).Show(@("RAPTOR H.U.D. // $text"), 1.2); $script:toggleNoteAt = [Diagnostics.Stopwatch]::StartNew() } catch { }
 }
 # the visor's readouts and damage badge (ScanWire.cs VisorNote, on Overlay.Decorate3), made on first use
 function Get-VisorNote {
@@ -2008,7 +2280,7 @@ function Start-WidePanel($ovl) {
             $pn.ModeOff[$mi] = $off; $pn.ModeOn[$mi] = $on
         }
         # the game's state it follows: obj1 addresses take HostLin, obj2 ones the obj2 delta
-        $d2 = $(if ($S_delta2) { RdU32 (HostLin $S_delta2) } else { 0 }); if (-not $d2) { $d2 = 0x1F1000 }
+        $d2 = Get-GuestD2
         $pn.BoxBigAddr = HostLin 0x511AF                              # aztBoxBig: CAVE2_BASE + 15, fixed by design
         $pn.ConvListAddr = [long]($g.MemBase + 0x152B1C + $d2)        # g_convList: a conversation holds the box open
         $pn.CursorXAddr = [long]($g.MemBase + 0x182D6C + $d2); $pn.CursorYAddr = [long]($g.MemBase + 0x182D6E + $d2)
@@ -2019,7 +2291,7 @@ function Start-WidePanel($ovl) {
         $pn.HostText = -not $NoHostText; $pn.MemBase = [long]$g.MemBase; $pn.Palette = $script:tcPal32
         $pn.LogObjAddr = [long]($g.MemBase + 0x1521AC + $d2); $pn.FontGoldAddr = [long]($g.MemBase + 0x152178 + $d2); $pn.FontCyanAddr = [long]($g.MemBase + 0x15217C + $d2)
         $pn.FontInvAddr = [long]($g.MemBase + 0x163A38 + $d2); $pn.InvWidgetAddr = [long]($g.MemBase + 0x163A40 + $d2); $pn.InvPitchAddr = [long]($g.MemBase + 0x14747A + $d2)
-        $pn.ConvScrollAddr = [long]($g.MemBase + 0x152B32 + $d2)
+        $pn.ConvScrollAddr = [long]($g.MemBase + 0x152B32 + $d2); $pn.ConvOptAddr = [long]($g.MemBase + 0x162B34 + $d2); $pn.ConvSpeakAddr = [long]($g.MemBase + 0x152B28 + $d2)      # the options' ends (the hover highlight)
         # the host's pointer (before the panel starts: the seam layout is decided when it first places itself)
         $ptr = $null
         if ($HostPointer) {
@@ -2037,6 +2309,21 @@ function Start-WidePanel($ovl) {
         if (-not $pn.Start()) { throw ("its window would not start: " + $pn.StartError) }
         $script:pointer = $ptr
         $script:panel = $pn
+        # THE GAME'S CURSORS AS ANIMATED VECTORS (see -NoIconCursor; not with the host pointer, which draws the cursor itself)
+        if (-not $NoIconCursor -and -not $ptr) {
+            try {
+                $ic = New-Object AztTool.IconCursor($g.ProcessId)
+                $o2c = { param([uint32]$a) [long]($g.MemBase + $a + $d2) }
+                $ic.MemBase = [long]$g.MemBase; $ic.GamePid = $g.ProcessId
+                $ic.CursorAddr = & $o2c 0x182D6C; $ic.CurSurfAddr = & $o2c 0x147588; $ic.HotAddr = & $o2c 0x14758E
+                $ic.HiddenAddr = & $o2c 0x147586; $ic.MouselookAddr = & $o2c 0x147218
+                $ic.TableAddr = & $o2c 0x164B80; $ic.TableGuest = [uint32](0x164B80 + $d2)          # (slot i's surface: 0x164B80 + i * 18)
+                $ic.PlaceBy($pn, 'GetPlacement')
+                if (-not $ic.Start()) { throw ("its window would not start: " + $ic.StartError) }
+                $script:iconCursor = $ic
+                Say 'game cursors: drawn as animated vectors (the game''s 30 cursor bitmaps blanked while they are; -NoIconCursor for the bitmaps)' Green
+            } catch { Say ("vector cursors failed: {0} -- the game's own cursor bitmaps" -f $_.Exception.Message) Yellow; try { $ic.Dispose() } catch { }; $script:iconCursor = $null }
+        }
         Say ("widescreen panel: on ({0}); log text {1} px wide; scroll keys {2}" -f $wd, $pn.RecessOpen[2], $(if ($pn.LogScrollAddr) { 'wired' } else { 'NOT wired (no aztLogScroll in the symbol map)' })) Green
     } catch { Say ("widescreen panel failed: {0} -- the game's own 4:3 panel stays" -f $_.Exception.Message) Yellow; Stop-WidePanel }
 }
@@ -2113,7 +2400,7 @@ function Start-ScanWire($ovl) {
             if ($items.Count) { Say ("scanner wireframe: {0} item sets: {1}" -f $items.Count, ($items -join ', ')) DarkCyan; $got += $items }
         }
         if ($got.Count -eq 0) { return }
-        $d2 = $(if ($S_delta2) { RdU32 (HostLin $S_delta2) } else { 0 }); if (-not $d2) { $d2 = 0x1F1000 }
+        $d2 = Get-GuestD2
         # its sounds: the boot's own engine, under the boot's switches (-NoBootSound, -BootSoundVolume)
         $sw.Sound = New-Object AztTool.BootSound
         $sw.Sound.On = (-not $NoBootSound); if ($BootSoundVolume -ge 0) { $sw.Sound.Volume = $BootSoundVolume }
@@ -2217,7 +2504,7 @@ function Start-VisorShade {
 }
 function Stop-VisorShade {
     if (-not $script:visorShade) { return }
-    try { if ($g) { $r = $script:visorShade.SetGameCopy($g.ProcessId, [long]$g.MemBase, -1); Say ("visor shading: the game's own copy {0}" -f $r) DarkGray } } catch { }
+    try { if ($g) { $script:visorShade.D2 = Get-GuestD2; $r = $script:visorShade.SetGameCopy($g.ProcessId, [long]$g.MemBase, -1); Say ("visor shading: the game's own copy {0}" -f $r) DarkGray } } catch { }
     $script:visorShade = $null
 }
 # Every couple of seconds while the host draws: keep the game's copy hidden, and draw ours only once it is.
@@ -2225,7 +2512,7 @@ function Step-VisorShade {
     $vs = $script:visorShade; if (-not $vs -or -not $g) { return }
     if ($script:shadeClock.ElapsedMilliseconds -lt 2000 -and $vs.Enabled) { return }
     $script:shadeClock.Restart()
-    $r = $vs.SetGameCopy($g.ProcessId, [long]$g.MemBase, [int]$script:tcKeyA)
+    $vs.D2 = Get-GuestD2; $r = $vs.SetGameCopy($g.ProcessId, [long]$g.MemBase, [int]$script:tcKeyA)
     $vs.Enabled = ($r -like 'hidden*' -or $r -like 'already hidden*')
     if ($r -ne $script:shadeSaid -and $r -notlike 'already*') { Say ("visor shading: the game's own copy {0}" -f $r) $(if ($vs.Enabled) { 'Cyan' } else { 'Yellow' }); $script:shadeSaid = $r }
 }
@@ -2362,6 +2649,7 @@ function Get-VisorMenu($o) {
         $vm = New-Object AztTool.VisorMenu($o)
         $vm.Sound = New-Object AztTool.BootSound; $vm.Sound.On = (-not $NoBootSound); if ($BootSoundVolume -ge 0) { $vm.Sound.Volume = $BootSoundVolume }
         $vm.ViewY = [int]$man.view.injY
+        $vm.RoomLoadAhead = [bool]($TrueColour -and -not $NoRgb)      # (a load's reading bar carries the room's textures: Set-LoadProgress)
         $vm.Pid = $g.ProcessId; $vm.MemBase = [long]$g.MemBase; $vm.CurSurfAddr = $script:memAt.CurSurf; $vm.HotAddr = $script:memAt.Hot; $vm.HiddenAddr = $script:memAt.Hidden      # (the game's cursor, drawn over the panel)
         $o.Decorate4 = $vm.Hook; $script:visorMenu = $vm
         Say 'memory core: the host draws the save/load screen' Cyan
@@ -2385,8 +2673,11 @@ function Step-LoadPanel {
         $age = $script:readWaitAt.Elapsed.TotalSeconds
         $quiet = -not $script:loadBusy -and $script:loadBusyEnd -and $script:loadBusyEnd.Elapsed.TotalSeconds -gt 4      # (no re-boot came after the load)
         if (($script:readWaitSeen -and $bm -ne 'live' -and $bm -ne 'hold') -or (-not $script:readWaitSeen -and $quiet) -or $age -gt 45) {
-            try { (Get-VisorMenu $script:ov).FinishReading() } catch { }
-            $script:readWaitAt = $null
+            Set-LoadViewUp      # (and the reading finishes once the view is steady: Step-LoadGuard counts its frames)
+            if ($age -gt 45 -or (Test-LoadViewSteady)) {
+                try { (Get-VisorMenu $script:ov).FinishReading() } catch { }
+                $script:readWaitAt = $null
+            }
         }
     }
     # A TITLE LOAD (2026-10-10: "If i load a game I don't see the loading screen i hoped for") is read in by the TITLE: it is
@@ -2396,8 +2687,8 @@ function Step-LoadPanel {
         if (-not $script:titleReadAt) { $script:titleReadAt = [Diagnostics.Stopwatch]::StartNew(); if ($script:bootHd) { $script:bootHd.LoadHeld = $null }; Say ("loading a log from the title: slot {0} '{1}' -- the title reads it in until the view is back" -f ($script:gate.PickedSlot + 1), $script:gate.PickedName) Cyan }
         $bm = if ($script:bootHd) { $script:bootHd.Mode } else { 'none' }
         if ($bm -eq 'live' -or $bm -eq 'hold') { $script:titleReadSeen = $true }
-        if ($bm -eq 'none' -or ($script:titleReadSeen -and $bm -ne 'live' -and $bm -ne 'hold') -or (-not $script:titleReadSeen -and $script:titleReadAt.Elapsed.TotalSeconds -gt 6)) {
-            $script:gate.TitleLoadShown(); $script:gate.PickedSlot = -1; $script:titleReadAt = $null; $script:titleReadSeen = $false
+        if (-not $script:titleShowDue -and ($bm -eq 'none' -or ($script:titleReadSeen -and $bm -ne 'live' -and $bm -ne 'hold') -or (-not $script:titleReadSeen -and $script:titleReadAt.Elapsed.TotalSeconds -gt 6))) {
+            Request-TitleLoadShown      # (Step-LoadGuard tells the title once the view is steady)
             $script:titleUnlockAt = [Diagnostics.Stopwatch]::StartNew(); $script:titleUnlockSaid = $false
         }
         $script:loadRebootWas = $null
@@ -2462,7 +2753,56 @@ function Step-QuitWatch {
         if (-not $gp.CloseMainWindow() -or -not $gp.WaitForExit(2500)) { $gp.Kill(); [void]$gp.WaitForExit(2000) }
     } catch { Say ("QUIT: closing DOSBox failed: {0}" -f $_.Exception.Message) Yellow }
 }
-function Step-MemCore($o) {
+# THE SHOT RECORDER (Josh, 2026-10-10: "it is now automatically shooting the gun when I right-click"). The fire code (0x15A5C,
+# the LEFT-down case of the button switch at 0x1382C) only fires in combat; the right button's own case (0x15C75) never gets
+# there. So each shot logs the last ~0.6 s of the input that led to it -- left / right button (0x182DA6 / 0x182DAA),
+# combat (0x14721C), mouselook (0x147218) -- one sample a frame, oldest first, until the cause is known.
+$script:shotHist = New-Object System.Collections.Generic.List[string]; $script:shotAmmo = $null; $script:shotClock = [Diagnostics.Stopwatch]::StartNew(); $script:shotSaid = 0
+$script:shotWeapon = $null; $script:weaponSaid = 0; $script:spokeAt = $null
+# SPACE AFTER A SPOKEN LINE (see -NoSpaceGuard; tools\Keys.cs): a low-level keyboard hook of the host's own, nothing in the game
+$script:spaceGuard = $null; $script:sgSaid = 0L; $script:sgClock = [Diagnostics.Stopwatch]::StartNew()
+function Start-SpaceGuard([long]$speakAt) {
+    Stop-SpaceGuard
+    if ($NoSpaceGuard -or -not $g) { return }
+    try {
+        $sg = New-Object AztTool.SpaceGuard($g.ProcessId); $sg.SpeakAddr = $speakAt
+        if (-not $sg.Start()) { throw ("its keyboard hook would not start: " + $sg.StartError) }
+        $script:spaceGuard = $sg; $script:sgSaid = 0L
+        Say ("space guard: on -- for {0:N1} s after a spoken line ends, Space is not passed to the game (it would draw the weapon); while a line plays it skips it as before (-NoSpaceGuard)" -f ($sg.QuietMs / 1000.0)) Green
+    } catch { Say ("space guard failed: {0} -- Space goes to the game as it is" -f $_.Exception.Message) Yellow; try { $sg.Dispose() } catch { }; $script:spaceGuard = $null }
+}
+function Stop-SpaceGuard {
+    if ($script:spaceGuard) { try { $script:spaceGuard.Dispose() } catch { }; $script:spaceGuard = $null }
+}
+function Step-ShotWatch {
+    $sgd = $script:spaceGuard
+    if ($sgd -and $sgd.Swallowed -ne $script:sgSaid -and $script:sgClock.Elapsed.TotalSeconds -ge 3) {
+        $script:sgSaid = $sgd.Swallowed; $script:sgClock.Restart()
+        Say ("space guard: Space held back {0} time(s) just after a spoken line; {1} passed; {2} line ends seen; {3} held Space released early" -f $sgd.Swallowed, $sgd.Passed, $sgd.LineEnds, $sgd.EarlyUps) DarkYellow
+    }
+    if (-not $script:memAt -or -not $g) { return }
+    $am = GuestWord 0x14694C; if ($null -eq $am) { return }
+    # THE WEAPON (word 0x14721C; the game's SPACE key toggles it -- "Toggle MS7 Sniper sight"). While it is out the cursor pick
+    # 0x116E4 skips every contextual cursor (0x119D6) -- no pick-up / use / door cursors -- and the left button fires. Josh
+    # 2026-10-11 "could not pick up the key in the well": both clicks there were shots with it out. Space also skips a spoken
+    # line (AztSkipKey), so a press just after a line ends draws the weapon: logged with how long ago a line was spoken.
+    $wp = GuestWord 0x14721C; $now = $script:shotClock.Elapsed.TotalSeconds
+    if ((GuestWord 0x152B28) -gt 0) { $script:spokeAt = $now }
+    if ($null -ne $wp -and $null -ne $script:shotWeapon -and $wp -ne $script:shotWeapon -and $script:weaponSaid -lt 40) {
+        $script:weaponSaid++
+        $ago = if ($null -ne $script:spokeAt -and $now - $script:spokeAt -lt 2) { ' (a spoken line ended {0:N1} s before)' -f ($now - $script:spokeAt) } else { '' }
+        Say ("weapon {0}{1}; conversation {2}" -f $(if ($wp) { "DRAWN -- the game's crosshair: no pick-up / use cursors, the left button fires, until Space puts it away" } else { 'put away' }), $ago, (GuestWord 0x152B1C)) DarkYellow
+    }
+    if ($null -ne $wp) { $script:shotWeapon = $wp }
+    $s = '{0:N2}:L{1}R{2}C{3}M{4}' -f $script:shotClock.Elapsed.TotalSeconds, (GuestWord 0x182DA6), (GuestWord 0x182DAA), (GuestWord 0x14721C), (GuestWord 0x147218)
+    $script:shotHist.Add($s); while ($script:shotHist.Count -gt 24) { $script:shotHist.RemoveAt(0) }
+    if ($null -ne $script:shotAmmo -and $am -lt $script:shotAmmo -and $script:shotSaid -lt 20) {
+        $script:shotSaid++; $now = $script:shotClock.Elapsed.TotalSeconds
+        $recent = @($script:shotHist | Where-Object { $now - [double]($_.Split(':')[0]) -le 0.6 } | ForEach-Object { $x = $_.Split(':'); '{0:+0.00;-0.00}s {1}' -f ([double]$x[0] - $now), $x[1] })
+        Say ("SHOT RECORD {0}: ammo {1} -> {2}; input before it (L/R = left/right button, C = combat, M = mouselook): {3}" -f $script:shotSaid, $script:shotAmmo, $am, ($recent -join ' | ')) DarkYellow
+    }
+    $script:shotAmmo = $am
+}function Step-MemCore($o) {
     if ($NoMemCore -or -not $o -or -not $script:memAt) { return }
     try {
         $blk = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Blk, 0xF8)
@@ -2564,10 +2904,15 @@ function Step-TrueColour([byte[]]$color) {
     $o = $script:ov
     if ($script:tcState -eq 'run') {
         # the host's 3D is going up: the boot's shutter opens over it from this frame on
-        if ($script:bootHd -and $script:bootHd.Holding) { if ($script:tcRaster) { $script:bootHd.Reveal([int]$script:tcRaster.W, [int]$script:tcRaster.H) } else { $script:bootHd.Reveal() }; Write-BootNotes; if ($script:gate -and $script:gate.PickedSlot -ge 0) { $script:gate.TitleLoadShown(); $script:gate.PickedSlot = -1; $script:titleReadAt = $null; $script:titleReadSeen = $false; $script:titleUnlockAt = [Diagnostics.Stopwatch]::StartNew(); $script:titleUnlockSaid = $false } }
+        if ($script:bootHd -and $script:bootHd.Holding) { if ($script:tcRaster) { $script:bootHd.Reveal([int]$script:tcRaster.W, [int]$script:tcRaster.H) } else { $script:bootHd.Reveal() }; Write-BootNotes; if ($script:loadGuard) { Set-LoadViewUp }; if ($script:gate -and $script:gate.PickedSlot -ge 0) { Request-TitleLoadShown; $script:titleUnlockAt = [Diagnostics.Stopwatch]::StartNew(); $script:titleUnlockSaid = $false } }
         Step-VisorShade
         # the widescreen panel's text area draws itself over the view: the game's copy there is left out
-        $hide = $(if ($script:panel) { $script:panel.HideNow } else { $null })
+        # IN THE BOOK / ITEM VIEW (Josh, 2026-10-11: the page was "cut off by some portions of the bottom UI's shape") the
+        # panel draws the page itself from the bleed row (OwnFromRow) down -- black plus the page's own pixels (Panel.
+        # ComposeBook) -- so the bleed rows stay out of the view's compose as ever, and the opened log box's hide area is
+        # dropped: the panel does not draw the box over a page, so nothing of the page may be left out there.
+        $bvNow = $false; if ($script:bookViewAt) { try { $bvNow = ((RdU32 $script:bookViewAt) -band 0xFFFF) -ne 0 } catch { } }
+        $hide = $(if ($script:panel -and -not $bvNow) { $script:panel.HideNow } else { $null })
         $hideFrom = $(if ($script:panel) { $script:panel.OwnFromRow - [int]$man.view.injY } else { [int]::MaxValue })
         # THE GAME'S RETICLE WAITS FOR THE LOCK: while the boot's vector initiation closes on the aim point,
         # the game's own reticle (and the ammo count beside it) is kept out of the picture -- the middle of the
@@ -2578,7 +2923,7 @@ function Step-TrueColour([byte[]]$color) {
         # (the HUD's vector text: its state when it changes, with a line it read -- so a session's log shows it working)
         if ($script:panel -and $script:panel.HostText) {
             $hs = ($script:panel.TextNote -replace '\s*\(.*\)', '')
-            if ($hs -and $hs -ne $script:hudTextState) { $script:hudTextState = $hs; Say ("hud text: {0} -- '{1}' ({2} lines read, {3} runs left to the game's pixels, {4} times it did not line up)" -f $script:panel.TextNote, $script:panel.TextSample, $script:panel.TextLinesDecoded, $script:panel.TextRunsMissed, $script:panel.TextFallbacks) Cyan }
+            if ($hs -and $hs -ne $script:hudTextState) { $script:hudTextState = $hs; Say ("hud text: {0} -- '{1}' ({2} lines read, {3} runs left to the game's pixels, {4} times it did not line up, {5} torn readings held steady)" -f $script:panel.TextNote, $script:panel.TextSample, $script:panel.TextLinesDecoded, $script:panel.TextRunsMissed, $script:panel.TextFallbacks, $script:panel.TextHolds) Cyan }
         }
         $memHide = $(if ($script:visorMenu) { $script:visorMenu.HideAll } else { $null })      # (the memory core's panel and/or the system menu's)
         if (-not $script:scanWire) { $o.HideRect2 = $memHide; if ($script:gpu) { $script:gpu.HideRect2 = $memHide } }
@@ -2601,7 +2946,7 @@ function Step-TrueColour([byte[]]$color) {
                 # long finished), then this frame sharpened and composed there with the overlay's
                 # latest reading of the screen, and its read-back started. Nothing waits.
                 $gq = $script:gpu
-                $bv = $false; if ($script:bookViewAt) { try { $bv = ((RdU32 $script:bookViewAt) -band 0xFFFF) -ne 0 } catch { } }
+                $bv = $bvNow                                      # (read at the top of this step, for the hide areas too)
                 $gq.BlackView = $bv
                 # ...and the page in FRONT of the panel (Josh, 2026-10-08): the panel's art steps aside in its own rows and
                 # shows the page there, masked by the page surface -- the struct at obj2 0x152580 is {u16 w, u16 h, u32 pixels}
@@ -2641,10 +2986,15 @@ function Step-TrueColour([byte[]]$color) {
                         if (-not $NoBootSound) { $vds = New-Object AztTool.BootSound; $vds.Volume = 0.33 * $(if ($BootSoundVolume -ge 0) { $BootSoundVolume } else { 0.36 }); $script:visorDmg.Sound = $vds }
                         Say 'damaged visor: on (scratches, cracks and the vitals monitor follow the health)' Cyan
                     }
-                    try { $script:visorDmg.Step($gq, $script:hpFrac) } catch { Say ("damaged visor failed: {0} -- off" -f $_.Exception.Message) Yellow; $gq.VisorOn = $false; $script:visorDmg = $null; $script:visorDmgOff = $true }
+                    try { $script:visorDmg.Menus = $script:visorMenu; $script:visorDmg.Step($gq, $script:hpFrac) } catch { Say ("damaged visor failed: {0} -- off" -f $_.Exception.Message) Yellow; $gq.VisorOn = $false; $script:visorDmg = $null; $script:visorDmgOff = $true }
                     if ($script:visorDmg -and $script:visorDmg.Deaths -ne $script:vdDeaths) { $script:vdDeaths = $script:visorDmg.Deaths; Say ("the player died (health {0}): the vitals monitor slows to a flat line" -f $(if ($null -ne $script:hpRaw) { '{0:N1}' -f ($script:hpRaw / 65536.0) } else { '?' })) DarkYellow }
                     if ($script:visorDmg -and $script:visorDmg.LastError) { Say ("damaged visor: the layer failed ({0})" -f $script:visorDmg.LastError) Yellow; $script:visorDmg.LastError = $null }
                 }
+                # THE VISOR'S "Scanning..." LABEL while the room materializes (ScanWire.cs ScanTag; the card lays it over)
+                if ($glp -and -not $NoMaterialize) {
+                    if (-not $script:scanTag) { $script:scanTag = New-Object AztTool.ScanTag($o) }
+                    try { $script:scanTag.Step($gq) } catch { Say ("the scanning label failed: {0} -- off" -f $_.Exception.Message) Yellow; $script:scanTag.Enabled = $false; $gq.TagOn = $false }
+                } elseif ($gq.TagOn) { $gq.TagOn = $false }
                 $dyn = (-not $glp) -or $o.KeepCopy -or ($script:bootHd -and $script:bootHd.Covering) -or ($script:scanWire -and $script:scanWire.Playing) -or ($script:visorNote -and $script:visorNote.Playing) -or ($script:visorMenu -and $script:visorMenu.AnyPlaying)
                 if ($dyn) {
                     if ($gq.FinishRead($script:gpuShowBuf)) {
@@ -2752,7 +3102,7 @@ function ConvertTo-Rgb24([string]$hex, [int]$fallback) {
     try { return [Convert]::ToInt32($h, 16) } catch { return $fallback }
 }
 function Get-RoomAtmosphere([string[]]$names) {
-    $res = [pscustomobject]@{ Fog = $null; Dust = $null; Lights = @(); Source = @(); Mist = $null; Drips = $null; Steam = $null; Kickup = $null; Embers = $null; Volume = $null; Water = $null; Holograms = $null; Gi = $null; Visor = $null; WaterMist = $null; Holes = $null; NoCast = $null; ArtLight = $null; Name = '' }
+    $res = [pscustomobject]@{ Fog = $null; Dust = $null; Lights = @(); Source = @(); Mist = $null; Drips = $null; Steam = $null; Kickup = $null; Embers = $null; Volume = $null; Water = $null; Holograms = $null; Gi = $null; Visor = $null; WaterMist = $null; Holes = $null; NoCast = $null; ArtLight = $null; Ghost = $null; Materials = $null; Shine = $null; Wet = $null; Repair = 'default'; Parallax = 1.0; Name = '' }
     $first = $(if ($names.Count) { ([string]$names[0]).ToUpper() } else { '' }); $res.Name = $first
     try {
         $defPath = Join-Path $RoomsDir '_defaults.json'
@@ -2765,7 +3115,7 @@ function Get-RoomAtmosphere([string[]]$names) {
                     if ($cls.Value.fog)  { $res.Fog  = $cls.Value.fog }
                     if ($cls.Value.dust) { $res.Dust = $cls.Value.dust }
                     if ($cls.Value.lights) { $res.Lights = @($cls.Value.lights) }
-                    foreach ($k in 'mist', 'drips', 'steam', 'kickup', 'embers', 'volume', 'water', 'holograms', 'gi', 'visor', 'waterMist', 'holes', 'noCast', 'artLight') { if ($cls.Value.PSObject.Properties[$k]) { $res.$k = $cls.Value.$k } }
+                    foreach ($k in 'mist', 'drips', 'steam', 'kickup', 'embers', 'volume', 'water', 'holograms', 'gi', 'visor', 'waterMist', 'holes', 'noCast', 'artLight', 'ghost', 'materials', 'shine', 'wet', 'repair', 'parallax') { if ($cls.Value.PSObject.Properties[$k]) { $res.$k = $cls.Value.$k } }
                     $res.Source += ('class ' + $cls.Name)
                 }
             }
@@ -2776,7 +3126,7 @@ function Get-RoomAtmosphere([string[]]$names) {
             if ($o.PSObject.Properties['fog'])    { $res.Fog  = $o.fog }
             if ($o.PSObject.Properties['dust'])   { $res.Dust = $o.dust }
             if ($o.PSObject.Properties['lights']) { $res.Lights = @($o.lights) }
-            foreach ($k in 'mist', 'drips', 'steam', 'kickup', 'embers', 'volume', 'water', 'holograms', 'gi', 'visor', 'waterMist', 'holes', 'noCast', 'artLight') { if ($o.PSObject.Properties[$k]) { $res.$k = $o.$k } }
+            foreach ($k in 'mist', 'drips', 'steam', 'kickup', 'embers', 'volume', 'water', 'holograms', 'gi', 'visor', 'waterMist', 'holes', 'noCast', 'artLight', 'ghost', 'materials', 'shine', 'wet', 'repair', 'parallax') { if ($o.PSObject.Properties[$k]) { $res.$k = $o.$k } }
             $res.Source += ("{0}.json" -f $first)
         }
     } catch { Say ("atmosphere file problem: {0}" -f $_.Exception.Message) Yellow }
@@ -2930,8 +3280,181 @@ function Set-RoomTextureRules($gq, $atm, $roomObj) {
         $tx.NoCast = [bool]($lf -and $nc.ContainsKey($lf))
     }
 }
+# A GHOST (Josh, 2026-10-11, WELLROOM: Niamh, the floating lady -- "more ethereal ... look like a ghost and not a bunch of
+# polygons"): "ghost": { "characters": [rig names], "color", "rim", "texture", "textureColour" (her own painted colours inside
+# the glow, 0..1), "opacity", "density", "rimGlow", "soft", "core",
+# "glow", "fade": [low, high], "noise": { amount, size, rise }, "shimmer", "breath", "wisps": { rate, size, life, rise, alpha,
+# spread, color, parts: [pieces of part names] } (false = none), "light": { power, color, range, air, height } (false = none) }
+# -- sizes are shares of her height. The card draws those characters as glowing smoke (GpuRaster.DrawGhost); the processor's
+# picture and -Retro draw them as before.
+function Set-GpuGhost($gq, $gh) {
+    $script:ghostAtm = $gh; $script:ghostSeen = $false; $gq.GhostOn = [bool]$gh; $gq.GhostError = $null
+    if (-not $gh) { return }
+    $d = { param($x, $def) if ($null -ne $x) { [single]$x } else { [single]$def } }
+    $gq.GhostColor = ConvertTo-Rgb24 ([string]$gh.color) 0xBFF6F0; $gq.GhostRimColor = ConvertTo-Rgb24 ([string]$gh.rim) 0xE6FFFF
+    $gq.GhostTexture = & $d $gh.texture 0.55; $gq.GhostOpacity = & $d $gh.opacity 0.6; $gq.GhostDensity = & $d $gh.density 8; $gq.GhostRim = & $d $gh.rimGlow 1.0; $gq.GhostBright = & $d $gh.bright 1.8; $gq.GhostTexColour = & $d $gh.textureColour 0
+    $gq.GhostSoft = & $d $gh.soft 0.02; $gq.GhostCore = & $d $gh.core 0.6; $gq.GhostGlow = & $d $gh.glow 0.8
+    $fd = @($gh.fade); $gq.GhostFadeLow = & $d $(if ($fd.Count -eq 2) { $fd[0] } else { $null }) 0.02; $gq.GhostFadeHigh = & $d $(if ($fd.Count -eq 2) { $fd[1] } else { $null }) 0.72
+    $nz = $gh.noise; $gq.GhostNoise = & $d $nz.amount 0.7; $gq.GhostNoiseSize = & $d $nz.size 0.12; $gq.GhostNoiseRise = & $d $nz.rise 0.06
+    $gq.GhostShimmer = & $d $gh.shimmer 3; $gq.GhostBreath = & $d $gh.breath 0.08
+    $li = $gh.light
+    if ($li -is [bool] -and -not $li) { $gq.GhostLight = [single]0 }
+    else { $gq.GhostLight = & $d $li.power 0.25; $gq.GhostLightRange = & $d $li.range 1.0; $gq.GhostLightAir = & $d $li.air 1.5; $gq.GhostLightHeight = & $d $li.height 0.8; $gq.GhostLightColor = ConvertTo-Rgb24 ([string]$li.color) 0x8FE6DC }
+    Say ("  ghost: {0} as glowing smoke -- #{1:X6}, opacity {2}, fading below {3:P0} of her; her light {4}" -f (@($gh.characters) -join ', '), $gq.GhostColor, $gq.GhostOpacity, $gq.GhostFadeHigh, $(if ($gq.GhostLight -gt 0) { '{0} #{1:X6}' -f $gq.GhostLight, $gq.GhostLightColor } else { 'off' })) Cyan
+}
+# Which textures are the ghost's (Tex.Ghost) and where her wisps come from ($script:ghostWispVerts), for the room as built --
+# again whenever its characters change (they are added to the room after it loads). Textures are shared between rooms, so
+# every room's own are cleared first.
+function Set-RoomGhosts($gq, $roomObj) {
+    $script:ghostWispVerts = [int[]]@()
+    if (-not $roomObj -or -not $roomObj.Texes) { return }
+    foreach ($tx in $roomObj.Texes) { if ($tx) { $tx.Ghost = $false } }
+    $gh = $script:ghostAtm
+    if (-not $gh -or -not $gq -or -not $gq.GhostOn) { return }
+    $want = @($gh.characters | Where-Object { $_ } | ForEach-Object { ([string]$_).ToUpper() })
+    $pieces = @($(if ($gh.wisps -and $gh.wisps -isnot [bool] -and $gh.wisps.parts) { $gh.wisps.parts } else { @('NSKIRT', 'NIHAND', 'NILEG') }) | ForEach-Object { ([string]$_).ToUpper() })
+    $found = @{}; $wv = New-Object 'System.Collections.Generic.List[int]'
+    foreach ($pt in @($roomObj.Parts)) {
+        if (-not $pt.IsCharacter) { continue }
+        $rig = ([string]$pt.Room).ToUpper(); if ($want -notcontains $rig) { continue }
+        if (-not $found.ContainsKey($rig)) {
+            $found[$rig] = 0; $mem = $script:AztUnitMem[[string]$pt.Room]
+            if ($mem) { foreach ($tx in @($mem.Tex)) { if ($tx) { $tx.Ghost = $true; $found[$rig]++ } } }
+        }
+        $pn = ([string]$pt.Name).ToUpper()
+        foreach ($pc in $pieces) { if ($pn.Contains($pc)) { for ($v = 0; $v -lt [int]$pt.VCount; $v++) { $wv.Add([int]$pt.VFirst + $v) }; break } }
+    }
+    $script:ghostWispVerts = $wv.ToArray()
+    foreach ($k in $found.Keys) { Say ("  ghost: {0} is here -- {1} of its textures drawn as smoke, wisps from {2} of its points" -f $k, $found[$k], $wv.Count) Cyan }
+}
+# MATERIALS (Josh, 2026-10-12: "Material tags for every texture ... Shine where it belongs. Your helmet lamp would glint off
+# brass and gold, give wet stone a sheen, and leave wood and cloth dull"): what every texture is -- rooms\_materials.json
+# (the materials, exact names, ordered name rules; characters by their own rules) and a room's own "materials" / "shine" --
+# set on each texture (Raster.Tex.Material, Shine, Gloss, Metal, ShineVary) for the graphics card's highlights. Textures are
+# shared between rooms, so every room entry sets all of its own. The file is read again when it changes.
+$script:matTable = $null; $script:matStamp = $null
+function Get-MaterialTable {
+    $p = Join-Path $RoomsDir '_materials.json'
+    if (-not (Test-Path $p)) { return $null }
+    $st = (Get-Item $p).LastWriteTimeUtc
+    if ($script:matTable -and $script:matStamp -eq $st) { return $script:matTable }
+    try {
+        $j = [IO.File]::ReadAllText($p) | ConvertFrom-Json
+        $mats = @{}; foreach ($pp in $j.materials.PSObject.Properties) { $mats[$pp.Name] = $pp.Value }
+        $names = @{}; if ($j.names) { foreach ($pp in $j.names.PSObject.Properties) { $names[$pp.Name.ToLowerInvariant()] = [string]$pp.Value } }
+        $rules = New-Object System.Collections.Generic.List[object]; $crules = New-Object System.Collections.Generic.List[object]
+        foreach ($set in @(@($j.rules, $rules), @($j.characterRules, $crules))) {
+            foreach ($rr in @($set[0])) { if ($rr -and @($rr).Count -ge 2) { $set[1].Add([pscustomobject]@{ Rx = [regex]::new([string]$rr[0], [Text.RegularExpressions.RegexOptions]::IgnoreCase); Mat = [string]$rr[1] }) } }
+        }
+        # (parallax by hand: "parallax": { "on": [names], "off": [names] } -- a texture's name or file name)
+        $pOn = @{}; $pOff = @{}; if ($j.parallax) { foreach ($x in @($j.parallax.on)) { if ($x) { $pOn[([string]$x).ToLowerInvariant()] = 1 } }; foreach ($x in @($j.parallax.off)) { if ($x) { $pOff[([string]$x).ToLowerInvariant()] = 1 } } }
+        $script:matTable = [pscustomobject]@{ Mats = $mats; Names = $names; Rules = $rules; CharRules = $crules; ParallaxOn = $pOn; ParallaxOff = $pOff }
+        $script:matStamp = $st
+    } catch { Say ("materials file problem: {0}" -f $_.Exception.Message) Yellow; $script:matTable = $null }
+    return $script:matTable
+}
+# One texture's material, and why: the room's own word (by file name, then name), the table's names, the rules (characters
+# by theirs), else stone (characters: skin). $roomMats: the room's "materials", keys in lower case.
+function Resolve-TexMaterial($tbl, $tx, $roomMats) {
+    $leaf = [string]$tx.Leaf; $name = ($leaf -replace '^\d+-', '').ToLowerInvariant()
+    $mat = $null; $over = $null; $how = ''
+    if ($roomMats -and $leaf) {
+        foreach ($k in @($leaf.ToLowerInvariant(), $name)) {
+            if ($roomMats.ContainsKey($k)) { $v = $roomMats[$k]; if ($v -is [string]) { $mat = $v } else { $over = $v; if ($v.material) { $mat = [string]$v.material } }; $how = 'room'; break }
+        }
+    }
+    if (-not $mat -and $name -and $tbl.Names.ContainsKey($name)) { $mat = $tbl.Names[$name]; $how = 'name' }
+    if (-not $mat -and $name) { foreach ($rl in $(if ($tx.Moves) { $tbl.CharRules } else { $tbl.Rules })) { if ($rl.Rx.IsMatch($name)) { $mat = $rl.Mat; $how = 'rule /' + $rl.Rx.ToString() + '/'; break } } }
+    if (-not $mat) { $mat = $(if (-not $leaf) { 'matte' } elseif ($tx.Moves) { 'skin' } else { 'stone' }); $how = 'default' }
+    return [pscustomobject]@{ Leaf = $leaf; Name = $name; Material = $mat; How = $how; Over = $over }
+}
+function Set-RoomMaterials($gq, $atm, $roomObj) {
+    if (-not $roomObj -or -not $roomObj.Texes) { return }
+    $tbl = Get-MaterialTable
+    $rm = @{}; if ($atm -and $atm.Materials) { foreach ($pp in $atm.Materials.PSObject.Properties) { $rm[$pp.Name.ToLowerInvariant()] = $pp.Value } }
+    $gain = [double]$(if ($atm -and $null -ne $atm.Shine) { $atm.Shine } else { 1.0 })
+    $count = @{}; $unknown = @{}
+    foreach ($tx in $roomObj.Texes) {
+        if (-not $tx) { continue }
+        $tx.Material = $null; $tx.Shine = 0; $tx.Gloss = 16; $tx.Metal = 0; $tx.ShineVary = 0; $tx.Wet = 0; $tx.Relief = 1; $tx.Parallax = 0; $tx.ParallaxSet = $false
+        if (-not $tbl) { continue }
+        $r = Resolve-TexMaterial $tbl $tx $rm
+        $m = $tbl.Mats[$r.Material]; if (-not $m) { $unknown[$r.Material] = 1 }
+        $get = { param($key, $def) if ($r.Over -and $null -ne $r.Over.$key) { [double]$r.Over.$key } elseif ($m -and $null -ne $m.$key) { [double]$m.$key } else { [double]$def } }
+        $tx.Material = $r.Material
+        $tx.Shine = [single]((& $get 'shine' 0) * $gain); $tx.Gloss = [single](& $get 'gloss' 16); $tx.Metal = [single](& $get 'metal' 0); $tx.ShineVary = [single](& $get 'vary' 1)
+        $tx.Wet = [single](& $get 'wet' 0); $tx.Relief = [single](& $get 'relief' 1)      # (Josh, 2026-10-12: no relief on shiny surfaces)
+        # parallax depth: the material's share (stone, floor, rock walls and floors), or set by hand (the table's lists, a room's
+        # "materials" { "13-spadoor": { "parallax": 1 } })
+        $tx.Parallax = [single](& $get 'parallax' 0)
+        $lk = ([string]$tx.Leaf).ToLowerInvariant()
+        if ($r.Over -and $null -ne $r.Over.parallax) { $tx.ParallaxSet = $true }
+        elseif ($tbl.ParallaxOn -and ($tbl.ParallaxOn.ContainsKey($lk) -or $tbl.ParallaxOn.ContainsKey($r.Name))) { $tx.Parallax = 1; $tx.ParallaxSet = $true }
+        elseif ($tbl.ParallaxOff -and ($tbl.ParallaxOff.ContainsKey($lk) -or $tbl.ParallaxOff.ContainsKey($r.Name))) { $tx.Parallax = 0; $tx.ParallaxSet = $true }
+        $count[$r.Material] = 1 + [int]$count[$r.Material]
+    }
+    if ($tbl) {
+        Say ("  materials: {0}{1}{2}" -f (($count.GetEnumerator() | Sort-Object Value -Descending | ForEach-Object { '{0} {1}' -f $_.Value, $_.Key }) -join ', '), $(if ($gain -ne 1) { " (shine x$gain)" } else { '' }), $(if ($unknown.Count) { '; NOT IN THE TABLE (matte): ' + (@($unknown.Keys) -join ', ') } else { '' })) DarkCyan
+    }
+}
+# WET SURFACES (Josh, 2026-10-12, phase 2: "in the rooms with dripping like damp caves, and of course the spa room and similar
+# rooms ... the lower walls and floors get a darker wet look with a glossy sheen ... a slow drip-streak animation runs down the
+# walls, and puddles reflect your lamp"): a room's "wet" block -- _defaults.json's classes "cave" and "spa", a room file's own,
+# or "wet": null for none. Keys (GpuRaster.Wet*): strength 0..1, height (how far up the walls the damp reaches above the floor
+# beneath, units), dark (the colour's level at full wet), floor (floors' dampness 0..1; a cave's 0: only puddles), shine and
+# gloss (the water film's highlight), puddles (share of the LEVEL floor 0..1) and puddleSize (units), walls (their share 0..1;
+# a cave's half), ceiling (0..1), cell (the floor-height grid, units). (Trickles down the walls were taken out, 2026-10-12.) Each texture's share: its material's
+# "wet" (rooms\_materials.json). The room's floor heights are worked out here, once per room entry.
+function Set-GpuWet($gq, $atm, $roomObj) {
+    $gq.ClearGround()
+    $w = $atm.Wet
+    if (-not $w -or $NoWet -or -not $roomObj) { return }
+    $d = { param($x, $def) if ($null -ne $x) { [single]$x } else { [single]$def } }
+    $gq.WetStrength = & $d $w.strength 1; $gq.WetHeight = & $d $w.height 45; $gq.WetDark = & $d $w.dark 0.62; $gq.WetFloor = & $d $w.floor 0.45
+    $gq.WetShine = & $d $w.shine 0.16; $gq.WetGloss = & $d $w.gloss 40; $gq.WetPuddles = & $d $w.puddles 0.3; $gq.WetPuddleSize = & $d $w.puddleSize 70
+    $gq.WetWalls = & $d $w.walls 1; $gq.WetCeiling = & $d $w.ceiling 0.15
+    # (Josh, 2026-10-12, CORICORI: the wet fades out into the art's own darkness) "darkFrom" / "darkTo": the art's brightness
+    # (0..255, blurred) where the wet starts and where it is full
+    $gq.WetDarkFrom = & $d $w.darkFrom 10; $gq.WetDarkTo = & $d $w.darkTo 45
+    $ok = $gq.SetGround($roomObj.V, $roomObj.T, $roomObj.TexIdx, $roomObj.Texes, (& $d $w.cell 8))
+    if (-not $gq.WetUnitOk) { Say '  wet surfaces: this card has no 18th texture unit -- left out' Yellow; return }
+    Say ("  wet surfaces: {0:P0}, walls {1:P0} damp {2:N0} units up, floors {3:P0} damp with {4:P0} puddles (level floor only){5}; floor heights {6}" -f $gq.WetStrength, $gq.WetWalls, $gq.WetHeight, $gq.WetFloor, $gq.WetPuddles, $(if ($gq.WetOn) { '' } else { ' (switched off: F5)' }), $(if ($ok) { $gq.GroundNote } else { 'NOT MADE (' + $gq.GroundNote + ')' })) Cyan
+}
+# TEXTURE REPAIR (Josh, 2026-10-12, phase 3: "Fix badly stretched textures automatically ... give those faces the texture laid
+# evenly from the world instead" and "Hide the repeats ... get it mixed ... across the surface"): GpuRaster.SetRelay, worked
+# out per room entry (and again when the characters change the triangle list). A room's "repair" block: "skip" [texture
+# names left as they are], "mix" (false: no mixing), "stretch" (how uneven before a face counts as stretched, default 4),
+# "flat" (how even the art under a face must be to count as one flat colour and be left, default 6); "repair": null = none.
+function Set-GpuRepair($gq, $atm, $roomObj) {
+    $gq.ClearRelay()
+    $rp = $atm.Repair
+    if ($NoRepair -or $null -eq $rp -or -not $roomObj) { return }
+    $skip = @(); $gq.MixOn = $true; $gq.RelayStretch = [single]4; $gq.RelayFlatStd = [single]6
+    if ($rp -isnot [string]) {
+        $skip = @($rp.skip | Where-Object { $_ } | ForEach-Object { [string]$_ })
+        if ($null -ne $rp.mix) { $gq.MixOn = [bool]$rp.mix }
+        if ($rp.stretch) { $gq.RelayStretch = [single]$rp.stretch }; if ($null -ne $rp.flat) { $gq.RelayFlatStd = [single]$rp.flat }
+    }
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    $note = $gq.SetRelay($roomObj.V, $roomObj.UV, $roomObj.T, $roomObj.TexIdx, $roomObj.Texes, $pal, (-not $NoFlipV), [string[]]$skip)
+    Say ("  texture repair: {0} ({1:N0} ms){2}{3}" -f $note, $sw.Elapsed.TotalMilliseconds, $(if ($skip.Count) { '; skipped: ' + ($skip -join ', ') } else { '' }), $(if ($gq.RelayOn) { '' } else { ' (switched off: F11)' })) Cyan
+}
 function Set-GpuAtmosphere($gq, $atm, $roomObj) {
     Set-RoomTextureRules $gq $atm $roomObj
+    Set-RoomMaterials $gq $atm $roomObj
+    Set-GpuWet $gq $atm $roomObj
+    Set-GpuRepair $gq $atm $roomObj
+    # the parallax depth's room share ("parallax": a number x -ParallaxDepth, null = none)
+    # ("parallax": a number = x the depth; {"depth": x, "shade": 0..1} = that, with the art's broad shading in its height --
+    # bright bulges, dark sinks -- for rocks; null = none)
+    $pr = $atm.Parallax; $prK = 1.0; $prShade = 0.0
+    if ($null -ne $pr) { if ($pr -is [ValueType]) { $prK = [double]$pr } else { if ($null -ne $pr.depth) { $prK = [double]$pr.depth }; if ($null -ne $pr.shade) { $prShade = [double]$pr.shade } } }
+    $gq.ParallaxDepth = [single]$(if ($NoParallax -or $null -eq $pr) { 0 } else { $ParallaxDepth * $prK })
+    if ($roomObj) { foreach ($tx in $roomObj.Texes) { if ($tx) { $tx.ParallaxShade = [single]$prShade } } }
+
+    if ($roomObj) { [void]$gq.SetParallaxShell($roomObj.V, $roomObj.T, $roomObj.TexIdx, $roomObj.Texes) }      # (its walls and floors: only they take it)
+    Set-GpuGhost $gq $(if ($NoGhost) { $null } else { $atm.Ghost })
+    Set-RoomGhosts $gq $roomObj
     # LIGHT FROM THE ARTWORK (Josh, 2026-10-09, Room Review MINEHEAD/2-4): "artLight": {floor, gamma, open, close, blur,
     # percentile, exclude: [texture names], tint: "#RRGGBB" | "art"} -- the room's level and the bounce shaded per texel by
     # the light and shade the ORIGINAL art paints (GpuRaster.BuildArtLight); tint = the room's level in that colour
@@ -3014,6 +3537,8 @@ function Set-GpuAtmosphere($gq, $atm, $roomObj) {
         if ($null -ne $wa.glowPower) { $gq.WaterGlow = [single]$wa.glowPower }; if ($null -ne $wa.glowBase) { $gq.WaterGlowBase = [single]$wa.glowBase }
         if ($null -ne $wa.dots) { $gq.WaterDots = [single]$wa.dots }; if ($null -ne $wa.shine) { $gq.WaterShine = [single]$wa.shine }
         if ($null -ne $wa.f0) { $gq.WaterF0 = [single]$wa.f0 }; if ($null -ne $wa.spec) { $gq.WaterSpec = [single]$wa.spec }; if ($null -ne $wa.distort) { $gq.WaterDistort = [single]$wa.distort }; $gq.WaterLightSpec = [single]$(if ($null -ne $wa.lightSpec) { $wa.lightSpec } else { 1.0 })
+        # (2026-10-12, Josh: "a glossy sheen ... applied to water surfaces to reflect the lights") "sheen", "sheenGloss": its broad soft highlight
+        $gq.WaterSheen = [single]$(if ($null -ne $wa.sheen) { $wa.sheen } else { 0.35 }); $gq.WaterSheenGloss = [single]$(if ($null -ne $wa.sheenGloss) { $wa.sheenGloss } else { 30 })
         if ($wa.ripple) { $rp = $wa.ripple; if ($null -ne $rp.slope) { $gq.RippleSlope = [single]$rp.slope }; if ($rp.size) { $gq.RippleSize = [single]$rp.size }; if ($null -ne $rp.speed) { $gq.RippleSpeed = [single]$rp.speed } }
         if ($wa.caustics) {
             $ca = $wa.caustics
@@ -3067,6 +3592,16 @@ function Set-GpuAtmosphere($gq, $atm, $roomObj) {
         if ($null -ne $wm.rise) { $fx.WaterMistRise = [single]$wm.rise }; if ($null -ne $wm.alpha) { $fx.WaterMistAlpha = [single]$wm.alpha }; if ($null -ne $wm.inset) { $fx.WaterMistInset = [single]$wm.inset }; if ($null -ne $wm.drift) { $fx.WaterMistDrift = [single]$wm.drift }
         $fx.WaterMistColor = ConvertTo-Rgb24 ([string]$wm.color) 0x7FE6DA
         Say ("  water-edge mist: {0} places where the water meets the room, {1}/s, #{2:X6}, alpha {3}" -f $nEdge, $fx.WaterMistRate, $fx.WaterMistColor, $fx.WaterMistAlpha) Cyan
+    }
+    # A GHOST'S WISPS (Set-GpuGhost): "wisps": { rate (a second), size, life (s), rise, spread (shares of the height her wisp
+    # parts span), alpha, color } -- false = none
+    $wi = $null; $wOn = $false
+    if ($script:ghostAtm -and $gq.GhostOn) { $wi = $script:ghostAtm.wisps; $wOn = -not ($wi -is [bool] -and -not $wi) }      # (no "wisps" key: the defaults)
+    if ($wOn) {
+        $fx.GhostRate = [single]$(if ($null -ne $wi.rate) { $wi.rate } else { 14 }); if ($wi.size) { $fx.GhostSize = [single]$wi.size }; if ($wi.life) { $fx.GhostLife = [single]$wi.life }
+        if ($null -ne $wi.rise) { $fx.GhostRise = [single]$wi.rise }; if ($null -ne $wi.spread) { $fx.GhostSpread = [single]$wi.spread }; if ($null -ne $wi.alpha) { $fx.GhostAlpha = [single]$wi.alpha }
+        $fx.GhostColor = ConvertTo-Rgb24 ([string]$wi.color) 0x9FEDE4
+        $fx.SetGhostSources($script:ghostWispVerts)
     }
     $script:fx = $fx
     Say ("  the card's atmosphere: mist {0}; embers from {1} light(s); drips {2}; steam {3}; footstep dust {4}" -f $(if ($gq.MistOn) { ('{0} near the floor, thinning over {1:N0} units' -f $gq.MistDensity, $gq.MistHeight) } else { 'none' }), `
@@ -3148,8 +3683,13 @@ function Invoke-Session {
                 $gq.VolHalf = (-not $VolFull); $gq.ReliefTint = [single]$ReliefTint; $gq.ReliefOpacity = [single]$ReliefOpacity; $gq.LightShadowDeep = [single]$LightShadowDeep; $gq.LightSoft = [single]$LightSoft; $gq.LampSoft = [single]$LampSoft
                 Say ("mipmaps: {0}, anisotropic x{1:0}, bias {2:N2}; relief: sharp maps ({3}), micro relief {4:N2} at {5:N2} units, shadows tinted {6:N1}, {7:P0} opacity" -f $(if ($gq.PixelMip) { 'per pixel' } else { 'per triangle' }), $Anisotropy, $GpuMipBias, $(if ($ReliefSharpRooms -contains '*') { 'every room' } else { $ReliefSharpRooms -join ', ' }), $Detail, $DetailScale, $ReliefTint, $ReliefOpacity) Cyan
                 $script:fxClock = [Diagnostics.Stopwatch]::StartNew(); $script:fxStep = [Diagnostics.Stopwatch]::StartNew()
+                $gq.ShineOn = (-not $NoShine); $gq.ShineGain = [single]$Shine
+                $gq.ParallaxOn = (-not $NoParallax); $gq.ParallaxDepth = [single]$ParallaxDepth; $gq.MaterializeOn = (-not $NoMaterialize)
+                Say ("parallax depth: {0} (F7 switches it with the relief)" -f $(if ($NoParallax) { 'off (-NoParallax)' } elseif (-not $gq.DepthUnitOk) { 'off -- this card has no 19th texture unit' } else { '{0} units at most, gone by {1:N0} units away' -f $ParallaxDepth, $gq.ParallaxFar })) Cyan
+                Say ("materials: {0} (rooms\_materials.json; F6 switches it){1}" -f $(if ($NoShine) { 'no shine (-NoShine)' } else { 'surfaces shine by what they are, x{0}' -f $Shine }), $(if ($gq.MatUnitOk) { '' } else { '; this card has no 17th texture unit: companion maps left out' })) Cyan
                 $script:gpu = $gq; $script:gpuOn = $true
                 Say ("THE GRAPHICS CARD DRAWS THE PICTURE: {0} (OpenGL {1}); textures up to {2:N1} GB on it{3}; F9 switches to the processor and back" -f $gq.Renderer, $gq.Version, ($gq.MaxTextureBytes / 1GB), $(if ($gq.CardMemoryBytes -gt 0) { " (the driver reports {0:N1} GB)" -f ($gq.CardMemoryBytes / 1GB) } else { '' })) Cyan
+                Say ("texture quality: {0} -- replacement textures {1}" -f $script:texQuality.ToUpperInvariant(), $(if ($script:texMax -gt 0) { "at most $($script:texMax) px (scaled copies in $($TexOverrideDir)-$($script:texMax))" } else { 'as large as they are' })) Cyan
             } else { Say ("graphics card not available: {0} -- drawing stays on the processor" -f $gErr) Yellow }
         } catch { Say ("graphics card not available: {0} -- drawing stays on the processor" -f $_.Exception.Message) Yellow; $script:gpu = $null }
     }
@@ -3288,13 +3828,14 @@ function Invoke-Session {
     $lampOnNow = (-not $LampStartsOff); $lampLevel = $(if ($lampOnNow) { 1.0 } else { 0.0 }); $lampKeyWas = $false; $lampFade = [Diagnostics.Stopwatch]::StartNew(); $lampM = New-Object single[] 16
     # the shots: the ammo count (obj2 0x14694C: 0x15B42 `sub word [0x14694C], 1` right after the game plays shot.wav),
     # and the game's sound state beside it, logged on the first shots (the gun's sound went missing, 2026-10-07)
-    $shotD2 = $(if ($S_delta2) { RdU32 (HostLin $S_delta2) } else { 0 }); if (-not $shotD2) { $shotD2 = 0x1F1000 }
+    $shotD2 = Get-GuestD2
     $shotAt = { param([uint32]$a) [long]($g.MemBase + $a + $shotD2) }
     # the game's book / item close-up view: word [0x15257C], set by StartBookViewMode (0x15C75, 0x162F8), cleared at
     # 0x164D4. While it is set the true-colour picture is black behind the page, not the live room (Josh, 2026-10-08).
     $script:bookViewAt = & $shotAt 0x15257C; $script:bookViewWas = $false
     # the save/load list's state (docs\save-load-screen-RE.md): the fold-out block 0x1523D6..0x1524CD, the picked row 0x146948, the cursor
     $script:memAt = @{ Blk = (& $shotAt 0x1523D6); Sel = (& $shotAt 0x146948); Cur = (& $shotAt 0x182D6C); Mgr = (& $shotAt 0x182DB8); CurSurf = (& $shotAt 0x147588); Hot = (& $shotAt 0x14758E); Hidden = (& $shotAt 0x147586); Sav = (& $shotAt 0x152B02); Lod = (& $shotAt 0x152B04); Snd = (& $shotAt 0x14693A); D2 = [long]$shotD2 }; $script:sysHotDone = $false; $script:slGuard = $null; $script:quitDone = $false; $script:quitEndSaid = $false
+    Start-SpaceGuard (& $shotAt 0x152B28)                # (the "a line is being spoken" word)
     $ammoAddr = & $shotAt 0x14694C; $ammoWas = -1; $shots = 0; $flashClock = New-Object Diagnostics.Stopwatch; $flashLive = $false
     # the player's health for the damage badge: dword [[0x1841C8] + 0x16], 16.16 (what the gauge code at 0x11DF6 reads)
     $hpPtrAt = & $shotAt 0x1841C8; $hpWas = $null; $hpObjWas = [uint32]0; $hpQuiet = [Diagnostics.Stopwatch]::StartNew(); $hits = 0; $hpMax = 1000 * 65536; $script:hpFrac = -1.0
@@ -3323,7 +3864,7 @@ function Invoke-Session {
         # image was taken last before the process vanished is written out on exit.
         if ($Diag -and $stkClock.ElapsedMilliseconds -ge 40) {
             $stkClock.Restart()
-            $img = [AztTool.ProcMem]::Read($g.ProcessId, (GuestPtr 0x37E000), 0xC000)
+            $img = [AztTool.ProcMem]::Read($g.ProcessId, (GuestPtr (Get-StackLo)), 0xC000)
             if ($img) {
                 # THE ORRERY CRASH, NAMED BY THE 16:43 IMAGE: the mesh loader 0x29068 calls
                 # 0x46F34 (add faces to a mesh), which does `call [edx+0x18]` at 0x4713C on a
@@ -3394,6 +3935,7 @@ function Invoke-Session {
             } else { Say 'the game exited (before any frame was pushed).' Yellow }
             return
         }
+        Step-LoadGuard      # (after a load: the HUD and the materialize wait for the loading panel to go)
         if ([Text.Encoding]::ASCII.GetString($rec,0,4) -ne 'CAM1') {
             Step-NothingToDraw ([ref]$suppressed) 'no camera record' 200; continue
         }
@@ -3445,6 +3987,8 @@ function Invoke-Session {
                 # the guest has drawn a few frames of its own, then the normal path takes it again.
                 # Done HERE, on the frame the jump is seen, because the player can start walking at
                 # once and room detection can be half a second behind.
+                # (the visor's loading cover goes up NOW, before the engine's own frames could be seen -- RoomCover.cs)
+                if ($suppressed) { Start-RoomCover 'room change' }
                 if ($suppressed -and -not $NoLoadPulse -and $S_frameNo) {
                     $f0 = RdU32 (HostLin $S_frameNo)
                     Set-Engine3D ([ref]$suppressed) $false
@@ -3452,12 +3996,15 @@ function Invoke-Session {
                     while ($pw.ElapsedMilliseconds -lt 1500) {
                         [Threading.Thread]::Sleep(5)
                         $fNow = RdU32 (HostLin $S_frameNo)
+                        Set-RoomCoverTarget (0.02 + 0.10 * [Math]::Min(1.0, ([uint32]($fNow - $f0)) / 6.0)) 'pulse'
                         if (([uint32]($fNow - $f0)) -ge 6) { break }
                     }
                     Say ("  new room: the engine drew {0} frames of it itself in {1:N0} ms before the host took over" -f ([uint32]($fNow - $f0)), $pw.ElapsedMilliseconds) Cyan
+                    if ($script:roomCover -and $script:roomCover.Stage -eq 'pulse') { $script:roomCover.Stage = 'waiting'; $script:roomCover.WaitFrom = $script:roomCover.Clock.Elapsed.TotalSeconds }
                     $camPrevM = $null
                     continue
                 }
+                if ($script:roomCover -and $script:roomCover.Stage -eq 'pulse') { $script:roomCover.Stage = 'waiting'; $script:roomCover.WaitFrom = $script:roomCover.Clock.Elapsed.TotalSeconds }
             }
         }
         # ---- THE MOMENT THE FLOOR GIVES WAY --------------------------------------------------
@@ -3513,7 +4060,7 @@ function Invoke-Session {
             $spdPos = @($m[12], $m[14]); $spdClock.Restart()
         }
 
-        if (-not $room -or $jumped -or $lastCheck.Elapsed.TotalSeconds -ge $CheckSeconds) {
+        if (-not $room -or $jumped -or $script:roomCover -or $lastCheck.Elapsed.TotalSeconds -ge $CheckSeconds) {      # (every pass while the loading cover waits for the new room)
             $lastCheck.Restart()
             $fp = Get-SceneFingerprint $camObj
             if ($fp -ne $loadedFp -or $jumped -or -not $room) {
@@ -3550,8 +4097,20 @@ function Invoke-Session {
                 if ($names -and $names.Count) {
                     $lastDetectErr = ''
                     $joined = ($names -join '+')
+                    if ($joined -eq $loadedNames -and $script:roomCover) { Stop-RoomCover 'the same room' }      # (a jump within the room: nothing to load)
+                    # (a load into the room already here: nothing to load -- once its re-boot has begun, i.e. the save is in, not
+                    # the old scene being taken down)
+                    if ($joined -eq $loadedNames -and $script:bootHd -and $script:bootHd.Covering -and (Test-LoadUi)) { Set-LoadProgress 1.0 }
                     if ($joined -ne $loadedNames) {
                         Say ("room -> {0}  ({1})" -f $joined, $why) Cyan
+                        # (no cover up -- it gave up waiting, or the scene changed before the jump: up now for the load, while the
+                        # host still has the viewport; not the first room, not with the engine drawing for itself)
+                        if (-not $script:roomCover -and $loadedNames -and $suppressed) { Start-RoomCover ('late: ' + $why) }
+                        Set-RoomCoverTarget 0.14 'recognised'
+                        # A GAME LOAD (or the visor boot) covers this room instead: its loading panel's bar follows the textures --
+                        # decoded to 65%, on the card to 100 (Set-LoadProgress)
+                        $loadUi = (-not $script:roomCover) -and (Test-LoadUi)
+                        if ($loadUi) { Set-LoadProgress 0.0; $script:rgbProgress = { param($d, $t) Set-LoadProgress (0.65 * $d / [Math]::Max(1, $t)) } }
                         try {
                             $room = Get-Room $names
                             $curChars = @()
@@ -3581,6 +4140,15 @@ function Invoke-Session {
                                 $script:gpu.ReliefSharpBuild = $sharpHere
                                 $script:gpu.Detail = [single]$(if ($sharpHere) { $Detail } else { 0 })
                             }
+                            # ...and its textures up to the card NOW, one at a time under the loading cover or the load's panel, and
+                            # finished there, so the room's first frame does not stall on them (a 4K texture with its relief map is
+                            # ~0.1 s; the card keeps the rooms visited last -- GpuRaster.UploadSome / Evict; Send-RoomTextures)
+                            if ($script:gpu -and $script:gpuOn -and -not $SlowRaster) {
+                                $onFrac = $(if ($script:roomCover) { { param($f) Set-RoomCoverTarget (0.72 + 0.26 * $f) 'card' } } elseif ($loadUi) { { param($f) Set-LoadProgress (0.65 + 0.35 * $f) } } else { $null })
+                                try { Send-RoomTextures $room $onFrac } catch { Say ("  textures to the card failed: {0} -- the first frame takes them" -f $_.Exception.Message) Yellow }
+                            }
+                            if ($loadUi) { Set-LoadProgress 1.0; $script:rgbProgress = $null }
+                            Stop-RoomCover 'ready'
                             # Pose state is per LOAD, not per room object: the room itself is
                             # cached and shared between visits, but the posed copy is not.
                             $pose = $(if ($room.Parts -and $room.Parts.Count) { New-PoseState $room } else { $null })
@@ -3611,6 +4179,8 @@ function Invoke-Session {
                             # A detect during a load can name a room whose files are mid-swap.
                             # Keep drawing the old one rather than dropping to a black viewport.
                             Say ("could not load {0}: {1}" -f $joined, $_.Exception.Message) Yellow
+                            Stop-RoomCover 'could not load'
+                            if ($loadUi) { $script:rgbProgress = $null }
                         }
                     }
                     $loadedFp = $fp
@@ -3620,6 +4190,18 @@ function Invoke-Session {
         Step-LoadPanel      # (a load's re-boot beginning: the visor's "initiating log file" panel -- before anything here can `continue`)
         Step-EscWatch       # (after a title load: the new game's interface lock; ESC's blockers logged when it opens nothing)
         Step-QuitWatch      # (QUIT in the GPU mode: straight to the desktop, no credits)
+        Step-ShotWatch      # (each shot: the input that led to it -- the right-click shooting)
+        # THE LOADING COVER HOLDS until the new room is in (Stop-RoomCover 'ready', above): no frame of the old room drawn from
+        # the new place, no 8-bit picture. Given up if the room never changes (a jump inside it: 1 s of waiting) or at 12 s.
+        if ($script:roomCover) {
+            $rc = $script:roomCover; $ct = $rc.Clock.Elapsed.TotalSeconds; $rc.NothingSince = $null      # (a scene again: the next gap gets its own 1.5 s)
+            if ($ct -gt 12) { Stop-RoomCover 'gave up after 12 s' }
+            elseif ($rc.Stage -eq 'waiting' -and ($ct - $rc.WaitFrom) -gt 1.0) { Stop-RoomCover 'no new room came' }
+            else {
+                if ($rc.Stage -eq 'waiting') { Set-RoomCoverTarget ([Math]::Min(0.135, 0.12 + 0.015 * ($ct - $rc.WaitFrom))) $null } else { Show-RoomCover }
+                [Threading.Thread]::Sleep(4); continue
+            }
+        }
         # Detection can fail -- a room mid-load, a scene the corpus does not match. Hand the
         # viewport back and keep trying rather than sitting on a black screen.
         if (-not $room) { Step-NothingToDraw ([ref]$suppressed) 'no room detected' 100; continue }
@@ -3637,6 +4219,7 @@ function Invoke-Session {
                 # boot to end -- BootHd winds it on at the shutter beat, so that is about 15.5 s in.
                 if ($script:bootHd) {
                     if (-not $bootShownNoted) { Say '  the boot is the host''s own (BootHd), in true colour' Cyan; $bootShownNoted = $true }
+                    Step-LoadRepaint      # (a load's re-boot: the reading panel on the card's window keeps moving)
                     Write-BootNotes; Start-Sleep -Milliseconds 25; continue
                 }
                 # ...and shown through the true-colour window from its first frame, read straight out of
@@ -3765,8 +4348,13 @@ function Invoke-Session {
                             foreach ($c in $chars) { Say ("  character {0} -> {1}.XAF ({2} of {3} frames matched)" -f $c.Prefix, $c.Xaf, $c.Hits, $c.Of) Cyan }
                             if (-not $chars.Count) { Say '  no characters in the scene now' Cyan }
                             $room = Get-Room ($loadedNames -split '\+') $chars
+                            # (during a load the characters' textures too go to the card before the first frame, under its cover)
+                            if ($script:gpu -and $script:gpuOn -and -not $SlowRaster -and (Test-LoadUi)) { try { Send-RoomTextures $room $null } catch { Say ("  character textures to the card failed: {0}" -f $_.Exception.Message) Yellow } }
                             $curChars = $chars
                             $pose = New-PoseState $room
+                            # a ghost among them (the room's "ghost" block): her textures, and where her wisps come from
+                            if ($script:gpu) { Set-RoomGhosts $script:gpu $room; if ($script:fx -and $script:fx.GhostRate -gt 0) { $script:fx.SetGhostSources($script:ghostWispVerts) } }
+                            if ($script:gpu) { Set-RoomMaterials $script:gpu $atmNow $room; Set-GpuRepair $script:gpu $atmNow $room }      # (what the characters wear: their materials too; the repair for the new triangle list)
                             Say ("  {0:N0} triangles with characters, {1} parts" -f ($room.T.Count/3), $room.Parts.Count)
                             # the picture quads moved with the rebuild; find them again
                             $portals = Get-RoomPortals $room ($loadedNames -split '\+')
@@ -3810,6 +4398,31 @@ function Invoke-Session {
                 Say ("room drawn by: {0}" -f $(if ($script:gpuOn) { 'the GRAPHICS CARD' } else { 'the PROCESSOR' })) Cyan
             }
             $gpuKeyWas = $gk
+        }
+        # F6: the materials' shine off and on (Set-RoomMaterials), for comparing on the same wall
+        if ($script:gpu -and $ShineKey -gt 0) {
+            $sk = [AztTool.Keys]::DownInProcess($ShineKey, $g.ProcessId)
+            if ($sk -and -not $shineKeyWas) { $script:gpu.ShineOn = -not $script:gpu.ShineOn; Say ("materials' shine {0}" -f $(if ($script:gpu.ShineOn) { 'ON' } else { 'OFF' })) Cyan; Show-ToggleNote ('SURFACE SHINE: {0}' -f $(if ($script:gpu.ShineOn) { 'ON' } else { 'OFF' })) }
+            $shineKeyWas = $sk
+        }
+        # F5: the wet surfaces off and on (Set-GpuWet)
+        if ($script:gpu -and $WetKey -gt 0) {
+            $wk = [AztTool.Keys]::DownInProcess($WetKey, $g.ProcessId)
+            if ($wk -and -not $wetKeyWas) { $script:gpu.WetOn = -not $script:gpu.WetOn; Say ("wet surfaces {0}" -f $(if ($script:gpu.WetOn) { 'ON' } else { 'OFF' })) Cyan; Show-ToggleNote ('WET SURFACES: {0}' -f $(if ($script:gpu.WetOn) { 'ON' } else { 'OFF' })) }
+            $wetKeyWas = $wk
+        }
+        # F7 in the true-colour picture: the relief (normal mapping) and micro relief off and on (in the 8-bit one F7 is the
+        # texture filtering, below)
+        if ($script:gpu -and $ReliefKey -gt 0 -and $script:tcOn) {
+            $rlk = [AztTool.Keys]::DownInProcess($ReliefKey, $g.ProcessId)
+            if ($rlk -and -not $reliefKeyWas) { $script:gpu.ReliefOn = -not $script:gpu.ReliefOn; Say ("relief (normal mapping) and parallax depth {0}" -f $(if ($script:gpu.ReliefOn) { 'ON' } else { 'OFF' })) Cyan; Show-ToggleNote ('RELIEF + DEPTH: {0}' -f $(if ($script:gpu.ReliefOn) { 'ON' } else { 'OFF' })) }
+            $reliefKeyWas = $rlk
+        }
+        # F11: the texture repair (re-laid faces, mixed repeats) off and on (Set-GpuRepair)
+        if ($script:gpu -and $RepairKey -gt 0) {
+            $rpk = [AztTool.Keys]::DownInProcess($RepairKey, $g.ProcessId)
+            if ($rpk -and -not $repairKeyWas) { $script:gpu.RelayOn = -not $script:gpu.RelayOn; Say ("texture repair {0}" -f $(if ($script:gpu.RelayOn) { 'ON' } else { 'OFF' })) Cyan; Show-ToggleNote ('TEXTURE REPAIR: {0}' -f $(if ($script:gpu.RelayOn) { 'ON' } else { 'OFF' })) }
+            $repairKeyWas = $rpk
         }
         # F7 (texture filtering) belongs to the 8-bit renderer; in a true-colour session F8 decides
         if ($FilterKey -gt 0 -and -not $script:tcOn) {
@@ -3894,7 +4507,7 @@ function Invoke-Session {
                     (Get-VisorNote).Show($vp.Lines, $vp.Hold); Say ("visor readout: {0}" -f ($vp.Lines -join ' / ')) Cyan
                 }
             }
-            if ($script:visorNote -and $lampOnNow -and $script:visorNote.Playing) { $script:visorNote.Dismiss() }
+            if ($script:visorNote -and $lampOnNow -and $script:visorNote.Playing -and -not ($script:toggleNoteAt -and $script:toggleNoteAt.Elapsed.TotalSeconds -lt 3)) { $script:visorNote.Dismiss() }      # (a switch's own readout stays)
             $fdt = $lampFade.Elapsed.TotalSeconds; $lampFade.Restart()
             $want = $(if ($lampOnNow) { 1.0 } else { 0.0 })
             if ($lampLevel -ne $want) { $stepF = $fdt / 0.14; if ($lampLevel -lt $want) { $lampLevel = [Math]::Min($want, $lampLevel + $stepF) } else { $lampLevel = [Math]::Max($want, $lampLevel - $stepF) } }
@@ -4058,7 +4671,13 @@ function Invoke-Session {
                 }
                 $script:gpu.SetCameraWorld($m)
                 $script:gpu.CopyLighting($r)          # the lamp's fade and aim, the torch's flicker, the room's fog: as set on the processor's renderer
+                # THE VISOR MATERIALIZES THE ROOM: the boot handing the view over (a new game's boot animation done, or a loaded
+                # game straight to play) asks for it too; the room cover's 'ready' already did
+                if ($script:bootHd) { $bm = $script:bootHd.Mode; if ($bm -eq 'done' -and $script:bootModeWas -eq 'reveal' -and -not $script:loadGuard) { $script:matPending = 'the new game''s boot animation is done' }; $script:bootModeWas = $bm }
+                if ($script:matPending -and -not $script:loadGuard) { if (-not $NoMaterialize) { $script:gpu.StartMaterialize(); Say ("visor: materializing the room ({0})" -f $script:matPending) DarkCyan }; $script:matPending = $null }
                 $script:gpu.Draw($dv, $room.UV, $room.T, $dt, $texNow, (-not $NoCull), (-not $NoFlipV))
+                if ($script:gpu.GhostError -and $script:gpu.GhostError -ne $script:ghostErrSaid) { $script:ghostErrSaid = $script:gpu.GhostError; Say ("ghost: the card could not draw her as smoke ({0}) -- solid again" -f $script:gpu.GhostError) Yellow }
+                if ($script:gpu.LastGhostDrawn -and -not $script:ghostSeen) { $script:ghostSeen = $true; $gb = $script:gpu.GhostBox; Say ("ghost: first seen -- {0} triangles, {1:N0} units tall, at {2:N0} {3:N0} {4:N0}" -f $script:gpu.LastGhostTris, ($gb[4] - $gb[1]), (($gb[0] + $gb[3]) / 2), $gb[1], (($gb[2] + $gb[5]) / 2)) Cyan }
                 # PHASE 3: with true colour running (and no edge smoothing, which stays on the
                 # processor) the picture stays on the card -- it is sharpened and the game's
                 # drawings laid over it there, in Step-TrueColour. Otherwise it comes back here.
@@ -4275,6 +4894,7 @@ function Invoke-Session {
                     if ($script:pointer) { $pt = $script:pointer
                         Say ("  host pointer: {0}; display {1:N0},{2:N0} -> game {3},{4}; counts/px {5:N2}; moves {6} by the driver, {7} past its edge; {8} writes; {9} cursor images{10}" -f $(if ($pt.Active) { 'ACTIVE' } else { 'standing by (mouselook)' }), $pt.DispX, $pt.DispY, $pt.GameX, $pt.GameY, $pt.Ratio, $pt.DriverMoves, $pt.RawMoves, $pt.Writes, $pt.Images, $(if ($pt.StartError) { '; ' + $pt.StartError } else { '' })) Cyan }
                 }
+                if ($script:iconCursor) { $ic = $script:iconCursor; $icS = ('{0}|{1}|{2}|{3}' -f $ic.Blanked, $ic.Restored, [Math]::Floor(($ic.Shown + 24) / 25), $ic.StartError); if ($icS -ne $script:icReport) { $script:icReport = $icS; Say ("  vector cursors: now '{0}'; {1} renders, shown {2} times; game bitmaps blanked {3}, put back {4}; {5} readings of a cursor not one of the 30; 'pointer hidden' up {6} times, held {7}; panel readings with no game cursor {8}{9}" -f $ic.Shape, $ic.Renders, $ic.Shown, $ic.Blanked, $ic.Restored, $ic.NotOurs, $ic.HideFlagBlips, $ic.HideFlagHolds, $(if ($script:panel) { $script:panel.BlankCursorReadings } else { '-' }), $(if ($ic.StartError) { '; ' + $ic.StartError } else { '' })) Cyan } }
                 $tcO.TornReads = 0; $tcO.HideWant = 0; $tcO.HidePlace = 0; $tcO.HideStale = 0; $tcO.HideFront = 0; if ($script:gpu) { $script:gpu.HeldBlackFrames = 0 }
                 if ($postN) { Say ("  picture {0}x{1}; edge smoothing {2}, sharpen {3:N2}: {4:N1} ms a frame" -f $r.W, $r.H, $(if ($NoAA) { 'off' } else { 'on' }), $Sharpen, ($postMs / $postN)) Cyan; $postMs = 0.0; $postN = 0 }
                 $pj = $script:tcPostJob
@@ -4438,7 +5058,7 @@ try {
         Write-GateNotes
         # the gate has usually found the game already, behind the intro: no second scan
         if ($script:gate -and $script:gate.MemBase -and $script:gate.Pid -eq (Get-GamePid)) {
-            $g = [pscustomobject]@{ ProcessId = $script:gate.Pid; MemBase = [long]$script:gate.MemBase; RamBase = 0; RamSize = 0; Needles = @() }
+            $g = [pscustomobject]@{ ProcessId = $script:gate.Pid; MemBase = [long]$script:gate.MemBase; RamBase = 0; RamSize = 0; Needles = @(); Delta1 = [long]0x1F0000; Delta2 = [long]$script:gate.D2 }
         } else {
             try { $g = $(if ($late) { Get-AztGuestBase -AllowOneObject } else { Get-AztGuestBase -MinRegion 8MB }) } catch { $attachErr = $_.Exception.Message }
         }
@@ -4447,7 +5067,7 @@ try {
             Start-Sleep -Milliseconds 200; continue
         }
         if ($script:gate) { $script:gate.Stage(0.97, 1.5) }
-        Say ("attached to the game {0:N1} s after it appeared (guest RAM at host 0x{1:X})" -f $attachClock.Elapsed.TotalSeconds, $g.MemBase) Green
+        Say ("attached to the game {0:N1} s after it appeared (guest RAM at host 0x{1:X}; obj2 delta 0x{2:X} -- 0x224000 = the 256 KB overlay window's layout, 0x1F1000 = the old)" -f $attachClock.Elapsed.TotalSeconds, $g.MemBase, $(if ($g.PSObject.Properties['Delta2']) { $g.Delta2 } else { 0 })) Green
         $attachClock = $null; $attachSaid = $false
         $lastGamePid = $g.ProcessId
 
@@ -4494,6 +5114,7 @@ try {
         do {
             $script:tcRestart = $false
             try { Invoke-Session } catch { Say ("session ended: {0}" -f $_.Exception.Message) Yellow }
+            Stop-SpaceGuard
             if ($script:gpu) { try { $script:gpu.Dispose() } catch { }; $script:gpu = $null; $script:gpuOn = $false }
             if ($script:tcRestart) { Say 'starting the picture again at the game''s own size' Yellow; $script:tcRaster = $null }
         } while ($script:tcRestart -and (Get-GamePid))
@@ -4508,6 +5129,7 @@ try {
 } finally {
     # a game held behind the loading screen is never left frozen, whatever ended this
     if ($script:gate) { try { $script:gate.Dispose() } catch { }; try { Write-GateNotes } catch { }; $script:gate = $null }
+    Stop-SpaceGuard
     if ($script:gpu) { try { $script:gpu.Dispose() } catch { }; $script:gpu = $null }
     Close-TrueColour
     Restore-Viewport

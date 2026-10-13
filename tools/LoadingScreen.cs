@@ -567,7 +567,7 @@ namespace AztTool
     // visor's amber type and lock-on brackets, and a slot list for LOAD. DOSBox keeps the focus and the mouse (it captures
     // it), so the input is the GAME's: its cursor and left button (fed in by the gate, CursorX/Y/Button) and the keys,
     // read globally while DOSBox is in front (the game ignores them while the title is held).
-    public class TitleScreen : IDisposable
+    public partial class TitleScreen : IDisposable      // (RAPTOR DOCS: RaptorDocs.cs)
     {
         delegate IntPtr WndProcD(IntPtr h, uint msg, IntPtr w, IntPtr l);
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -629,6 +629,25 @@ namespace AztTool
         public double ReadSeconds = 2.2, ReadHold = 0.85, ReadMax = 45, ReadDim = 0.55;
         double _readAt = -1, _readDoneAt = -1, _readP, _readBlip = -9, _shownAt = -1; string _readName = ""; int _readSlot = -1;
         public double ReadMin = 1.0;
+        // THE ROOM IS PART OF THE LOAD (Josh, 2026-10-12: "we need those textures to be loaded when loading a game as well, but
+        // that needs to be lumped into the core loading UI/animation as part of the loading process"): as the visor's own panel
+        // (ScanWire.cs VisorMenu.ReadBar) -- the renderer reports the new room's textures, decoded and sent to the card, through
+        // the gate (GameGate.TitleLoadProgress) as LoadProgress 0..1; the archive is the first 30% of the bar, the room the rest.
+        // -1 (RoomLoadAhead off): the bar as before.
+        public volatile float LoadProgress = -1f;
+        public bool RoomLoadAhead;
+        public string RoomStage = "ANALYZING ENVIRONMENT";
+        double _progBase = -1, _readPT = -1;
+        double ReadBar(double rt, double t)
+        {
+            double e = 1 - Math.Pow(1 - Math.Min(1, rt / ReadSeconds), 2);
+            float lp = LoadProgress;
+            if (lp < 0) return Math.Max(_readP, Math.Min(0.99, e));
+            double tgt = 0.30 * e + 0.12 * (1 - Math.Exp(-Math.Max(0, rt - ReadSeconds) / 3.0));
+            if (lp > 0) { if (_progBase < 0) _progBase = Math.Max(_readP, 0.30); tgt = Math.Max(tgt, _progBase + (0.99 - _progBase) * Math.Min(1, lp)); }
+            double dt = _readPT >= 0 ? Math.Max(0, Math.Min(0.25, t - _readPT)) : 0; _readPT = t;
+            return tgt <= _readP ? _readP : _readP + (tgt - _readP) * Math.Min(1, dt * 7);
+        }
         /// <summary>TESTING: a window of this place and size in place of the whole monitor (TestW 0 = the monitor).</summary>
         public int TestX, TestY, TestW, TestH;
         // ---- the look (the visor's inks) ----
@@ -723,13 +742,65 @@ namespace AztTool
         // ---- the menu's rows ----
         // (Josh, 2026-10-10: "add a New Game button below Continue ... The continue button will be unselectable when no saves
         // exist (the first time booting the game)" -- NEW GAME is always there; CONTINUE greys out and is passed over)
-        const int R_CONT = 0, R_NEW = 1, R_LOAD = 2, R_OPT = 3, R_QUIT = 4, R_STORY = 5, ROWS = 6;
-        static readonly string[] Labels = { "CONTINUE", "NEW GAME", "LOAD", "OPTIONS", "QUIT", "STORY" };
+        // (Josh, 2026-10-11: the last row, STORY, became RAPTOR DOCS -- the manual and the classified print-outs, RaptorDocs.cs)
+        const int R_CONT = 0, R_NEW = 1, R_LOAD = 2, R_OPT = 3, R_QUIT = 4, R_DOCS = 5, ROWS = 6;
+        static readonly string[] Labels = { "CONTINUE", "NEW GAME", "LOAD", "OPTIONS", "QUIT", "RAPTOR DOCS" };
         bool Enabled(int row) { return row != R_CONT || NewestSlot >= 0; }
         int Step(int from, int dir) { int r = from; for (int k = 0; k < ROWS; k++) { r = (r + dir + ROWS) % ROWS; if (Enabled(r)) return r; } return from; }
-        int _sel = 0, _hover = -1, _lsel = 0; bool _loadOpen; double _loadAt = -9, _soonAt = -9; int _soonRow = -1;
+        int _sel = 0, _hover = -1, _lsel = 0; bool _loadOpen; double _loadAt = -9;
         double _selAt, _pickAt = -1;
+        // ONE CLICK, ONE ACTION -- AND ONLY ON WHAT IS SHOWING (Josh, 2026-10-11: "I will click the options button and if I click
+        // somewhere in the options menu, it will accidentally click the load button or some other menu button that is in the main
+        // menu behind ... you can only click the buttons that you see on screen"). A click reaches the title TWICE: raw input
+        // here at once, and the game's own button word (0x182DA6) a frame or more later, once DOSBox has passed it on. A click on
+        // a panel's BACK closed the panel on the first, and the second landed on the main menu row underneath -- acting on the
+        // remembered selection, which the hover only updates when its index changes, so it could even reopen the panel just shut.
+        // Now: a press within ClickMerge s of the last is the same click; none counts for LayerSettle s after a panel opens or
+        // closes; and a click acts on the button under the pointer in the layer on top, nothing else.
+        double _pressAt = -9, _layerAt = -9; const double ClickMerge = 0.3, LayerSettle = 0.3;
+        void LayerChanged(double t) { _layerAt = t; _hover = -1; }
+        /// <summary>A mouse press (from either source) at the pointer (x, y); `placed` = the pointer has a position. True = it acted.</summary>
+        public bool Press(double t, float x, float y, bool placed)
+        {
+            // (the merge counts from the last press that ACTED: clicking a reader's arrow quickly turns a page per click,
+            // where counting from any press -- each merged one renewing it -- swallowed every click after the first)
+            bool again = t - _pressAt < ClickMerge, settling = t - _layerAt < LayerSettle;
+            if (again || settling || !placed) return false;
+            int hit = HitTest(x, y);                                   // (the layer on top NOW)
+            if (hit < 0) return false;
+            _pressAt = t;
+            if (_view != V_NONE) _vsel = hit; else if (_docsOpen) _dsel = hit; else if (_optOpen) _osel = hit; else if (_loadOpen) _lsel = hit; else _sel = hit;
+            Activate(t); return true;
+        }
+        /// <summary>OFFLINE: the layer showing ("menu", "options", "load", "docs", "manual", "classified") and the centre of a
+        /// button in it (a reader's: VB_BACK 0, VB_PREV 1, VB_NEXT 2, VB_DOC 3, a chapter 10 + i).</summary>
+        public string TestLayer { get { return _view == V_MANUAL ? "manual" : _view == V_CLASSIFIED ? "classified" : _docsOpen ? "docs" : _optOpen ? "options" : _loadOpen ? "load" : "menu"; } }
+        public PointF TestCentre(string layer, int i)
+        {
+            var r = layer == "options" ? _optRect[i] : layer == "load" ? _slotRect[i] : layer == "docs" ? _docsRect[i] : layer == "manual" || layer == "classified" ? ViewRect(i) : _rowRect[i];
+            return new PointF(r.Left + r.Width / 2, r.Top + r.Height / 2);
+        }
+        /// <summary>OFFLINE: the manual's page / the classified file showing, and the magnifier.</summary>
+        public int TestPage { get { return _view == V_CLASSIFIED ? _cdoc : _page; } }
+        /// <summary>TESTING: a key for the running loop to take as pressed (its own thread acts on it); the loop's passes and the
+        /// time they spent drawing (ms), and the passes that repainted the whole window.</summary>
+        public void TestQueueKey(int vk) { _testKeys.Enqueue(vk); }
+        readonly System.Collections.Concurrent.ConcurrentQueue<int> _testKeys = new System.Collections.Concurrent.ConcurrentQueue<int>();
+        public long Passes, FullPasses; public double DrawMs, DrawMsMax;
+        public bool TestZoom { get { return _zoom; } }
+        public void TestKey(int vk, double t) { Key(vk, t); }
+        public int TestHit(float x, float y) { return HitTest(x, y); }
         RectangleF[] _rowRect = new RectangleF[ROWS]; RectangleF[] _slotRect = new RectangleF[6];
+        // THE OPTIONS PANEL (Josh, 2026-10-11: "in the settings of the main menu we would have a texture quality setting:
+        // Normal/Ultra ... implement the menu item on the home menu, with that 'coming soon' in place on the actual new sub
+        // menu"): OPTIONS opens it over the column as LOAD opens the slot list. TEXTURE QUALITY (Normal = 2K textures, Ultra =
+        // 4K) is shown but not yet offered -- picking it says COMING SOON -- and BACK (or ESC) closes it. The renderer already
+        // loads either size (the watcher's -TextureQuality / <game>\raptormod-settings.json "textureQuality").
+        const int O_TEX = 0, O_BACK = 1, OROWS = 2;
+        bool _optOpen; double _optAt = -9, _optSoonAt = -9; int _osel = O_TEX;
+        RectangleF _optPanel; RectangleF[] _optRect = new RectangleF[OROWS]; Rectangle _optArea;
+        /// <summary>The texture quality in use, "NORMAL" or "ULTRA" (the watcher's choice), shown on the options panel.</summary>
+        public string TextureQuality = "ULTRA";
         Bitmap _bg, _buf; Rectangle _menuArea, _loadArea; int _W, _H; float _s;
         System.Media.SoundPlayer _tick, _confirm;
 
@@ -813,7 +884,7 @@ namespace AztTool
                         if (_rawAbs) { _rawAbs = false; ptrX = (float)(_rawAbsX / 65535.0 * _W); ptrY = (float)(_rawAbsY / 65535.0 * _H); mouseAt = t; }
                         if (rdx != 0 || rdy != 0)
                         {
-                            if (mouseAt < 0 || ptrX < 0) { var r0 = _loadOpen ? _slotRect[_lsel] : _rowRect[_sel]; ptrX = r0.Left + r0.Width * 0.5f; ptrY = r0.Top + r0.Height * 0.5f; }
+                            if (mouseAt < 0 || ptrX < 0) { var r0 = SelRect(); ptrX = r0.Left + r0.Width * 0.5f; ptrY = r0.Top + r0.Height * 0.5f; }
                             double k = RawSpeed * Math.Max(1.0, _W / 1920.0) * (1 + 0.035 * Math.Min(30, Math.Sqrt((double)rdx * rdx + (double)rdy * rdy)));
                             ptrX = (float)Math.Max(0, Math.Min(_W - 2, ptrX + rdx * k)); ptrY = (float)Math.Max(0, Math.Min(_H - 2, ptrY + rdy * k));
                             mouseAt = t;
@@ -822,12 +893,21 @@ namespace AztTool
                         if (mouseAt > 0)
                         {
                             hit = HitTest(ptrX, ptrY);
-                            if (hit != _hover) { _hover = hit; if (hit >= 0) { if (_loadOpen) { if (_lsel != hit) { _lsel = hit; _selAt = t; Play(_tick); } } else if (_sel != hit) { _sel = hit; _selAt = t; Play(_tick); } } }
+                            if (hit != _hover)
+                            {
+                                _hover = hit;
+                                if (_view != V_NONE) { if (_vsel != hit) { _vsel = hit; _selAt = t; _vNeed = true; if (hit >= 0 && hit != VB_DOC) Play(_tick); } }   // (a reader: leaving a button lets it go)
+                                else if (hit >= 0) { if (_docsOpen) { if (_dsel != hit) { _dsel = hit; _selAt = t; Play(_tick); } } else if (_optOpen) { if (_osel != hit) { _osel = hit; _selAt = t; Play(_tick); } } else if (_loadOpen) { if (_lsel != hit) { _lsel = hit; _selAt = t; Play(_tick); } } else if (_sel != hit) { _sel = hit; _selAt = t; Play(_tick); } }
+                            }
+                            if (_view == V_CLASSIFIED && (ptrX != _lastPtrX || ptrY != _lastPtrY)) ZoomFollow(ptrX, ptrY);     // (magnified: the pointer pans)
+                            _lastPtrX = ptrX; _lastPtrY = ptrY;
                         }
-                        if (((bt != 0 && btnWas == 0) || clicks > 0) && hit >= 0) Activate(t);
+                        if ((bt != 0 && btnWas == 0) || clicks > 0) Press(t, ptrX, ptrY, mouseAt > 0);
                         btnWas = bt;
                         if (wheel != 0) Key(wheel > 0 ? 0x26 : 0x28, t);
-                        foreach (int vk in new[] { 0x26, 0x28, 0x0D, 0x1B, 0x20 })
+                        int qk; while (_testKeys.TryDequeue(out qk)) Key(qk, t);                    // (TESTING: keys queued from outside)
+                        // (up, down, enter, esc, space; and for the readers: left, right, page up / down, home, end, backspace)
+                        foreach (int vk in new[] { 0x26, 0x28, 0x0D, 0x1B, 0x20, 0x25, 0x27, 0x21, 0x22, 0x24, 0x23, 0x08 })
                         {
                             bool d = front && (GetAsyncKeyState(vk) & 0x8000) != 0;
                             if (d && !keys[vk]) Key(vk, t);
@@ -845,7 +925,10 @@ namespace AztTool
                     }
                     // ---- draw: the menu's area (and the pointer's old and new places) over the art ----
                     bool reading = _readAt >= 0;
+                    bool optUp = _optOpen || (t - _optAt) < 0.4, docsUp = _docsOpen || (t - _docsAt) < 0.4;
                     var dirty = reading ? Rectangle.Union(_menuArea, _readArea) : _loadOpen || (t - _loadAt) < 0.4 ? Rectangle.Union(_menuArea, _loadArea) : _menuArea;
+                    if (optUp && !reading) dirty = Rectangle.Union(dirty, _optArea);
+                    if (docsUp && !reading) dirty = Rectangle.Union(dirty, _docsArea);
                     RectangleF ptrNow = ptrX >= 0 && mouseAt > 0 && _pick == PickNone ? PointerBox(ptrX, ptrY) : RectangleF.Empty;
                     // THE WHOLE WINDOW for its first second and whenever Windows asked for a repaint; else only what moves.
                     // (Never DrawImageUnscaled: GDI+ scales it by the screen's DPI over the bitmap's 96 -- at 150% the art
@@ -854,6 +937,11 @@ namespace AztTool
                     double dim = reading ? Ease((t - _pickAt) / 0.8) : 0;
                     bool full = first || _needFull || t < 1.0 || (reading && t - _pickAt < 0.9); if (full) _needFull = false;
                     var all = new Rectangle(0, 0, _W, _H);
+                    // A RAPTOR DOCS READER covers the whole window: all of it when it changes, else just its moving parts
+                    bool viewUp = ViewUp(t), viewFull = true; var vd = all;
+                    try { vd = ViewDirty(t, out viewFull); } catch (Exception e) { DocsFault(e, t); }
+                    if (viewUp) dirty = viewFull || full ? all : vd;
+                    long drawAt = Stopwatch.GetTimestamp();
                     using (var g = Graphics.FromImage(_buf))
                     {
                         if (full) { g.DrawImage(_bg, all, all, GraphicsUnit.Pixel); if (dim > 0) using (var db = new SolidBrush(C(0x000000, ReadDim * dim))) g.FillRectangle(db, all); }
@@ -863,6 +951,13 @@ namespace AztTool
                         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias; g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
                         DrawMenu(g, t);
                         if (_loadOpen || (t - _loadAt) < 0.4) DrawLoad(g, t);
+                        if (optUp) DrawOptions(g, t);
+                        try
+                        {
+                            if (docsUp) DrawDocsPanel(g, t);
+                            if (viewUp) { RectangleF vc = dirty; vc = Union2(Union2(vc, ptrWas), ptrNow); DrawView(g, t, vc, dirty == all); }   // (what this pass repaints)
+                        }
+                        catch (Exception e) { DocsFault(e, t); }
                         if (reading) DrawRead(g, t);
                         if (!ptrNow.IsEmpty) DrawPointer(g, ptrX, ptrY);
                     }
@@ -872,10 +967,12 @@ namespace AztTool
                         if (full) wg.DrawImage(_buf, all, all, GraphicsUnit.Pixel);
                         else
                         {
-                            wg.DrawImage(_buf, dirty, dirty, GraphicsUnit.Pixel);
+                            if (dirty.Width > 0 && dirty.Height > 0) wg.DrawImage(_buf, dirty, dirty, GraphicsUnit.Pixel);
                             foreach (var pr in new[] { ptrWas, ptrNow }) if (!pr.IsEmpty) { var r = Rectangle.Round(pr); wg.DrawImage(_buf, r, r, GraphicsUnit.Pixel); }
                         }
                     }
+                    double dms = (Stopwatch.GetTimestamp() - drawAt) * 1000.0 / Stopwatch.Frequency;
+                    Passes++; DrawMs += dms; if (dms > DrawMsMax) DrawMsMax = dms; if (dirty == all || full) FullPasses++;
                     ptrWas = ptrNow; first = false;
                     Thread.Sleep(14);
                 }
@@ -895,6 +992,7 @@ namespace AztTool
                 try { UnregisterClassW(_cls, GetModuleHandleW(IntPtr.Zero)); } catch { }
                 if (_bg != null) _bg.Dispose(); if (_buf != null) _buf.Dispose();
                 if (_curImg != null) { _curImg.Dispose(); _curImg = null; } if (_curAct != null) { _curAct.Dispose(); _curAct = null; }
+                try { FreeDocs(); } catch { }
                 _up.Set(); _gone.Set();
             }
         }
@@ -902,6 +1000,13 @@ namespace AztTool
         {
             uint p; GetWindowThreadProcessId(GetForegroundWindow(), out p);
             return GamePid == 0 || p == (uint)GamePid || p == (uint)Process.GetCurrentProcess().Id;
+        }
+        static RectangleF Union2(RectangleF a, RectangleF b) { return a.IsEmpty ? b : b.IsEmpty ? a : RectangleF.Union(a, b); }
+        /// <summary>The selected button of the layer on top (where the pointer starts).</summary>
+        RectangleF SelRect()
+        {
+            if (_view != V_NONE) return _vsel >= 0 ? ViewRect(_vsel) : ViewRect(VB_NEXT);
+            return _docsOpen ? _docsRect[_dsel] : _optOpen ? _optRect[_osel] : _loadOpen ? _slotRect[_lsel] : _rowRect[_sel];
         }
 
         // the art, cover-fit to the monitor, made once; and the menu's layout
@@ -926,9 +1031,9 @@ namespace AztTool
             }
             // the column: rows below the art's credit line, centred on the title
             float cx = _artX + (float)ColX * _artW, y0 = _artY + (float)ColY * _artH, pitch = 66 * _s, rw = 420 * _s, rh = 52 * _s;
-            for (int i = 0; i < R_STORY; i++) { float yy = y0 + i * pitch + (i > 0 ? 22 * _s : 0); _rowRect[i] = new RectangleF(cx - rw / 2, yy, rw, rh); }
-            _rowRect[R_STORY] = new RectangleF(cx - rw * 0.32f, _rowRect[R_QUIT].Bottom + 58 * _s, rw * 0.64f, 40 * _s);
-            var a = RectangleF.Union(_rowRect[0], _rowRect[R_STORY]); a.Inflate(150 * _s, 40 * _s);
+            for (int i = 0; i < R_DOCS; i++) { float yy = y0 + i * pitch + (i > 0 ? 22 * _s : 0); _rowRect[i] = new RectangleF(cx - rw / 2, yy, rw, rh); }
+            _rowRect[R_DOCS] = new RectangleF(cx - rw * 0.36f, _rowRect[R_QUIT].Bottom + 58 * _s, rw * 0.72f, 40 * _s);
+            var a = RectangleF.Union(_rowRect[0], _rowRect[R_DOCS]); a.Inflate(150 * _s, 40 * _s);
             _menuArea = Rectangle.Intersect(Rectangle.Round(a), new Rectangle(0, 0, _W, _H));
             // the slot list, over the column (the menu steps back while it shows)
             float pw = 760 * _s, ph = 470 * _s, px = cx - pw / 2, py = y0 - 40 * _s;
@@ -936,6 +1041,14 @@ namespace AztTool
             for (int i = 0; i < 6; i++) _slotRect[i] = new RectangleF(px + 36 * _s, py + 96 * _s + i * 58 * _s + (i == 5 ? 16 * _s : 0), pw - 72 * _s, 50 * _s);
             var la = _loadPanel; la.Inflate(40 * _s, 40 * _s);
             _loadArea = Rectangle.Intersect(Rectangle.Round(la), new Rectangle(0, 0, _W, _H));
+            // the options panel: the slot list's width and place, as tall as its two rows need
+            float oph = 300 * _s;
+            _optPanel = new RectangleF(px, py, pw, oph);
+            _optRect[O_TEX] = new RectangleF(px + 36 * _s, py + 96 * _s, pw - 72 * _s, 92 * _s);
+            _optRect[O_BACK] = new RectangleF(px + 36 * _s, py + 96 * _s + 92 * _s + 22 * _s, pw - 72 * _s, 50 * _s);
+            var oa = _optPanel; oa.Inflate(40 * _s, 40 * _s);
+            _optArea = Rectangle.Intersect(Rectangle.Round(oa), new Rectangle(0, 0, _W, _H));
+            PrepareDocs(px, py, pw);            // (RAPTOR DOCS: its panel where OPTIONS' is, and the readers)
             LoadCursors();
             // the reading panel: the same column, a little wider (the archive's name goes in its title)
             float rw2 = 900 * _s, rh2 = 462 * _s, rx = Math.Max(24 * _s, Math.Min(_W - rw2 - 24 * _s, cx - rw2 / 2)), ry = Math.Max(24 * _s, Math.Min(_H - rh2 - 24 * _s, y0 - 30 * _s));
@@ -947,18 +1060,31 @@ namespace AztTool
 
         int HitTest(float x, float y)
         {
+            if (_view != V_NONE) return ViewHit(x, y);
+            if (_docsOpen) return DocsHit(x, y);
+            if (_optOpen) { for (int i = 0; i < OROWS; i++) if (_optRect[i].Contains(x, y)) return i; return -1; }
             if (_loadOpen) { for (int i = 0; i < 6; i++) if (_slotRect[i].Contains(x, y)) return i; return -1; }
             for (int i = 0; i < ROWS; i++) { if (!Enabled(i)) continue; var r = _rowRect[i]; r.Inflate(0, 6 * _s); if (r.Contains(x, y)) return i; }
             return -1;
         }
         void Key(int vk, double t)
         {
+            if (ViewKey(vk, t) || DocsKey(vk, t)) return;
+            if (vk != 0x26 && vk != 0x28 && vk != 0x0D && vk != 0x1B && vk != 0x20) return;        // (the readers' keys mean nothing here)
+            if (_optOpen)
+            {
+                if (vk == 0x26) { _osel = (_osel + OROWS - 1) % OROWS; _selAt = t; Play(_tick); }
+                else if (vk == 0x28) { _osel = (_osel + 1) % OROWS; _selAt = t; Play(_tick); }
+                else if (vk == 0x0D || vk == 0x20) Activate(t);
+                else if (vk == 0x1B) { _optOpen = false; _optAt = t; LayerChanged(t); Play(_tick); }
+                return;
+            }
             if (_loadOpen)
             {
                 if (vk == 0x26) { _lsel = (_lsel + 5) % 6; _selAt = t; Play(_tick); }
                 else if (vk == 0x28) { _lsel = (_lsel + 1) % 6; _selAt = t; Play(_tick); }
                 else if (vk == 0x0D || vk == 0x20) Activate(t);
-                else if (vk == 0x1B) { _loadOpen = false; _loadAt = t; Play(_tick); }
+                else if (vk == 0x1B) { _loadOpen = false; _loadAt = t; LayerChanged(t); Play(_tick); }
                 return;
             }
             if (vk == 0x26) { _sel = Step(_sel, -1); _selAt = t; Play(_tick); }
@@ -967,9 +1093,16 @@ namespace AztTool
         }
         void Activate(double t)
         {
+            if (_view != V_NONE) { if (_vsel >= 0) ViewActivate(_vsel, t); return; }
+            if (_docsOpen) { DocsActivate(t); return; }
+            if (_optOpen)
+            {
+                if (_osel == O_BACK) { _optOpen = false; _optAt = t; LayerChanged(t); Play(_tick); return; }
+                Play(_tick); _optSoonAt = t; return;                                                     // (not offered yet)
+            }
             if (_loadOpen)
             {
-                if (_lsel == 5) { _loadOpen = false; _loadAt = t; Play(_tick); return; }                 // BACK
+                if (_lsel == 5) { _loadOpen = false; _loadAt = t; LayerChanged(t); Play(_tick); return; }    // BACK
                 var s = _lsel < Slots.Length ? Slots[_lsel] : null;
                 if (s == null || !s.Usable) { Play(_tick); return; }
                 Play(_confirm); _pickSlot = s.Index; _pickAt = t; BeginRead(t, s.Index); _pick = PickLoad; return;
@@ -978,8 +1111,9 @@ namespace AztTool
             {
                 case R_CONT: if (NewestSlot < 0) { Play(_tick); break; } Play(_confirm); _pickAt = t; _pickSlot = NewestSlot; BeginRead(t, NewestSlot); _pick = PickLoad; break;
                 case R_NEW: Play(_confirm); _pickAt = t; _pick = PickNew; break;
-                case R_LOAD: Play(_confirm); _loadOpen = true; _loadAt = t; _lsel = NewestSlot >= 0 ? NewestSlot : 5; break;
-                case R_OPT: case R_STORY: Play(_tick); _soonAt = t; _soonRow = _sel; break;            // (later)
+                case R_LOAD: Play(_confirm); _loadOpen = true; _loadAt = t; LayerChanged(t); _lsel = NewestSlot >= 0 ? NewestSlot : 5; break;
+                case R_OPT: Play(_confirm); _optOpen = true; _optAt = t; LayerChanged(t); _osel = O_TEX; break;
+                case R_DOCS: OpenDocsPanel(t); break;
                 case R_QUIT: Play(_confirm); _pickAt = t; _pick = PickQuit; break;
             }
         }
@@ -1010,6 +1144,8 @@ namespace AztTool
         void DrawMenu(Graphics g, double t)
         {
             double back = _loadOpen ? Ease((t - _loadAt) / 0.3) : 1 - Ease((t - _loadAt) / 0.3);     // the list in front: the menu steps back
+            back = Math.Max(back, _optOpen ? Ease((t - _optAt) / 0.3) : 1 - Ease((t - _optAt) / 0.3));   // (and behind the options)
+            back = Math.Max(back, DocsBack(t));                                                          // (and behind RAPTOR DOCS)
             double leave = _pickAt >= 0 ? Ease((t - _pickAt) / 0.35) : 0;
             using (var big = new Font("Consolas", 30 * _s, FontStyle.Bold, GraphicsUnit.Pixel))
             using (var small = new Font("Consolas", 21 * _s, FontStyle.Bold, GraphicsUnit.Pixel))
@@ -1022,8 +1158,8 @@ namespace AztTool
                     double vis = on < 0.16 ? (Hash(i, (int)(t * 40)) > 0.45 ? 1 : 0.15) : 1;
                     vis *= (1 - back) * (1 - leave);
                     if (vis <= 0.01) continue;
-                    var r = _rowRect[i]; bool sel = i == _sel && !_loadOpen, picked = _pickAt >= 0 && sel;
-                    var f = i == R_STORY ? small : big;
+                    var r = _rowRect[i]; bool sel = i == _sel && !_loadOpen && !_optOpen && !_docsOpen && _view == V_NONE, picked = _pickAt >= 0 && sel;
+                    var f = i == R_DOCS ? small : big;
                     float tw = Spaced(g, Labels[i], f, null, 0, 0, 7 * _s, true), tx = r.Left + (r.Width - tw) / 2, ty = r.Top + (r.Height - f.Height) / 2 - (i == R_CONT ? 7 * _s : 0);
                     if (sel)
                     {
@@ -1044,7 +1180,7 @@ namespace AztTool
                     // the label: a dark halo for the art behind it, then the type
                     using (var sh = new SolidBrush(C(0x000000, 0.65 * vis))) { Spaced(g, Labels[i], f, sh, tx + 2 * _s, ty + 2 * _s, 7 * _s, false); }
                     bool off = !Enabled(i);
-                    int ink = sel ? AmberHi : (i == R_STORY || off ? AmberDim : Amber); double ia = sel ? 1 : off ? 0.42 : (i == R_STORY ? 0.8 : 0.82);
+                    int ink = sel ? AmberHi : (off ? AmberDim : Amber); double ia = sel ? 1 : off ? 0.42 : 0.82;
                     using (var tb = new SolidBrush(C(ink, ia * vis))) Spaced(g, Labels[i], f, tb, tx, ty, 7 * _s, false);
                     if (i == R_CONT)
                     {
@@ -1055,19 +1191,14 @@ namespace AztTool
                     }
                     if (i == R_QUIT)
                     {
-                        // the divider before STORY: a thin rule fading at both ends, a diamond at its middle
-                        float dy = (r.Bottom + _rowRect[R_STORY].Top) / 2, dw = 200 * _s, dcx = r.Left + r.Width / 2;
+                        // the divider before RAPTOR DOCS: a thin rule fading at both ends, a diamond at its middle
+                        float dy = (r.Bottom + _rowRect[R_DOCS].Top) / 2, dw = 200 * _s, dcx = r.Left + r.Width / 2;
                         using (var lg = new System.Drawing.Drawing2D.LinearGradientBrush(new RectangleF(dcx - dw, dy - 1, 2 * dw, 2), C(Amber, 0), C(Amber, 0), 0f))
                         {
                             var cb = new System.Drawing.Drawing2D.ColorBlend(); cb.Positions = new[] { 0f, 0.5f, 1f }; cb.Colors = new[] { C(Amber, 0), C(Amber, 0.55 * vis), C(Amber, 0) }; lg.InterpolationColors = cb;
                             g.FillRectangle(lg, dcx - dw, dy - 0.75f * _s, 2 * dw, 1.5f * _s);
                         }
                         float d = 4 * _s; using (var db = new SolidBrush(C(Amber, 0.8 * vis))) g.FillPolygon(db, new[] { new PointF(dcx, dy - d), new PointF(dcx + d, dy), new PointF(dcx, dy + d), new PointF(dcx - d, dy) });
-                    }
-                    if (_soonRow == i && t - _soonAt < 1.6)
-                    {
-                        double sa = (t - _soonAt) < 0.14 ? (Hash(i, (int)(t * 50)) > 0.4 ? 1 : 0.2) : Math.Min(1, (1.6 - (t - _soonAt)) / 0.4);
-                        using (var sb2 = new SolidBrush(C(AmberDim, sa * vis))) Spaced(g, "OFFLINE  //  COMING SOON", sub, sb2, r.Right + 18 * _s, r.Top + (r.Height - sub.Height) / 2, 2 * _s, false);
                     }
                 }
             }
@@ -1113,10 +1244,66 @@ namespace AztTool
                 }
             }
         }
+        // THE OPTIONS PANEL (see O_TEX): the slot list's look -- dark glass, scan lines, the visor's brackets. TEXTURE QUALITY is
+        // drawn dim (as an empty slot is): its two settings with the one in use underlined, what each means, a COMING SOON tag
+        // (picking it flashes OFFLINE // COMING SOON); BACK below.
+        void DrawOptions(Graphics g, double t)
+        {
+            double a = _optOpen ? Ease((t - _optAt) / 0.3) : 1 - Ease((t - _optAt) / 0.3);
+            double leave = _pickAt >= 0 ? Ease((t - _pickAt) / 0.35) : 0; a *= 1 - leave;
+            if (a <= 0.01) return;
+            var p = _optPanel; float grow = (float)(1 - Ease((t - _optAt) / 0.3)) * (_optOpen ? 1 : 0); var pr = p; pr.Inflate(-grow * 30 * _s, -grow * 30 * _s);
+            using (var gb = new SolidBrush(C(0x050302, 0.84 * a))) g.FillRectangle(gb, pr);
+            using (var ln = new SolidBrush(C(0x000000, 0.22 * a))) for (float yy = pr.Top; yy < pr.Bottom; yy += 3 * _s) g.FillRectangle(ln, pr.Left, yy, pr.Width, Math.Max(1f, _s));
+            Brackets(g, pr, C(Amber, 0.9 * a), 22 * _s, Math.Max(2f, 2.4f * _s));
+            using (var hf = new Font("Consolas", 22 * _s, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var rf = new Font("Consolas", 20 * _s, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var sf = new Font("Consolas", 14 * _s, FontStyle.Bold, GraphicsUnit.Pixel))
+            {
+                using (var hb = new SolidBrush(C(AmberHi, a))) Spaced(g, "RAPTOR H.U.D. // SYSTEM // OPTIONS", hf, hb, pr.Left + 36 * _s, pr.Top + 30 * _s, 3 * _s, false);
+                using (var rl = new SolidBrush(C(Amber, 0.5 * a))) g.FillRectangle(rl, pr.Left + 36 * _s, pr.Top + 70 * _s, pr.Width - 72 * _s, Math.Max(1f, 1.2f * _s));
+                // TEXTURE QUALITY -- not offered yet
+                var r = _optRect[O_TEX]; bool sel = _osel == O_TEX;
+                if (sel)
+                {
+                    using (var sb = new SolidBrush(C(Amber, 0.07 * a))) g.FillRectangle(sb, r);
+                    double k = EaseBack((t - _selAt) / 0.25); var br = r; br.Inflate((float)(1 - k) * 24 * _s, (float)(1 - k) * 8 * _s);
+                    Brackets(g, br, C(AmberDim, 0.95 * a), 10 * _s, Math.Max(2f, 2f * _s));
+                }
+                float ty = r.Top + 14 * _s;
+                using (var tb = new SolidBrush(C(AmberDim, 0.8 * a))) Spaced(g, "TEXTURE QUALITY", rf, tb, r.Left + 18 * _s, ty, 3 * _s, false);
+                string[] q = { "NORMAL", "ULTRA" }; bool ultra = string.Equals(TextureQuality, "ULTRA", StringComparison.OrdinalIgnoreCase);
+                float w0 = Spaced(g, q[0], rf, null, 0, 0, 3 * _s, true), w1 = Spaced(g, q[1], rf, null, 0, 0, 3 * _s, true);
+                float x1 = r.Right - 18 * _s - w1, x0 = x1 - 34 * _s - w0;
+                for (int j = 0; j < 2; j++)
+                {
+                    bool cur = (j == 1) == ultra; float xx = j == 0 ? x0 : x1, ww = j == 0 ? w0 : w1;
+                    using (var vb = new SolidBrush(C(cur ? Amber : AmberDim, (cur ? 0.75 : 0.4) * a))) Spaced(g, q[j], rf, vb, xx, ty, 3 * _s, false);
+                    if (cur) using (var ub = new SolidBrush(C(Amber, 0.55 * a))) g.FillRectangle(ub, xx, ty + rf.Height + 3 * _s, ww, Math.Max(1f, 1.5f * _s));
+                }
+                float sy = r.Top + 60 * _s;
+                using (var db = new SolidBrush(C(AmberDim, 0.65 * a))) Spaced(g, "NORMAL: 2K  //  ULTRA: 4K", sf, db, r.Left + 18 * _s, sy, 2 * _s, false);
+                bool flash = t - _optSoonAt < 1.6; string tag = flash ? "OFFLINE  //  COMING SOON" : "COMING SOON";
+                double fa = flash && (t - _optSoonAt) < 0.14 ? (Hash(7, (int)(t * 50)) > 0.4 ? 1 : 0.2) : 1;
+                float tw = Spaced(g, tag, sf, null, 0, 0, 2 * _s, true), tx = r.Right - 18 * _s - tw;
+                using (var tp = new Pen(C(flash ? Amber : AmberDim, 0.8 * fa * a), Math.Max(1f, 1.2f * _s))) g.DrawRectangle(tp, tx - 8 * _s, sy - 4 * _s, tw + 16 * _s, sf.Height + 8 * _s);
+                using (var gb2 = new SolidBrush(C(flash ? AmberHi : Amber, 0.85 * fa * a))) Spaced(g, tag, sf, gb2, tx, sy, 2 * _s, false);
+                // BACK, as the slot list's
+                var rb = _optRect[O_BACK]; bool bsel = _osel == O_BACK;
+                if (bsel)
+                {
+                    using (var sb = new SolidBrush(C(Amber, 0.16 * a))) g.FillRectangle(sb, rb);
+                    double k = EaseBack((t - _selAt) / 0.25); var br = rb; br.Inflate((float)(1 - k) * 24 * _s, (float)(1 - k) * 8 * _s);
+                    Brackets(g, br, C(Amber, 0.95 * a), 10 * _s, Math.Max(2f, 2f * _s));
+                }
+                using (var bb = new SolidBrush(C(bsel ? AmberHi : Amber, a))) { float bw = Spaced(g, "BACK", rf, null, 0, 0, 5 * _s, true); Spaced(g, "BACK", rf, bb, rb.Left + (rb.Width - bw) / 2, rb.Top + (rb.Height - rf.Height) / 2, 5 * _s, false); }
+            }
+        }
         void BeginRead(double t, int slot)
         {
             _readSlot = slot; _readName = slot >= 0 && slot < Slots.Length ? (Slots[slot].Name ?? "").Trim().ToUpperInvariant() : "";
             _readAt = t + 0.3; _readDoneAt = -1; _readP = 0; _shownAt = -1;           // (after the menu has stepped away)
+            LoadProgress = RoomLoadAhead ? 0f : -1f; _progBase = -1; _readPT = -1;
         }
         static string Typed(string s, double t, double from, double cps) { int n = (int)Math.Max(0, Math.Min(s.Length, (t - from) * cps)); return s.Substring(0, n); }
         // THE MEMORY CORE READING IN -- the visor's panel (ScanWire's VisorMenu.DrawArchive, read access), drawn on the title
@@ -1136,7 +1323,7 @@ namespace AztTool
                 return;
             }
             Brackets(g, pr, C(Amber, 0.9), 22 * _s, Math.Max(2f, 2.4f * _s));
-            double p01 = done ? 1 : Math.Max(_readP, Math.Min(0.99, 1 - Math.Pow(1 - Math.Min(1, rt / ReadSeconds), 2)));
+            double p01 = done ? 1 : ReadBar(rt, t);
             if (!done && _shownAt >= 0) p01 = Math.Max(p01, _readP + (1 - _readP) * Math.Min(1, (t - _shownAt) / 0.3));
             _readP = p01;
             float x0 = pr.Left + 40 * _s, x1 = pr.Right - 40 * _s, y = pr.Top + 28 * _s;
@@ -1168,7 +1355,7 @@ namespace AztTool
                 for (int i = 0; i < lit; i++) g.FillRectangle(i == lit - 1 && !done ? bHi : bAm, x0 + 4 * _s + i * sw, by0 + 4 * _s, sw - 3 * _s, by1 - by0 - 8 * _s);
                 string pct = string.Format("{0,3}%", (int)Math.Round(p01 * 100)); float pw = Spaced(g, pct, fSmall, null, 0, 0, 1 * _s, true);
                 Spaced(g, pct, fSmall, bDim, x1 - pw, by1 + 8 * _s, 1 * _s, false);
-                Spaced(g, done ? "INTEGRITY VERIFIED" : "RESTORING ARCHIVE FROM MEMORY CORE", fSmall, bDim, x0, by1 + 8 * _s, 2 * _s, false);
+                Spaced(g, done ? "INTEGRITY VERIFIED" : LoadProgress > 0 && RoomStage != null ? RoomStage : "RESTORING ARCHIVE FROM MEMORY CORE", fSmall, bDim, x0, by1 + 8 * _s, 2 * _s, false);
                 // the stream: lines of hex scrolling up under the bar, newest brightest (still once it is done)
                 int k = (int)((done ? _readDoneAt - _readAt : rt) * 14); float hy = by1 + 44 * _s;
                 for (int j = 0; j < 6; j++)
@@ -1272,15 +1459,20 @@ namespace AztTool
         }
         /// <summary>OFFLINE: Preview also draws the pointer over the selected row (hovering it: the hot variant).</summary>
         public bool PreviewPointer, PreviewHover;
+        /// <summary>OFFLINE: Preview with the options panel up instead (PreviewOsel selected; PreviewSoon: just picked TEXTURE QUALITY).</summary>
+        public bool PreviewOptions, PreviewSoon; public int PreviewOsel;
         public Bitmap Preview(int w, int h, double t, int sel, bool loadOpen, int lsel)
         {
             ReadSaves(); _W = w; _H = h; _s = h / 1080f; Prepare();
             _sel = Enabled(sel) ? sel : R_NEW; _selAt = t - 1; _loadOpen = loadOpen; _loadAt = loadOpen ? t - 1 : -9; _lsel = lsel;
+            _optOpen = PreviewOptions; _optAt = PreviewOptions ? t - 1 : -9; _osel = PreviewOsel; _optSoonAt = PreviewSoon ? t - 0.3 : -9;
+            PreviewDocsState(t);
             using (var g = Graphics.FromImage(_buf))
             {
                 g.DrawImageUnscaled(_bg, 0, 0); g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias; g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                DrawMenu(g, t); if (loadOpen) DrawLoad(g, t);
-                if (PreviewPointer) { var rr = loadOpen ? _slotRect[_lsel] : _rowRect[_sel]; _hover = PreviewHover ? 0 : -1; DrawPointer(g, rr.Left + rr.Width * 0.62f, rr.Top + rr.Height * 0.55f); _hover = -1; }
+                DrawMenu(g, t); if (loadOpen) DrawLoad(g, t); if (_optOpen) DrawOptions(g, t);
+                PreviewDocsDraw(g, t);
+                if (PreviewPointer) { var rr = _optOpen ? _optRect[_osel] : loadOpen ? _slotRect[_lsel] : _rowRect[_sel]; _hover = PreviewHover ? 0 : -1; DrawPointer(g, rr.Left + rr.Width * 0.62f, rr.Top + rr.Height * 0.55f); _hover = -1; }
             }
             var o = (Bitmap)_buf.Clone(); _bg.Dispose(); _buf.Dispose(); _bg = null; _buf = null; return o;
         }
@@ -1417,22 +1609,39 @@ namespace AztTool
         // RAM block, from BOTH of its objects, all agreeing on one base.
         static readonly string[] Needles = { "To prevent danger of overload it is recommended", "VESA VBE SuperVGA BIOS implemenation",
                                              "Audio Interface Library application usage script", "Run-Time system. (c) Copyright by WATCOM" };
-        System.Collections.Generic.List<byte[]> _sigs; System.Collections.Generic.List<long> _rts; System.Collections.Generic.List<int> _objs;
+        // OBJ2'S DELTA IS NOT FIXED (2026-10-11). DOS/4GW places obj2 one page past obj1's END, and AztMod grew obj1 for a
+        // bigger overlay window -- so obj2 runs at vsize + 0xC1000 past its linked address (0x1F1000 with the old 52 KB
+        // window, 0x224000 with the 256 KB one). The needles are kept as addresses BEFORE their object's delta, obj1's are
+        // tried first (their delta never moves), and obj2's are checked under each candidate: the one this R.EXE's header
+        // implies, then the old one. D2 is the one that matched; every obj2 address below uses it.
+        /// <summary>obj2's runtime delta, as the needles found it (0x1F1000 until then).</summary>
+        public long D2 = 0x1F1000;
+        const long D1 = 0x1F0000;
+        System.Collections.Generic.List<byte[]> _sigs; System.Collections.Generic.List<long> _lins; System.Collections.Generic.List<int> _objs; long[] _d2s;
+        long Rt(int k, long d2) { return _lins[k] + (_objs[k] == 1 ? D1 : d2); }
         void Needled()
         {
             if (_sigs != null) return;
             var enc = System.Text.Encoding.GetEncoding(28591); string text = enc.GetString(_exe);
-            var sigs = new System.Collections.Generic.List<byte[]>(); var rts = new System.Collections.Generic.List<long>(); var objs = new System.Collections.Generic.List<int>();
-            foreach (var n in Needles)
-            {
-                int fo = text.IndexOf(n, StringComparison.Ordinal); if (fo < 0) continue;
-                long rt; int ob;
-                if (fo >= 0x184A54) { rt = 0x140000 + (fo - 0x184A54) + 0x1F1000; ob = 2; }
-                else if (fo >= 0x61A54) { rt = 0x10000 + (fo - 0x61A54) + 0x1F0000; ob = 1; }
-                else continue;
-                sigs.Add(System.Text.Encoding.ASCII.GetBytes(n)); rts.Add(rt); objs.Add(ob);
-            }
-            _sigs = sigs; _rts = rts; _objs = objs;
+            var sigs = new System.Collections.Generic.List<byte[]>(); var lins = new System.Collections.Generic.List<long>(); var objs = new System.Collections.Generic.List<int>();
+            foreach (int want in new[] { 1, 2 })                 // (obj1's first: the anchor's address must not depend on obj2's delta)
+                foreach (var n in Needles)
+                {
+                    int fo = text.IndexOf(n, StringComparison.Ordinal); if (fo < 0) continue;
+                    long lin; int ob;
+                    if (fo >= 0x184A54) { lin = 0x140000 + (fo - 0x184A54); ob = 2; }
+                    else if (fo >= 0x61A54) { lin = 0x10000 + (fo - 0x61A54); ob = 1; }
+                    else continue;
+                    if (ob != want) continue;
+                    sigs.Add(System.Text.Encoding.ASCII.GetBytes(n)); lins.Add(lin); objs.Add(ob);
+                }
+            // the candidates: one page past obj1's end as this R.EXE declares it (obj1 at 0x200000, linked 0x10000; obj2 linked
+            // 0x140000), then the old layout's
+            var d2s = new System.Collections.Generic.List<long>();
+            const int VSIZE_OFF = 0x290FC + 0xC4;
+            if (_exe.Length > VSIZE_OFF + 4) { long vs = BitConverter.ToUInt32(_exe, VSIZE_OFF); long pages = (vs + 0xFFF) & ~0xFFFL; d2s.Add(D1 + 0x10000 + pages + 0x1000 - 0x140000); }
+            if (!d2s.Contains(0x1F1000)) d2s.Add(0x1F1000);
+            _d2s = d2s.ToArray(); _sigs = sigs; _lins = lins; _objs = objs;
         }
         bool Matches(long addr, byte[] sig)
         {
@@ -1441,16 +1650,21 @@ namespace AztTool
             for (int i = 0; i < b.Length; i++) if (b[i] != sig[i]) return false;
             return true;
         }
-        /// <summary>Is `cand` the guest's RAM base: EVERY needle at its exact loaded address, from both objects?</summary>
+        /// <summary>Is `cand` the guest's RAM base: EVERY needle at its exact loaded address, from both objects (obj2's under
+        /// one of the candidate deltas -- which, if so, becomes D2)?</summary>
         bool Verify(long cand)
         {
-            bool o1 = false, o2 = false;
-            for (int k = 0; k < _sigs.Count; k++)
+            foreach (long d2 in _d2s)
             {
-                if (!Matches(cand + _rts[k], _sigs[k])) return false;
-                if (_objs[k] == 1) o1 = true; else o2 = true;
+                bool o1 = false, o2 = false, all = true;
+                for (int k = 0; k < _sigs.Count && all; k++)
+                {
+                    if (!Matches(cand + Rt(k, d2), _sigs[k])) all = false;
+                    else if (_objs[k] == 1) o1 = true; else o2 = true;
+                }
+                if (all && o1 && o2) { D2 = d2; return true; }
             }
-            return o1 && o2;
+            return false;
         }
         // THE FAST WAY (Josh, 2026-10-07: "I still see the CPU version sometimes"). The full scan below compared four
         // needles byte by byte across every big region -- over a gigabyte with DOSBox Staging's graphics mappings --
@@ -1461,8 +1675,8 @@ namespace AztTool
         // (in the file the two objects sit at different distances). Regions are tried near their starts first.
         long FastBase(long minRegion, bool whole)
         {
-            Needled(); if (_sigs.Count < 2) return 0;
-            byte[] anchor = _sigs[0]; long rtA = _rts[0]; byte a0 = anchor[0];
+            Needled(); if (_sigs.Count < 2 || _objs[0] != 1) return 0;
+            byte[] anchor = _sigs[0]; long rtA = Rt(0, 0); byte a0 = anchor[0];     // (an obj1 needle: its address has no obj2 delta in it)
             long addr = 0; int mbiLen = Marshal.SizeOf(typeof(MBI)); var buf = new byte[whole ? (4 << 20) : (512 << 10)];
             while (addr < 0x7FFFFFFFFFFF)
             {
@@ -1494,7 +1708,7 @@ namespace AztTool
         long FindBase(long minRegion)
         {
             Needled();
-            var sigs = _sigs; var rts = _rts; var objs = _objs;
+            var sigs = _sigs; var objs = _objs;
             var hits = new int[sigs.Count]; var at = new long[sigs.Count];
             long addr = 0; int mbiLen = Marshal.SizeOf(typeof(MBI)); var buf = new byte[4 << 20];
             while (addr < 0x7FFFFFFFFFFF)
@@ -1529,15 +1743,19 @@ namespace AztTool
                 }
                 addr = b + size;
             }
-            long baseFound = 0; bool o1 = false, o2 = false;
-            for (int k = 0; k < sigs.Count; k++)
+            foreach (long d2 in _d2s)
             {
-                if (hits[k] != 1) continue;
-                long bk = at[k] - rts[k];
-                if (baseFound == 0) baseFound = bk; else if (bk != baseFound) return 0;
-                if (objs[k] == 1) o1 = true; else o2 = true;
+                long baseFound = 0; bool o1 = false, o2 = false, agree = true;
+                for (int k = 0; k < sigs.Count && agree; k++)
+                {
+                    if (hits[k] != 1) continue;
+                    long bk = at[k] - Rt(k, d2);
+                    if (baseFound == 0) baseFound = bk; else if (bk != baseFound) agree = false;
+                    if (objs[k] == 1) o1 = true; else o2 = true;
+                }
+                if (agree && o1 && o2) { D2 = d2; return baseFound; }
             }
-            return (o1 && o2) ? baseFound : 0;
+            return 0;
         }
         uint U32(long hostAddr)
         {
@@ -1559,6 +1777,10 @@ namespace AztTool
         // skipped; a NEW game releases it to 0 -- the story intro plays; QUIT closes DOSBox.
         /// <summary>Hold the title for the menu (false: the game's own title, waiting for a key); the art; the save folder.</summary>
         public bool TitleOn; public string TitleImage, SaveDir;
+        /// <summary>RAPTOR DOCS' folder (<game>\raptordocs: the manual and the classified print-outs; RaptorDocs.cs).</summary>
+        public string TitleDocs;
+        /// <summary>The texture quality in use ("NORMAL" / "ULTRA"), shown on the title's options panel.</summary>
+        public string TitleTextureQuality = "ULTRA";
         /// <summary>The title's music (Josh, 2026-10-10: "the track kreepy2 to play while this main title is on screen"): a 16-bit
         /// WAV looped from the menu's arrival until a choice fades it; its level.</summary>
         public string TitleMusic; public double TitleMusicGain = 0.55, TitleMusicFadeIn = 2.0, TitleMusicFadeOut = 1.6;
@@ -1566,7 +1788,13 @@ namespace AztTool
         /// <summary>The slot the title menu loads (-1: none) -- the renderer's visor shows its name as it loads.</summary>
         public volatile int PickedSlot = -1; public volatile string PickedName = "";
         /// <summary>The renderer's view is up after a load from the title: the title's reading finishes and it fades into it.</summary>
+        /// <summary>The title's window is still up (a load: it finishes reading the log and fades after TitleLoadShown).</summary>
+        public bool TitleShowing { get { var ts = _title; return ts != null && ts.Visible; } }
         public void TitleLoadShown() { var ts = _title; if (ts != null && !ts.LoadShown) { ts.LoadShown = true; Note("the view is back: the title finishes reading the log and fades into the visor"); } }
+        /// <summary>The renderer's own part of a title load (the new room's textures decoded and sent to the card), 0..1: the
+        /// title's reading bar carries it (TitleScreen.LoadProgress). TitleRoomLoad: the renderer will report one (true colour).</summary>
+        public void TitleLoadProgress(double p) { var ts = _title; if (ts != null) ts.LoadProgress = (float)Math.Max(0, Math.Min(1, p)); }
+        public bool TitleRoomLoad;
         TitleScreen _title; bool _titleDone; long _aFlag, _aCurX, _aCurY, _aBtn, _aSel, _aOk; long _titleTick; Stopwatch _titleLoad;
         // THE RELEASE IS CONFIRMED, NOT FIRED AND FORGOTTEN (2026-10-10: loads "going to a black screen (no audio)" -- the game
         // never left its title). The title loop spins on `or word [flag],0x100`, a read-modify-write that DOSBox does not make
@@ -1574,8 +1802,31 @@ namespace AztTool
         // Two blind writes 80 ms apart could both be lost, and the game sat in the loop on a black title for good. So the
         // release goes in WITHOUT 0x0100 and is rewritten until the game ORs 0x0100 back onto it -- proof that the loop read it
         // after it landed (and so leaves) -- then, the loop gone, the final value.
+        // THE TITLE'S CLICKS STAY AT THE TITLE (2026-10-10: "the gun still shot, but only the first right click"; the shot
+        // record: no left button at all, the shot on the first right press). DOSBox hands the game every click made on the
+        // title menu, and the game queues them while it waits at its title -- nothing reads them there. A new game's opening
+        // movie used to drain them (0x20C26); a LOAD skips the movie now, so the left click that picked Continue was still
+        // queued in play, and the next mouse event (the first right press) pumped it through: a left-down in combat = a shot.
+        // So, as the title is let go (the game still in its title loop: nobody reading), every one of the input object's
+        // rings ([0x182DB8] + 0x16 / 0x22 / 0x2E / 0x3A / 0x46: count, write index, read index, capacity, data) is emptied --
+        // the read index moved up to the write index, then the count zeroed.
+        int ClearGameInput()
+        {
+            long objAt = MemBase + 0x182DB8 + D2; uint obj = U32(objAt); if (obj < 0x1000 || obj > 0x10000000) return -1;
+            long b = MemBase + obj; int dropped = 0;
+            foreach (int off in new[] { 0x16, 0x22, 0x2E, 0x3A, 0x46 })
+            {
+                int cnt = U16(b + off), w = U16(b + off + 2), cap = U16(b + off + 6);
+                if (cnt < 0 || w < 0 || cap <= 0 || cap > 4096 || cnt > cap || w >= cap) continue;
+                if (cnt == 0) continue;
+                W16(b + off + 4, w); W16(b + off, 0); dropped += cnt;
+            }
+            return dropped;
+        }
         void ReleaseTitle(int bits, int final)
         {
+            int cleared = -1; try { cleared = ClearGameInput(); } catch { }
+            if (cleared > 0) Note(string.Format("title: {0} queued input event(s) from the menu dropped before play", cleared));
             int rel = 0x8200 | bits, tries = 0, f = -1; var sw = Stopwatch.StartNew();
             while (sw.ElapsedMilliseconds < 2000)
             {
@@ -1627,7 +1878,7 @@ namespace AztTool
                 if (!((ready && voiceDone && _titleLoad.ElapsedMilliseconds > 1500) || _titleLoad.ElapsedMilliseconds > 60000)) return;
                 if (!ready) Note("the renderer still is not ready after 60 s -- the title menu anyway");
                 Screen.Finish(); if (au0 != null) au0.FadeTrack(TrackFadeSeconds);
-                var ts = new TitleScreen { ImagePath = TitleImage, SaveDir = SaveDir, GamePid = Pid };
+                var ts = new TitleScreen { ImagePath = TitleImage, SaveDir = SaveDir, GamePid = Pid, TextureQuality = TitleTextureQuality ?? "ULTRA", DocsDir = TitleDocs, RoomLoadAhead = TitleRoomLoad };
                 if (!ts.Start()) { Note("title menu could not start: " + ts.StartError + " -- the game's own title waits for a key"); _titleDone = true; return; }
                 W16(_aFlag, f | 0x8000);
                 _title = ts;
@@ -1692,13 +1943,13 @@ namespace AztTool
                     if (MemBase == 0) Thread.Sleep(40);
                 }
                 if (MemBase == 0) return;
-                Note(string.Format("game found after {0:N1} s, {1} passes ({2}; guest RAM at host 0x{3:X}) -- watching for the start of play", find.Elapsed.TotalSeconds, passes, how, MemBase));
-                long aBuf = MemBase + _symBuf + 0x1F0000, aState = MemBase + _symState + 0x1F0000;
-                _aState = aState; _aPeriod = FramePeriodLin != 0 ? MemBase + FramePeriodLin + 0x1F0000 : 0;
-                _aTick = MemBase + 0x46C; _aPer15 = MemBase + 0x1485E0 + 0x1F1000; _aAcc15 = MemBase + 0x1485A0 + 0x1F1000;
+                Note(string.Format("game found after {0:N1} s, {1} passes ({2}; guest RAM at host 0x{3:X}; obj2 delta 0x{4:X}) -- watching for the start of play", find.Elapsed.TotalSeconds, passes, how, MemBase, D2));
+                long aBuf = MemBase + _symBuf + D1, aState = MemBase + _symState + D1;
+                _aState = aState; _aPeriod = FramePeriodLin != 0 ? MemBase + FramePeriodLin + D1 : 0;
+                _aTick = MemBase + 0x46C; _aPer15 = MemBase + 0x1485E0 + D2; _aAcc15 = MemBase + 0x1485A0 + D2;
                 // the title menu's: the skip flag, the cursor and left button, the selected row and what OK does (obj2)
-                _aFlag = MemBase + 0x182DB0 + 0x1F1000; _aCurX = MemBase + 0x182D6C + 0x1F1000; _aCurY = MemBase + 0x182D6E + 0x1F1000; _aBtn = MemBase + 0x182DA6 + 0x1F1000;
-                _aSel = MemBase + 0x146948 + 0x1F1000; _aOk = MemBase + 0x1524CC + 0x1F1000;
+                _aFlag = MemBase + 0x182DB0 + D2; _aCurX = MemBase + 0x182D6C + D2; _aCurY = MemBase + 0x182D6E + D2; _aBtn = MemBase + 0x182DA6 + D2;
+                _aSel = MemBase + 0x146948 + D2; _aOk = MemBase + 0x1524CC + D2;
                 // 2. watch for the first gameplay frame (and, before it, the title)
                 long polls = 0;
                 while (_run)

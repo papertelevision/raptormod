@@ -15,7 +15,8 @@
 #                                                upscaled GAME\AZTEX, the re-encoded movies, the CD soundtrack, saves
 #   hires      C:\Games\azrael-textures\hires    the renderer's hi-res textures (~3 GB: Real-ESRGAN runs + Josh's 4K art)
 #   books      C:\Games\azrael-books             the upscaled book pages (an install input)
-#   gfx        C:\Games\azrael-gfx               Josh's sources only: decals\<ROOM>\updated, screens, credits, orrery-puzzle
+#   gfx        C:\Games\azrael-gfx               Josh's sources only: decals\<ROOM>\updated, screens, credits, orrery-puzzle,
+#                                                raptordocs (the title's manual text + print-out list: tools\Build-RaptorDocs.ps1)
 #   screenshots room-notes\*.png (in the repo)    optional: Room Review's screenshots (the notes' JSON is in git)
 #   audio      Desktop\AzraelTearSoundtrack      optional: soundtrack / boot-sound sources (Build-Soundtrack, loading audio)
 #   video      C:\Games\azrael-video\update      optional: the MP4 sources the movies are re-encoded from
@@ -46,7 +47,7 @@ $all = [ordered]@{
 }
 # gfx: Josh's own sources only (the rest of azrael-gfx is a regenerable export)
 $gfx = @()
-foreach ($d in @('screens', 'credits', 'orrery-puzzle')) { if (Test-Path (Join-Path 'C:\Games\azrael-gfx' $d)) { $gfx += "azrael-gfx/$d" } }
+foreach ($d in @('screens', 'credits', 'orrery-puzzle', 'raptordocs')) { if (Test-Path (Join-Path 'C:\Games\azrael-gfx' $d)) { $gfx += "azrael-gfx/$d" } }
 if (Test-Path 'C:\Games\azrael-gfx\decals') {
     Get-ChildItem 'C:\Games\azrael-gfx\decals' -Directory | ForEach-Object { if (Test-Path (Join-Path $_.FullName 'updated')) { $gfx += "azrael-gfx/decals/$($_.Name)/updated" } }
 }

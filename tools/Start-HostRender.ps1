@@ -498,7 +498,7 @@ try {
         # compare it to the row we last pushed. This separates "we never wrote it" from
         # "we wrote it and something else won" -- the two remaining explanations for a
         # screen that looks unchanged.
-        $descRaw = [AztTool.ProcMem]::Read($g.ProcessId, [long]($g.MemBase + 0x14745C + 0x1F1000), 4)
+        $descRaw = [AztTool.ProcMem]::Read($g.ProcessId, [long]($g.MemBase + 0x14745C + $g.Delta2), 4)
         if ($descRaw) {
             $desc = [BitConverter]::ToUInt32($descRaw, 0)
             if ($desc -gt 0x1000) {
