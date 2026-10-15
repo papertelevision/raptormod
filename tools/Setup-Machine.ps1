@@ -15,8 +15,10 @@
 #      manifest is recorded as installed (Install-Update.cmd diffs against it)
 #   7. every room's cached export (tools\Build-RoomCache.ps1: the OBJ/textures Room Review's 3D viewer shows, and the
 #      renderer's units) -- a few minutes the first time, seconds after; -SkipRoomCache to leave it to first use
-#   8. a desktop shortcut to Play-HostRender-TrueColour.cmd
-# The game is never launched.
+#   8. desktop shortcuts: the game (Play-HostRender-TrueColour.cmd) and Room Review (Review-Rooms.cmd)
+#   9. a dry run of the launcher (AZT_DRYRUN: every step checked, nothing started)
+# Also: the repo's local git settings (core.autocrlf false, core.longpaths true, the author) where unset.
+# The game is never launched. tools\Install-RaptorMod.ps1 runs all of this on a fresh PC (clone + pack from the NAS).
 
 [CmdletBinding()]
 param(
@@ -45,6 +47,19 @@ else {
 }
 if ((Split-Path -Leaf $repo) -ne 'AztMod') { Warn "the folder is '$(Split-Path -Leaf $repo)', not 'AztMod' (the launchers and docs assume AztMod)"; $problems += 'folder name' }
 
+# ---- 1b. the repo's own git settings (byte-exact files, long paths, the author) -- only where unset ------------------
+Step 'git settings'
+$gitExe = Get-Command git -ErrorAction SilentlyContinue
+if (-not $gitExe -and (Test-Path 'C:\Program Files\Git\cmd\git.exe')) { $gitExe = Get-Item 'C:\Program Files\Git\cmd\git.exe' }
+if (-not $gitExe -or -not (Test-Path (Join-Path $repo '.git'))) { Warn 'no git (or not a clone) -- skipped' }
+else {
+    $gx = if ($gitExe.Source) { $gitExe.Source } else { $gitExe.FullName }
+    foreach ($kv in @(@('core.autocrlf', 'false'), @('core.longpaths', 'true'), @('user.name', 'Josh Sears'), @('user.email', 'josh@papertelevision.com'))) {
+        $cur = (& $gx -C $repo config --local --get $kv[0]) 2>$null
+        if ($cur) { Ok "$($kv[0]) = $cur" } else { & $gx -C $repo config --local $kv[0] $kv[1]; Ok "$($kv[0]) set to $($kv[1])" }
+    }
+}
+
 # ---- 2. the asset pack ----------------------------------------------------------------------------------------------
 if ($AssetPack) {
     Step "asset pack: $AssetPack"
@@ -61,11 +76,23 @@ if ($AssetPack) {
         $file = Join-Path $AssetPack $c.tar
         if (-not (Test-Path $file)) { Warn "$($c.name): $($c.tar) missing from the pack -- skipped"; continue }
         $present = @($c.paths | Where-Object { Test-Path (Join-Path $dest ($_ -replace '/', '\')) })
+        # (Room Review's screenshots restore INTO the repo's room-notes\, which every clone has: there, present = its PNGs)
+        if ($c.name -eq 'screenshots') { $present = @($c.paths | Where-Object { $d0 = Join-Path $dest ($_ -replace '/', '\'); (Test-Path $d0) -and [IO.Directory]::EnumerateFiles($d0, '*.png').GetEnumerator().MoveNext() }) }
         if ($present.Count -and -not $Force) { Ok ("{0}: already here ({1}) -- left alone (-Force to restore over it)" -f $c.name, ($present -join ', ')); continue }
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
         Write-Host ("   {0}: restoring {1:N0} MB into {2} ..." -f $c.name, ([long]$c.bytes / 1MB), $dest)
+        # (a pack on the NAS: tar reading in small pieces over SMB is slow -- the tar is first copied here in large blocks with
+        # robocopy /J, unpacked, and the local copy removed; see Export-AssetPack)
+        $local = $null
+        if ($AssetPack.StartsWith('\\')) {
+            $stage = Join-Path $env:TEMP 'raptormod-pack-stage'; New-Item -ItemType Directory -Force -Path $stage | Out-Null
+            Write-Host ("   {0}: copying {1} from the network ..." -f $c.name, $c.tar)
+            & robocopy $AssetPack $stage $c.tar /J /IS /IT /R:2 /W:5 /NFL /NDL /NJH /NJS /NP | Out-Null
+            if ($LASTEXITCODE -lt 8) { $local = Join-Path $stage $c.tar; $file = $local } else { Warn "$($c.name): robocopy exit $LASTEXITCODE -- unpacking straight from the network instead" }
+        }
         & $tar -xf $file -C $dest
         if ($LASTEXITCODE -ne 0) { Warn "$($c.name): tar exit $LASTEXITCODE"; $problems += "pack $($c.name)" } else { Ok "$($c.name): restored" }
+        if ($local -and (Test-Path $local)) { [IO.File]::Delete($local) }
     }
 }
 
@@ -106,10 +133,15 @@ $mp3 = Join-Path $repo 'art\title\title-music.mp3'; $wav = Join-Path $repo 'art\
 if (-not (Test-Path $mp3)) { Warn 'art\title\title-music.mp3 missing'; $problems += 'title music' }
 elseif ((Test-Path $wav) -and (Get-Item $wav).LastWriteTime -ge (Get-Item $mp3).LastWriteTime -and -not $Force) { Ok 'title-music.wav up to date' }
 else {
-    if (-not ('AztTool.AudioFx' -as [type])) { Add-Type -Path (Join-Path $repo 'tools\AudioFx.cs') }
-    $ch = 0; $pcm = [AztTool.AudioFx]::DecodePcm($mp3, 44100, 2, [ref]$ch)
-    [AztTool.AudioFx]::WriteWav($wav, $pcm, 44100, $ch)
-    Ok ("decoded: {0:N1} s, {1:N0} MB" -f ($pcm.Length / $ch / 44100.0), ((Get-Item $wav).Length / 1MB))
+    # (Media Foundation does the decoding: missing on Windows N editions without the Media Feature Pack. The title then has
+    # no music -- the rest of the setup must still run)
+    try {
+        if ($env:AZT_SETUP_FAIL_DECODE) { throw 'forced decode failure (AZT_SETUP_FAIL_DECODE test)' }
+        if (-not ('AztTool.AudioFx' -as [type])) { Add-Type -Path (Join-Path $repo 'tools\AudioFx.cs') }
+        $ch = 0; $pcm = [AztTool.AudioFx]::DecodePcm($mp3, 44100, 2, [ref]$ch)
+        [AztTool.AudioFx]::WriteWav($wav, $pcm, 44100, $ch)
+        Ok ("decoded: {0:N1} s, {1:N0} MB" -f ($pcm.Length / $ch / 44100.0), ((Get-Item $wav).Length / 1MB))
+    } catch { Warn "could not decode the title music ($($_.Exception.Message)) -- the title will be silent; install the Media Feature Pack and run this again"; $problems += 'title music' }
 }
 
 # ---- 6. install the patches -----------------------------------------------------------------------------------------
@@ -134,20 +166,35 @@ if ($SkipRoomCache) { Warn 'skipped (-SkipRoomCache): built on first use instead
 elseif (-not (Test-Path (Join-Path $GameDest 'GAME\AZTEX'))) { Warn 'no GAME\AZTEX in the install yet -- run this again once the install is in place' }
 else {
     $sw = [Diagnostics.Stopwatch]::StartNew()
-    try { & (Join-Path $repo 'tools\Build-RoomCache.ps1') *>&1 | Select-Object -Last 3 | ForEach-Object { Write-Host "   $_" }; Ok ("done in {0:N0} s ({1} rooms exported for the viewer)" -f $sw.Elapsed.TotalSeconds, @(Get-ChildItem 'C:\Games\azrael-render' -Filter '*.obj' -File -ErrorAction SilentlyContinue).Count) }
+    # (in its own PowerShell: the install above has already compiled C# types of the same names into this one -- "the type
+    # name 'LeTool.Quant' already exists" -- and a session cannot load two)
+    try {
+        $rc = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\Build-RoomCache.ps1') 2>&1
+        $rcExit = $LASTEXITCODE; @($rc) | Select-Object -Last 3 | ForEach-Object { Write-Host "   $_" }
+        if ($rcExit -ne 0) { throw "exit $rcExit" }
+        Ok ("done in {0:N0} s ({1} rooms exported for the viewer)" -f $sw.Elapsed.TotalSeconds, @(Get-ChildItem 'C:\Games\azrael-render' -Filter '*.obj' -File -ErrorAction SilentlyContinue).Count)
+    }
     catch { Warn "Build-RoomCache failed: $($_.Exception.Message)"; $problems += 'room cache' }
 }
 
 # ---- 8. shortcut ----------------------------------------------------------------------------------------------------
 if (-not $NoShortcut) {
-    Step 'desktop shortcut'
-    $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) "Azrael's Tear (Host Renderer - true colour).lnk"
-    if (Test-Path $lnk) { Ok 'already there' }
-    else {
+    Step 'desktop shortcuts'
+    foreach ($sc in @(@("Azrael's Tear (Host Renderer - true colour).lnk", 'Play-HostRender-TrueColour.cmd'), @('Room Review.lnk', 'Review-Rooms.cmd'))) {
+        $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) $sc[0]
+        if (Test-Path $lnk) { Ok "$($sc[0]): already there"; continue }
+        if (-not (Test-Path (Join-Path $repo $sc[1]))) { Warn "$($sc[1]) missing -- no shortcut"; continue }
         $sh = New-Object -ComObject WScript.Shell; $s = $sh.CreateShortcut($lnk)
-        $s.TargetPath = Join-Path $repo 'Play-HostRender-TrueColour.cmd'; $s.WorkingDirectory = $repo; $s.Save(); Ok "made: $lnk"
+        $s.TargetPath = Join-Path $repo $sc[1]; $s.WorkingDirectory = $repo; $s.Save(); Ok "made: $lnk"
     }
 }
+
+# ---- 9. the launcher, dry run -----------------------------------------------------------------------------------------
+Step 'launcher check (dry run: nothing is started)'
+$env:AZT_DRYRUN = '1'
+try { $out = & cmd /c "call `"$(Join-Path $repo 'Play-HostRender.cmd')`"" 2>&1; $out | ForEach-Object { Write-Host "   $_" } }
+finally { [Environment]::SetEnvironmentVariable('AZT_DRYRUN', $null, 'Process'); [Environment]::SetEnvironmentVariable('AZT_HOSTRENDER_MIN', $null, 'Process') }
+if (($out -join "`n") -match 'renderer script found') { Ok 'the launcher finds the game and the renderer' } else { Warn 'the launcher dry run did not pass (see above)'; $problems += 'launcher' }
 
 Write-Host ""
 if ($problems.Count) { Write-Host ("setup finished with {0} thing(s) to sort out: {1}" -f $problems.Count, ($problems -join '; ')) -ForegroundColor Yellow }

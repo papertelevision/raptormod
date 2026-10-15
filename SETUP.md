@@ -10,15 +10,17 @@ The big data travels separately, as an **asset pack**:
 
 You make the asset pack once on a PC that has it all, and restore it on each new PC. After that, git does the day-to-day syncing.
 
+**The pack lives on the NAS:** `\\DXP2800GT-7649\personal_folder\Projects\AzraelsTear\assets`. On a new PC, the whole setup is: install Steam and the game, then double-click **`Install-RaptorMod.cmd`** in that folder (section 2).
+
 ## What a PC needs
 
 | Requirement | Notes |
 |---|---|
 | Windows 10/11, 64-bit | Windows PowerShell 5.1 and .NET Framework 4.x are built in; nothing else to install for the scripts. |
-| A GPU with OpenGL 4.5 | The renderer draws on the graphics card. Any recent AMD, NVIDIA or Intel GPU is fine. |
+| A GPU with OpenGL 4.5 | The renderer draws on the graphics card. Any recent AMD, NVIDIA or Intel GPU is fine. `Play-HostRender-TrueColour.cmd` draws the 3D at up to 5.5 M pixels (`-TcMaxPixels 5500000`, tuned for a 4K screen); on a weaker GPU lower that number in the .cmd (3200000 was the old default). |
 | Steam + *Azrael's Tear* | Installed in any Steam library. The repo is cloned **inside** the game's folder. |
 | Git for Windows | `winget install --id Git.Git -e`. It includes Git Credential Manager, which signs you in to GitHub in the browser on the first fetch or push. |
-| ~12 GB free on C: | About 6.5 GB for the restored assets plus room for the renderer's caches. The pack itself can stay on the external or cloud drive. |
+| ~16 GB free on C: | About 8 GB for the restored default assets (10.9 GB with every optional part), plus the renderer's caches (room cache ~0.3 GB, lighting bakes, the 2K texture tier ~0.9 GB if used). The pack itself stays on the NAS. |
 
 **Paths are the same on every machine.** The tools assume these locations, so keep them:
 - `C:\Games\AzraelsTear-Modded`
@@ -32,21 +34,22 @@ The Steam library can live on any drive.
 
 ```powershell
 cd "<Steam library>\steamapps\common\Azrael's Tear\AztMod"
-powershell -ExecutionPolicy Bypass -File tools\Export-AssetPack.ps1 -OutDir E:\raptormod-assets
+powershell -ExecutionPolicy Bypass -File tools\Export-AssetPack.ps1 -OutDir "\\DXP2800GT-7649\personal_folder\Projects\AzraelsTear\assets" -Include all
 ```
 
-This writes one `.tar` per component plus `pack.json`, about 6.5 GB, into the folder you name: an external drive, or a private cloud folder (OneDrive, Google Drive and so on).
+Close the game first. This writes one `.tar` per component plus `pack.json` (about 8 GB by default, 10.9 GB with `-Include all`) into the folder you name, and copies `Install-RaptorMod.ps1` / `.cmd` next to them. To a network folder (the NAS) each tar is built on this PC and copied over with `robocopy /J`: tar's own 10 KB writes over SMB ran at 2 MB/s, robocopy at ~60 MB/s, so the whole pack takes ~3 minutes. Setup copies each tar down the same way before unpacking it. Before packing, make sure the install is current: run `Apply-AztMod.ps1 -Install -Dest C:\Games\AzraelsTear-Modded` (or `Setup-Machine.ps1` with no pack).
 
 **It contains a copy of the game, so keep it private.**
 
 | Component | What | Size |
 |---|---|---|
-| `install` | `C:\Games\AzraelsTear-Modded`: the built game (DOSBox Staging, its conf and soundfont, extracted and upscaled textures, re-encoded movies, CD soundtrack, saves) | ~2.3 GB |
-| `hires` | `C:\Games\azrael-textures\hires`: the renderer's hi-res textures | ~3.1 GB |
+| `install` | `C:\Games\AzraelsTear-Modded`: the built game (DOSBox Staging, its conf and soundfont, extracted and upscaled textures, re-encoded movies, CD soundtrack, saves) | ~1.7 GB |
+| `hires` | `C:\Games\azrael-textures\hires`: the renderer's hi-res textures | ~5.9 GB |
 | `books` | `C:\Games\azrael-books`: the upscaled book pages | ~0.2 GB |
 | `gfx` | Josh's sources in `C:\Games\azrael-gfx`: `decals\<ROOM>\updated`, `screens`, `credits` | ~0.2 GB |
-| *(optional)* `screenshots` | Room Review's note screenshots (the notes themselves are in git) | ~0.2 GB |
-| *(optional)* `audio`, `video`, `realesrgan` | Soundtrack and boot-sound sources, the MP4 movie sources, the upscaler. Only needed to rebuild the soundtrack or movies, or to run new upscales: `-Include all` | ~0.8 GB |
+| *(optional)* `audio`, `video`, `realesrgan` | Soundtrack and boot-sound sources, the MP4 movie sources, the upscaler. Only needed to rebuild the soundtrack or movies, or to run new upscales: `-Include all` | ~0.4 GB |
+| *(optional)* `rmfiles` | `Desktop\RaptorModFiles`: Josh's working files (3D, audio, updated art, the opening MP4s) | ~0.5 GB |
+| *(optional)* `gfxextra` | `azrael-gfx\decals\<ROOM>\4k-2k` (the 4K decal masters the hi-res textures are fitted from; their `_2k` halves are not kept) and `wire` | ~2.4 GB |
 
 To refresh just one component later, for example after new textures:
 
@@ -56,16 +59,25 @@ powershell -ExecutionPolicy Bypass -File tools\Export-AssetPack.ps1 -OutDir E:\r
 
 ## 2. On a new PC
 
-```powershell
-# 1. Steam + Azrael's Tear installed, Git installed (see above)
-cd "<Steam library>\steamapps\common\Azrael's Tear"
-git clone https://github.com/papertelevision/raptormod.git AztMod
+1. Install Steam and *Azrael's Tear* (any library).
+2. Double-click `\\DXP2800GT-7649\personal_folder\Projects\AzraelsTear\assets\Install-RaptorMod.cmd`. It:
+   - finds the Steam game folder;
+   - installs Git with winget if it is missing (answer winget's prompts);
+   - clones the repo on `dev-next` into `<game folder>\AztMod` (GitHub asks you to sign in once: the repo is private);
+   - runs `Setup-Machine.ps1` with the pack from the NAS (10.9 GB to restore).
 
-# 2. restore the asset pack and set the PC up
-powershell -ExecutionPolicy Bypass -File AztMod\tools\Setup-Machine.ps1 -AssetPack E:\raptormod-assets
+   `Install-RaptorMod.cmd -DryRun` (from a command prompt) shows what it would do and changes nothing.
+
+By hand, the same thing is:
+
+```powershell
+cd "<Steam library>\steamapps\common\Azrael's Tear"
+git clone -b dev-next https://github.com/papertelevision/raptormod.git AztMod
+powershell -ExecutionPolicy Bypass -File AztMod\tools\Setup-Machine.ps1 -AssetPack "\\DXP2800GT-7649\personal_folder\Projects\AzraelsTear\assets"
 ```
 
 `Setup-Machine.ps1` reports each step it takes. It:
+- sets the repo's local git settings (`core.autocrlf false`, `core.longpaths true`, the author) where they are unset;
 - checks that the repo sits in the game folder;
 - restores the pack (anything already present is left alone unless `-Force`);
 - makes the `C:\Games\azrael-render\rooms` and `\room-notes` junctions to the repo's `rooms\` and `room-notes\`;
@@ -73,7 +85,10 @@ powershell -ExecutionPolicy Bypass -File AztMod\tools\Setup-Machine.ps1 -AssetPa
 - decodes the title music;
 - installs the repo's patches into `C:\Games\AzraelsTear-Modded`;
 - builds every room's cached 3D export, which Room Review's viewer shows (a few minutes the first time);
-- puts **"Azrael's Tear (Host Renderer - true colour)"** on the desktop.
+- puts **"Azrael's Tear (Host Renderer - true colour)"** and **"Room Review"** on the desktop;
+- dry-runs the launcher (every step checked, nothing started).
+
+If the title music cannot be decoded (Windows N editions lack Media Foundation: install the Media Feature Pack), setup warns and carries on; the title is then silent.
 
 Play from that shortcut. The renderer compiles itself on its first start, and builds its room caches (`C:\Games\azrael-render`) the first time it sees each room, so the first visit to a room is a little slower.
 

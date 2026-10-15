@@ -60,3 +60,40 @@ Fixes made along the way:
 **Private for good (Josh, 2026-10-13):** "This repo will never go public, I'm going to have a separate distributable git for that later." RaptorMod is a free community patch/mod (never sold). So publisher material Josh approves may live here -- the in-game manual's text (`raptordocs\`) does; the classified scans still do not. Game files (R.EXE, AZT.BIN, movies) never do. A public distribution repo is a separate, later job: decide there what it may carry.
 
 **Branches since 2026-10-13:** PR #1 (dev -> main) was SQUASH-merged by Josh's say (main = 24e96e2). Work now continues on **`dev-next`**, cut from that main (same tree as the old dev). The old `dev` was deleted (GitHub and local) the same day at Josh's request; branches now: `main` + `dev-next`. Commit / push / PR only when Josh says; no mention of Claude / Claude Code in commit messages, PR titles or descriptions (Josh, 2026-10-13), and no attribution lines.
+
+**Second PC, one step (2026-10-14, Josh: "plan what's needed so I can easily patch the steam version of the game on another machine with this entire mod"; play + develop).**
+- **The pack lives on the NAS:** `\\DXP2800GT-7649\personal_folder\Projects\AzraelsTear\assets`.
+  - It is the full pack (`-Include all`, ~12.8 GB). `hires` alone is now 5.9 GB.
+  - New optional components: `rmfiles` (Desktop\RaptorModFiles) and `gfxextra` (decals\<ROOM>\4k-2k + wire, ~3 GB).
+  - Export-AssetPack copies `tools\Install-RaptorMod.ps1` and `.cmd` next to the tars.
+- **New PC:** install Steam and the game, then double-click `Install-RaptorMod.cmd` on the NAS. It:
+  - finds the Steam game (registry + libraryfolders.vdf);
+  - installs Git with winget if it is missing;
+  - clones `-b dev-next` into `<game>\AztMod` (pulls if it is already there);
+  - runs Setup-Machine with the NAS pack. `-DryRun` only prints.
+- **Setup-Machine additions:**
+  - the repo-local git settings, where unset;
+  - a screenshots restore that works on a fresh clone (present = its PNGs);
+  - the title-music decode in try/catch (Windows N without Media Foundation);
+  - a Room Review shortcut;
+  - a final launcher dry run (`AZT_DRYRUN`).
+- **TRAP (fixed):** Setup-Machine ran Build-RoomCache IN-PROCESS after Apply-AztMod. The install had already Add-Type'd `LeTool.Quant`, so the cache step failed ("type name already exists") on every fresh setup. It now runs in its own `powershell.exe`.
+- **Authoring paths no longer hard-code `C:\Users\josh`:** Build-Soundtrack and Make-LoadingAudio use the Desktop folder.
+- **Cleanup before the first NAS pack (2026-10-14, Josh: "clean everything up before pushing to the repo and NAS").** Nothing was hard-deleted: every removed file went to `C:\Games\_cleanup-2026-10-14` with its path kept. `moved.txt` lists them; Josh empties it once satisfied.
+  - **Install:** `GAME\MOV\_new` (666 MB, exact copies); `R.EXE.pre-*`; CD-audio tests; conf backups; capture/logs.
+  - **Decal sources:** the `_2k` halves (706 MB).
+  - **RaptorModFiles copies:** Real-ESRGAN, `title_4k.png`, `opening.mp4`, `.blend1`.
+  - **Repo working folder:** ALL Room Review screenshots; `backup-pre-*`, `tc-test`, `checkpoints`, old manifests.
+  - **Local caches and test output:** `upscale-work`, `hires-2048` (rebuilds), azrael-render test folders and the `pre-repo` copies, `opening-check`/AVIs.
+  - **design\:** the 93 files no script reads (by name or folder).
+- **KEPT, contrary to the first survey:**
+  - **ChatGPT*.png in design\incoming:** `Build-HudBox` picks the newest by glob.
+  - **design\incoming\lurka\*.png:** `Texture-Tool -InDir`.
+  - **The 76 duplicate hi-res character-art files.** They are at exactly 4x their originals, so TexTwins counts them as OLD UPSCALE and never aliases them. Dropping one would show that leaf's low-res original. Check IsNewArt before removing any "duplicate" hires leaf.
+- **Screenshots** are no longer a pack component.
+- **`art\wide\bg8.bin` / `modes.bin`** (read by the renderer) were caught by `*.BIN` in .gitignore and never reached git. They are now un-ignored (`!art/wide/*.bin`).
+- **Build-Soundtrack's `-Src`** now defaults to Desktop\AzraelTearSoundtrack (the same 11 MP3s as `music-export`, and packed as `audio`).
+- **PowerShell trap:** a helper named `H` is `h` = Get-History (like `R`); inside `Group-Object { H ... }` it failed with "Cannot bind parameter 'Id'".
+- **NAS TRAP (measured 2026-10-15):** `tar.exe` writing straight to the NAS ran at 2.2 MB/s, because its 10 KB records each wait on SMB over Wi-Fi. `robocopy /J` to the same share ran at 58 MB/s.
+  - **The fix:** Export-AssetPack builds each tar in `%TEMP%\raptormod-pack-stage` and robocopies it over (size-checked), so the whole pack takes ~3 minutes. Setup-Machine copies each tar down the same way before unpacking.
+  - **The first full pack:** 9 components, 10.9 GB, from repo f377038. Every tar lists cleanly, and a test restore of `books` from the NAS matched 83/83 files.

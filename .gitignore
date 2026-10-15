@@ -37,6 +37,8 @@ design/incoming/flat-art/
 *.EXE
 *.exe
 *.BIN
+!art/wide/*.bin
+!art/wide/*.BIN
 *.MOV
 *.DAT
 
