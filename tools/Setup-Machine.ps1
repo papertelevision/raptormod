@@ -193,7 +193,17 @@ else {
     Copy-Item (Join-Path $repo 'AztMod.manifest.json') (Join-Path $repo 'AztMod.manifest.installed.json') -Force
     Ok 'patches installed; manifest recorded as installed'
 }
-foreach ($dep in @(@('DOSBox Staging', (Join-Path $GameDest 'DOSBOX-STAGING\dosbox.exe')), @('extracted textures (GAME\AZTEX)', (Join-Path $GameDest 'GAME\AZTEX')), @('hi-res textures', 'C:\Games\RaptorMod\textures\hires'))) {
+# the DOSBox config is the REPO's (runtime\azrael-staging.conf: 2026-10-15, the MIDI's soundfont_volume -- a change there must
+# reach every PC, not only the one whose pack was made after it); a different installed copy is kept beside it first
+$confSrc = Join-Path $repo 'runtime\azrael-staging.conf'; $confDst = Join-Path $GameDest 'azrael-staging.conf'
+if ((Test-Path $confSrc) -and (Test-Path (Split-Path $confDst))) {
+    if ((Test-Path $confDst) -and (Get-FileHash $confDst).Hash -eq (Get-FileHash $confSrc).Hash) { Ok 'DOSBox config: up to date' }
+    elseif (Get-Process dosbox* -ErrorAction SilentlyContinue) { Warn 'DOSBox config: DOSBox is running -- run this again with the game closed'; $problems += 'DOSBox config' }
+    else {
+        if (Test-Path $confDst) { Copy-Item $confDst "$confDst.bak-$(Get-Date -Format yyyyMMdd-HHmmss)" -Force }
+        Copy-Item $confSrc $confDst -Force; Ok 'DOSBox config: the repo''s copy installed (the old one kept as .bak-<date>)'
+    }
+}foreach ($dep in @(@('DOSBox Staging', (Join-Path $GameDest 'DOSBOX-STAGING\dosbox.exe')), @('extracted textures (GAME\AZTEX)', (Join-Path $GameDest 'GAME\AZTEX')), @('hi-res textures', 'C:\Games\RaptorMod\textures\hires'))) {
     if (Test-Path $dep[1]) { Ok "$($dep[0]): present" } else { Warn "$($dep[0]): MISSING ($($dep[1]))"; $problems += $dep[0] }
 }
 

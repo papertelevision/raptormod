@@ -43,3 +43,8 @@ metadata:
 - **Unity:** can host the Tier 1 core as its simulation backend and replace systems gradually. It is blocked on story-layer reverse engineering ([[azrael-leaving-dosbox]]).
 
 Related: [[azrael-project-direction]], [[raptormod-repo]].
+
+**2026-10-15 -- 2.0 is now a STAGED NATIVE REBUILD** (see [[azrael-leaving-dosbox]]):
+- **What:** Stage 0 a compiled host -> Stage 1 an embedded libretro core (DOSBox the program gone) -> Stage 2 systems moved native in lockstep against the core -> Stage 3 no emulator. Retro mode becomes a GPU retro look.
+- **When:** it starts after Josh's final tweaks are merged from dev-next.
+- **Where:** in an ALL-NEW folder (repo + install). The DOSBox version stays as the backup.

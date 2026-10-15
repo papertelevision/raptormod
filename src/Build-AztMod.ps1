@@ -4006,13 +4006,11 @@ A-CmpDxImm $a 0x3E                 # F4
 A-JzS $a 'AKH_f4'
 A-JmpS $a 'AKH_pass'
 
+# F2 NO LONGER TURNS THE MOD OFF (Josh, 2026-10-15: "a setting assigned to f2 that seems to disable mouse look. Can we remove
+# that setting?"). It was the master switch (aztEnabled) -- pressed by accident it took mouse look and the rest away. The key
+# is still taken here and does nothing (passed on, it would reach the game's own scancode dispatch, which F2 never reached
+# since the mod began); aztEnabled stays 1.
 Add-Label $a 'AKH_f2'
-A-XorEdxEdx $a
-A-CmpWordSiImm $a 'aztEnabled' 0
-A-JnzS $a 'AKH_f2s'
-A-IncDx $a
-Add-Label $a 'AKH_f2s'
-A-MovSiDx $a 'aztEnabled'
 A-JmpS $a 'AKH_apply'
 
 Add-Label $a 'AKH_f3'
@@ -14622,7 +14620,6 @@ $manifest = [ordered]@{
         'UP / DOWN arrows  scroll the story log in the panel. They no longer move'
         '                  you -- movement is WASD, so they were duplicates.'
         'F3                sticky cursor mode, if you would rather not hold a button'
-        'F2                disable / re-enable the mod live'
         'F10               invert mouse Y (stock game feature)'
         ''
         ('The HUD boot banner reads "{0}" when the mod is live.' -f $BANNER_NEW)

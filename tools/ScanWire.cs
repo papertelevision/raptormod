@@ -38,6 +38,19 @@ using System.Threading;
 
 namespace AztTool
 {
+    /// <summary>CRISP VISOR TEXT (Josh, 2026-10-15: "Any reason why fonts are blurry in these visor scans and other visor text?").
+    /// GDI+ only hints a font at a WHOLE pixel size, and only lands a glyph's stems on pixels when it starts on one: the visor's
+    /// sizes were fractions of the view (vr / 58 = 26.48 px) and its text sat at fractional places (centred, scaled), so every
+    /// letter came out half a pixel soft. Every visor font and every DrawString goes through here: sizes and positions rounded.
+    /// (The boot learned the same lesson: [[azrael-boot-text-rasteriser]].)</summary>
+    static class Crisp
+    {
+        public static Font Font(float em, FontStyle style) { return new Font("Consolas", Math.Max(1f, (float)Math.Round(em)), style, GraphicsUnit.Pixel); }
+        public static Font Font(double em, FontStyle style) { return Font((float)em, style); }
+        static float R(float v) { return (float)Math.Round(v); }
+        public static void Text(Graphics g, string s, Font f, Brush b, float x, float y) { g.DrawString(s, f, b, R(x), R(y)); }
+        public static void Text(Graphics g, string s, Font f, Brush b, float x, float y, StringFormat sf) { g.DrawString(s, f, b, R(x), R(y), sf); }
+    }
     public class ScanWire
     {
         [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenProcess(int access, bool inherit, int pid);
@@ -116,7 +129,7 @@ namespace AztTool
             catch (Exception e) { LastError = name + ": " + e.Message; return false; }
         }
         public int Items { get { return _itemSets.Count; } }
-        class ObjInfo { public string Obj, Part, Display, Text; }
+        class ObjInfo { public string Obj, Part, Display, Text; public int Action; }
         readonly Dictionary<string, List<ObjInfo>> _objs = new Dictionary<string, List<ObjInfo>>(StringComparer.OrdinalIgnoreCase);
         /// <summary>Read GAME\AZRAEL\OBJECTS.DAT: every object's name, room part and scan text. Returns the count.</summary>
         public int LoadObjects(string path)
@@ -126,7 +139,7 @@ namespace AztTool
             for (int i = 0; i < n; i++)
             {
                 int r = 2 + i * 603; if (r + 603 > b.Length) break;
-                var oi = new ObjInfo { Display = z(r, 0x3C).Trim(), Obj = z(r + 0x3C, 0x3B).Trim(), Part = z(r + 0x78, 0x10).Trim(), Text = z(r + 0xCB, 0x100).Trim() };
+                var oi = new ObjInfo { Display = z(r, 0x3C).Trim(), Obj = z(r + 0x3C, 0x3B).Trim(), Part = z(r + 0x78, 0x10).Trim(), Text = z(r + 0xCB, 0x100).Trim(), Action = b[r + 0xBA] };
                 foreach (var key in new[] { oi.Part, oi.Obj })
                 {
                     if (string.IsNullOrEmpty(key)) continue;
@@ -140,6 +153,30 @@ namespace AztTool
         /// <summary>Is this a part the game knows as an object (OBJECTS.DAT's room part or object name) -- something to take
         /// or use (the echo scan's items)?</summary>
         public bool IsObjectPart(string part) { return !string.IsNullOrEmpty(part) && _objs.ContainsKey(part); }
+        /// <summary>Can this part be PICKED UP? OBJECTS.DAT's action byte (+0xBA) is 6 = take (2026-10-15: the 111 such records are
+        /// exactly the pickups -- keys, flasks, parchments, scrolls, the gun and its ammo, shields, tapestry pieces, wafers, wax...;
+        /// 7 = open (doors, chests), 3 = pull (levers, buttons), 4 = turn (wheels, winches), 8 = use, 1 = climb, 0 = scenery).</summary>
+        public bool IsTakePart(string part)
+        {
+            List<ObjInfo> l; if (string.IsNullOrEmpty(part) || !_objs.TryGetValue(part, out l)) return false;
+            foreach (var o in l) if (o.Action == 6) return true;
+            return false;
+        }
+        /// <summary>The "open" objects (action 7) that are MECHANISMS -- the rest of 7 is doors, tables, books, barrels...</summary>
+        public string MechanismNames = @"(?i)handle|hatch|bolt|millstone|cullis|pipe|ribbing|shield slot|stone head";
+        /// <summary>Is this part an INTERACTIVE object (Josh, 2026-10-15: "a mechanical handle or lever for example")? Action 3
+        /// (pull: levers, buttons), 4 (turn: wheels, winches, a stop cock, a mirror), 8 (use: bolts, chains, hooks, pins, rope,
+        /// an altar, the oven tray), or 7 (open) when its name is a mechanism (MechanismNames). Pickups are not (IsTakePart).</summary>
+        public bool IsInteractivePart(string part)
+        {
+            List<ObjInfo> l; if (string.IsNullOrEmpty(part) || !_objs.TryGetValue(part, out l)) return false;
+            foreach (var o in l)
+            {
+                if (o.Action == 3 || o.Action == 4 || o.Action == 8) return true;
+                if (o.Action == 7 && System.Text.RegularExpressions.Regex.IsMatch(o.Display ?? "", MechanismNames)) return true;
+            }
+            return false;
+        }
         ObjInfo ObjectFor(string picked, string display = null)
         {
             List<ObjInfo> l; if (picked == null || !_objs.TryGetValue(picked, out l) || l.Count == 0) return null;
@@ -1046,13 +1083,13 @@ namespace AztTool
             float shown = 0; for (int i = 0; i < rl.Length; i++) if (t >= ResultLineAt(rl, i)) shown = i + 1;
             using (var bar = new Pen(Color.FromArgb((int)(200 * a * come), Color.FromArgb(Amber)), Math.Max(1.5f, em * 0.09f)))
                 g.DrawLine(bar, x - em * 0.6f, y0 - em * 1.2f, x - em * 0.6f, y0 + Math.Max(0.5f, shown) * lh);
-            using (var hf = new Font("Consolas", em * 0.62f, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var hf = Crisp.Font(em * 0.62f, FontStyle.Bold))
             using (var hb = new SolidBrush(Color.FromArgb((int)(230 * a * come), Color.FromArgb(AmberHi))))
             {
                 g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-                g.DrawString("ANALYSIS RESULT", hf, hb, x, y0 - em * 1.15f);
+                Crisp.Text(g, "ANALYSIS RESULT", hf, hb, x, y0 - em * 1.15f);
             }
-            using (var font = new Font("Consolas", em, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var font = Crisp.Font(em, FontStyle.Bold))
             using (var ink = new SolidBrush(Color.FromArgb((int)(240 * a), Color.FromArgb(Ink))))
             using (var head = new SolidBrush(Color.FromArgb((int)(245 * a), Color.FromArgb(AmberHi))))
             using (var flare = new SolidBrush(Color.FromArgb((int)(255 * a), Color.FromArgb(InkFlare))))
@@ -1066,7 +1103,7 @@ namespace AztTool
                     string txt = new string(cs) + (typing && ((int)(t * 8) & 1) == 0 ? "_" : "");
                     // the first part (DNASCAN / WARNING / PENSCAN) is the heading of the result, in the boot's amber
                     var br = i == 0 ? head : (typing ? flare : ink);
-                    g.DrawString(txt, font, br, x, y0 + i * lh);
+                    Crisp.Text(g, txt, font, br, x, y0 + i * lh);
                 }
             }
         }
@@ -1202,14 +1239,14 @@ namespace AztTool
             g.SmoothingMode = SmoothingMode.AntiAlias;
             using (var pen = new Pen(Color.FromArgb((int)(220 * al), Color.FromArgb(AmberHi)), 1.2f * s))
                 g.DrawEllipse(pen, x - 7 * s, y - 7 * s, 14 * s, 14 * s);
-            using (var font = new Font("Consolas", 11f * s, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var font = Crisp.Font(11f * s, FontStyle.Bold))
             using (var br = new SolidBrush(Color.FromArgb((int)(220 * al), Color.FromArgb(AmberHi))))
             {
                 g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
                 string txt = string.Format("X{0:0000} Y{1:0000}", (int)(x * 1600 / Math.Max(1, pw)), (int)(y * 928 / Math.Max(1, vr)));
                 float tx = x + 10 * s, ty = y + 6 * s;
                 if (tx > pw - 120 * s) tx = x - 120 * s; if (ty > vr - 20 * s) ty = y - 20 * s;
-                g.DrawString(txt, font, br, tx, ty);
+                Crisp.Text(g, txt, font, br, tx, ty);
             }
         }
         // the readout's lines: the numbers are the rig's own and the identification's real score
@@ -1247,7 +1284,7 @@ namespace AztTool
             string[] lines = ReadLines(r);
             double start = ReadStart, gap = ReadGap, cps = ReadCps;
             var rng = new Random((int)(t * 30));               // (the scramble re-rolls 30 times a second)
-            using (var font = new Font("Consolas", em, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var font = Crisp.Font(em, FontStyle.Bold))
             using (var ink = new SolidBrush(Color.FromArgb((int)(235 * a), Color.FromArgb(Ink))))
             using (var head = new SolidBrush(Color.FromArgb((int)(240 * a), Color.FromArgb(AmberHi))))
             using (var flare = new SolidBrush(Color.FromArgb((int)(255 * a), Color.FromArgb(InkFlare))))
@@ -1261,14 +1298,14 @@ namespace AztTool
                     var cs = L.Substring(0, shown).ToCharArray();
                     if (!locked) for (int k = 0; k < cs.Length; k++) if (char.IsDigit(cs[k])) cs[k] = (char)('0' + rng.Next(10));
                     string txt = new string(cs) + (typing && ((int)(t * 8) & 1) == 0 ? "_" : "");
-                    g.DrawString(txt, font, i == 0 ? head : (typing ? flare : ink), x, y + i * lh);
+                    Crisp.Text(g, txt, font, i == 0 ? head : (typing ? flare : ink), x, y + i * lh);
                 }
                 // SCAN COMPLETE, blinking, once the last line has locked
                 double done = DoneAt(lines);
-                if (t > done && ((int)((t - done) * 4) & 1) == 0) g.DrawString("SCAN COMPLETE", font, head, x, y + (lines.Length + 0.6f) * lh);
+                if (t > done && ((int)((t - done) * 4) & 1) == 0) Crisp.Text(g, "SCAN COMPLETE", font, head, x, y + (lines.Length + 0.6f) * lh);
             }
             // a hex stream down the right of it, as the boot's dump column
-            using (var small = new Font("Consolas", em * 0.72f, FontStyle.Regular, GraphicsUnit.Pixel))
+            using (var small = Crisp.Font(em * 0.72f, FontStyle.Regular))
             using (var dim = new SolidBrush(Color.FromArgb((int)(120 * a * Smooth((t - start) / 0.4)), Color.FromArgb(Ink))))
             {
                 int rows = (int)((lines.Length + 2) * 1.45f / 1.0f), tick = (int)(t * 14);
@@ -1276,7 +1313,7 @@ namespace AztTool
                 for (int i = 0; i < rows; i++)
                 {
                     var rr = new Random(tick * 131 + i * 7);
-                    g.DrawString(rr.Next(0x10000).ToString("X4") + " " + rr.Next(0x10000).ToString("X4"), small, dim, hx, y + i * em * 1.05f);
+                    Crisp.Text(g, rr.Next(0x10000).ToString("X4") + " " + rr.Next(0x10000).ToString("X4"), small, dim, hx, y + i * em * 1.05f);
                 }
             }
         }        void DrawBox(Graphics g, string name, float bx, float by, float bw, float bh, double a, double t)
@@ -1421,6 +1458,235 @@ namespace AztTool
     /// readout on their visor that reads 'Dark environment detected. Press F for Headlamp'"). Lines type onto the visor
     /// one after another in the scanner's inks, over a faint dark backing, hold, and fade; Dismiss() fades them at once
     /// (the flashlight came on). Overlay.Decorate3; while Playing the watcher has every frame decorated.</summary>
+    /// <summary>THE ECHO SCAN'S LABELS (Josh, 2026-10-15: "have it highlight items that can be picked up and place a small
+    /// icon/tooltip over them after ... '[i icon] Item of interest detected. Suggestion: Investigate.' We will see this in the scan
+    /// and in the world. The tooltip will remain for 20 seconds before fading, and will renew each time the player scans.
+    /// Similarly, for characters 'Humanoid figure detected. Approach with caution.' For creatures: 'Live fauna detected.
+    /// Avoid.'"). Each scan (Begin + Add) names its targets by their vertex ranges; every frame Step finds each one's top in
+    /// the posed geometry, lets it appear when the echo's shell reaches it (a ragged flicker on), holds it Hold s, fades it,
+    /// and hands the nearest MaxLabels to the card (GpuRaster.SetLabels), which pins the pre-drawn tooltips over them in its
+    /// present pass. A taken item (its triangle no longer drawn) loses its label.</summary>
+    public class EchoLabels
+    {
+        public const int ITEM = 0, HUMANOID = 1, CREATURE = 2, INTERACTIVE = 3, LOCKED = 4, KINDS = 5;
+        // (Josh, 2026-10-15, round 3: pickups and interactive items lose the "Suggestion" line; a locked door reads "Locked door.")
+        public string[] Head = { "Item of interest detected.", "Humanoid figure detected.", "Live fauna detected.", "Interactive item detected.", "Locked door." };
+        public string[] Sub = { "", "Approach with caution.", "Avoid.", "", "" };
+        /// <summary>Per kind: the brackets, icon and leader; the first line; the second line; the glass.</summary>
+        public int[] Ink = { 0xFFD27A, 0xFFB040, 0xFF6A38, 0xE8C878, 0xFF9A48 }, HeadInk = { 0xFFF1CC, 0xFFE3A6, 0xFFD9C9, 0xFFF0D2, 0xFFE6CC }, SubInk = { 0xFFB040, 0xFFB040, 0xFF8A5C, 0xD9B060, 0xFF9A48 };
+        /// <summary>The thin leader from the tooltip's corner down to the thing (Josh: "lighter weight/thinner"): its width as a
+        /// share of the text's size, and its strength.</summary>
+        public float LeaderWidth = 1f / 18f; public int LeaderAlpha = 190;
+        /// <summary>The corner brackets' width, as a share of the text's size (em/9 first; Josh: "make the brackets thinner").</summary>
+        public float BracketWidth = 1f / 16f;
+        /// <summary>The room's REST geometry (its own vertex list): a LOCKED door that has moved from it is open, and loses its label.</summary>
+        public float[] Rest;
+        public int Glass = 0x140C02;
+        /// <summary>How long each kind holds (s) and fades (Josh, 2026-10-15: characters and creatures "around 3 seconds, then
+        /// fade. Seeing that next to the wireframe outline is sufficient"; pickups and interactive objects 20 s).</summary>
+        public double[] HoldOf = { 20, 3, 3, 20, 20 }, FadeOf = { 1.5, 0.8, 0.8, 1.5, 1.5 };
+        public double FlickerOn = 0.25;
+        /// <summary>(Josh, 2026-10-15: "for interactive items and items of interest, after 3 seconds, let's have those tooltips
+        /// smoothly transition only to the i icon and not display the text unless they renew the scan"): when a pickup's or an
+        /// interactive item's text gives way to its icon alone (s after it shows) and how long the cross-fade takes (s).</summary>
+        public double CompactAfter = 3.0, CompactFade = 0.6;
+        // the atlas's rows: the five tooltips, then the icon-only pickup and interactive item
+        const int ROW_ITEM_ICON = KINDS, ROW_INTER_ICON = KINDS + 1, ROWS = KINDS + 2;
+        public double Hold { get { return HoldOf[ITEM]; } }
+        public int MaxLabels = 16;
+        public bool Enabled = true;
+        public long Scans, Shown;
+        class Target { public int Kind, Tri; public int[] VFirst, VCount; public double At = -1; }
+        readonly List<Target> _t = new List<Target>(); readonly Stopwatch _clock = new Stopwatch();
+        public int Count { get { return _t.Count; } }
+        public bool Active { get { return _t.Count > 0; } }
+        public void Clear() { _t.Clear(); }
+        /// <summary>A new scan: the old labels go, the new ones come as the shell reaches them.</summary>
+        public void Begin() { _t.Clear(); _clock.Restart(); Scans++; }
+        /// <summary>One target: kind, its vertex ranges (first, count) in the room's vertex list, and a triangle of it that is not
+        /// drawn once it has been taken (-1: none).</summary>
+        public void Add(int kind, int[] vFirst, int[] vCount, int tri)
+        {
+            if (vFirst == null || vCount == null || vFirst.Length == 0) return;
+            _t.Add(new Target { Kind = kind, VFirst = vFirst, VCount = vCount, Tri = tri });
+        }
+        static double Noise(int i) { uint h = (uint)i * 2654435761u; h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15; return (h & 0xFFFF) / 65535.0; }
+        // has this target moved more than a few units from the room's rest geometry (a door swung or slid open)?
+        bool Moved(Target tg, float[] vx)
+        {
+            var rest = Rest; float worst = 0f;
+            for (int r = 0; r < tg.VFirst.Length; r++)
+            {
+                int a = tg.VFirst[r], e = Math.Min(Math.Min(vx.Length, rest.Length) / 3, a + tg.VCount[r]);
+                for (int v = Math.Max(0, a); v < e; v++)
+                    for (int k = 0; k < 3; k++) { float d = Math.Abs(vx[v * 3 + k] - rest[v * 3 + k]); if (d > worst) worst = d; }
+            }
+            return worst > OpenMoved;
+        }
+        /// <summary>How far (units) a locked door's vertices may be from rest and still count as shut.</summary>
+        public float OpenMoved = 3f;
+        float[] _buf = new float[0]; readonly List<float[]> _cand = new List<float[]>();
+        /// <summary>Every frame: vx the posed vertices, dt the drawn triangles' textures (below 0 = not drawn), the shell's
+        /// speed (units/s), hide = keep them off for now (the map, a cover, a menu); their clocks run on.</summary>
+        public void Step(GpuRaster gpu, float[] vx, int[] dt, float shellSpeed, bool hide)
+        {
+            if (gpu == null) return;
+            if (!Enabled || _t.Count == 0 || vx == null) { gpu.SetLabels(null, 0); return; }
+            double now = _clock.Elapsed.TotalSeconds; float ex = gpu.CamX, ey = gpu.CamY, ez = gpu.CamZ;
+            _cand.Clear(); bool any = false;
+            for (int i = 0; i < _t.Count; i++)
+            {
+                var tg = _t[i];
+                if (tg.Tri >= 0 && dt != null && tg.Tri < dt.Length && dt[tg.Tri] < 0) continue;      // (taken)
+                float x0 = float.MaxValue, x1 = float.MinValue, y0 = float.MaxValue, y1 = float.MinValue, z0 = float.MaxValue, z1 = float.MinValue; int got = 0;
+                for (int r = 0; r < tg.VFirst.Length; r++)
+                {
+                    int a = tg.VFirst[r], e = Math.Min(vx.Length / 3, a + tg.VCount[r]);
+                    for (int v = Math.Max(0, a); v < e; v++)
+                    {
+                        float x = vx[v * 3], y = vx[v * 3 + 1], z = vx[v * 3 + 2];
+                        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; if (z < z0) z0 = z; if (z > z1) z1 = z; got++;
+                    }
+                }
+                if (got == 0) continue;
+                if (tg.Kind == LOCKED && Rest != null && Moved(tg, vx)) continue;      // (open: no longer locked)
+                float h = y1 - y0, ax = (x0 + x1) * 0.5f, ay = y1 + Math.Max(3f, h * 0.12f), az = (z0 + z1) * 0.5f;
+                float dx = ax - ex, dy = ay - ey, dz = az - ez, dist = (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+                if (tg.At < 0) tg.At = dist / Math.Max(1f, shellSpeed);          // (it shows when the shell gets there)
+                double age = now - tg.At; if (age < 0) { any = true; continue; }
+                double hold = HoldOf[tg.Kind], fade = FadeOf[tg.Kind];
+                double alpha = age < hold ? 1 : Math.Max(0, 1 - (age - hold) / fade);
+                if (alpha <= 0) continue;
+                any = true;
+                if (age < FlickerOn && Noise((int)(age * 60) + i * 31) < 0.3 + 0.5 * (1 - age / FlickerOn)) alpha *= 0.2;
+                if (hide) continue;
+                if ((tg.Kind == ITEM || tg.Kind == INTERACTIVE) && CompactAfter > 0)
+                {
+                    double kc = Math.Max(0, Math.Min(1, (age - CompactAfter) / Math.Max(0.05, CompactFade))); kc = kc * kc * (3 - 2 * kc);
+                    if (kc < 1) _cand.Add(new[] { ax, ay, az, (float)tg.Kind, (float)(alpha * (1 - kc)), dist });
+                    if (kc > 0) _cand.Add(new[] { ax, ay, az, (float)(tg.Kind == ITEM ? ROW_ITEM_ICON : ROW_INTER_ICON), (float)(alpha * kc), dist + 0.01f });
+                }
+                else _cand.Add(new[] { ax, ay, az, (float)tg.Kind, (float)alpha, dist });
+            }
+            if (!any) { _t.Clear(); gpu.SetLabels(null, 0); return; }
+            _cand.Sort((p, q) => p[5].CompareTo(q[5]));
+            int n = Math.Min(MaxLabels, _cand.Count);
+            if (_buf.Length < n * 5) _buf = new float[n * 5];
+            for (int i = 0; i < n; i++) Array.Copy(_cand[i], 0, _buf, i * 5, 5);
+            if (n > 0) Shown++;
+            EnsureAtlas(gpu);
+            gpu.SetLabels(_buf, n);
+        }
+
+        // ---- the three tooltips, drawn once for the window's size -------------------------------------------------------
+        int _atlasFor = -1;
+        void EnsureAtlas(GpuRaster gpu)
+        {
+            int W = gpu.PresentW, H = gpu.PresentH; if (W < 64 || H < 64) return;
+            if (_atlasFor == H) return;
+            _atlasFor = H;
+            float em = Math.Max(11f, H / 74f), pad = em * 0.7f, icon = em * 1.5f, gap = em * 0.55f, lh = em * 1.3f;
+            float textW = 0; var textOf = new float[KINDS];
+            using (var b1 = new Bitmap(1, 1)) using (var g1 = Graphics.FromImage(b1)) using (var f = Crisp.Font(em, FontStyle.Bold))
+                for (int k = 0; k < KINDS; k++) { textOf[k] = Math.Max(g1.MeasureString(Head[k], f, PointF.Empty, StringFormat.GenericTypographic).Width, g1.MeasureString(Sub[k], f, PointF.Empty, StringFormat.GenericTypographic).Width); textW = Math.Max(textW, textOf[k]); }
+            float plateW = pad + icon + gap + textW + pad, plateH = pad + lh * 2 + pad * 0.6f, plate1H = pad * 0.85f + lh + pad * 0.55f;
+            float leadX = em * 2.0f, leadY = em * 1.7f, m = em * 0.5f;          // (the leader: from the point up and right to the plate)
+            int cw = (int)Math.Ceiling(m + leadX + plateW + m), ch = (int)Math.Ceiling(m + plateH + leadY + m);
+            float axp = m, ayp = ch - m;                                       // (the point the tooltip is pinned to)
+            var px = new int[cw * ch * ROWS];
+            var hnd = GCHandle.Alloc(px, GCHandleType.Pinned);
+            try
+            {
+                using (var bm = new Bitmap(cw, ch * ROWS, cw * 4, PixelFormat.Format32bppPArgb, hnd.AddrOfPinnedObject()))
+                using (var g = Graphics.FromImage(bm))
+                using (var font = Crisp.Font(em, FontStyle.Bold))
+                {
+                    g.SmoothingMode = SmoothingMode.AntiAlias; g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                    for (int row = 0; row < ROWS; row++)
+                    {
+                        // (the last two rows: the pickup and the interactive item as their icon alone)
+                        bool iconOnly = row >= KINDS; int k = row == ROW_ITEM_ICON ? ITEM : row == ROW_INTER_ICON ? INTERACTIVE : row;
+                        float plateK = iconOnly ? pad + icon + pad * 0.9f : pad + icon + gap + textOf[k] + pad;      // (each plate fits its own words)
+                        bool one = iconOnly || string.IsNullOrEmpty(Sub[k]);
+                        float oy = row * ch, px0 = axp + leadX, py1 = oy + ch - m - leadY, py0 = py1 - (one ? plate1H : plateH), px1 = px0 + plateK;
+                        var ink = Color.FromArgb(235, Color.FromArgb(Ink[k]));
+                        // the glass, interlaced
+                        using (var gb = new SolidBrush(Color.FromArgb(165, Color.FromArgb(Glass)))) g.FillRectangle(gb, px0, py0, plateK, py1 - py0);
+                        using (var il = new SolidBrush(Color.FromArgb(50, Color.Black))) for (float yy = py0; yy < py1; yy += 3) g.FillRectangle(il, px0, yy, plateK, 1);
+                        using (var pen = new Pen(ink, Math.Max(1.5f, em / 9f)))
+                        {
+                            // the visor's corner brackets
+                            float L = em * 0.55f;
+                            using (var bp = new Pen(ink, Math.Max(1f, em * BracketWidth)))      // (thin: Josh, 2026-10-15)
+                            {
+                                g.DrawLines(bp, new[] { new PointF(px0, py0 + L), new PointF(px0, py0), new PointF(px0 + L, py0) });
+                                g.DrawLines(bp, new[] { new PointF(px1 - L, py0), new PointF(px1, py0), new PointF(px1, py0 + L) });
+                                g.DrawLines(bp, new[] { new PointF(px0, py1 - L), new PointF(px0, py1), new PointF(px0 + L, py1) });
+                                g.DrawLines(bp, new[] { new PointF(px1 - L, py1), new PointF(px1, py1), new PointF(px1, py1 - L) });
+                            }
+                            // the leader and the point: a small diamond on the thing itself
+                            float ay = oy + ayp;
+                            using (var thin = new Pen(Color.FromArgb(LeaderAlpha, Color.FromArgb(Ink[k])), Math.Max(1f, em * LeaderWidth)))
+                            {
+                                g.DrawLine(thin, axp, ay, px0, py1);
+                                float d = em * 0.26f; var dia = new[] { new PointF(axp, ay - d), new PointF(axp + d, ay), new PointF(axp, ay + d), new PointF(axp - d, ay) };
+                                using (var fill = new SolidBrush(Color.FromArgb(120, Color.FromArgb(Ink[k])))) g.FillPolygon(fill, dia);
+                                g.DrawPolygon(thin, dia);
+                            }
+                            // the icon
+                            float cx = px0 + pad + icon / 2, cy = (py0 + py1) / 2, r = icon * 0.42f;
+                            if (k == ITEM)
+                            {
+                                g.DrawEllipse(pen, cx - r, cy - r, 2 * r, 2 * r);                              // (i)
+                                using (var dot = new SolidBrush(ink)) g.FillEllipse(dot, cx - r * 0.13f, cy - r * 0.58f, r * 0.26f, r * 0.26f);
+                                g.DrawLine(pen, cx, cy - r * 0.12f, cx, cy + r * 0.55f);
+                            }
+                            else if (k == HUMANOID)
+                            {
+                                g.DrawEllipse(pen, cx - r * 0.32f, cy - r * 0.95f, r * 0.64f, r * 0.64f);       // (a head and shoulders)
+                                g.DrawArc(pen, cx - r * 0.85f, cy - r * 0.15f, r * 1.7f, r * 1.9f, 180, 180);
+                                g.DrawLine(pen, cx - r * 0.85f, cy + r * 0.8f, cx + r * 0.85f, cy + r * 0.8f);
+                            }
+                            else if (k == LOCKED)
+                            {
+                                // a padlock: the shackle, the body, the keyhole
+                                g.DrawArc(pen, cx - r * 0.5f, cy - r * 1.0f, r * 1.0f, r * 1.05f, 180, 180);
+                                g.DrawLine(pen, cx - r * 0.5f, cy - r * 0.48f, cx - r * 0.5f, cy - r * 0.1f); g.DrawLine(pen, cx + r * 0.5f, cy - r * 0.48f, cx + r * 0.5f, cy - r * 0.1f);
+                                using (var fill = new SolidBrush(Color.FromArgb(70, Color.FromArgb(Ink[k])))) g.FillRectangle(fill, cx - r * 0.82f, cy - r * 0.1f, r * 1.64f, r * 1.1f);
+                                g.DrawRectangle(pen, cx - r * 0.82f, cy - r * 0.1f, r * 1.64f, r * 1.1f);
+                                using (var dot = new SolidBrush(ink)) g.FillEllipse(dot, cx - r * 0.14f, cy + r * 0.22f, r * 0.28f, r * 0.28f);
+                                g.DrawLine(pen, cx, cy + r * 0.4f, cx, cy + r * 0.72f);
+                            }
+                            else if (k == INTERACTIVE)
+                            {
+                                // a cog: eight teeth round a ring, a hub
+                                var cog = new PointF[32];
+                                for (int q = 0; q < 32; q++) { double an = q * Math.PI * 2 / 32 + Math.PI / 32; float rr = (q % 4 < 2) ? r * 1.0f : r * 0.74f; cog[q] = new PointF(cx + rr * (float)Math.Cos(an), cy + rr * (float)Math.Sin(an)); }
+                                using (var fill = new SolidBrush(Color.FromArgb(60, Color.FromArgb(Ink[k])))) g.FillPolygon(fill, cog);
+                                g.DrawPolygon(pen, cog);
+                                g.DrawEllipse(pen, cx - r * 0.3f, cy - r * 0.3f, r * 0.6f, r * 0.6f);
+                            }
+                            else
+                            {
+                                var tri = new[] { new PointF(cx, cy - r * 1.0f), new PointF(cx + r * 1.08f, cy + r * 0.85f), new PointF(cx - r * 1.08f, cy + r * 0.85f) };   // (a warning sign)
+                                using (var fill = new SolidBrush(Color.FromArgb(70, Color.FromArgb(Ink[k])))) g.FillPolygon(fill, tri);
+                                g.DrawPolygon(pen, tri);
+                                g.DrawLine(pen, cx, cy - r * 0.38f, cx, cy + r * 0.25f);
+                                using (var dot = new SolidBrush(ink)) g.FillEllipse(dot, cx - r * 0.1f, cy + r * 0.42f, r * 0.2f, r * 0.2f);
+                            }
+                        }
+                        float tx = px0 + pad + icon + gap, ty = one ? (py0 + py1) / 2 - em * 0.62f : py0 + pad * 0.8f;
+                        if (iconOnly) continue;
+                        using (var hb = new SolidBrush(Color.FromArgb(245, Color.FromArgb(HeadInk[k])))) Crisp.Text(g, Head[k], font, hb, tx, ty, StringFormat.GenericTypographic);
+                        if (!one) using (var sb = new SolidBrush(Color.FromArgb(230, Color.FromArgb(SubInk[k])))) Crisp.Text(g, Sub[k], font, sb, tx, ty + lh, StringFormat.GenericTypographic);
+                    }
+                }
+            }
+            finally { hnd.Free(); }
+            gpu.SetLabelAtlas(px, cw, ch, ROWS, axp, ayp);
+        }
+    }
+
     public class VisorNote
     {
         public int Ink = 0x71DFD7, AmberHi = 0xE7D27D, InkFlare = 0xBEFBFF;
@@ -1487,7 +1753,7 @@ namespace AztTool
             {
                 using (var bm = new Bitmap(pw, ph, pw * 4, PixelFormat.Format32bppRgb, hnd.AddrOfPinnedObject()))
                 using (var g = Graphics.FromImage(bm))
-                using (var font = new Font("Consolas", em, FontStyle.Bold, GraphicsUnit.Pixel))
+                using (var font = Crisp.Font(em, FontStyle.Bold))
                 {
                     g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit; g.SmoothingMode = SmoothingMode.AntiAlias;
                     float tw = g.MeasureString(BadgeText, font, PointF.Empty, StringFormat.GenericTypographic).Width, icon = em * 1.15f;
@@ -1528,8 +1794,8 @@ namespace AztTool
                     // the words: a red split on a fresh hit, then steady
                     float tx = x0 + pad + icon + em * 0.55f, ty = (y0 + y1) / 2 - em * 0.62f;
                     float split = (float)(em * 0.22 * hitK);
-                    if (split > 0.3f) using (var ghost = new SolidBrush(Color.FromArgb((int)(150 * a), Color.FromArgb(Alert)))) g.DrawString(BadgeText, font, ghost, tx + split, ty, StringFormat.GenericTypographic);
-                    using (var ink = new SolidBrush(Color.FromArgb((int)(250 * a), Color.FromArgb(AlertText)))) g.DrawString(BadgeText, font, ink, tx - split * 0.4f, ty, StringFormat.GenericTypographic);
+                    if (split > 0.3f) using (var ghost = new SolidBrush(Color.FromArgb((int)(150 * a), Color.FromArgb(Alert)))) Crisp.Text(g, BadgeText, font, ghost, tx + split, ty, StringFormat.GenericTypographic);
+                    using (var ink = new SolidBrush(Color.FromArgb((int)(250 * a), Color.FromArgb(AlertText)))) Crisp.Text(g, BadgeText, font, ink, tx - split * 0.4f, ty, StringFormat.GenericTypographic);
                 }
             }
             finally { hnd.Free(); }
@@ -1561,7 +1827,7 @@ namespace AztTool
             {
                 using (var bm = new Bitmap(pw, ph, pw * 4, PixelFormat.Format32bppRgb, hnd.AddrOfPinnedObject()))
                 using (var g = Graphics.FromImage(bm))
-                using (var font = new Font("Consolas", em, FontStyle.Bold, GraphicsUnit.Pixel))
+                using (var font = Crisp.Font(em, FontStyle.Bold))
                 using (var head = new SolidBrush(Color.FromArgb((int)(245 * a), Color.FromArgb(AmberHi))))
                 using (var flare = new SolidBrush(Color.FromArgb((int)(255 * a), Color.FromArgb(InkFlare))))
                 {
@@ -1575,7 +1841,7 @@ namespace AztTool
                         // the first line in the header's amber; the rest in the scanner's ink, breathing gently once typed
                         double breath = typing ? 1 : 0.78 + 0.22 * Math.Cos((t - t0) * 3.2);
                         using (var ink = new SolidBrush(Color.FromArgb((int)(235 * a * breath), Color.FromArgb(Ink))))
-                            g.DrawString(txt, font, i == 0 ? head : (typing ? flare : ink), x, y + i * lh);
+                            Crisp.Text(g, txt, font, i == 0 ? head : (typing ? flare : ink), x, y + i * lh);
                     }
                 }
             }
@@ -1610,7 +1876,7 @@ namespace AztTool
         double _onAt = -1, _drawnAt = -1; int[] _px; int _w, _h; float _em = -1, _textW; string _shown, _textFor;
         public ScanTag(Overlay ov) { _ov = ov; }
         static double Noise(int i) { uint h = (uint)i * 2654435761u; h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15; return (h & 0xFFFF) / 65535.0; }
-        static Font FontOf(float em) { return new Font("Consolas", em, FontStyle.Bold, GraphicsUnit.Pixel); }
+        static Font FontOf(float em) { return Crisp.Font(em, FontStyle.Bold); }
         /// <summary>Every frame, on the card's thread, before the picture is presented.</summary>
         public void Step(GpuRaster gpu)
         {
@@ -1694,7 +1960,7 @@ namespace AztTool
                     // the word, its dots ticking on
                     string s = text + new string('.', (int)(t * 3.2) % 4);
                     float tx = cx + icon / 2 + em * 0.55f, ty = cy - em * 0.62f;
-                    using (var tb = new SolidBrush(ink)) g.DrawString(s, font, tb, tx, ty, StringFormat.GenericTypographic);
+                    using (var tb = new SolidBrush(ink)) Crisp.Text(g, s, font, tb, tx, ty, StringFormat.GenericTypographic);
                     // the bar: how far the wave has crossed the room
                     float by = y1 - em * 0.42f, bx0 = tx, bx1 = x1 - pad, fx = bx0 + (bx1 - bx0) * Math.Max(0f, Math.Min(1f, prog));
                     using (var track = new Pen(Color.FromArgb((int)(70 * a), Color.FromArgb(_ink)), Math.Max(1f, em / 12f))) g.DrawLine(track, bx0, by, bx1, by);
@@ -1779,7 +2045,7 @@ namespace AztTool
         double _onAt = -1, _drawnAt = -1, _k, _glow, _stepAt = -1, _voice; int[] _px; int _w, _h; float _em = -1, _textW;
         public ConvTag(Overlay ov) { _ov = ov; }
         static double Noise(int i) { uint h = (uint)i * 2654435761u; h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15; return (h & 0xFFFF) / 65535.0; }
-        static Font FontOf(float em) { return new Font("Consolas", em, FontStyle.Bold, GraphicsUnit.Pixel); }
+        static Font FontOf(float em) { return Crisp.Font(em, FontStyle.Bold); }
         /// <summary>Every frame, on the card's thread, before the picture is presented: a conversation is up; a line is
         /// being spoken.</summary>
         public void Step(GpuRaster gpu, bool conv, bool speaking)
@@ -1865,7 +2131,7 @@ namespace AztTool
                     // the words beneath, their dots ticking on
                     string s = Text + new string('.', (int)(t * 2.4) % 4);
                     float tx = x0 + pad, ty = wy0 + waveH + em * 0.35f;
-                    using (var tb = new SolidBrush(ink)) g.DrawString(s, font, tb, tx, ty, StringFormat.GenericTypographic);
+                    using (var tb = new SolidBrush(ink)) Crisp.Text(g, s, font, tb, tx, ty, StringFormat.GenericTypographic);
                 }
             }
             finally { hnd.Free(); }
@@ -2046,8 +2312,8 @@ namespace AztTool
             if (_wbm == null || _wbm.Width != ww || _wbm.Height != wh) { if (_wbm != null) _wbm.Dispose(); _wbm = new Bitmap(ww, wh, PixelFormat.Format32bppPArgb); _wpx = new int[ww * wh]; }
             double a = _widA, sev = Math.Max(0, Math.Min(1, (Level - WidgetFrom) / (1 - WidgetFrom)));
             using (var g = Graphics.FromImage(_wbm))
-            using (var f = new Font("Consolas", em * 0.62f, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (var fb = new Font("Consolas", em * 0.95f, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var f = Crisp.Font(em * 0.62f, FontStyle.Bold))
+            using (var fb = Crisp.Font(em * 0.95f, FontStyle.Bold))
             {
                 g.Clear(Color.Transparent); g.SmoothingMode = SmoothingMode.AntiAlias; g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
                 // the glass: dark, red-tinged, interlaced
@@ -2064,11 +2330,11 @@ namespace AztTool
                 }
                 float pad = em * 0.55f;
                 // the header: VITALS, and a blinking CRITICAL
-                using (var am = new SolidBrush(Argb((int)(240 * a), Amber))) g.DrawString("VITALS // CARDIAC", f, am, pad, pad * 0.6f, StringFormat.GenericTypographic);
+                using (var am = new SolidBrush(Argb((int)(240 * a), Amber))) Crisp.Text(g, "VITALS // CARDIAC", f, am, pad, pad * 0.6f, StringFormat.GenericTypographic);
                 bool blink = ((int)(now * 2.4) & 1) == 0;
                 using (var rb = new SolidBrush(Argb((int)((blink ? 250 : 90) * a), Alert)))
                 using (var sf = new StringFormat(StringFormat.GenericTypographic) { Alignment = StringAlignment.Far })
-                    g.DrawString(_flatAt >= 0 ? "NO PULSE" : _deathAt >= 0 ? "CARDIAC FAILURE" : sev > 0.6 ? "ARRHYTHMIA" : "CRITICAL", f, rb, ww - pad, pad * 0.6f, sf);
+                    Crisp.Text(g, _flatAt >= 0 ? "NO PULSE" : _deathAt >= 0 ? "CARDIAC FAILURE" : sev > 0.6 ? "ARRHYTHMIA" : "CRITICAL", f, rb, ww - pad, pad * 0.6f, sf);
                 // the scope
                 float sx0 = pad, sx1 = ww - pad - em * 3.9f, sy0 = em * 1.35f, sy1 = wh - em * 1.55f, sw = sx1 - sx0, mid = sy0 + (sy1 - sy0) * 0.62f, hh = (sy1 - sy0) * 0.72f;
                 using (var grid = new Pen(Argb((int)(40 * a), Alert), 1))
@@ -2107,13 +2373,13 @@ namespace AztTool
                 using (var hb = new SolidBrush(Argb((int)(255 * a), Alert))) FillHeart(g, hb, hx + em * 0.45f, hy + em * 0.45f, hs);
                 using (var tb = new SolidBrush(Argb((int)(245 * a), AlertText)))
                 {
-                    g.DrawString(_flatAt >= 0 ? "--" : ((int)Math.Round(Bpm)).ToString(), fb, tb, hx + em * 1.05f, hy - em * 0.1f, StringFormat.GenericTypographic);
-                    g.DrawString("BPM", f, tb, hx + em * 1.1f, hy + em * 0.95f, StringFormat.GenericTypographic);
+                    Crisp.Text(g, _flatAt >= 0 ? "--" : ((int)Math.Round(Bpm)).ToString(), fb, tb, hx + em * 1.05f, hy - em * 0.1f, StringFormat.GenericTypographic);
+                    Crisp.Text(g, "BPM", f, tb, hx + em * 1.1f, hy + em * 0.95f, StringFormat.GenericTypographic);
                 }
                 // the footer: the suit's integrity (the health), a bar of segments that blink out from the right
                 double integ = Math.Max(0, 1 - Level); float fy = wh - em * 1.15f;
                 using (var am2 = new SolidBrush(Argb((int)(220 * a), Amber)))
-                    g.DrawString(string.Format("SUIT INTEGRITY {0,3:0}%", integ * 100), f, am2, pad, fy, StringFormat.GenericTypographic);
+                    Crisp.Text(g, string.Format("SUIT INTEGRITY {0,3:0}%", integ * 100), f, am2, pad, fy, StringFormat.GenericTypographic);
                 float bx0 = pad + em * 8.6f, bx1 = ww - pad, segW = (bx1 - bx0) / 10f;
                 for (int sgi = 0; sgi < 10; sgi++)
                 {
@@ -2804,12 +3070,16 @@ namespace AztTool
         public static readonly int[] SysOk = { 1294, 518, 1523, 568 };
         bool _sysOpen, _sysQuit, _sfxOn, _musOn, _dragS, _dragM, _sysSave, _sysLoad; int _sfxLv = 100, _musLv = 100;
         double _sysOpenedAt = -10, _sysClosedAt = -10, _sysModeAt = -10; int _sysHover = -1;
+        /// <summary>The system menu's opening sound (the degauss on ESC / Q). Off until its new sound is in (Josh, 2026-10-15).</summary>
+        public bool SysOpenSound = false;
         /// <summary>From the game, each frame: the fold-out up (0x1523D6), quit confirm (0x1524CA), the save / load lists, the sound
         /// toggles and levels (0x14693A..0x146940; a level above 127 is the drag's pixel step -- kept from before), the drags.</summary>
         public void SetSys(bool up, bool quit, bool saveList, bool loadList, bool sfxOn, bool musOn, int sfxLevel, int musLevel, bool dragS, bool dragM)
         {
             double t = _clock.Elapsed.TotalSeconds;
-            if (up && !_sysOpen) { _sysOpenedAt = t; _sysModeAt = t; if (Sound != null && Sound.On) { try { Sound.DegaussSound(Degauss * 0.8); } catch { } } }
+            // (the opening sound -- the degauss thunk on ESC / Q -- is OFF: Josh, 2026-10-15, it played during a title load's loading sequence,
+            // and a new system-menu sound is coming; SysOpenSound brings the old one back)
+            if (up && !_sysOpen) { _sysOpenedAt = t; _sysModeAt = t; if (SysOpenSound && Sound != null && Sound.On) { try { Sound.DegaussSound(Degauss * 0.8); } catch { } } }
             if (!up && _sysOpen) _sysClosedAt = t;
             if (up && quit != _sysQuit) { _sysModeAt = t; if (Sound != null && Sound.On) { try { Sound.Line(quit ? 23 : 7, 0.12, quit ? 0.9 : 1.2); } catch { } } }
             if (up && Sound != null && Sound.On && ((sfxOn != _sfxOn) || (musOn != _musOn)) && _sysOpen) { try { Sound.Line(17, 0.07, (sfxOn && musOn) ? 1.25 : 0.95); } catch { } }
@@ -2855,8 +3125,8 @@ namespace AztTool
             if (!active) g.DrawRectangle(lit || hov ? frame : thin, rr.X, rr.Y, rr.Width, rr.Height);      // (a waiting key's outline is the sheen's track: Sheen)
             var sz = g.MeasureString(label, f);
             float ty = rr.Y + (rr.Height - sz.Height) / 2f - (sub != null ? fs.Height * 0.3f : 0);
-            g.DrawString(label, f, lit ? bDark : bHi, rr.X + (rr.Width - sz.Width) / 2f, ty);
-            if (sub != null) { var s2 = g.MeasureString(sub, fs); g.DrawString(sub, fs, lit ? bDark : bDim, rr.X + (rr.Width - s2.Width) / 2f, ty + sz.Height * 0.86f); }
+            Crisp.Text(g, label, f, lit ? bDark : bHi, rr.X + (rr.Width - sz.Width) / 2f, ty);
+            if (sub != null) { var s2 = g.MeasureString(sub, fs); Crisp.Text(g, sub, fs, lit ? bDark : bDim, rr.X + (rr.Width - s2.Width) / 2f, ty + sz.Height * 0.86f); }
         }
         // THE CONFIRM KEY ASKS FOR ITS CLICK (Josh, 2026-10-13: "the 'confirm' button should become active but also have a
         // revolving effect on its outline clarifying that the user needs to click it ... an in-universe style revolving 'sheen'
@@ -2897,7 +3167,7 @@ namespace AztTool
         void Slider(Graphics g, float s, int[] track, string name, int level, bool on, bool drag, bool hov, Font f, Font fs, Pen frame, Pen thin, Brush bHi, Brush bAm, Brush bDim)
         {
             var rr = R(track);
-            g.DrawString(name, fs, bDim, rr.X + 2 * s, rr.Y - fs.Height - 2 * s);
+            Crisp.Text(g, name, fs, bDim, rr.X + 2 * s, rr.Y - fs.Height - 2 * s);
             // the bar: 24 segments; the GAME's track -- louder to the LEFT (its drag maths: level 127 at x 1100, 0 at 1352)
             var mx = g.MeasureString("MAX", fs); float bx0 = rr.X + mx.Width + 10 * s, bx1 = rr.Right - mx.Width - 10 * s, by0 = rr.Y + rr.Height * 0.3f, by1 = rr.Bottom - rr.Height * 0.3f;
             int segs = 24, lit = on ? (int)Math.Round(level * segs / 127.0) : 0; float sw = (bx1 - bx0) / segs;
@@ -2907,18 +3177,18 @@ namespace AztTool
                 g.FillRectangle(new SolidBrush(C(l ? (drag ? AmberHi : Amber) : AmberDim, l ? 0.92 : 0.28)), bx0 + i * sw + 1, by0, sw - 2.2f * s, by1 - by0);
             }
             g.DrawRectangle(hov || drag ? frame : thin, rr.X, rr.Y, rr.Width, rr.Height);
-            float ly = rr.Y + (rr.Height - mx.Height) / 2f; g.DrawString("MAX", fs, bDim, rr.X + 5 * s, ly); var mz = g.MeasureString("MIN", fs); g.DrawString("MIN", fs, bDim, rr.Right - mz.Width - 5 * s, ly);      // (inside the track's ends: below it they ran into the next slider's name)
+            float ly = rr.Y + (rr.Height - mx.Height) / 2f; Crisp.Text(g, "MAX", fs, bDim, rr.X + 5 * s, ly); var mz = g.MeasureString("MIN", fs); Crisp.Text(g, "MIN", fs, bDim, rr.Right - mz.Width - 5 * s, ly);      // (inside the track's ends: below it they ran into the next slider's name)
             string pct = on ? string.Format("{0}%", (int)Math.Round(level * 100 / 127.0)) : "MUTED"; var pz = g.MeasureString(pct, fs);
-            g.DrawString(pct, fs, on ? bAm : bDim, rr.Right - pz.Width - 2 * s, rr.Y - fs.Height - 2 * s);
+            Crisp.Text(g, pct, fs, on ? bAm : bDim, rr.Right - pz.Width - 2 * s, rr.Y - fs.Height - 2 * s);
         }
         void DrawSysContent(Graphics g, float s, double t)
         {
             float x0 = PX(SysX0), y0 = PY(SysY0), x1 = _sysRight, y1 = PY(SysY1);
             using (var frame = new Pen(C(Amber, 0.85), Math.Max(1.5f, 2.2f * s)))
             using (var thin = new Pen(C(AmberDim, 0.8), Math.Max(1f, 1f * s)))
-            using (var fSmall = new Font("Consolas", 14f * s, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (var fTitle = new Font("Consolas", 34f * s, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (var fBtn = new Font("Consolas", 22f * s, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var fSmall = Crisp.Font(14f * s, FontStyle.Bold))
+            using (var fTitle = Crisp.Font(34f * s, FontStyle.Bold))
+            using (var fBtn = Crisp.Font(22f * s, FontStyle.Bold))
             using (var bHi = new SolidBrush(C(AmberHi, 0.97)))
             using (var bAm = new SolidBrush(C(Amber, 0.92)))
             using (var bDim = new SolidBrush(C(AmberDim, 0.9)))
@@ -2928,8 +3198,8 @@ namespace AztTool
                 foreach (var cnr in new[] { new[] { x0 + m, y0 + m, 1f, 1f }, new[] { x1 - m, y0 + m, -1f, 1f }, new[] { x0 + m, y1 - m, 1f, -1f }, new[] { x1 - m, y1 - m, -1f, -1f } })
                 { g.DrawLine(frame, cnr[0], cnr[1], cnr[0] + br * cnr[2], cnr[1]); g.DrawLine(frame, cnr[0], cnr[1], cnr[0], cnr[1] + br * cnr[3]); }
                 float hx = PX(SysSave[0]), hy = PY(SysY0 + 40);
-                g.DrawString(Typed("RAPTOR H.U.D.  //  SYSTEM CORE", t, _sysModeAt + 0.05, 70), fSmall, bDim, hx, hy);
-                g.DrawString(Typed(_sysQuit ? "SHUTDOWN?" : "SYSTEMS", t, _sysModeAt + 0.12, 32), fTitle, bHi, hx, hy + 20 * s);
+                Crisp.Text(g, Typed("RAPTOR H.U.D.  //  SYSTEM CORE", t, _sysModeAt + 0.05, 70), fSmall, bDim, hx, hy);
+                Crisp.Text(g, Typed(_sysQuit ? "SHUTDOWN?" : "SYSTEMS", t, _sysModeAt + 0.12, 32), fTitle, bHi, hx, hy + 20 * s);
                 // the power key (QUIT): top right
                 Button(g, SysQuit, "QUIT", "SYSTEM", _sysHover == 2, _sysQuit, fBtn, fSmall, frame, thin, bHi, bAm, bDim, bDark);
                 float ry = PY(SysSave[1] - 10); g.DrawLine(thin, hx, ry, PX(SysLoad[2]), ry);
@@ -2948,12 +3218,12 @@ namespace AztTool
                     // the game's one OK: quitting, or committing the memory core's pick (save / load / restart)
                     string what = _sysQuit ? "> CONFIRM VISOR SHUTDOWN" : _sel == 6 ? "> RESTART THE MISSION" : _sysSave ? "> COMMIT TO ARCHIVE" : "> RESTORE ARCHIVE";
                     string key = _sysQuit ? "CONFIRM" : _sel == 6 ? "RESTART" : _sysSave ? "COMMIT" : "RESTORE", sub = _sysQuit ? "QUIT GAME" : _sysSave ? "SAVE" : "LOAD";
-                    if (((int)(t * 2.2) & 1) == 0) g.DrawString(what, fSmall, bAm, hx, py + 6 * s);
-                    g.DrawString(_sysQuit ? "QUIT AGAIN OR ESC TO CANCEL" : "OR PRESS ENTER", fSmall, bDim, hx, py + 26 * s);
+                    if (((int)(t * 2.2) & 1) == 0) Crisp.Text(g, what, fSmall, bAm, hx, py + 6 * s);
+                    Crisp.Text(g, _sysQuit ? "QUIT AGAIN OR ESC TO CANCEL" : "OR PRESS ENTER", fSmall, bDim, hx, py + 26 * s);
                     Button(g, SysOk, key, sub, _sysHover == 7, false, fBtn, fSmall, frame, thin, bHi, bAm, bDim, bDark, true);
                     Sheen(g, R(SysOk), t, s);
                 }
-                else if (((int)(t * 1.6) & 1) == 0 || t < _sysModeAt + 1.2) g.DrawString(Typed("> ESC TO CLOSE", t, _sysModeAt + 0.6, 50), fSmall, bAm, hx, py + 16 * s);
+                else if (((int)(t * 1.6) & 1) == 0 || t < _sysModeAt + 1.2) Crisp.Text(g, Typed("> ESC TO CLOSE", t, _sysModeAt + 0.6, 50), fSmall, bAm, hx, py + 16 * s);
             }
         }        // ---- THE MEMORY CELL (Josh, 2026-10-09: on hovering a slot "a vector based static shape ... animated but icon like ... for
         // this helmet's operating system"): the archive as a small wireframe cube turning in the row, its data bars pulsing inside;
@@ -3178,9 +3448,9 @@ namespace AztTool
             double startAt = read ? _readAt : _writeAt, doneAt = read ? _readAt + _readLen : _wroteAt;
             using (var frame = new Pen(C(Amber, 0.85), Math.Max(1.5f, 2.2f * s)))
             using (var thin = new Pen(C(AmberDim, 0.8), Math.Max(1f, 1f * s)))
-            using (var fSmall = new Font("Consolas", 15f * s, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (var fTitle = new Font("Consolas", 40f * s, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (var fRow = new Font("Consolas", 34f * s, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var fSmall = Crisp.Font(15f * s, FontStyle.Bold))
+            using (var fTitle = Crisp.Font(40f * s, FontStyle.Bold))
+            using (var fRow = Crisp.Font(34f * s, FontStyle.Bold))
             using (var bHi = new SolidBrush(C(AmberHi, 0.97)))
             using (var bAm = new SolidBrush(C(Amber, 0.92)))
             using (var bDim = new SolidBrush(C(AmberDim, 0.9)))
@@ -3189,26 +3459,26 @@ namespace AztTool
                 foreach (var cnr in new[] { new[] { x0 + m, y0 + m, 1f, 1f }, new[] { x1 - m, y0 + m, -1f, 1f }, new[] { x0 + m, y1 - m, 1f, -1f }, new[] { x1 - m, y1 - m, -1f, -1f } })
                 { g.DrawLine(frame, cnr[0], cnr[1], cnr[0] + br * cnr[2], cnr[1]); g.DrawLine(frame, cnr[0], cnr[1], cnr[0], cnr[1] + br * cnr[3]); }
                 float hx = PX(RowX0), hy = PY(PanelY0 + 30), hx1 = PX(RowX1);
-                g.DrawString(read ? "RAPTOR H.U.D.  //  MEMORY CORE  //  READ ACCESS" : "RAPTOR H.U.D.  //  MEMORY CORE  //  WRITE ACCESS", fSmall, bDim, hx, hy);
+                Crisp.Text(g, read ? "RAPTOR H.U.D.  //  MEMORY CORE  //  READ ACCESS" : "RAPTOR H.U.D.  //  MEMORY CORE  //  WRITE ACCESS", fSmall, bDim, hx, hy);
                 // the title: typed, then its dots counting while it works; done = steady (after a short blink)
                 int slotN = read ? _readSlot : _writeSlot;
                 string nm = read ? _readName : (slotN >= 0 && slotN < 5 ? (_names[slotN] ?? "") : "");
                 string busy = read ? string.Format("INITIATING LOG FILE \"{0}\"", nm.Length > 0 ? nm : "UNNAMED") : "COMMITTING LOG TO MEMORY";
                 string title = done ? (read ? "LOG FILE INITIATED." : "LOG COMMITTED.") : Typed(busy, t, startAt, 34) + (wt > 0.7 ? new string('.', 1 + (int)(wt * 3) % 3) : "");
-                using (var fFit = busy.Length + 3 > 36 ? new Font("Consolas", (float)(40f * s * 36 / (busy.Length + 3)), FontStyle.Bold, GraphicsUnit.Pixel) : null)
-                    if (!done || ((int)((t - doneAt) * 8) & 1) == 0 || t - doneAt > 0.3) g.DrawString(title, done || fFit == null ? fTitle : fFit, bHi, hx, hy + 24 * s);
+                using (var fFit = busy.Length + 3 > 36 ? Crisp.Font((float)(40f * s * 36 / (busy.Length + 3)), FontStyle.Bold) : null)
+                    if (!done || ((int)((t - doneAt) * 8) & 1) == 0 || t - doneAt > 0.3) Crisp.Text(g, title, done || fFit == null ? fTitle : fFit, bHi, hx, hy + 24 * s);
                 float ry = PY(RowTop - 22); g.DrawLine(thin, hx, ry, hx1, ry);
                 // which archive
                 string who = slotN >= 0 && slotN < 5 ? string.Format("ARCHIVE {0:00}  //  {1}", slotN + 1, nm.Length > 0 ? nm : "UNNAMED") : "ARCHIVE";
-                g.DrawString(Typed(who, t, startAt + 0.2, 60), fRow, bAm, hx, PY(RowTop + 10));
+                Crisp.Text(g, Typed(who, t, startAt + 0.2, 60), fRow, bAm, hx, PY(RowTop + 10));
                 // the fill bar, segmented, its leading edge bright
                 float bx0 = hx, bx1 = hx1, by0 = PY(RowTop + 96), by1 = PY(RowTop + 136);
                 g.DrawRectangle(thin, bx0, by0, bx1 - bx0, by1 - by0);
                 int segs = 40; float sw = (bx1 - bx0 - 8 * s) / segs; int lit = (int)Math.Floor(p * segs);
                 for (int i = 0; i < lit; i++) g.FillRectangle(i == lit - 1 && !done ? bHi : bAm, bx0 + 4 * s + i * sw, by0 + 4 * s, sw - 3 * s, by1 - by0 - 8 * s);
                 var pct = string.Format("{0,3}%", (int)Math.Round(p * 100));
-                g.DrawString(pct, fSmall, bDim, bx1 - g.MeasureString(pct, fSmall).Width, by1 + 6 * s);
-                g.DrawString(done ? "INTEGRITY VERIFIED" : read ? (LoadProgress > 0 && RoomStage != null ? RoomStage : "RESTORING ARCHIVE FROM MEMORY CORE") : "COMMITTING ARCHIVE TO MEMORY CORE", fSmall, bDim, bx0, by1 + 6 * s);
+                Crisp.Text(g, pct, fSmall, bDim, bx1 - g.MeasureString(pct, fSmall).Width, by1 + 6 * s);
+                Crisp.Text(g, done ? "INTEGRITY VERIFIED" : read ? (LoadProgress > 0 && RoomStage != null ? RoomStage : "RESTORING ARCHIVE FROM MEMORY CORE") : "COMMITTING ARCHIVE TO MEMORY CORE", fSmall, bDim, bx0, by1 + 6 * s);
                 // the stream: lines of hex scrolling up under the bar, newest brightest
                 int tick = (int)(t * 18), lines = 8; float ly = PY(RowTop + 200), lh = 19 * s;
                 for (int i = 0; i < lines; i++)
@@ -3217,12 +3487,12 @@ namespace AztTool
                     var sb = new System.Text.StringBuilder(); sb.Append(string.Format("{0:X6}  ", ((tick - i) * 48) & 0xFFFFFF));
                     for (int k = 0; k < 16; k++) sb.Append(rnd.Next(0x100).ToString("X2")).Append(k == 7 ? "  " : " ");
                     double a = done ? 0.35 : 0.9 - i * 0.09;
-                    using (var b = new SolidBrush(C(i == 0 && !done ? Amber : AmberDim, a))) g.DrawString(sb.ToString(), fSmall, b, hx, ly + (lines - 1 - i) * lh);
+                    using (var b = new SolidBrush(C(i == 0 && !done ? Amber : AmberDim, a))) Crisp.Text(g, sb.ToString(), fSmall, b, hx, ly + (lines - 1 - i) * lh);
                 }
                 // the prompt along the bottom
                 float py = PY(PanelY1 - 44);
                 string prompt = done ? (read ? "> LOG FILE INITIATED  //  RESUMING" : "> LOG COMMITTED  //  VISOR RESUMING") : "> DO NOT POWER DOWN THE VISOR";
-                if (done || ((int)(t * 1.6) & 1) == 0) g.DrawString(prompt, fSmall, bAm, hx, py);
+                if (done || ((int)(t * 1.6) & 1) == 0) Crisp.Text(g, prompt, fSmall, bAm, hx, py);
             }
         }
         void DrawContent(Graphics g, float s, double t)
@@ -3233,10 +3503,10 @@ namespace AztTool
             float x0 = PX(PanelX0), y0 = PY(PanelY0), x1 = PX(PanelX1), y1 = PY(PanelY1);
             using (var frame = new Pen(C(Amber, 0.85), Math.Max(1.5f, 2.2f * s)))
             using (var thin = new Pen(C(AmberDim, 0.8), Math.Max(1f, 1f * s)))
-            using (var fSmall = new Font("Consolas", 15f * s, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (var fTitle = new Font("Consolas", 40f * s, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (var fRow = new Font("Consolas", 34f * s, FontStyle.Bold, GraphicsUnit.Pixel))
-            using (var fNum = new Font("Consolas", 22f * s, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var fSmall = Crisp.Font(15f * s, FontStyle.Bold))
+            using (var fTitle = Crisp.Font(40f * s, FontStyle.Bold))
+            using (var fRow = Crisp.Font(34f * s, FontStyle.Bold))
+            using (var fNum = Crisp.Font(22f * s, FontStyle.Bold))
             using (var bHi = new SolidBrush(C(AmberHi, 0.97)))
             using (var bAm = new SolidBrush(C(Amber, 0.92)))
             using (var bDim = new SolidBrush(C(AmberDim, 0.9)))
@@ -3247,8 +3517,8 @@ namespace AztTool
                 foreach (var cnr in new[] { new[] { x0 + m, y0 + m, 1f, 1f }, new[] { x1 - m, y0 + m, -1f, 1f }, new[] { x0 + m, y1 - m, 1f, -1f }, new[] { x1 - m, y1 - m, -1f, -1f } })
                 { g.DrawLine(frame, cnr[0], cnr[1], cnr[0] + br * cnr[2], cnr[1]); g.DrawLine(frame, cnr[0], cnr[1], cnr[0], cnr[1] + br * cnr[3]); }
                 float hx = PX(RowX0), hy = PY(PanelY0 + 30);
-                g.DrawString(Typed("RAPTOR H.U.D.  //  MEMORY CORE  //  " + (_save ? "WRITE" : "READ") + " ACCESS", t, _modeAt + 0.05, 70), fSmall, bDim, hx, hy);
-                g.DrawString(Typed(_save ? "COMMIT ARCHIVE" : "RECALL ARCHIVE", t, _modeAt + 0.15, 32), fTitle, bHi, hx, hy + 24 * s);
+                Crisp.Text(g, Typed("RAPTOR H.U.D.  //  MEMORY CORE  //  " + (_save ? "WRITE" : "READ") + " ACCESS", t, _modeAt + 0.05, 70), fSmall, bDim, hx, hy);
+                Crisp.Text(g, Typed(_save ? "COMMIT ARCHIVE" : "RECALL ARCHIVE", t, _modeAt + 0.15, 32), fTitle, bHi, hx, hy + 24 * s);
                 float ry = PY(RowTop - 22); g.DrawLine(thin, hx, ry, PX(RowX1), ry);
                 // the close box
                 bool hc = _hover == 7;
@@ -3267,13 +3537,13 @@ namespace AztTool
                     else if (hov) g.FillRectangle(new SolidBrush(C(Amber, 0.18)), rx0, ra, rx1 - rx0, rb - ra);
                     g.DrawLine(sel ? frame : thin, rx0, rb, rx1, rb);
                     float ty = ra + (rb - ra - fRow.Height) / 2f;
-                    g.DrawString(string.Format("{0:00}", i + 1), fNum, sel ? bDark : bDim, rx0 + 10 * s, ra + (rb - ra - fNum.Height) / 2f);
+                    Crisp.Text(g, string.Format("{0:00}", i + 1), fNum, sel ? bDark : bDim, rx0 + 10 * s, ra + (rb - ra - fNum.Height) / 2f);
                     string shown = Typed(empty && !typing ? "-- EMPTY --" : nm, t, rt, 60);
                     if (typing && ((int)(t * 2.5) & 1) == 0) shown += "_";
-                    g.DrawString(shown, fRow, sel ? bDark : (empty ? bDim : bHi), rx0 + 70 * s, ty);
+                    Crisp.Text(g, shown, fRow, sel ? bDark : (empty ? bDim : bHi), rx0 + 70 * s, ty);
                     string tag = typing ? string.Format("{0,2}/20", nm.Length) : (empty ? "VACANT" : "STORED");
                     var tsz = g.MeasureString(tag, fSmall);
-                    g.DrawString(tag, fSmall, sel ? bDark : bDim, rx1 - tsz.Width - 12 * s, ra + (rb - ra - tsz.Height) / 2f);
+                    Crisp.Text(g, tag, fSmall, sel ? bDark : bDim, rx1 - tsz.Width - 12 * s, ra + (rb - ra - tsz.Height) / 2f);
                     if (hov || (sel && _hover < 0)) MemCell(g, s, t, rx1 - tsz.Width - 12 * s - 52 * s, (ra + rb) / 2f, 26 * s, empty && !typing, sel);
                 }
                 // RESTART (load only): a button under the rows
@@ -3284,17 +3554,17 @@ namespace AztTool
                     if (sr) g.FillRectangle(new SolidBrush(C(Amber, 0.88)), rr); else if (hr) g.FillRectangle(new SolidBrush(C(Amber, 0.2)), rr);
                     g.DrawRectangle(sr || hr ? frame : thin, rr.X, rr.Y, rr.Width, rr.Height);
                     var sz = g.MeasureString("RESTART MISSION", fNum);
-                    g.DrawString("RESTART MISSION", fNum, sr ? bDark : bAm, rr.X + (rr.Width - sz.Width) / 2f, rr.Y + (rr.Height - sz.Height) / 2f);
+                    Crisp.Text(g, "RESTART MISSION", fNum, sr ? bDark : bAm, rr.X + (rr.Width - sz.Width) / 2f, rr.Y + (rr.Height - sz.Height) / 2f);
                 }
                 // the prompt along the bottom, blinking once it has typed
                 string prompt = _save ? (_sel >= 0 && _sel < 5 ? "KEY IN A NAME  //  ENTER TO COMMIT" : "SELECT A SLOT TO WRITE")
                                       : (_sel >= 0 ? "ENTER OR OK TO RESTORE" : "SELECT AN ARCHIVE");
                 float py = PY(PanelY1 - 44);
-                if (((int)(t * 1.6) & 1) == 0 || t < _modeAt + 1.2) g.DrawString(Typed("> " + prompt, t, _modeAt + 0.9, 50), fSmall, bAm, hx, py);
+                if (((int)(t * 1.6) & 1) == 0 || t < _modeAt + 1.2) Crisp.Text(g, Typed("> " + prompt, t, _modeAt + 0.9, 50), fSmall, bAm, hx, py);
                 // a data stream down the right edge, as the boot's dump column
                 // (in the heading, clear of the rows and the close box: two short columns left of the box)
                 int tick = (int)(t * 12);
-                for (int i = 0; i < 6; i++) for (int col = 0; col < 2; col++) { var rnd = new Random(tick * 131 + i * 7 + col * 977); g.DrawString(rnd.Next(0x10000).ToString("X4") + " " + rnd.Next(0x100).ToString("X2"), fSmall, bDim, PX(CloseX0 - 250 + col * 110), PY(PanelY0 + 24) + i * 17 * s); }
+                for (int i = 0; i < 6; i++) for (int col = 0; col < 2; col++) { var rnd = new Random(tick * 131 + i * 7 + col * 977); Crisp.Text(g, rnd.Next(0x10000).ToString("X4") + " " + rnd.Next(0x100).ToString("X2"), fSmall, bDim, PX(CloseX0 - 250 + col * 110), PY(PanelY0 + 24) + i * 17 * s); }
             }
         }
     }

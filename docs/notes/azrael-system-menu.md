@@ -92,3 +92,4 @@ Related: [[azrael-memory-core]], [[azrael-hud-vector-text]], [[azrael-panel-butt
 - Fix (host, `Step-EscWatch`, data write): the request lives 2 s after a physical `q` (VK 0x51) -- its own slide-in consumes it -- and is cleared after that. Logged (up to 3 times a session).
 
 - **DEFAULT MUSIC 30% (Josh, 2026-10-13):** `$VOL_MUSIC_DEFAULT` 38 (was 64 = 50%); sound stays 127. Volume changes no longer bring the original MIDI back under the soundtrack: see [[azrael-music]] (midi-quiet-*).
+- **Opening sound OFF (Josh, 2026-10-15):** the degauss on ESC / Q (ScanWire.cs VisorMenu, `up && !_sysOpen`) played during a title load's loading sequence (the fold-out's flag flips there: "the fold-out's slide was stuck ... put back at rest"). Gated by `SysOpenSound` = false until Josh's new system-menu sound goes in; the quit-mode tone, hover ticks and toggles are unchanged.

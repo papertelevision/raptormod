@@ -2426,6 +2426,10 @@ void main() {
         /// <summary>The camera's WORLD matrix as the engine holds it (rows right, up, forward, position).</summary>
         public void SetCameraWorld(float[] m) { _view = ViewOf(m); Array.Copy(m, _camWorld, 16); }
         readonly float[] _camWorld = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+        /// <summary>The eye's position (the camera's world matrix's last row).</summary>
+        public float CamX { get { return _camWorld[12]; } }
+        public float CamY { get { return _camWorld[13]; } }
+        public float CamZ { get { return _camWorld[14]; } }
         static float[] ViewOf(float[] m)
         {
             if (m == null || m.Length != 16) throw new ArgumentException("need a 4x4");
@@ -4323,10 +4327,12 @@ uniform float uConvK, uConvTime, uConvRows;
 // the window's rows
 uniform float uFogK, uFogT, uFogRows, uFogAmt;
 out vec4 oColor;
+// (pixel for pixel: the label's own pixels onto whole window pixels -- sampled between texels at a fractional place, every
+// letter was smeared over two pixels; Josh, 2026-10-15: fonts are blurry)
 vec3 labelOver(vec3 c, vec2 wp, sampler2D t, vec4 r) {
-    vec2 q = (wp - r.xy) / r.zw;
-    if (q.x < 0.0 || q.y < 0.0 || q.x >= 1.0 || q.y >= 1.0) return c;
-    vec4 w = texture(t, q); return c * (1.0 - w.a) + w.rgb;
+    vec2 d = floor(wp) - floor(r.xy + 0.5);
+    if (d.x < 0.0 || d.y < 0.0 || d.x >= r.z || d.y >= r.w) return c;
+    vec4 w = texelFetch(t, ivec2(d), 0); return c * (1.0 - w.a) + w.rgb;
 }
 // the glow: amber light along the view's edges (a few percent of its height deep, strongest in the corners, the bottom
 // edge -- the panel's seam -- weaker), breathing slowly with a faint shimmer running round it
@@ -4343,8 +4349,22 @@ vec3 convGlow(vec3 c, vec2 wp) {
     float g = clamp(edge, 0.0, 1.3) * uConvK * breathe * shimmer * 0.26;
     return c + vec3(1.0, 0.60, 0.18) * g * (1.0 - 0.5 * c);
 }
+// THE ECHO SCAN'S LABELS (ScanWire.cs EchoLabels): up to 16 tooltips pinned over things in the room -- each (window px of its
+// cell's top left, strength, which of the atlas's rows); the atlas holds the three tooltips one under another, premultiplied
+uniform int uLabN; uniform sampler2D uLabTex; uniform vec4 uLab[16]; uniform vec2 uLabCell; uniform float uLabRows;
+vec3 labelsOver(vec3 c, vec2 wp) {
+    for (int i = 0; i < 16; i++) {
+        if (i >= uLabN) break;
+        vec4 L = uLab[i]; vec2 d = floor(wp) - floor(L.xy + 0.5);
+        if (d.x < 0.0 || d.y < 0.0 || d.x >= uLabCell.x || d.y >= uLabCell.y) continue;
+        vec4 w = texelFetch(uLabTex, ivec2(d) + ivec2(0, int(L.w + 0.5) * int(uLabCell.y + 0.5)), 0) * L.z;
+        c = c * (1.0 - w.a) + w.rgb;
+    }
+    return c;
+}
 vec3 tagOver(vec3 c, vec2 wp) {
     c = convGlow(c, wp);
+    if (uLabN > 0) c = labelsOver(c, wp);
     if (uTagOn != 0) c = labelOver(c, wp, uTag, uTagRect);
     if (uTag2On != 0) c = labelOver(c, wp, uTag2, uTag2Rect);
     return c;
@@ -4644,6 +4664,8 @@ void main() {
                 glUniform4f(L("uClr0"), vk > 0 ? vc[0] : 0f, vk > 0 ? vc[1] : 0f, vk > 0 ? vc[2] : 0f, vk > 0 ? vc[3] : 0f);
                 glUniform4f(L("uClr1"), vk > 0 && vc.Length >= 8 ? vc[4] : 0f, vk > 0 && vc.Length >= 8 ? vc[5] : 0f, vk > 0 && vc.Length >= 8 ? vc[6] : 0f, vk > 0 && vc.Length >= 8 ? vc[7] : 0f);
             }
+            // the echo scan's labels (EchoLabels), pinned where their things are on this frame's camera
+            LabelUniforms(L, ww, wh);
             // the visor's label (ScanTag)
             bool tag = TagOn && _tagTex != 0;
             glUniform1i(L("uTagOn"), tag ? 1 : 0);
@@ -4656,7 +4678,64 @@ void main() {
             glUniform1f(L("uFogK"), Math.Max(0f, Math.Min(1f, VisorFog))); glUniform1f(L("uFogT"), VisorFogTime); glUniform1f(L("uFogRows"), VisorFogRows > 0 ? VisorFogRows : 1f); glUniform1f(L("uFogAmt"), Math.Max(0f, Math.Min(1f, VisorFogAmount)));
             glDrawArrays(GL_TRIANGLES, 0, 3);
         }
-        /// <summary>The visor's label (ScanWire.cs ScanTag; premultiplied ARGB, top row first) at window px x, y (its top
+        // ---- THE ECHO SCAN'S LABELS (ScanWire.cs EchoLabels; Josh, 2026-10-15) ----------------------------------------------
+        uint _labTex; int[] _labPx; volatile bool _labDirty; int _labTW, _labTH, _labRows = 1; float _labAx, _labAy;
+        float[] _labData = new float[0]; volatile int _labN; readonly object _labLock = new object(); readonly float[] _labU = new float[64];
+        /// <summary>The tooltips (premultiplied ARGB, top row first): `rows` cells of w x h one under another, each pinned at
+        /// its own pixel (ax, ay).</summary>
+        public void SetLabelAtlas(int[] px, int w, int h, int rows, float ax, float ay)
+        {
+            lock (_labLock) { _labPx = px; _labTW = w; _labTH = h; _labRows = Math.Max(1, rows); _labAx = ax; _labAy = ay; _labDirty = true; }
+        }
+        /// <summary>This frame's labels: n of (world x, y, z, row, strength).</summary>
+        public void SetLabels(float[] data, int n)
+        {
+            lock (_labLock)
+            {
+                if (data == null || n <= 0) { _labN = 0; return; }
+                if (_labData.Length < n * 5) _labData = new float[n * 5];
+                Array.Copy(data, _labData, n * 5); _labN = Math.Min(16, n);
+            }
+        }
+        // in the present pass: each label's point through the camera (as VS_MAIN: centre + (x, -y) * focal / z) into window px
+        void LabelUniforms(Func<string, int> L, int ww, int wh)
+        {
+            int n = 0;
+            lock (_labLock)
+            {
+                if (_labN > 0 && _labPx != null)
+                {
+                    if (_labDirty || _labTex == 0)
+                    {
+                        glActiveTexture(GL_TEXTURE0 + 9);      // (its own unit: on unit 0 the upload would take the PICTURE's place)
+                        if (_labTex == 0) _labTex = NewLinearTex();
+                        glBindTexture(GL_TEXTURE_2D, _labTex); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+                        glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, _labTW, _labTH * _labRows, 0, GL_BGRA, GL_UNSIGNED_BYTE, _labPx);
+                        _labDirty = false; glActiveTexture(GL_TEXTURE0);
+                    }
+                    float fpx = FocalPx, sx = ww / (float)W, sy = wh / (float)H;
+                    for (int i = 0; i < _labN && n < 16; i++)
+                    {
+                        float x = _labData[i * 5], y = _labData[i * 5 + 1], z = _labData[i * 5 + 2];
+                        float px = _view[0] * x + _view[4] * y + _view[8] * z + _view[12];
+                        float py = _view[1] * x + _view[5] * y + _view[9] * z + _view[13];
+                        float pz = _view[2] * x + _view[6] * y + _view[10] * z + _view[14];
+                        if (pz < 8f) continue;                                          // (behind or right at the eye)
+                        float sxp = W * 0.5f + fpx * px / pz, syp = VHf * 0.5f - fpx * py / pz;
+                        if (sxp < -W * 0.1f || sxp > W * 1.1f || syp < -VHf * 0.1f || syp > VHf) continue;
+                        _labU[n * 4] = sxp * sx - _labAx; _labU[n * 4 + 1] = syp * sy - _labAy; _labU[n * 4 + 2] = _labData[i * 5 + 4]; _labU[n * 4 + 3] = _labData[i * 5 + 3];
+                        n++;
+                    }
+                }
+            }
+            glUniform1i(L("uLabN"), n);
+            if (n > 0)
+            {
+                glActiveTexture(GL_TEXTURE0 + 9); glBindTexture(GL_TEXTURE_2D, _labTex); glUniform1i(L("uLabTex"), 9);
+                glUniform4fv(L("uLab[0]"), n, _labU); glUniform2f(L("uLabCell"), _labTW, _labTH); glUniform1f(L("uLabRows"), _labRows);
+                glActiveTexture(GL_TEXTURE0);
+            }
+        }        /// <summary>The visor's label (ScanWire.cs ScanTag; premultiplied ARGB, top row first) at window px x, y (its top
         /// left), laid over the picture in the present pass while TagOn.</summary>
         public bool TagOn;
         uint _tagTex; int _tagTW, _tagTH; float _tagX, _tagY, _tagW, _tagH;

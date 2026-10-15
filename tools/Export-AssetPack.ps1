@@ -1,4 +1,4 @@
-# Export-AssetPack.ps1 -- pack the data that is NOT in git, for setting up another PC (see SETUP.md).
+﻿# Export-AssetPack.ps1 -- pack the data that is NOT in git, for setting up another PC (see SETUP.md).
 #
 #   powershell -ExecutionPolicy Bypass -File tools\Export-AssetPack.ps1 -OutDir E:\raptormod-assets
 #   powershell -ExecutionPolicy Bypass -File tools\Export-AssetPack.ps1 -OutDir E:\raptormod-assets -Include all
@@ -14,9 +14,9 @@
 # C:\Games\RaptorMod (2026-10-15, Josh: "a single install folder"), and every tar is made from it and restored into it:
 #   install    game\                  the built game: DOSBox Staging + its conf and soundfont, the extracted and upscaled
 #                                     GAME\AZTEX, the re-encoded movies, the CD soundtrack, saves, raptormod-settings.json
-#   hires      textures\hires\        the renderer's hi-res textures (~6 GB: Real-ESRGAN runs + Josh's 4K art)
+#   hires      textures\hires\ + hires-2048\   the renderer's hi-res textures (~6 GB: Real-ESRGAN runs + Josh's 4K art) and his 2K set
 #   books      sources\books\         the upscaled book pages (an install input)
-#   gfx        sources\gfx\           Josh's sources only: decals\<ROOM>\updated, screens, credits, orrery-puzzle
+#   gfx        sources\gfx\           Josh's sources only: decals\<ROOM>\updated, screens, credits, orrery-puzzle, upres-queue
 #                                     (the title's manual text + print-out list are in git: raptordocs\; their scans are credits\)
 #   audio      sources\soundtrack\    optional: soundtrack / boot-sound sources (Build-Soundtrack, loading audio)
 #   video      sources\video\update\  optional: the MP4 sources the movies are re-encoded from
@@ -39,7 +39,7 @@ $root = 'C:\Games\RaptorMod'
 $all = [ordered]@{
     install    = @{ Root = $root; Paths = @('game'); Restore = $root
                     Exclude = @('game/AztMod', 'game/.claude', 'game/capture', '*.log', '*.LOG', 'game/stdout.txt') }
-    hires      = @{ Root = $root; Paths = @('textures/hires'); Restore = $root; Exclude = @() }
+    hires      = @{ Root = $root; Paths = @('textures/hires', 'textures/hires-2048'); Restore = $root; Exclude = @() }      # (hires-2048: Josh's hand-made 2K set for Normal quality -- missing from the 2026-10-15 pack)
     books      = @{ Root = $root; Paths = @('sources/books'); Restore = $root; Exclude = @('sources/books/before') }
     gfx        = @{ Root = $root; Paths = $null; Restore = $root; Exclude = @() }
     audio      = @{ Root = $root; Paths = @('sources/soundtrack'); Restore = $root; Exclude = @() }
@@ -51,7 +51,8 @@ $all = [ordered]@{
 # gfx: Josh's own sources only (the rest of sources\gfx is a regenerable export)
 $gfxDir = Join-Path $root 'sources\gfx'
 $gfx = @()
-foreach ($d in @('screens', 'credits', 'orrery-puzzle')) { if (Test-Path (Join-Path $gfxDir $d)) { $gfx += "sources/gfx/$d" } }
+# (upres-queue: Josh's de-duplicated up-res worklist + his renders into its 4k-2k folders, 2026-10-15)
+foreach ($d in @('screens', 'credits', 'orrery-puzzle', 'upres-queue')) { if (Test-Path (Join-Path $gfxDir $d)) { $gfx += "sources/gfx/$d" } }
 if (Test-Path (Join-Path $gfxDir 'decals')) {
     Get-ChildItem (Join-Path $gfxDir 'decals') -Directory | ForEach-Object { if (Test-Path (Join-Path $_.FullName 'updated')) { $gfx += "sources/gfx/decals/$($_.Name)/updated" } }
 }

@@ -1,4 +1,4 @@
-﻿---
+---
 name: aztmod-patch-framework
 description: AztMod is a distributable patcher (not a patched EXE) living in the Steam folder; build with src\Build-AztMod.ps1.
 metadata: 
@@ -206,3 +206,5 @@ dead.
 
 **Cave budget: the stub is 1659 bytes with 5 SPARE.** Each extra `A-OrAxDi` costs
 7. Anything more needs the clock blob at `0x50F2D` (169 free) instead.
+
+**F2 REMOVED (Josh, 2026-10-15: it "seems to disable mouse look. Can we remove that setting?").** F2 was the live master switch (`aztEnabled`): pressed by accident, it turned off mouse look and the rest of the mod. `AztKeyHook` still takes F2 but does nothing with it; it is not passed on to the game's scancode dispatch, which never saw F2 while the mod was on. `aztEnabled` stays 1, and the setting is still in the manifest for tools. The in-game key list no longer names F2. The stub cave shrank by 21 bytes, so the later labels moved; all 454 patch sites verified on install.

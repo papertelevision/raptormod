@@ -164,3 +164,12 @@ tracks, accumulate, compare against the table. See [[azrael-early-overlay]].
 - **Fix:** patches `midi-quiet-*` route those six `call`s (no fixups, no other patch on them) through overlay `AztMidiVol48` / `AztMidiVol88` -> `AztMidiQuiet`. While aztCdOn (stub cave) and aztCdMuted (overlay) are both set, it forces edx (the level) to 0; otherwise nothing changes. F4 unmutes as before. Every register but edx kept.
 - **Music default:** 30% = level 38 (`$VOL_MUSIC_DEFAULT`; the menu shows level x 100 / 127). Sound stays at 127.
 - Manifest 445 -> 451. Installed 2026-10-13, not yet heard in game.
+
+**MIDI MODE AS LOUD AS THE SOUNDTRACK (Josh, 2026-10-15: F4's MIDI "very soft" against the MP3s; not by moving the slider).**
+- **Measured:** each GM cue (XMI -> .mid with XmiTool, rendered by FluidRender through Staging's own libfluidsynth + GeneralUser-GS + the conf's reverb) against Josh's MP3, RMS over the same span. Harness: scratchpad `midi-level.ps1`.
+  - The MIDI was 8.7 dB (PEACEFUL) to 20.1 dB (KREEPY3) quieter; the median was 11.5 dB.
+  - KREEPY2 12.1, INGAME 15.7, INGAME2 17.1, GHOSTS 14.4, CATHEDRL 11.5, AWEMYST 9.7, EGYPTIAN 9.9, GRAIL 9.8, FIGHT2 9.2.
+- **Fix: `soundfont_volume = 300` (+9.5 dB) in `[fluidsynth]`** (runtime\azrael-staging.conf and the installed copy). It boosts the synth only; the slider, the CD tracks and the effects are untouched.
+  - **Why not more:** the loudest MIDI peaks (GRAIL -9.2, FIGHT2 -9.8 dBFS) would pass full scale above ~+9.5 dB at slider 100%.
+  - **What stays quieter:** KREEPY3, INGAME2, INGAME and GHOSTS remain 5-11 dB under their recordings. One gain serves the whole score; a per-cue trim could only CUT (the game's MIDI level tops out at 127).
+- **Setup-Machine now installs runtime\azrael-staging.conf over the game's copy** when they differ, keeping `.bak-<date>`. Before this, the conf only reached a PC inside the asset pack.

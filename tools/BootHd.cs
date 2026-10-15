@@ -445,6 +445,81 @@ namespace AztTool
             _lastTick = tick;
         }
         long DisruptUs { get { return Dis.Length * U_disStage; } }
+
+        // ---- THE SIGNAL AT THE EDGE (Josh, 2026-10-15: "To the left of the 7 + text/loading area, it feels a bit empty, so in the
+        // background there I'd love to see some static span from the left into that area, full height. This would be very subtle,
+        // but similar to how a poor signal on a TV used to display a static/wavering image of colors, like screen bend/degauss").
+        // Behind everything on the readout screen, from the left edge (strongest) fading to nothing short of the text and the 7:
+        // fine snow new every 30th of a second, slow rolling colour bands (red/green/blue out of step, like a chroma signal
+        // drifting) and a brightness band rolling down, the field's edge bending side to side row by row. Signed (lighter AND
+        // darker), small. Comes up after the power-on, goes with the readout's decay.
+        /// <summary>On/off; overall strength; snow, colour and band amplitudes (of 255 at the left edge); how far the rows bend
+        /// (game px); and the reach (1 = up to just short of the text).</summary>
+        public bool SideStatic = true;
+        public double StaticLevel = 1.0, StaticNoise = 34, StaticChroma = 11, StaticBand = 8, StaticBend = 20, StaticReach = 1.0, StaticStreaks = 0.025, StaticHz = 24;
+        // (Josh, next run: "I see it now, but now it's too busy. Let's have it glitch in and out rather than be constant, and make
+        // the resolution higher, and make it less visible ... extend it more to the right closer to the 7/loading area"):
+        // BURSTS -- episodes of StaticEpisode s, StaticOnShare of them live; inside one, StaticGlitch-second slots each on or
+        // off (StaticSlotOn) at their own strength, so it stutters in and out; finer grain (StaticGrain game px wide, half as
+        // high); fainter; flat across StaticFlat of its reach, then fading to nothing just short of the text and the bar.
+        public double StaticEpisode = 0.8, StaticOnShare = 0.45, StaticGlitch = 0.07, StaticSlotOn = 0.7, StaticGrain = 1.1, StaticFlat = 0.25;
+        // (2026-10-15, Josh after a run: "I'm not sure I'm seeing it" -- noise moving at 30 Hz reads far weaker than a still
+        // frame of it, so the grain is stronger (34 -> 52) and slower (30 -> 24 Hz) than the stills suggested, and it comes up
+        // over 0.4 s from the power-on instead of 1 s: "pretty much the entire duration of the 7/loading phase")
+        /// <summary>Where the boot saves ONE picture of itself at 8 s into the readout (a check of what it really drew); null = none.</summary>
+        public string StaticShotPath; bool _shotDone;
+        float[] _ssW; int _ssEdge = -1;
+        void DrawSideStatic(int[] pic, int pw, int vr, long el)
+        {
+            if (!SideStatic || StaticLevel <= 0) return;
+            double fin = Smooth((el - PowerUs) / 0.4e6), fout = el >= DecayFrom ? 1 - Smooth((el - DecayFrom) / (double)Math.Max(1, U_decay)) : 1;
+            double lv = StaticLevel * fin * fout; if (lv < 0.01) return;
+            {
+                double ts = el / 1e6; long ep = (long)(ts / StaticEpisode), sl = (long)(ts / StaticGlitch);
+                var re = new Rng(ep, 71); if (re.Below(1000) >= (int)(StaticOnShare * 1000)) return;
+                var rsl = new Rng(sl, 73); if (rsl.Below(1000) >= (int)(StaticSlotOn * 1000)) return;
+                lv *= 0.35 + 0.65 * rsl.Below(1000) / 1000.0;
+                // (into and out of an episode it is weaker: the edges of the burst)
+                double inEp = (ts - ep * StaticEpisode) / StaticEpisode; lv *= Math.Min(1, Math.Min(inEp, 1 - inEp) * 6);
+                if (lv < 0.01) return;
+            }
+            int edge = (int)Math.Min(pw, Math.Max(8, (Math.Min(Xt(TxtX), Xt(P_barX + ReadoutShift)) - Pt(10)) * StaticReach));
+            if (_ssW == null || _ssEdge != edge)
+            {
+                var wt = new float[edge];
+                for (int x = 0; x < edge; x++) { double u = x / (double)edge; wt[x] = (float)(1 - Smooth((u - StaticFlat) / (1 - StaticFlat))); }      // (flat, then gently to nothing at the text)
+                _ssW = wt; _ssEdge = edge;
+            }
+            double t = el / 1e6; long nt = (long)(el * Math.Max(1, StaticHz) / 1e6); var w = _ssW;
+            float kN = (float)(StaticNoise * lv), kC = (float)(StaticChroma * lv), kBd = (float)(StaticBand * lv);
+            double bendPx = StaticBend * _s * Zoom;
+            // the grain: cells a few px wide and one or two high (TV snow is streaky), so the tube's afterglow does not average
+            // it away; some cell rows are interference streaks, brighter and longer-grained
+            int gx = Math.Max(1, (int)Math.Round(StaticGrain * _s * Zoom)), gy = Math.Max(1, (int)Math.Round(StaticGrain * 0.5 * _s * Zoom));
+            int streakOdds = (int)(StaticStreaks * 1000);
+            System.Threading.Tasks.Parallel.For(0, vr, y =>
+            {
+                double bend = bendPx * (Math.Sin(y * 0.0085 + t * 2.1) + 0.5 * Math.Sin(y * 0.029 - t * 3.7)) / 1.5;
+                double hp = y * 0.0045 + t * 0.8;
+                float band = kBd * (float)Math.Sin(y * 0.006 - t * 1.1);
+                float cr = kC * (float)Math.Sin(hp), cg = kC * (float)Math.Sin(hp + 2.094), cb = kC * (float)Math.Sin(hp + 4.189);
+                int ib = (int)Math.Round(bend), o = y * pw, xEnd = Math.Min(pw, edge + Math.Abs(ib) + 1);
+                uint rs = ((uint)(y / gy) * 0x9E3779B1u) ^ ((uint)nt * 0x85EBCA77u) ^ 0x5BD1E995u;
+                rs ^= rs << 13; rs ^= rs >> 17; rs ^= rs << 5;
+                bool streak = (rs % 1000) < streakOdds; int cw = streak ? gx * 6 : gx; float kS = streak ? kN * 1.8f : kN;
+                for (int x = 0; x < xEnd; x++)
+                {
+                    int xs = x - ib; float wx = xs < 0 ? w[0] : xs >= edge ? 0f : w[xs];
+                    if (wx < 0.004f) continue;
+                    uint h = rs ^ ((uint)((x - ib) / cw + 4096) * 0x27D4EB2Du); h ^= h >> 15; h *= 0x2C1B3C6Du; h ^= h >> 12;
+                    float n = ((h & 255) - 127.5f) / 127.5f * kS + band;
+                    int p = pic[o + x];
+                    int r = ((p >> 16) & 255) + (int)(wx * (n + cr)), g = ((p >> 8) & 255) + (int)(wx * (n + cg)), b = (p & 255) + (int)(wx * (n + cb));
+                    r = r < 0 ? 0 : r > 255 ? 255 : r; g = g < 0 ? 0 : g > 255 ? 255 : g; b = b < 0 ? 0 : b > 255 ? 255 : b;
+                    pic[o + x] = (p & unchecked((int)0xFF000000)) | (r << 16) | (g << 8) | b;
+                }
+            });
+        }
         long DecayFrom { get { return U_mission - U_decay; } }
 
         // =====================================================================================
@@ -517,6 +592,10 @@ namespace AztTool
             // and the beams' convergence error in one pass -- and the raster last, which is the tube's own
             // and stays put while the picture slips
             Persist(pic, pw, vr, dtMs);
+            // the side static AFTER the afterglow (2026-10-15): drawn under the text first, the afterglow at the display's 60 fps
+            // kept the brighter of each grain's last frames and the snow washed out to a faint haze (Josh: "I didn't see the
+            // snow/static"); here it is fresh every frame and still under the tube's curve, bloom and raster
+            if (el < U_mission) DrawSideStatic(pic, pw, vr, el);
             // the refresh line AFTER the afterglow: it moves ~20 px a frame, so a trail of it is a stack of separate lines
             if (sweep && el >= PowerUs) DrawSweep(pic, sweepEl);
             Tube(pic, pw, vr, el, tick);
@@ -846,6 +925,39 @@ namespace AztTool
             // (the wiping edge: a thin bright line down the letters for as long as it runs)
             if (u < 1) FillRect(pic, clip - Math.Max(1, (int)(_s * Zoom)), it.Y, clip + 1, it.Y + it.H, C_flare);
         }
+        // ---- THE HASH DIVIDER (Josh, 2026-10-15: "a hash type divider underneath that is the same width as the loading bar, ie
+        // something like //////////..////////"): a row of slanted strokes as wide as the bar and centred on it, with two dots
+        // breaking it a little right of the middle, halfway between the logotype and the first readout line; drawn on from the
+        // left right after the logotype has wiped on, its front flaring
+        public double DividerAt = 2.75, DividerWipe = 0.45, DividerPitch = 9, DividerHeight = 9, DividerGapAt = 0.56;
+        void DrawDivider(int[] pic, long el, int ink)
+        {
+            if (_logoType == null || _lineItems == null || _banner.Length >= _lineItems.Length) return;
+            double t = (el - U_banner) / 1e6 - DividerAt; if (t < 0) return;
+            float sc = (float)(_s * Zoom), s1 = (float)Math.Max(1, _s);
+            float x0 = (float)Math.Round(Xt(P_barX + ReadoutShift)), w = Pt(P_barW);
+            float yTop = _logoType.Y + _logoType.H, yLine = _lineItems[_banner.Length].Y, h = (float)(DividerHeight * sc);
+            float cy = (yTop + yLine) / 2f, pitch = (float)(DividerPitch * sc);
+            int n = Math.Max(4, (int)Math.Floor(w / pitch)); pitch = w / n;
+            int gap0 = (int)Math.Round(n * DividerGapAt) - 1;                        // (the two slots that hold the dots)
+            double u = Math.Min(1, t / Math.Max(0.05, DividerWipe)), e = Smooth(u); float front = x0 + w * (float)e;
+            Paint(pic, _lw, _lh, g =>
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var pen = new Pen(Argb(225, ink), 1.3f * s1))
+                using (var hot = new Pen(Argb(255, C_flare), 1.5f * s1))
+                using (var dot = new SolidBrush(Argb(225, ink)))
+                using (var hotDot = new SolidBrush(Argb(255, C_flare)))
+                    for (int i = 0; i < n; i++)
+                    {
+                        float xl = x0 + i * pitch, xm = xl + pitch * 0.5f; if (xm > front) break;
+                        bool near = u < 1 && front - xm < pitch * 3;
+                        if (i == gap0 || i == gap0 + 1) { float r = 1.2f * s1; g.FillEllipse(near ? hotDot : dot, xm - r, cy + h / 2 - r * 2, 2 * r, 2 * r); continue; }
+                        float lean = h * 0.55f;                                       // (a forward slash: low left to high right)
+                        g.DrawLine(near ? hot : pen, xm - lean / 2, cy + h / 2, xm + lean / 2, cy - h / 2);
+                    }
+            });
+        }
         static readonly double[] L7Out = { 98, 143, 541, 143, 541, 258, 327, 700, 327, 773, 180, 773, 180, 703, 418, 250, 98, 250 };
         static readonly int[][] L7Cap = { new[] { 0, 1, 2, 7 }, new[] { 0, 7, 8 }, new[] { 7, 2, 3, 6 }, new[] { 6, 3, 4, 5 } };
         public int Logo7Edges;
@@ -857,7 +969,8 @@ namespace AztTool
             // where: the banner's box (its rows, from its first character to its widest line), the 7 a share of its height, centred
             double bTop = Yt(P_txtY), bH = nb * P_lineH * _s * Zoom;
             double bW = 0; for (int i = 0; i < nb && i < _lineItems.Length; i++) bW = Math.Max(bW, _lineItems[i].W);
-            double cxS = Xt(TxtX) + bW / 2, cyS = bTop + bH * (0.5 - Logo7Lift), size = bH * Logo7Height;
+            // (Josh, 2026-10-15: "the 7 logo area ... horizontally centered with the loading bar" -- was centred on the banner's rows)
+            double cxS = Math.Round(Xt(P_barX + ReadoutShift)) + Pt(P_barW) / 2.0, cyS = bTop + bH * (0.5 - Logo7Lift), size = bH * Logo7Height;
             _logoCx = cxS; _logoBottom = cyS + size * 0.5; _logoBoxH = bH;
             int n = L7Out.Length / 2; double ox = (98 + 541) / 2.0, oy = (143 + 773) / 2.0, H = 773 - 143;
             // the solid in view space: x right, y up, z toward the eye; turned by yaw (with its slow sway) and pitch
@@ -983,7 +1096,7 @@ namespace AztTool
             int n;
             if (el < U_text) { long k = (el - U_banner) / U_banStep; n = (int)k + 1; age = (el - U_banner) % U_banStep; if (n >= nb) { n = nb; age = long.MaxValue; } }
             else { long k = (el - U_text) / U_line; n = nb + (int)k + 1; age = (el - U_text) % U_line; if (n >= nAll) { n = nAll; age = long.MaxValue; } }
-            if (Logo7On) { DrawLogo7(pic, el, ink); DrawLogoType(pic, el, ink); }      // (THE 7 and its logotype: in place of the banner's rows of 7s)
+            if (Logo7On) { DrawLogo7(pic, el, ink); DrawLogoType(pic, el, ink); DrawDivider(pic, el, ink); }      // (THE 7, its logotype and the hash divider: in place of the banner's rows of 7s)
             for (int i = 0; i < n; i++)
             {
                 if (Logo7On && i < nb) continue;
@@ -1161,7 +1274,8 @@ namespace AztTool
                 else
                 {
                     drew = DecorateAt(pic, pw, ph, vr, t);
-                    if (!_reboot) RevealDegauss(pic, pw, vr, t);
+                    if (!_reboot) RevealDegauss(pic, pw, vr, t - BreakAtUs);      // (with the grail's break-up: BreakAtUs)
+                    if (!_sndDegauss && !_reboot && t >= BreakAtUs && t < BreakAtUs + 300000) { _sndDegauss = true; if (OpenDegauss > 0 && Sound != null && Sound.On) { try { Sound.DegaussSound(OpenDegauss); } catch { } } }
                     // WEAPON SYSTEMS ONLINE types out to its own pattern, a little higher
                     if (!_sndWeapons && t >= WeaponFromUs && t < WeaponFromUs + 300000 && Sound != null) { _sndWeapons = true; Sound.Typing(500, WeaponType, 1.12); }
                 }
@@ -1469,7 +1583,7 @@ namespace AztTool
         public void DecorateOver(int[] pic, int pw, int ph, int vr, double t)
         {
             Glare(pic, pw, vr, GlareLeft(t));
-            if (!_reboot) RevealFlare(pic, pw, ph, t);       // (behind the afterimage: drawn first)
+            if (!_reboot) RevealFlare(pic, pw, ph, t - BreakAtUs);       // (behind the afterimage: drawn first)
             ChaliceOver(pic, pw, ph, t);
             if (Viewfinder && t >= FrameFromUs && t < FrameEndUs) DrawFrame(pic, pw, ph, vr, t);
             DrawDust(pic, pw, ph, vr, t);
@@ -1590,6 +1704,9 @@ namespace AztTool
         /// <summary>Peak strength (0..1 toward warm white), centre and size (shares of the width / view height), tilt (deg).</summary>
         public double Highlight = 0.12, HighlightX = 0.80, HighlightY = 0.14, HighlightW = 0.24, HighlightH = 0.13, HighlightTilt = -16;
         public int HighlightColour = 0xFFF6E6;
+        /// <summary>(Josh, 2026-10-15: "there is a diagonal glow applied to the visor's top right. I want that mirrored on the
+        /// left") -- the same highlight again, mirrored about the middle (top left, tilted the other way).</summary>
+        public bool HighlightMirror = true;
         byte[] _glare; int _gx0, _gy0, _gw, _gh, _gpw, _gvr; double _gk;
         /// <summary>The highlight's strength `t` microseconds into the reveal: full until the colour starts, gone as it is up.</summary>
         double GlareLeft(double t)
@@ -1630,6 +1747,11 @@ namespace AztTool
                     int c = pic[o + x], r = (c >> 16) & 255, gg = (c >> 8) & 255, bb = c & 255;
                     r += (hr - r) * a / 255; gg += (hg - gg) * a / 255; bb += (hb - bb) * a / 255;
                     pic[o + x] = (r << 16) | (gg << 8) | bb;
+                    if (!HighlightMirror) continue;
+                    int om = (y0g + y) * pw + (pw - 1 - (x0g + x));      // (the mirror: same row, the other side)
+                    c = pic[om]; r = (c >> 16) & 255; gg = (c >> 8) & 255; bb = c & 255;
+                    r += (hr - r) * a / 255; gg += (hg - gg) * a / 255; bb += (hb - bb) * a / 255;
+                    pic[om] = (r << 16) | (gg << 8) | bb;
                 }
             });
         }
@@ -1673,25 +1795,51 @@ namespace AztTool
         // ---- 11. THE HUD POWERS UP WITH THE READOUT ---------------------------------------------
         /// <summary>The lower HUD (Panel.cs): held off until the first readout line ("DEPLOYING MS-2 HELMET INTERFACE..."), then it
         /// slides in and its keys flicker on; its health bar fills on "HEALTH SYSTEM INITIATED".</summary>
-        public Panel Hud;
+        public Panel Hud { get { return _hud; } set { _hud = value; if (value != null) { value.SlideStarted = OnHudSlide; value.ShownWithoutSlide = () => { if (Interlocked.Read(ref _slideArmedAt) >= 0) Note("HUD slide sound: the panel came back without a slide (hidden under 3 s) -- still armed for its slide"); }; } } }
+        Panel _hud;
         bool _hudOut, _hudHealth;
         // THE HUD'S SOUND (Josh, 2026-10-07: his ratchet.mp3, "played when the UI comes in from the left right"): played the
         // moment the held HUD is let go to slide in -- and only then (a reload whose HUD is already out has no slide).
         /// <summary>The clip (a 16-bit WAV, stereo kept) and its level against the boot's own sounds; null = none.</summary>
         public string HudSoundPath; public double HudSoundLevel = 0.5;
         short[] _hudPcm;
+        // THE SOUND GOES WITH THE SLIDE (Josh, 2026-10-15: loading a game, "I still hear the sound under the loading screen. It is
+        // the precise sound that is played when the interface slides in"): releasing the HUD only ARMS it; the panel calls
+        // OnHudSlide the moment its halves actually start in (Panel.SlideStarted) -- after a load that is when the view comes out
+        // from under its loading panel, seconds after the release. An arming not used within SlideArmSeconds lapses (a panel
+        // already out does not slide, and must not set it off much later).
+        public double SlideArmSeconds = 20;
+        long _slideArmedAt = -1;
+        // (Josh, 2026-10-15: after the title-click fix "it has also been removed from the actual slide-in animation" -- after a
+        // title load the panel could not show until the game was in front again, 17 s later, past the old 20 s lapse. Now:
+        // armed only when a slide IS coming (the panel is not on screen), and it stays armed until that slide, however late.)
         void HudSlideSound()
         {
-            var s = Sound; if (s == null || !s.On) return;
+            var hud = Hud;
+            if (hud != null && hud.Shown) { Note("HUD slide sound: NOT armed -- the panel is already on screen (no slide will come)"); return; }
+            Interlocked.Exchange(ref _slideArmedAt, Stopwatch.GetTimestamp()); Note("HUD slide sound: armed -- it plays when the panel's halves start in");
+        }
+        void OnHudSlide()
+        {
+            long at = Interlocked.Exchange(ref _slideArmedAt, -1);
+            BootSound.Silence = false;      // (the slide is the end of the loading sequence: its own sound is heard)
+            if (at < 0) { Note("HUD slide sound: the panel slid in, not armed -- silent (a quiet release, e.g. at the title)"); return; }
+            var s = Sound; if (s == null || !s.On) { Note("HUD slide sound: the panel slid in, but the boot's sound is off"); return; }
             if (_hudPcm == null && HudSoundPath != null && File.Exists(HudSoundPath)) _hudPcm = s.LoadStereoWav(HudSoundPath, HudSoundLevel);
-            if (_hudPcm != null) { try { s.PlayStereo(_hudPcm); } catch { } }
+            Note(_hudPcm != null ? string.Format("HUD slide sound: PLAYED with the slide ({0:N1} s after it was armed)", (Stopwatch.GetTimestamp() - at) / (double)Stopwatch.Frequency) : "HUD slide sound: no clip (" + (HudSoundPath ?? "no path") + ")");
+            if (_hudPcm == null && HudSoundPath != null && File.Exists(HudSoundPath)) _hudPcm = s.LoadStereoWav(HudSoundPath, HudSoundLevel);
+            if (_hudPcm != null) { try { s.PlayStereo(_hudPcm); AudioMeter.Mark("OUR HUD slide sound (ratchet) played: the panel's halves started in"); } catch { } }
         }
         void HudBeats(long el)
         {
             var hud = Hud; if (hud == null) return;
             if (!_hudOut && !HudWait && (el >= U_text || _reboot))
             {
-                _hudOut = true; if (hud.HoldOff) HudSlideSound(); hud.HoldOff = false;
+                // (a LOAD's re-boot never arms the slide sound: it starts the instant LOAD is picked, before the watcher's load guard
+                // can hold the HUD (its notes reach the log late -- they looked 4 s later), so its release slid the panel in behind the
+                // loading screen with the ratchet (Josh, 2026-10-15, logged "armed ... PLAYED" at the load's start). After a load the
+                // sound is armed by the hand-off alone (HudIn).)
+                _hudOut = true; if (hud.HoldOff && !_reboot) HudSlideSound(); else if (hud.HoldOff) Interlocked.Exchange(ref _slideArmedAt, -1); hud.HoldOff = false;
                 if (!_reboot) { hud.PowerUp(hud.SlideSeconds + 0.15); Note(string.Format("visor boot: the HUD comes in at {0:N2} s", el / 1e6)); }
             }
             if (!_hudHealth && !_reboot && el >= U_text + (_lines.Length - 1) * U_line) { _hudHealth = true; hud.BootHealth(); }
@@ -1700,8 +1848,22 @@ namespace AztTool
         /// boot never lets the HUD go by itself (its beats, a re-boot, the game reaching play) -- the watcher does, with HudIn().</summary>
         public volatile bool HudWait;
         /// <summary>Let the HUD in now (with its slide-in sound if it was held back): the watcher, once a load's panel is gone.</summary>
-        public void HudIn() { HudWait = false; ReleaseHud(); }
-        void ReleaseHud() { var hud = Hud; if (hud != null) { if (hud.HoldOff) HudSlideSound(); hud.HoldOff = false; } _hudOut = true; }
+        public void HudIn() { HudWait = false; ReleaseHud(true); }
+        // (Josh, 2026-10-15: loading a game, "I still hear the sound that plays when the lower UI animates in while on the loading
+        // screen. Then, when the game actually hands off to the gameplay, I see the animation and hear the sound again"): the
+        // boot's OWN releases -- its shutter beat and its hold timeout -- let the HUD go even while a load held it (HudWait), so
+        // the slide sound played behind the loading panel and the watcher, still holding, took the HUD back for the real hand-off.
+        // While a load holds it, only HudIn (the watcher, once the panel is gone) lets it go.
+        // silent: let it go WITHOUT arming its sound (the attached-late release below -- FOUND by the audio meter, 2026-10-15:
+        // with the game at its TITLE (boot state 2) this released the HUD and armed the ratchet; the panel slid in behind the
+        // title the moment LOAD was clicked and the view came up, and the armed sound played -- Josh: "a ratchet sound that is
+        // played the instant I click to load a game and the loading interface appears")
+        void ReleaseHud(bool fromWatcher = false, bool silent = false)
+        {
+            if (HudWait && !fromWatcher) return;
+            if (silent) Interlocked.Exchange(ref _slideArmedAt, -1);
+            var hud = Hud; if (hud != null) { if (hud.HoldOff && !silent) HudSlideSound(); hud.HoldOff = false; } _hudOut = true;
+        }
 
         // =====================================================================================
         // THE TUBE COMING ON (Josh, 2026-10-07): "a degauss thunk and red/blue distortion at the very beginning ... to
@@ -1998,6 +2160,18 @@ namespace AztTool
         double _ghostCore = 1;                        // (the ghost's bright core: none in its blurred glow, only in its thin trace)
         double _ghostFlash;                           // (the crisp afterimage's flare: 0..1 toward the flare white)
         double _explode;                              // (the afterimage breaking up: its pieces flying apart and crackling, 0..1)
+        bool _building; double _build; int _buildPass;   // (the briefing grail pieced together: GrailAssemble, DrawWatermark)
+        bool _burst;                                  // (the digits thrown out with the afterimage's break-up: BinBurst, ChaliceOver)
+        // a binary digit as vector strokes, h tall, centred on (x, y): 0 = a narrow oval, 1 = a stroke with its flag
+        static void DrawBit(Graphics g, int bit, float x, float y, float h, Color c, float lw)
+        {
+            if (c.A < 3) return;
+            using (var p = new Pen(c, lw))
+            {
+                if (bit == 0) g.DrawEllipse(p, x - h * 0.28f, y - h * 0.5f, h * 0.56f, h);
+                else { g.DrawLine(p, x, y - h * 0.5f, x, y + h * 0.5f); g.DrawLine(p, x, y - h * 0.5f, x - h * 0.22f, y - h * 0.3f); }
+            }
+        }
         static int Mix(int a, int b, double k)
         {
             k = Math.Max(0, Math.Min(1, k));
@@ -2011,7 +2185,7 @@ namespace AztTool
             double wt = Wall; long gt = (long)(wt * ChaliceGlitchHz);
             float s1 = (float)Math.Max(1, _s);
             // broken, the turn stutters (it jumps between held angles) and the whole trace flickers
-            double spinT = broken > 0 ? Math.Floor(wt / 0.14) * 0.14 + (new Rng(gt, 41).Below(100) < 12 * broken ? 0.4 : 0) : wt;
+            double spinT = broken > 0.3 ? Math.Floor(wt / 0.14) * 0.14 + (new Rng(gt, 41).Below(100) < 12 * broken ? 0.4 : 0) : wt;      // (2026-10-15: smooth below 0.3 -- the briefing's growing instability)
             double phi = spinT * StatusSpin, tilt = 0.32, ct = Math.Cos(tilt), st = Math.Sin(tilt);
             if (broken > 0) alpha *= 1 - 0.45 * broken * (new Rng(gt, 43).Below(100) / 100.0);
             Func<double, double, double, PointF> P = (r, th, h) =>
@@ -2050,20 +2224,86 @@ namespace AztTool
                         if (a < 3) return;
                         pen.Color = crisp ? Argb(a, Mix(C_teal, C_tealFlare, _ghostFlash))
                                   : Argb(a, ghostPx > 0 ? (passI == 3 ? C_tealFlare : C_teal) : (passI == 0 ? VectorHalo : (near > 0.8 ? C_tealFlare : C_teal)));
-                        if (broken <= 0) { g.DrawLines(pen, pts); return; }
+                        if (broken <= 0 && !_building) { g.DrawLines(pen, pts); return; }
+                        Color pc = pen.Color;
                         for (int i = 0; i + 1 < pts.Length; i++)
                         {
                             uint sid = id * 64 + (uint)i;
                             if (new Rng(gt, sid).Below(100) < (_explode > 0 ? (int)(92 * broken * broken) : dropPct)) continue;
                             int b = Band((pts[i].Y + pts[i + 1].Y) * 0.5f); if (gone[b]) continue;
-                            if (_explode <= 0) { g.DrawLine(pen, pts[i].X + shift[b], pts[i].Y, pts[i + 1].X + shift[b], pts[i + 1].Y); continue; }
+                            double exL = _explode;
+                            if (_building)
+                            {
+                                // THE GRAIL PIECED TOGETHER (GrailAssemble): hN = the segment's height up the grail (0 base .. 1 rim),
+                                // d = how far the front has passed it. Ahead of the front: nothing yet. The teal pass draws the
+                                // pulse at the front, fading behind it; the amber pass draws the pieces behind it, flying in
+                                // (the break-up run backwards) and settling over AssembleSettle
+                                double hN = (cy + 0.55 * S - (pts[i].Y + pts[i + 1].Y) * 0.5) / (1.1 * S), d = _build - hN;
+                                if (_buildPass == 1)
+                                {
+                                    if (d < -0.03 || d > Math.Max(AssembleTealTail, AssembleBinTail)) continue;
+                                    float qx = pts[i].X + shift[b], qy = pts[i].Y, rx2 = pts[i + 1].X + shift[b], ry2 = pts[i + 1].Y;
+                                    if (d <= AssembleTealTail)
+                                    {
+                                        // the pulse: brightest and widest right at the front
+                                        double w = d < 0 ? 1 + d / 0.03 : 1 - d / AssembleTealTail;
+                                        pen.Color = Color.FromArgb(Math.Max(0, Math.Min(255, (int)(pc.A * w))), pc);
+                                        pen.Width = (float)(Math.Abs(ghostPx) * (1 + AssembleTealWide * w));
+                                        g.DrawLine(pen, qx, qy, rx2, ry2);
+                                    }
+                                    // THE BINARY TRAIL (Josh, 2026-10-15: "leave a trail of 0s and 1s to indicate binary code crafting
+                                    // the grail"): a 0 or a 1 on some of the segments the front has passed, flipping each glitch
+                                    // tick, rising a little and fading over AssembleBinTail of the height
+                                    // (one place every AssembleBinGap digit heights along the segment, AssembleBinShare % of them used)
+                                    if (AssembleBinTail > 0 && d > -0.02)
+                                    {
+                                        double wb = d < 0 ? 1 + d / 0.02 : 1 - d / AssembleBinTail; wb = Math.Max(0, wb);
+                                        float hb = (float)(AssembleBinPx * S), sl = (float)Math.Sqrt((rx2 - qx) * (rx2 - qx) + (ry2 - qy) * (ry2 - qy));
+                                        int nb = Math.Max(1, Math.Min(12, (int)(sl / (hb * AssembleBinGap))));
+                                        Color bc = Color.FromArgb(Math.Max(0, Math.Min(255, (int)(pc.A * wb * AssembleBinLevel))), pc);
+                                        for (int k = 0; k < nb; k++)
+                                        {
+                                            var rb = new Rng(sid, (uint)(91 + k));
+                                            if (rb.Below(100) >= AssembleBinShare) continue;
+                                            var rt = new Rng(gt, sid * 16 + (uint)k + 31000);
+                                            if (rt.Below(100) < 12) continue;      // (flickering)
+                                            float u = (k + 0.2f + 0.6f * rb.Below(100) / 100f) / nb;
+                                            float dx = qx + (rx2 - qx) * u + (rb.Below(201) - 100) / 100f * hb * 0.5f;
+                                            float dy = qy + (ry2 - qy) * u - (float)(Math.Max(0, d) * S * AssembleBinRise);
+                                            DrawBit(g, (int)rt.Below(2), dx, dy, hb, bc, Math.Max(1f, Math.Abs(ghostPx) * 0.75f));
+                                        }
+                                    }
+                                    continue;
+                                }
+                                if (d < 0) continue;
+                                exL = Math.Max(exL, AssemblePush * (1 - Smooth(d / AssembleSettle)));
+                            }
+                            if (exL <= 0) { g.DrawLine(pen, pts[i].X + shift[b], pts[i].Y, pts[i + 1].X + shift[b], pts[i + 1].Y); continue; }
                             // THE PIECES FLY (Josh: "pieces exploding (in a subtle way) and dissolving in electrical style corrupted
                             // effects"): each segment drifts out from the middle -- its own distance, a little turn, shrinking --
                             // and some crackle into a jagged spark of a line, flickering, with a fleck or two thrown off
                             var rs = new Rng(sid, 77);
                             float ax = pts[i].X + shift[b], ay = pts[i].Y, bx = pts[i + 1].X + shift[b], by = pts[i + 1].Y;
                             float mx = (ax + bx) / 2, my = (ay + by) / 2, ddx = mx - cx, ddy = my - cy, dl = (float)Math.Sqrt(ddx * ddx + ddy * ddy) + 1;
-                            float ex = (float)_explode, push = ex * S * 0.26f * (0.45f + rs.Below(100) / 100f);
+                            float ex = (float)exL, push = ex * S * 0.26f * (0.45f + rs.Below(100) / 100f);
+                            if (_burst)
+                            {
+                                // THE DIGITS GO WITH IT (Josh, 2026-10-15: "I'd like the binary numbers to explode outward also when
+                                // the grail explodes"): instead of the piece, a 0 or 1 or two thrown out past it (BinBurstSpread of
+                                // its push), coming up as the break starts and gone by its end, flipping and flickering
+                                for (int k = 0; k < 2; k++)
+                                {
+                                    var rb = new Rng(sid, (uint)(95 + k));
+                                    if (rb.Below(100) >= BinBurstShare) continue;
+                                    var rt = new Rng(gt, sid * 4 + (uint)k + 47000);
+                                    if (rt.Below(100) < 15) continue;
+                                    float hb = (float)(AssembleBinPx * S), far = push * (float)(BinBurstSpread * (0.6 + 0.8 * rb.Below(100) / 100.0));
+                                    float px2 = mx + ddx / dl * far + (rb.Below(201) - 100) / 100f * hb * 1.5f, py2 = my + ddy / dl * far + (rb.Below(201) - 100) / 100f * hb * 1.5f;
+                                    double wa = Smooth(ex / 0.12) * Math.Pow(Math.Max(0, 1 - ex), 1.3);
+                                    DrawBit(g, (int)rt.Below(2), px2, py2, hb, Color.FromArgb(Math.Max(0, Math.Min(255, (int)(pc.A * wa))), pc), Math.Max(1f, Math.Abs(ghostPx) * 0.75f));
+                                }
+                                continue;
+                            }
                             float nx = mx + ddx / dl * push, ny = my + ddy / dl * push + ex * S * 0.04f * (rs.Below(100) / 100f);
                             double ang = (rs.Below(201) - 100) / 100.0 * 1.1 * ex, ca = Math.Cos(ang), sa = Math.Sin(ang);
                             float hx = (bx - ax) / 2 * (1 - 0.55f * ex), hy = (by - ay) / 2 * (1 - 0.55f * ex);
@@ -2374,7 +2614,7 @@ namespace AztTool
         public bool GrailWatermark = true;
         /// <summary>The watermark's strength and how long it takes to come up (s); its middle (shares of the width and the view's
         /// height) and its size (the old afterimage's: GhostSize of the view's height -- the chalice drawn 0.8 of it).</summary>
-        public double WmAlpha = 0.22, WmFadeIn = 0.6, GrailX = 1 - 0.114, GrailY = 0.78 + 50.0 / 1238, GrailSize = 1.15;
+        public double WmAlpha = 0.22, WmFadeIn = 0.6, GrailX = 1 - 0.114, GrailY = 0.78 + (50.0 - 100.0) / 1238, GrailSize = 1.15;      // (2026-10-15: 100 px higher)
         int[] _wmMask;
         void WatermarkPose(int pw, int vr, out float cx, out float cy, out float S)
         {
@@ -2390,12 +2630,76 @@ namespace AztTool
         /// <summary>The briefing's grail against the afterimage's size: at the start and at the end; how long the signal takes to
         /// go (s, ending as the screen does); and how much higher the reveal's afterimage is (share of the view's height).</summary>
         public double WmFrom = 0.5, WmTo = 0.75, SignalLoss = 0.9, GhostLift = 100.0 / 1238;
+        // ROUND 5 (Josh, 2026-10-15: "I don't like the static for the grail on this scene. It should be removed. For the grail, move
+        // it up by 100px, and have it continue to grow slowly as it gets closer to the size of the grail on the fade to game phase.
+        // ... I want the grail to become more and more unstable, ie starting to break apart as it grows in size, with vector based
+        // corruption. This will continue on the large version in the fade to game phase, until it finally fully explodes as it
+        // does now"). No static and no signal loss: through the briefing it grows from GrowFrom to GrowTo of the afterimage's size
+        // and its lines come apart more and more (Unstable at the end: segments dropped, slices thrown, pieces drifting off and
+        // crackling into zigzags -- DrawChalice's own corruption); the reveal picks it up there, finishes growing over
+        // GrowRest seconds and keeps that instability until the afterimage's break-up (GhostBreak) takes it the rest of the way.
+        public bool GrailRound5 = true;
+        public double GrowFrom = 1.0, GrowTo = 1.0, GrowRest = 2.4, Unstable = 0, UnstablePow = 1.0;      // (round 7: no growth, no instability)      // (0.4 looked already exploded by the reveal; 0.26 stays a grail coming apart)
+        // ROUND 6 (Josh, 2026-10-15: "make it grow slower, it should only reach 80% the size of the one on the fade to game phase,
+        // but never stop growing, so it won't reach that size until the switch. ... the break apart portion start only in the last
+        // 90% of that phase [read: from 90% of the way through], then in the final phase, it will ramp up quickly in its
+        // instability until finally breaking apart"): GrowTo 0.80 reached exactly at the switch; in the reveal it carries on
+        // growing to full over GrowRest; the instability starts at UnstableFrom of the briefing and reaches Unstable by its end;
+        // in the reveal it ramps from there to RevealUnstable over RevealRamp seconds, and the afterimage's break-up (GhostBreak)
+        // finishes it as before.
+        public double UnstableFrom = 0.9, RevealUnstable = 0, RevealRamp = 1.6;
+        // ROUND 7 (Josh, 2026-10-15: "it still freezes at points. Let's not have it grow at all ... the size it was originally on the
+        // fade to game phase, with that original 'break apart totally at the very end' animation ... The grail shown in the
+        // Objective mission screen will not distort and not grow"): GrowFrom = GrowTo = 1 (full size from the start), Unstable =
+        // RevealUnstable = 0, and no pull-together as it appears (BriefingResolve off) -- whole and turning smoothly through the
+        // briefing and the hold, then only the afterimage's own break-up (GhostBreak) at the end of the reveal.
+        public bool BriefingResolve = false;
+        // THE GRAIL PIECED TOGETHER (Josh, 2026-10-15: "on the 'objective' phase where the large grail first appears, let's have it
+        // 'piece together' quickly, as if the system data is constructing the visual of the grail. Perhaps a faint teal outline
+        // pulse that crafts the amber grail in its wake"): over AssembleSeconds from the briefing's start a teal front climbs the
+        // grail from its base to its rim, its lines lit faint teal at the front (AssembleTeal, fading over AssembleTealTail of the
+        // height behind it); behind it the amber pieces fly in (the break-up's own pieces and crackle, run backwards: AssemblePush
+        // at the front) and settle over AssembleSettle of the height. Then the grail as before. GrailAssemble false = the old fade-in.
+        public bool GrailAssemble = true;
+        public double AssembleSeconds = 1.55, AssembleTeal = 0.95, AssembleTealTail = 0.14, AssemblePush = 0.6, AssembleSettle = 0.25;      // (0.9 s / 0.5 first; Josh: "brighter" + slower for the binary)
+        /// <summary>The pulse: how much wider its lines are at the front, and its colour toward the flare white.</summary>
+        public double AssembleTealWide = 0.8, AssembleTealWhite = 0.55;
+        /// <summary>The binary trail: how far behind the front it lasts (share of the height), the share of segments with a digit
+        /// (%), a digit's height (share of the grail's size), its strength against the pulse's, and how far it rises as it fades.</summary>
+        public double AssembleBinTail = 0.6, AssembleBinPx = 0.017, AssembleBinLevel = 0.85, AssembleBinRise = 0.03, AssembleBinGap = 2.4; public int AssembleBinShare = 65;      // (tail 0.32 / rise 0.05 first; Josh: "trail a bit slower")
+        /// <summary>The digits in the reveal's break-up: on/off, their strength against the pulse's, how far past the pieces they
+        /// fly (x their push), and the share of pieces that throw one (%, two chances each).</summary>
+        public bool BinBurst = true; public double BinBurstLevel = 0.75, BinBurstSpread = 1.8; public int BinBurstShare = 45;
+        double Instability(double grow) { double k = (grow - UnstableFrom) / Math.Max(1e-3, 1 - UnstableFrom); return Unstable * Math.Pow(Math.Max(0, Math.Min(1, k)), UnstablePow); }
         void DrawWatermark(int[] pic, int pw, int vr, long el)
         {
             if (!GrailWatermark || !StatusColumn || _noCup || _reboot || el < U_mission) return;
             double u = Smooth((el - U_mission) / (WmFadeIn * 1e6));
             float cx, cy, S; WatermarkPose(pw, vr, out cx, out cy, out S);
             double grow = Math.Max(0, Math.Min(1, (el - U_mission) / (double)Math.Max(1, U_open - U_mission)));
+            if (GrailRound5)
+            {
+                S *= (float)(GrowFrom + (GrowTo - GrowFrom) * grow);
+                if (GrailAssemble && el - U_mission < AssembleSeconds * 1e6)
+                {
+                    // the front climbs from below the base to past the rim (eased out: fast, then landing), far enough past
+                    // that the teal has faded and every piece has settled when it ends
+                    double bt = (el - U_mission) / (AssembleSeconds * 1e6), e = 1 - (1 - bt) * (1 - bt);
+                    double fEnd = 1.1 + Math.Max(AssembleSettle, Math.Max(AssembleTealTail, AssembleBinTail));
+                    _building = true; _build = -0.05 + (fEnd + 0.05) * e;
+                    try
+                    {
+                        _buildPass = 0; BurnChalice(pic, pw, vr, cx, cy, S, WmAlpha, 0, 0, 0, ref _wmMask);
+                        _buildPass = 1; BurnChalice(pic, pw, vr, cx, cy, S, AssembleTeal, 0, 0, 0, ref _wmMask, Mix(C_teal, C_tealFlare, AssembleTealWhite));
+                    }
+                    finally { _building = false; }
+                    return;
+                }
+                if (GrailAssemble) u = 1;      // (assembled: already at its level)
+                double inst = Instability(grow);
+                BurnChalice(pic, pw, vr, cx, cy, S, WmAlpha * u, Math.Max(BriefingResolve ? ChaliceBroken(el) : 0, inst), inst, 0, ref _wmMask);
+                return;
+            }
             S *= (float)(WmFrom + (WmTo - WmFrom) * grow);
             long lossFrom = U_open - (long)(SignalLoss * 1e6);
             double lost = Smooth((el - lossFrom) / (SignalLoss * 1e6));
@@ -2435,7 +2739,7 @@ namespace AztTool
         /// <summary>The chalice BURNED into a picture: its crisp lines into a coverage mask, the amber screened on through it.
         /// S: its size (the drawn height); a: strength 0..1; brk: broken; explode: flying apart (the afterimage's end);
         /// flash: the lines whitening.</summary>
-        void BurnChalice(int[] pic, int pw, int vr, float cx, float cy, float S, double a, double brk, double explode, double flash, ref int[] mask)
+        void BurnChalice(int[] pic, int pw, int vr, float cx, float cy, float S, double a, double brk, double explode, double flash, ref int[] mask, int colour = -1)
         {
             if (a <= 0.01 || S < 4) return;
             float cupH = S / 0.80f, cupTop = cy - cupH * 0.56f, lw = Math.Max(1.5f, (float)(vr * GhostLine));
@@ -2454,7 +2758,7 @@ namespace AztTool
                 }
             }
             finally { hm.Free(); }
-            int col = Mix(GhostAmber, VectorCore, flash * 0.7);
+            int col = colour >= 0 ? colour : Mix(GhostAmber, VectorCore, flash * 0.7);
             int cr = (col >> 16) & 255, cg = (col >> 8) & 255, cb = col & 255, op = (int)(256 * Math.Min(1.0, a)); var mk = mask;
             System.Threading.Tasks.Parallel.For(y0, y1, y =>
             {
@@ -2539,7 +2843,20 @@ namespace AztTool
         }
         // (Josh, 2026-10-07: "have that final grail image break apart at the end as it fades away") -- as the amber goes, the
         // afterimage goes the way the trace came in, as a corrupt signal: segments lost, slices thrown, the turn stuttering
-        double GhostBreak(double tUs) { double gone = 1 - GlareLeft(tUs); return Smooth((gone - GhostBreakFrom) / GhostBreakSpan); }
+        double GhostBreak(double tUs) { double gone = 1 - GhostLeft(tUs); return Smooth((gone - GhostBreakFrom) / GhostBreakSpan); }
+        // (Josh, 2026-10-15: "have the grail break apart sooner after the fade to game phase starts. IT should occur about 50%
+        // through that phase, not at the end with the weapon reticule animation. The degauss and light flash effect should still be
+        // in time with the grail breaking apart") -- the afterimage's break-up and fade, the reveal's degauss (sound and picture)
+        // and the lens flare all start at BreakShare of the reveal (a new game: ~2.3 s of ~7.55), no longer with the amber's fade.
+        // The afterimage breaks and goes over BreakSeconds, the amber's fade length, in the same shape it had. 0 = as before.
+        public double BreakShare = 0.3, BreakSeconds = 1.2;      // (0.5 first; Josh, same day: ".3")
+        double BreakAtUs { get { return BreakShare > 0 && !_reboot ? BreakShare * RevealUs : 0; } }
+        /// <summary>How much of the afterimage is left (1 -> 0): from BreakAtUs over BreakSeconds, else with the amber.</summary>
+        double GhostLeft(double tUs)
+        {
+            if (BreakShare <= 0) return GlareLeft(tUs);
+            return 1 - Smooth((tUs - BreakAtUs) / (BreakSeconds * 1e6));
+        }
         /// <summary>When the afterimage starts breaking up (share of the amber's fade gone) and over how much of it.</summary>
         public double GhostBreakFrom = 0.02, GhostBreakSpan = 0.55;
         static void Screen(int[] pic, int i, int sr, int sg, int sb)
@@ -2568,6 +2885,25 @@ namespace AztTool
         void ChaliceOver(int[] pic, int pw, int ph, double t)
         {
             if (!StatusColumn || _reboot) return;            // (no chalice when loading a game)
+            if (GrailWatermark && GrailRound5)
+            {
+                // (2026-10-15) THE BRIEFING'S GRAIL CARRIES ON: same place, from its last size to full over GrowRest, from its
+                // faint level to the afterimage's over GhostRise, as unstable as it was -- then the break-up and fade as before
+                int vrW = _lvr > 0 ? _lvr : ph;
+                float wx, wy, wS; WatermarkPose(pw, vrW, out wx, out wy, out wS);
+                double gr = Smooth(t / (GrowRest * 1e6)), up = Smooth(t / (GhostRise * 1e6));
+                double flash = GhostFlare * up * Math.Exp(-Math.Max(0, t - GhostRise * 1e6) / (GhostFlareTime * 1e6));
+                double aw = (WmAlpha + (GhostAlpha - WmAlpha) * up) * Math.Pow(GhostLeft(t), 0.7);
+                double brk = Math.Max(Instability(1) + (RevealUnstable - Instability(1)) * Smooth(t / (RevealRamp * 1e6)), GhostBreak(t));      // (round 6: ramps up fast, then the break-up)
+                BurnChalice(pic, pw, vrW, wx, wy, wS * (float)(GrowTo + (1 - GrowTo) * gr), aw, brk, brk, flash, ref _ghostMask);
+                if (BinBurst && brk > 0 && brk < 1)
+                {
+                    _burst = true;
+                    try { BurnChalice(pic, pw, vrW, wx, wy, wS * (float)(GrowTo + (1 - GrowTo) * gr), AssembleTeal * BinBurstLevel, brk, brk, 0, ref _ghostMask, Mix(C_teal, C_tealFlare, AssembleTealWhite)); }
+                    finally { _burst = false; }
+                }
+                return;
+            }
             if (GrailWatermark)
             {
                 // (2026-10-14) THE WATERMARK STAYS: where the briefing's grail was, the same size; it strengthens from its faint
@@ -2576,7 +2912,7 @@ namespace AztTool
                 float wx, wy, wS; WatermarkPose(pw, vrW, out wx, out wy, out wS);
                 double up = Smooth(t / (GhostRise * 1e6));
                 double flash = GhostFlare * up * Math.Exp(-Math.Max(0, t - GhostRise * 1e6) / (GhostFlareTime * 1e6));
-                double aw = GhostAlpha * up * Math.Pow(GlareLeft(t), 0.7), brk = GhostBreak(t);      // (round 4: back from the lost signal, from nothing)
+                double aw = GhostAlpha * up * Math.Pow(GhostLeft(t), 0.7), brk = GhostBreak(t);      // (round 4: back from the lost signal, from nothing)
                 BurnChalice(pic, pw, vrW, wx, wy - (float)(vrW * GhostLift), wS, aw, brk, brk, flash, ref _ghostMask);
                 return;
             }
@@ -2588,7 +2924,7 @@ namespace AztTool
             // lines at GhostAlpha 0.5 at most; the flare is the lines whitening for a moment, not more opacity.)
             double u0 = t / (GhostRise * 1e6), rise = Math.Max(0, Math.Min(1, u0)); rise = rise * rise * (3 - 2 * rise);
             _ghostFlash = GhostFlare * Math.Exp(-Math.Max(0, t - GhostRise * 1e6) / (GhostFlareTime * 1e6));
-            double a = GhostAlpha * rise * Math.Pow(GlareLeft(t), 0.7);      // (a touch slower than the amber: its pieces are seen flying apart)
+            double a = GhostAlpha * rise * Math.Pow(GhostLeft(t), 0.7);      // (a touch slower than the amber: its pieces are seen flying apart)
             if (a <= 0.01) return;
             int vr = _lvr > 0 ? _lvr : ph;
             float cupH = (float)(vr * GhostSize), S = cupH * 0.80f;
@@ -2707,7 +3043,7 @@ namespace AztTool
 
         // ---- THE SOUND'S CUES: each beat the boot draws, as it is crossed ------------------------
         public BootSound Sound = new BootSound();
-        long _sndEl = -1; bool _sndWeapons;
+        long _sndEl = -1; bool _sndWeapons, _sndDegauss;
         /// <summary>The CRT's warm-up hum through the boot (1 = BootSound.HumLevel): it swells as the tube comes on, peaks
         /// while it warms, then settles to HumSettle until the shutter opens.</summary>
         public double HumSettle = 0.5;
@@ -2823,7 +3159,7 @@ namespace AztTool
                 _revealClock.Restart(); _mode = M_REVEAL;
                 // THE THIRD DEGAUSS (Josh, 2026-10-07): "when the mission/objective screen leaves and the fade begins ...
                 // a red/blue degauss thunk and visual" -- the thunk now, the beams' swing on the reveal's frames (RevealDegauss)
-                if (!_reboot && OpenDegauss > 0 && Sound != null && Sound.On) { try { Sound.DegaussSound(OpenDegauss); } catch { } }
+                _sndDegauss = false;      // (the reveal's degauss sound now plays with the grail's break-up: DecorateFrame, BreakAtUs)
             }
         }
 
@@ -2852,7 +3188,7 @@ namespace AztTool
                     // it away, fired the HUD's power-up before any boot, and -- once the hum came in -- held the hum at its
                     // settled level through the intro and all of play. Josh, 2026-10-07: "the hum is continuing through
                     // the gameplay and sometimes in the intro videos".)
-                    if (state != 1) { _sawEnd = true; if (state == 2 && Hud != null && Hud.HoldOff && !HudWait) ReleaseHud(); if (Sound != null) Sound.Hum(0); continue; }
+                    if (state != 1) { _sawEnd = true; if (state == 2 && Hud != null && Hud.HoldOff && !HudWait) ReleaseHud(false, true); if (Sound != null) Sound.Hum(0); continue; }
                     else if (_sawEnd)
                     {
                         // A NEW BOOT (the first, or the short re-boot after a load).
@@ -2930,6 +3266,24 @@ namespace AztTool
                     catch (Exception e) { lock (_gate) _mode = M_DONE; ReleaseHud(); Note("visor boot: drawing failed: " + e.Message); continue; }
                 }
                 RenderMs = RenderMs * 0.9 + sw.Elapsed.TotalMilliseconds * 0.1;
+                if (StaticShotPath != null && !_shotDone && !Covering4Load && !hold && elHost >= 8000000 && elHost < U_mission)
+                {
+                    // the one check picture (StaticShotPath): a copy now, written on the pool
+                    _shotDone = true; var cp = (int[])pic.Clone(); int cw = pw, cv = vr; string sp = StaticShotPath;
+                    System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+                    {
+                        try
+                        {
+                            using (var bm = new Bitmap(cw, cv, PixelFormat.Format32bppRgb))
+                            {
+                                var bd = bm.LockBits(new Rectangle(0, 0, cw, cv), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+                                Marshal.Copy(cp, 0, bd.Scan0, cw * cv); bm.UnlockBits(bd); bm.Save(sp, ImageFormat.Png);
+                            }
+                            Note("visor boot: saved what it drew at 8 s to " + sp);
+                        }
+                        catch (Exception e) { Note("visor boot: could not save its check picture: " + e.Message); }
+                    });
+                }
                 lock (_gate)
                 {
                     if (_mode != M_LIVE && _mode != M_HOLD) continue;
@@ -2976,9 +3330,142 @@ namespace AztTool
     // release so nothing clicks. A line landing gets a short burst; text typing out gets a running pattern
     // for exactly as long as it types. Played through Windows on the host, under the game's own boot sound.
     // =========================================================================================
+    /// <summary>Mute or unmute ANOTHER program's sound in Windows' own mixer (its audio sessions on the default output), the way
+    /// the volume mixer's per-app mute does -- for DOSBox during a load (Josh, 2026-10-15). Never pauses the process (DOSBox must
+    /// never be suspended: [[azrael-gun-sound]]). Returns how many of its sessions were set, or an error.</summary>
+    public static class AppMute
+    {
+        [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorCo { }
+        [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IMMDeviceEnumerator { int EnumAudioEndpoints(int flow, int mask, out IntPtr devs); int GetDefaultAudioEndpoint(int flow, int role, out IMMDevice dev); }
+        [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IMMDevice { int Activate(ref Guid iid, int ctx, IntPtr p, [MarshalAs(UnmanagedType.IUnknown)] out object o); }
+        [ComImport, Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioSessionManager2 { int GetAudioSessionControl(IntPtr g, int f, out IntPtr c); int GetSimpleAudioVolume(IntPtr g, int f, out IntPtr v); int GetSessionEnumerator(out IAudioSessionEnumerator e); }
+        [ComImport, Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioSessionEnumerator { int GetCount(out int n); int GetSession(int i, [MarshalAs(UnmanagedType.IUnknown)] out object s); }
+        [ComImport, Guid("BFB7FF88-7239-4FC9-8FA2-07C950BE9C6D"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioSessionControl2
+        {
+            int GetState(out int s); int GetDisplayName(out IntPtr n); int SetDisplayName(string n, ref Guid g); int GetIconPath(out IntPtr p); int SetIconPath(string p, ref Guid g);
+            int GetGroupingParam(out Guid g); int SetGroupingParam(ref Guid g, ref Guid c); int RegisterAudioSessionNotification(IntPtr n); int UnregisterAudioSessionNotification(IntPtr n);
+            int GetSessionIdentifier(out IntPtr s); int GetSessionInstanceIdentifier(out IntPtr s); int GetProcessId(out uint pid);
+        }
+        [ComImport, Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface ISimpleAudioVolume { int SetMasterVolume(float v, ref Guid g); int GetMasterVolume(out float v); int SetMute([MarshalAs(UnmanagedType.Bool)] bool m, ref Guid g); int GetMute([MarshalAs(UnmanagedType.Bool)] out bool m); }
+        public static string Set(int pid, bool mute)
+        {
+            try
+            {
+                var en = (IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))); IMMDevice dev;
+                int hr = en.GetDefaultAudioEndpoint(0, 1, out dev); if (hr != 0 || dev == null) return "no default output (" + hr + ")";
+                var iid = typeof(IAudioSessionManager2).GUID; object o; hr = dev.Activate(ref iid, 23, IntPtr.Zero, out o); if (hr != 0) return "no session manager (" + hr + ")";
+                var mgr = (IAudioSessionManager2)o; IAudioSessionEnumerator se; mgr.GetSessionEnumerator(out se);
+                int n; se.GetCount(out n); int done = 0; var ctx = Guid.Empty;
+                for (int i = 0; i < n; i++)
+                {
+                    object s; se.GetSession(i, out s); var c2 = s as IAudioSessionControl2; if (c2 == null) continue;
+                    uint p; c2.GetProcessId(out p); if (p != (uint)pid) continue;
+                    var v = s as ISimpleAudioVolume; if (v == null) continue;
+                    v.SetMute(mute, ref ctx); done++;
+                }
+                return done + " session(s)";
+            }
+            catch (Exception e) { return "failed: " + e.Message; }
+        }
+    }
+
+    /// <summary>WHO IS MAKING SOUND (Josh, 2026-10-15: a ratchet under the loading screen survived every fix -- measure, don't guess):
+    /// for a while, every 40 ms, the peak level of EVERY program's audio on the default output (Windows' per-session meters, the
+    /// volume mixer's bars), written as runs: "+1.20..+3.40 s  dosbox.exe (pid) peak 0.31". Mark() puts our own events on the
+    /// same clock. Read-only: nothing is muted or changed.</summary>
+    public static class AudioMeter
+    {
+        [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorCo { }
+        [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IMMDeviceEnumerator { int EnumAudioEndpoints(int flow, int mask, out IntPtr devs); int GetDefaultAudioEndpoint(int flow, int role, out IMMDevice dev); }
+        [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IMMDevice { int Activate(ref Guid iid, int ctx, IntPtr p, [MarshalAs(UnmanagedType.IUnknown)] out object o); }
+        [ComImport, Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioSessionManager2 { int GetAudioSessionControl(IntPtr g, int f, out IntPtr c); int GetSimpleAudioVolume(IntPtr g, int f, out IntPtr v); int GetSessionEnumerator(out IAudioSessionEnumerator e); }
+        [ComImport, Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioSessionEnumerator { int GetCount(out int n); int GetSession(int i, [MarshalAs(UnmanagedType.IUnknown)] out object s); }
+        [ComImport, Guid("BFB7FF88-7239-4FC9-8FA2-07C950BE9C6D"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioSessionControl2
+        {
+            int GetState(out int s); int GetDisplayName(out IntPtr n); int SetDisplayName(string n, ref Guid g); int GetIconPath(out IntPtr p); int SetIconPath(string p, ref Guid g);
+            int GetGroupingParam(out Guid g); int SetGroupingParam(ref Guid g, ref Guid c); int RegisterAudioSessionNotification(IntPtr n); int UnregisterAudioSessionNotification(IntPtr n);
+            int GetSessionIdentifier(out IntPtr s); int GetSessionInstanceIdentifier(out IntPtr s); int GetProcessId(out uint pid);
+        }
+        [ComImport, Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioMeterInformation { int GetPeakValue(out float p); }
+        [ComImport, Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface ISimpleAudioVolume { int SetMasterVolume(float v, ref Guid g); int GetMasterVolume(out float v); int SetMute([MarshalAs(UnmanagedType.Bool)] bool m, ref Guid g); int GetMute([MarshalAs(UnmanagedType.Bool)] out bool m); }
+
+        static readonly object _lk = new object(); static readonly Queue<string> _lines = new Queue<string>();
+        static Stopwatch _clock; static volatile bool _run;
+        public static bool Running { get { return _run; } }
+        /// <summary>The next finished line, or null.</summary>
+        public static string Take() { lock (_lk) return _lines.Count > 0 ? _lines.Dequeue() : null; }
+        static void Put(string s) { lock (_lk) { if (_lines.Count < 400) _lines.Enqueue(s); } }
+        /// <summary>Our own event on the meter's clock (the HUD's slide sound, a load's start...).</summary>
+        public static void Mark(string what) { var c = _clock; if (_run && c != null) Put(string.Format("  +{0:N2} s  ** {1}", c.Elapsed.TotalSeconds, what)); }
+        /// <summary>An event that happened at a Stopwatch timestamp (another thread's, e.g. the title's click), on the meter's clock.</summary>
+        public static void MarkAt(long ticks, string what) { if (!_run || ticks <= 0) return; Put(string.Format("  +{0:N2} s  ** {1}", (ticks - _startTicks) / (double)Stopwatch.Frequency, what)); }
+        static long _startTicks;
+        public static void Start(double seconds, string why)
+        {
+            if (_run) return; _run = true; _clock = Stopwatch.StartNew(); _startTicks = Stopwatch.GetTimestamp();
+            Put("audio meter: every program's sound for " + seconds + " s (" + why + "); runs above 2% peak:");
+            var th = new Thread(() =>
+            {
+                var open = new Dictionary<uint, double[]>();      // pid -> { from, last, peak }
+                var names = new Dictionary<uint, string>();
+                Func<uint, string> Name = p => { string n; if (!names.TryGetValue(p, out n)) { try { n = Process.GetProcessById((int)p).ProcessName; } catch { n = "?"; } names[p] = n; } return n; };
+                Action<uint, double[]> Close = (p, r) => Put(string.Format("  +{0:N2}..+{1:N2} s  {2} ({3})  peak {4:N2}{5}", r[0], r[1], Name(p), p, r[2], (uint)Process.GetCurrentProcess().Id == p ? "  [the renderer: our sounds + the loading screen's]" : ""));
+                try
+                {
+                    var en = (IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))); IMMDevice dev; en.GetDefaultAudioEndpoint(0, 1, out dev);
+                    var iid = typeof(IAudioSessionManager2).GUID; object o; dev.Activate(ref iid, 23, IntPtr.Zero, out o); var mgr = (IAudioSessionManager2)o;
+                    while (_clock.Elapsed.TotalSeconds < seconds)
+                    {
+                        double t = _clock.Elapsed.TotalSeconds; IAudioSessionEnumerator se; mgr.GetSessionEnumerator(out se); int n; se.GetCount(out n);
+                        var seen = new HashSet<uint>();
+                        for (int i = 0; i < n; i++)
+                        {
+                            object s; se.GetSession(i, out s); var c2 = s as IAudioSessionControl2; var m = s as IAudioMeterInformation; if (c2 == null || m == null) continue;
+                            uint p; c2.GetProcessId(out p); float pk; m.GetPeakValue(out pk);
+                            bool muted = false; var sv = s as ISimpleAudioVolume; if (sv != null) sv.GetMute(out muted);
+                            if (pk < 0.02f || p == 0) continue;
+                            seen.Add(p); double[] r;
+                            if (open.TryGetValue(p, out r)) { r[1] = t; r[2] = Math.Max(r[2], pk); }
+                            else open[p] = new[] { t, t, pk };
+                            if (muted && !names.ContainsKey(p + 1000000000u)) { names[p + 1000000000u] = "x"; Put(string.Format("  +{0:N2} s  ({1} is MUTED in Windows' mixer but its stream still shows level -- not heard)", t, Name(p))); }
+                        }
+                        foreach (var p in new List<uint>(open.Keys)) if (!seen.Contains(p) && t - open[p][1] > 0.12) { Close(p, open[p]); open.Remove(p); }
+                        Thread.Sleep(40);
+                    }
+                    foreach (var kv in open) Close(kv.Key, kv.Value);
+                }
+                catch (Exception e) { Put("audio meter failed: " + e.Message); }
+                Put("audio meter: done"); _run = false;
+            }) { IsBackground = true, Name = "AztAudioMeter" };
+            th.Start();
+        }
+    }
     public class BootSound
     {
         public bool On = true;
+        /// <summary>THE LOADING SEQUENCE'S SILENCE (Josh, 2026-10-15: "Lets try disabling all audio for the loading sequence"): while
+        /// set, every host sound is dropped (each one noted: SilencedN, SilencedWhat = its length) and the mixers write silence.</summary>
+        public static volatile bool Silence;
+        public static int SilencedN; public static string SilencedWhat = "";
+        static void NoteSilenced(int samples, bool stereo)
+        {
+            Interlocked.Increment(ref SilencedN);
+            string w = string.Format("{0:N2} s {1}", samples / (double)(stereo ? 2 * Rate : Rate), stereo ? "stereo" : "mono");
+            lock (typeof(BootSound)) { SilencedWhat = SilencedWhat.Length > 300 ? SilencedWhat : (SilencedWhat.Length > 0 ? SilencedWhat + "; " : "") + w; }
+        }
         /// <summary>Peak level, 0..1 of full scale. Kept well under the CD boot effect.</summary>
         public double Volume = 0.36;
         /// <summary>The two pitches the blips alternate between (Hz), and how dull they are (low-pass, Hz).
@@ -3098,6 +3585,7 @@ namespace AztTool
         void Play(short[] pcm)
         {
             if (!On || Volume <= 0) return;
+            if (Silence) { if (pcm != null) NoteSilenced(pcm.Length, false); return; }
             Interlocked.Increment(ref _played);
             // through the mixer, so cues overlap and sit over the hum (opened off this thread -- it takes ~0.5 s the
             // first time, and this is the boot's drawing thread -- with cues held until it is up); if the sound device
@@ -3115,6 +3603,7 @@ namespace AztTool
         public void PlayStereo(short[] interleaved)
         {
             if (!On || Volume <= 0 || interleaved == null) return;
+            if (Silence) { NoteSilenced(interleaved.Length, true); return; }
             Interlocked.Increment(ref _played);
             lock (_mixLock)
             {
@@ -3199,6 +3688,9 @@ namespace AztTool
         public short[] BeepClip() { return BeepPcm(); }
         /// <summary>THE ECHO SCAN'S PING (Josh, 2026-10-14): a sonar ping -- a bright tone sliding a little down, ringing away,
         /// with a fainter echo of itself a third of a second later.</summary>
+        /// <summary>The ping's pitch against the first one (Josh, 2026-10-15: "for the V scan, can we lower the pitch on that sound a
+        /// bit?"): 0.8 = about four semitones down (1180 Hz -> 944 Hz), the slide and the echoes with it.</summary>
+        public double PingPitch = 0.8;
         public void SonarPing()
         {
             if (_ping == null)
@@ -3210,8 +3702,8 @@ namespace AztTool
                     foreach (var echo in new[] { new[] { 0.0, 1.0 }, new[] { 0.34, 0.32 }, new[] { 0.68, 0.1 } })
                     {
                         double u = t - echo[0]; if (u < 0) continue;
-                        double f = 1180 + 260 * Math.Exp(-u / 0.05), env = Math.Min(1, u / 0.003) * Math.Exp(-u / 0.32);
-                        double ph = 2 * Math.PI * (1180 * u - 260 * 0.05 * (Math.Exp(-u / 0.05) - 1));
+                        double env = Math.Min(1, u / 0.003) * Math.Exp(-u / 0.32);
+                        double ph = 2 * Math.PI * PingPitch * (1180 * u - 260 * 0.05 * (Math.Exp(-u / 0.05) - 1));
                         v += echo[1] * env * (Math.Sin(ph) + 0.25 * Math.Sin(2 * ph + 0.4));
                     }
                     buf[i] = v;
@@ -3428,7 +3920,7 @@ namespace AztTool
                             {   // a soft limiter above 0.7, so a loud moment (the degauss over the hum) rounds off rather than clips
                                 float s = mix[k], a = s < 0 ? -s : s;
                                 if (a > 0.7f) { a = 0.7f + 0.29f * (float)Math.Tanh((a - 0.7f) / 0.29f); s = s < 0 ? -a : a; }
-                                pcm[k] = (short)(s * 32767);
+                                pcm[k] = Silence ? (short)0 : (short)(s * 32767);      // (the hum too, while the loading sequence is silent)
                             }
                             Marshal.Copy(pcm, 0, _buf[i], Frames * 2);
                             Array.Clear(mix, 0, mix.Length);
@@ -3710,6 +4202,18 @@ namespace AztTool
         /// <summary>Keep the sound device open while the game is played (opening it takes half a second: the first step after
         /// a pause would be late).</summary>
         public void Warm() { Sound.Warm(); }
+
+        // THE FLASHLIGHT'S SWITCH (Josh, 2026-10-15: "the tile footstep is actually perfect for the sound of the flashlight turning
+        // on/off ... when turning on the flashlight, I want the run 3 version to play. When turning off, I want the run 4 version"):
+        // exactly those two steps from the tile set he listened to (Desktop\RaptorMod tile steps: a running tile step, seeds 1011
+        // and 1012; run 3 was a left foot and run 4 a right, so each keeps the little pan it had), at the game's effects level.
+        public int LampOnSeed = 1011, LampOffSeed = 1012;
+        public void LampClick(bool on)
+        {
+            if (SfxShare <= 0.001) return;
+            int seed = on ? LampOnSeed : LampOffSeed; bool lf = on;
+            ThreadPool.QueueUserWorkItem(_ => { try { Sound.PlayStereo(Step(Surface.Tile, true, lf, seed)); } catch { } });
+        }
 
         // the first face straight below the eye within `limit`, either side (as Raster.RayDistance); -1 if none
         static int RayDown(float[] vx, int[] idx, int[] triTex, float px, float py, float pz, float limit, out float dist)

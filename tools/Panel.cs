@@ -146,6 +146,11 @@ namespace AztTool
         public bool Blind;
         /// <summary>Not shown at all until released (BootHd lets it in on the readout's HUD line).</summary>
         public volatile bool HoldOff;
+        /// <summary>Called (on the panel's thread) the moment the halves start sliding in -- BootHd plays the slide's sound here, so the
+        /// sound is heard WITH the slide, never while the panel is released but still unseen (a load's view under its loading panel).</summary>
+        public volatile Action SlideStarted;
+        /// <summary>Called when the panel comes back on screen WITHOUT a slide (hidden for less than HideToSlide).</summary>
+        public volatile Action ShownWithoutSlide;
         // ---- THE BOOK / ITEM VIEW (Josh, 2026-10-08: 'the items I pickup and view are hidden behind the ui ... make the
         // black background and item appear above any UI elements') ------------------------------------------------------
         /// <summary>While the game shows a book page or an item close-up (word [0x15257C]), the panel's art steps aside:
@@ -1821,7 +1826,8 @@ namespace AztTool
                     double dt = animClock.Elapsed.TotalSeconds; animClock.Restart();
                     if (!want) { if (Shown) { ShowWindow(_hwnd, SW_HIDE); Shown = false; hiddenClock.Restart(); } Thread.Sleep(20); continue; }
                     // about to show after a while away (or for the first time): the halves slide in
-                    if (!Shown && _seamW >= 0 && (!everShown || hiddenClock.Elapsed.TotalSeconds >= HideToSlide)) { Slide = 0; Slides++; _dirty = true; }
+                    if (!Shown && _seamW >= 0 && (!everShown || hiddenClock.Elapsed.TotalSeconds >= HideToSlide)) { Slide = 0; Slides++; _dirty = true; var ss = SlideStarted; if (ss != null) { try { ss(); } catch { } } }
+                    else if (!Shown) { var sn = ShownWithoutSlide; if (sn != null) { try { sn(); } catch { } } }      // (back too soon to slide: no slide's sound either)
                     if (Slide < 1) { Slide = Math.Min(1, Slide + dt / Math.Max(0.05, SlideSeconds)); _dirty = true; }
                     if (!BookView) Clicks();                                  // (no panel keys while a page covers them)
                     if (_wheel != null) { int wd = _wheel.Take(); if (wd != 0 && !BookView) Wheel(wd); }

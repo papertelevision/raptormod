@@ -21,8 +21,54 @@ namespace AztTool
     // ---- THE LOADING SCREEN'S SOUND: a small stereo mixer (winmm waveOut) for the voice over the track ----------------
     // Its own, not BootHd's: this file is compiled on its own, within a second of launch. WAV only -- winmm's MCI MP3
     // device does not open on every Windows (it did not on the dev machine), so the track is shipped decoded.
+    /// <summary>Windows' per-app mute for another process (its sessions on the default output) -- the title's own copy of
+    /// BootHd.cs AppMute (this file is compiled on its own, before the renderer). Never a pause.</summary>
+    public static class GateMute
+    {
+        [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorCo { }
+        [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IMMDeviceEnumerator { int EnumAudioEndpoints(int flow, int mask, out IntPtr devs); int GetDefaultAudioEndpoint(int flow, int role, out IMMDevice dev); }
+        [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IMMDevice { int Activate(ref Guid iid, int ctx, IntPtr p, [MarshalAs(UnmanagedType.IUnknown)] out object o); }
+        [ComImport, Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioSessionManager2 { int GetAudioSessionControl(IntPtr g, int f, out IntPtr c); int GetSimpleAudioVolume(IntPtr g, int f, out IntPtr v); int GetSessionEnumerator(out IAudioSessionEnumerator e); }
+        [ComImport, Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioSessionEnumerator { int GetCount(out int n); int GetSession(int i, [MarshalAs(UnmanagedType.IUnknown)] out object s); }
+        [ComImport, Guid("BFB7FF88-7239-4FC9-8FA2-07C950BE9C6D"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IAudioSessionControl2
+        {
+            int GetState(out int s); int GetDisplayName(out IntPtr n); int SetDisplayName(string n, ref Guid g); int GetIconPath(out IntPtr p); int SetIconPath(string p, ref Guid g);
+            int GetGroupingParam(out Guid g); int SetGroupingParam(ref Guid g, ref Guid c); int RegisterAudioSessionNotification(IntPtr n); int UnregisterAudioSessionNotification(IntPtr n);
+            int GetSessionIdentifier(out IntPtr s); int GetSessionInstanceIdentifier(out IntPtr s); int GetProcessId(out uint pid);
+        }
+        [ComImport, Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface ISimpleAudioVolume { int SetMasterVolume(float v, ref Guid g); int GetMasterVolume(out float v); int SetMute([MarshalAs(UnmanagedType.Bool)] bool m, ref Guid g); int GetMute([MarshalAs(UnmanagedType.Bool)] out bool m); }
+        public static string Set(int pid, bool mute)
+        {
+            try
+            {
+                var en = (IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))); IMMDevice dev;
+                int hr = en.GetDefaultAudioEndpoint(0, 1, out dev); if (hr != 0 || dev == null) return "no default output (" + hr + ")";
+                var iid = typeof(IAudioSessionManager2).GUID; object o; hr = dev.Activate(ref iid, 23, IntPtr.Zero, out o); if (hr != 0) return "no session manager (" + hr + ")";
+                var mgr = (IAudioSessionManager2)o; IAudioSessionEnumerator se; mgr.GetSessionEnumerator(out se);
+                int n; se.GetCount(out n); int done = 0; var ctx = Guid.Empty;
+                for (int i = 0; i < n; i++)
+                {
+                    object s; se.GetSession(i, out s); var c2 = s as IAudioSessionControl2; if (c2 == null) continue;
+                    uint p; c2.GetProcessId(out p); if (p != (uint)pid) continue;
+                    var v = s as ISimpleAudioVolume; if (v == null) continue;
+                    v.SetMute(mute, ref ctx); done++;
+                }
+                return done + " session(s)";
+            }
+            catch (Exception e) { return "failed: " + e.Message; }
+        }
+    }
+
     public sealed class LoadingAudio : IDisposable
     {
+        /// <summary>While set the voice and track run on in silence (Josh, 2026-10-15: all audio off for the loading sequence).</summary>
+        public static volatile bool Silence;
         [StructLayout(LayoutKind.Sequential)] struct WaveFmt { public ushort Tag, Channels; public uint Rate, Bytes; public ushort Align, Bits, Extra; }
         [StructLayout(LayoutKind.Sequential)] struct WaveHdr { public IntPtr Data; public uint Length, Recorded; public IntPtr User; public uint Flags, Loops; public IntPtr Next, Reserved; }
         [DllImport("winmm.dll")] static extern int waveOutOpen(out IntPtr h, uint dev, ref WaveFmt fmt, IntPtr cb, IntPtr inst, uint flags);
@@ -140,7 +186,7 @@ namespace AztTool
                         {   // a soft limiter above 0.75: the voice over the track rounds off rather than clips
                             float s = mix[k], a = s < 0 ? -s : s;
                             if (a > 0.75f) { a = 0.75f + 0.24f * (float)Math.Tanh((a - 0.75f) / 0.24f); s = s < 0 ? -a : a; }
-                            pcm[k] = (short)(s * 32767);
+                            pcm[k] = Silence ? (short)0 : (short)(s * 32767);
                         }
                         Marshal.Copy(pcm, 0, _buf[i], pcm.Length);
                         Marshal.StructureToPtr(new WaveHdr { Data = _buf[i], Length = (uint)(pcm.Length * 2) }, _hdr[i], false);
@@ -689,6 +735,8 @@ namespace AztTool
         // into the visor's shutter. ReadMax: never longer than that, whatever happens.
         /// <summary>The visor's view is back behind the title: finish the reading and go.</summary>
         public volatile bool LoadShown;
+        /// <summary>When LOAD / CONTINUE was clicked (Stopwatch timestamp; 0 = not yet) -- for the renderer's audio meter.</summary>
+        public static long LoadClickTicks;
         public double ReadSeconds = 2.2, ReadHold = 0.85, ReadMax = 45, ReadDim = 0.55;
         double _readAt = -1, _readDoneAt = -1, _readP, _readBlip = -9, _shownAt = -1; string _readName = ""; int _readSlot = -1;
         public double ReadMin = 1.0;
@@ -1183,11 +1231,11 @@ namespace AztTool
                 if (_lsel == 5) { _loadOpen = false; _loadAt = t; LayerChanged(t); Play(_tick); return; }    // BACK
                 var s = _lsel < Slots.Length ? Slots[_lsel] : null;
                 if (s == null || !s.Usable) { Play(_tick); return; }
-                Play(_confirm); _pickSlot = s.Index; _pickAt = t; BeginRead(t, s.Index); _pick = PickLoad; return;
+                LoadClickTicks = Stopwatch.GetTimestamp(); Play(_confirm); _pickSlot = s.Index; _pickAt = t; BeginRead(t, s.Index); _pick = PickLoad; return;
             }
             switch (_sel)
             {
-                case R_CONT: if (NewestSlot < 0) { Play(_tick); break; } Play(_confirm); _pickAt = t; _pickSlot = NewestSlot; BeginRead(t, NewestSlot); _pick = PickLoad; break;
+                case R_CONT: if (NewestSlot < 0) { Play(_tick); break; } LoadClickTicks = Stopwatch.GetTimestamp(); Play(_confirm); _pickAt = t; _pickSlot = NewestSlot; BeginRead(t, NewestSlot); _pick = PickLoad; break;
                 case R_NEW: Play(_confirm); _pickAt = t; _pick = PickNew; break;
                 case R_LOAD: Play(_confirm); _loadOpen = true; _loadAt = t; LayerChanged(t); _lsel = NewestSlot >= 0 ? NewestSlot : 5; break;
                 case R_OPT: Play(_confirm); _optOpen = true; _optAt = t; LayerChanged(t); _osel = O_TEX; break;
@@ -2153,6 +2201,8 @@ namespace AztTool
         LoadingAudio _music;
         /// <summary>The slot the title menu loads (-1: none) -- the renderer's visor shows its name as it loads.</summary>
         public volatile int PickedSlot = -1; public volatile string PickedName = "";
+        /// <summary>Mute DOSBox (Windows' per-app mute) the moment a LOAD is picked (the watcher's load silence unmutes it).</summary>
+        public bool MuteGameOnLoad = false;      // (off: a diagnostic -- the watcher's -LoadSilence turns it on)
         /// <summary>The renderer's view is up after a load from the title: the title's reading finishes and it fades into it.</summary>
         /// <summary>The title's window is still up (a load: it finishes reading the log and fades after TitleLoadShown).</summary>
         public bool TitleShowing { get { var ts = _title; return ts != null && ts.Visible; } }
@@ -2277,6 +2327,12 @@ namespace AztTool
             // tests it and jumps over the opening movie (Build-AztMod 'title-loadskip-2003E'; the movie player never reads this
             // flag, it plays until a key)
             bool load = pick == TitleScreen.PickLoad;
+            // THE GAME'S OWN HUD SOUND (Josh, 2026-10-15: a ratchet under the loading screen after a load, through every fix of
+            // ours): R.EXE plays hud3.wav (its interface sound, 2.1 s) as its HUD comes up -- after a load that is the first
+            // frame of play, 0.1 s after this release, under the loading panel and before the watcher's load silence (a frame
+            // loop later) could mute DOSBox. So the game's sound is muted HERE, before the game goes; the watcher's silence
+            // keeps it off and lifts it when the HUD slides in (Set-LoadSilence).
+            if (load && MuteGameOnLoad) Note("title menu: the game's sound muted for the load (its own HUD sound would play under the loading panel): " + GateMute.Set(Pid, true));
             ReleaseTitle(load ? 0x0002 : 0, load ? 2 : skip ? 1 : 0);
             _titleDone = true; if (!load) _title.Close();                         // (a load: the title reads the log in, until TitleLoadShown)
             Note(pick == TitleScreen.PickLoad ? string.Format("title menu: LOAD slot {0} -- the intro skipped, the save loads on the first frame; the title reads it in", slot + 1)

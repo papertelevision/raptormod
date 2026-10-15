@@ -338,7 +338,7 @@ param(
     # FOOTSTEPS (BootHd.cs Footsteps; Josh, 2026-10-14): subtle steps as the player walks, by what is underfoot (stone, tile, wood,
     # metal, water), at the game's effects level. -NoFootsteps: none; -FootstepVolume: a walking step's peak (0..1, default 0.2).
     [switch]$NoFootsteps, [double]$FootstepVolume = -1,
-    [switch]$NoConvCue, [switch]$NoVisorFog, [switch]$NoEyeShine, [switch]$NoImpacts, [switch]$NoEcho, [double]$MapPanelLight = 0.6, [switch]$NoMapLights, [double]$MapZoomStart = 1.5, [int]$EchoKey = 0x56,
+    [switch]$NoConvCue, [switch]$NoVisorFog, [switch]$NoEyeShine, [switch]$NoImpacts, [switch]$NoEcho, [switch]$NoEchoLabels, [switch]$LoadSilence, [switch]$AudioMeter, [switch]$NoLoadGameMute, [double]$MapPanelLight = 0.6, [switch]$NoMapLights, [double]$MapZoomStart = 1.5, [int]$EchoKey = 0x56,
     # THE SHOT RECORD's input history (Step-ShotWatch): every frame's buttons kept, to explain a shot nobody meant (Josh,
     # 2026-10-11). Off by default since the 2026-10-13 performance audit (7 guest reads a frame); the weapon log stays.
     [switch]$ShotLog,
@@ -703,6 +703,7 @@ if ($Launch) {
             $gt.TitleOn = -not ($NoTitleMenu -or $Retro); $gt.TitleImage = (Join-Path $toolDir '..\art\title\title_4k.png'); $gt.SaveDir = (Join-Path $GameDir 'GAME\AZRAEL'); $gt.TitleTextureQuality = $script:texQuality.ToUpperInvariant()
             $gt.TitleGrailFx = -not $NoGrailDust                                    # (the grail's gold flakes on the title)
             $gt.TitleGrailGlow = -not $NoGrailGlow                                  # (and its light on his face)
+            $gt.MuteGameOnLoad = (-not $NoLoadGameMute)      # (the game's own menu sound plays as it loads the save: muted at the pick)      # (the game's own HUD sound, hud3.wav, plays 0.1 s after a LOAD is picked: muted at the pick)
             $gt.TitleMusic = (Join-Path $toolDir '..\art\title\title-music.wav')      # (KREEPY3, Josh's soundtrack, looped under the menu)
             $gt.TitleDocs = (Join-Path $GameDir 'raptordocs')                         # (RAPTOR DOCS: the manual and the print-outs -- tools\Build-RaptorDocs.ps1)
             $gt.TitleRoomLoad = [bool]($TrueColour -and -not $NoRgb)                  # (a title load's bar carries the room's textures: Set-LoadProgress)
@@ -724,6 +725,7 @@ Add-Type -Path @((Join-Path $toolDir 'Raster.cs'), (Join-Path $toolDir 'Quantize
 # gate had already found the game -- and that search was skipped -- the first read threw and ended the watcher
 # (2026-10-07 16:32). Compiled up front now, whichever way the game is found.
 if (-not ('AztTool.ProcMem' -as [type])) { Add-Type -Path (Join-Path $toolDir 'ProcMem.cs') -ErrorAction Stop }
+if ($AudioMeter) { try { [AztTool.AudioMeter]::Start(300, 'from the renderer''s start: the title, the click, the load'); $script:meterStarted = $true } catch { } }      # (the ratchet hunt: every program's sound from launch)
 Add-Type -AssemblyName System.Drawing
 if ($script:gate) { $script:gate.Stage(0.8, 2) }
 
@@ -2049,6 +2051,7 @@ function Test-LoadViewSteady {
     }
     if (-not $ok -and $age -gt 12) { $ok = $true; if (-not $script:loadSteadySaid) { Say ("load: the frames never settled in 12 s ({0} drawn) -- the loading panel lets go anyway" -f $f.Count) DarkYellow } }
     elseif ($ok -and -not $script:loadSteadySaid) { Say ("load: the view is steady ({0} frames of ~{1:N0} ms, {2:N1} s after it came up) -- the loading panel lets go" -f $nf, $med, $age) DarkCyan }
+    if ($ok -and -not $script:loadSteadySaid) { [AztTool.AudioMeter]::Mark("the view is steady: the title is told the view is back (its loading screen finishes, then fades)") }
     if ($ok) { $script:loadSteadySaid = $true }
     return $ok
 }
@@ -2057,8 +2060,53 @@ function Complete-TitleLoad {
     $script:titleReadAt = $null; $script:titleReadSeen = $false; $script:titleShowDue = $false
 }
 function Request-TitleLoadShown { Set-LoadViewUp; $script:titleShowDue = $true }
+# THE LOADING SEQUENCE IS SILENT (Josh, 2026-10-15: the HUD's slide sound kept playing under the loading screen -- "Lets try
+# disabling all audio for the loading sequence"): from a load's start until the panel actually slides in (Panel.Slides
+# goes up), every host sound (BootSound.Silence: the boot's mixer, footsteps, the echo...), the loading screen's voice and
+# track (LoadingAudio.Silence) and DOSBox's own sound (AztTool.AppMute: Windows' per-app mute -- never a pause) are off.
+# 10 s after the load's panel has gone with no slide, or 90 s in all, it ends anyway. The log says what tried to play.
+$script:loadSilent = $false; $script:loadSilentAt = $null; $script:loadSilentSlides = 0; $script:loadSilentEndAt = $null
+function Set-LoadSilence([bool]$on, [string]$why) {
+    if ($on -eq $script:loadSilent) { return }
+    $script:loadSilent = $on
+    [AztTool.BootSound]::Silence = ($on -and $LoadSilence)      # (our own sounds: only with the -LoadSilence diagnostic)
+    [AztTool.AudioMeter]::Mark($(if ($on) { "a LOAD began: host sounds + DOSBox silenced (the loading voice/track play on)" } else { "load silence lifted ($why)" }))
+    # (the loading screen's own voice and track stay ON -- Josh wants them; the ratchet was the GAME's hud3.wav: LoadingAudio.Silence is left for a test)
+    $dm = '(left on: -NoLoadGameMute)'; if (-not $NoLoadGameMute -or -not $on) { try { $dm = [AztTool.AppMute]::Set([int]$g.ProcessId, $on) } catch { $dm = $_.Exception.Message } }
+    if ($on) {
+        [AztTool.BootSound]::SilencedN = 0; [AztTool.BootSound]::SilencedWhat = ''
+        $script:loadSilentAt = [Diagnostics.Stopwatch]::StartNew(); $script:loadSilentEndAt = $null
+        $script:loadSilentSlides = $(if ($script:panel) { [long]$script:panel.Slides } else { 0 })
+        Say ("load audio: the GAME's own sound (DOSBox: {0}) is muted until the HUD slides in -- its menu and HUD sounds play during a title load; the loading voice and track play on{1}" -f $dm, $(if ($LoadSilence) { '; our own sounds silent too (-LoadSilence)' } else { '' })) DarkCyan
+    } else {
+        Say ("load audio: back on after {0:N1} s ({1}; DOSBox {2}) -- {3} host sound(s) asked to play while silent{4}" -f $script:loadSilentAt.Elapsed.TotalSeconds, $why, $dm, [AztTool.BootSound]::SilencedN, $(if ([AztTool.BootSound]::SilencedN) { ': ' + [AztTool.BootSound]::SilencedWhat } else { '' })) DarkCyan
+        $script:loadSilentAt = $null
+    }
+}
+# THE AUDIO METER (BootHd.cs AudioMeter; 2026-10-15, the ratchet hunt): from the title menu / a load, 60 s of every program's
+# sound level on the default output, with our own steps marked on its clock, into this log. Read-only. OFF unless -AudioMeter.
+$script:meterStarted = $false
+function Step-AudioMeter {
+    if (-not $AudioMeter) { return }
+    $titleUp = $script:gate -and $script:gate.TitleShowing
+    if (-not [AztTool.AudioMeter]::Running -and -not $script:meterStarted -and ($titleUp -or $script:loadSilent)) {
+        $script:meterStarted = $true; [AztTool.AudioMeter]::Start(60, $(if ($script:loadSilent) { 'a load' } else { 'the title menu is up' }))
+    }
+    try { $ct = [AztTool.TitleScreen]::LoadClickTicks; if ($ct -gt 0 -and $ct -ne $script:clickMarked) { $script:clickMarked = $ct; [AztTool.AudioMeter]::MarkAt($ct, "LOAD / CONTINUE CLICKED on the title (the loading box starts to expand)") } } catch { }
+    for ($k = 0; $k -lt 60; $k++) { $ml = [AztTool.AudioMeter]::Take(); if (-not $ml) { break }; Say $ml DarkGray }
+}
+function Step-LoadSilence {
+    Step-AudioMeter
+    if (-not $script:loadSilent) { return }
+    $slid = $script:panel -and [long]$script:panel.Slides -gt $script:loadSilentSlides
+    if ($slid) { Set-LoadSilence $false 'the panel slid in'; return }
+    if (-not $script:loadGuard) { if (-not $script:loadSilentEndAt) { $script:loadSilentEndAt = [Diagnostics.Stopwatch]::StartNew() } elseif ($script:loadSilentEndAt.Elapsed.TotalSeconds -gt 10) { Set-LoadSilence $false 'no slide 10 s after the loading panel went' ; return } }
+    if ($script:loadSilentAt.Elapsed.TotalSeconds -gt 90) { Set-LoadSilence $false '90 s cap' }
+}
 function Step-LoadGuard {
+    Step-LoadSilence
     $ldNow = ($script:gate -and $script:gate.PickedSlot -ge 0) -or ($script:visorMenu -and $script:visorMenu.ReadWait)
+    if ($ldNow -and ($LoadSilence -or -not $NoLoadGameMute)) { Set-LoadSilence $true '' }      # (the GAME muted for a load: its own menu/HUD sounds play under the loading screen; -LoadSilence also silences ours)
     if ($ldNow -and -not $script:loadGuard) {
         $script:loadGuard = $true; $script:loadGuardAt = [Diagnostics.Stopwatch]::StartNew(); $script:viewUpAt = $null; $script:titleShowDue = $false; $script:loadSteadySaid = $false
         Say 'load: the HUD and the materialize wait until the loading panel is gone; the room stays dark until the view is steady' DarkCyan
@@ -2074,6 +2122,7 @@ function Step-LoadGuard {
     if ($panelUp -and $script:loadGuardAt -and $script:loadGuardAt.Elapsed.TotalSeconds -gt 45) { Say 'load: still a loading panel after 45 s -- the HUD comes in anyway' DarkYellow; $panelUp = $false }
     if ($panelUp) { if ($script:panel) { $script:panel.HoldOff = $true }; $script:matPending = $null; return }
     $script:loadGuard = $false; $script:loadGuardAt = $null; $script:viewUpAt = $null; $script:loadFrameAt = $null; $script:titleShowDue = $false
+    [AztTool.AudioMeter]::Mark("the loading panel is gone: the HUD is let in (HudIn)")
     if ($script:bootHd) { $script:bootHd.HudIn() } elseif ($script:panel) { $script:panel.HoldOff = $false }
     # (the room's dark glass holds until the sweep starts, on the next frame: StartMaterialize lets it go)
     if ($NoMaterialize -and $script:gpu) { $script:gpu.MatHold = $false }
@@ -2699,8 +2748,12 @@ function Initialize-TrueColour {
         if ($uniq.Count -lt 2) { throw 'the palette has no two usable key colours' }
         # DARK, so the frame or two before the window appears is a dim flash and not a bright one
         $keyA = $(if ($KeyIndex -gt 0) { $KeyIndex } else { [int](@($uniq | Where-Object { $_.L -ge 12 })[0].I) })
-        $keyB = [int]$uniq[$uniq.Count - 1].I
-        if ($keyB -eq $keyA) { $keyB = [int]$uniq[$uniq.Count - 2].I }
+        # THE CALIBRATION PATCH IS DARK TOO (Josh, 2026-10-15: "when we fade to game, I still see a blank white square briefly"):
+        # the patch was the palette's BRIGHTEST unique colour, and for the few frames the first takeover calibrates (at a new
+        # game's shutter) the DOSBox window showed it as a white 256x128 block. FindPatch only needs a run of a colour that is NOT
+        # the key's flanked by key, so the next-darkest unique colour does: a dim block on near-black, unseen.
+        $keyB = [int](@($uniq | Where-Object { $_.L -ge 12 -and $_.I -ne $keyA })[0].I)
+        if (-not $keyB -or $keyB -eq $keyA) { $keyB = [int]$uniq[$uniq.Count - 1].I; if ($keyB -eq $keyA) { $keyB = [int]$uniq[$uniq.Count - 2].I } }
         $script:tcKeyA = $keyA; $script:tcKeyB = $keyB
         $script:tcPal32 = New-Object int[] 256
         for ($i = 0; $i -lt 256; $i++) { $script:tcPal32[$i] = ([int]$pal[$i*3] -shl 16) -bor ([int]$pal[$i*3+1] -shl 8) -bor [int]$pal[$i*3+2] }
@@ -2806,6 +2859,7 @@ function Start-BootHd {
         $pw = $(if ($script:ov.RectW -gt 0) { $script:ov.RectW } elseif ($script:tcRW -gt 0) { $script:tcRW } else { $W })
         $ph = $(if ($script:ov.RectH -gt 0) { $script:ov.RectH } elseif ($script:tcRH -gt 0) { $script:tcRH } else { $H })
         if ($script:visorShade) { $b.Shade = $script:visorShade }
+        $b.StaticShotPath = (Join-Path $CacheDir 'boot-shot.png')      # (one picture of the readout at 8 s: what the boot really drew)
         $b.StandUp = (-not $NoStandUp)
         # THE SELF SCAN (2026-10-14): the raptor's own rig turning in the right column while the readout loads; its idle from KURT.ANI
         try {
@@ -2980,6 +3034,19 @@ function Restore-MapHot {
 # material>": "tile", ... } (stone, tile, wood, metal, water). At the game's own effects setting (SFX off = none).
 # -NoFootsteps: none; -FootstepVolume: a walking step's peak. [[azrael-footsteps]]
 $script:steps = $null; $script:stepsOff = $false; $script:stepsSfxAt = $null
+# THE FLASHLIGHT'S SWITCH SOUND (BootHd.cs Footsteps.LampClick; Josh, 2026-10-15): two of the tile steps -- run 3 on, run 4 off.
+# Played through the footsteps' own sound (so at the game's effects level); with -NoFootsteps a quiet instance of its own.
+$script:lampClick = $null
+function Invoke-LampClick([bool]$on) {
+    try {
+        $f = $script:steps
+        if (-not $f) {
+            if (-not $script:lampClick) { $script:lampClick = New-Object AztTool.Footsteps; if ($BootSoundVolume -ge 0) { $script:lampClick.Sound.Volume = $BootSoundVolume }; $script:lampClick.Warm() }
+            $f = $script:lampClick
+        }
+        $f.LampClick($on)
+    } catch { }
+}
 function Set-RoomFootsteps($atm) {
     $f = $script:steps; if (-not $f) { return }
     $f.Reset(); $f.Named.Clear(); $f.RoomDefault = $null; $f.On = $true
@@ -3034,10 +3101,26 @@ function Step-Footsteps([single]$dtS, $m, [single[]]$dv, $room, [int[]]$dt, $tex
 # game's OBJECTS.DAT names, still in the scene) and the CREATURES (character parts, as they move) light up through the walls,
 # flare and fade (GpuRaster.SetEchoTargets). Not while the map, a boot cover or the room cover is up. -NoEcho: none.
 $script:echoClock = $null; $script:echoWas = $false
+# the character models the labels call CREATURES ("Live fauna detected. Avoid."); every other character is a HUMANOID
+$EchoCreatures = '^(EUG|SCORP|TRILOB|RATTY|COB)'      # (LURKA is a person -- Josh, 2026-10-15: she had "Live fauna detected")
+# THE LOCKED DOORS ("Locked door."; Josh, 2026-10-15: "only have tooltips on locked doors"). Found in the game's own scripts
+# (PUZZLES.DAT): the doors whose operate event waits on an Unlocked / Unbolted flag, plays the locked-door sound (sdoorlte) or
+# says "locked" -- R17Door2 + VestryDoor1/2 (VESTRY), R23Door2 (the bolted door: INTRVIEW / INTER2), R27Door2 (LAB), R35Door2-5
+# (R35 / R35_2) -- each tied to its room by ROOMS.DAT and to its part by OBJECTS.DAT (+0x78), checked against the rooms' parts.
+# Every other door opens when clicked. A locked door that has moved from its rest place (opened) loses its label.
+$EchoLockedDoors = @{ 'VESTRY' = @('sidedoor04', 'Object04', 'bar07'); 'INTRVIEW' = @('BOLTDOOR'); 'INTER2' = @('BOLTDOOR'); 'LAB' = @('labdoor02')
+    'R35' = @('usedoor02', 'usedoor04', 'vs_orgdo04', 'vs_orgdo01'); 'R35_2' = @('usedoor02', 'usedoor04', 'vs_orgdo04', 'vs_orgdo01') }
+$script:echoLabels = $null; $script:echoLabelsRoom = $null; $script:echoModelSaid = @{}
 function Get-PartSpan($room, $pt) {
     $v = $room.V; $lo = @(1e9, 1e9, 1e9); $hi = @(-1e9, -1e9, -1e9)
     for ($i = [int]$pt.VFirst; $i -lt [int]$pt.VFirst + [int]$pt.VCount; $i++) { for ($k = 0; $k -lt 3; $k++) { $q = $v[$i * 3 + $k]; if ($q -lt $lo[$k]) { $lo[$k] = $q }; if ($q -gt $hi[$k]) { $hi[$k] = $q } } }
     return [Math]::Max($hi[0] - $lo[0], [Math]::Max($hi[1] - $lo[1], $hi[2] - $lo[2]))
+}
+# a part's middle in this frame's geometry
+function Get-PartMid([single[]]$vx, $pt) {
+    $lo = @(1e9, 1e9, 1e9); $hi = @(-1e9, -1e9, -1e9); $e = [Math]::Min([int]($vx.Length / 3), [int]$pt.VFirst + [int]$pt.VCount)
+    for ($i = [int]$pt.VFirst; $i -lt $e; $i++) { for ($k = 0; $k -lt 3; $k++) { $q = $vx[$i * 3 + $k]; if ($q -lt $lo[$k]) { $lo[$k] = $q }; if ($q -gt $hi[$k]) { $hi[$k] = $q } } }
+    return @((($lo[0] + $hi[0]) / 2), (($lo[1] + $hi[1]) / 2), (($lo[2] + $hi[2]) / 2))
 }
 function Step-Echo($gq, $room, [single[]]$dv, [int[]]$dt) {
     if ($NoEcho -or -not $gq) { return }
@@ -3050,18 +3133,21 @@ function Step-Echo($gq, $room, [single[]]$dv, [int[]]$dt) {
             try { $op = Join-Path (Join-Path (Split-Path $TexDir -Parent) 'AZRAEL') 'OBJECTS.DAT'; if (Test-Path $op) { [void]$script:echoObjs.LoadObjects($op) } } catch { }
         }
         $doors = New-Object 'System.Collections.Generic.List[int]'; $items = New-Object 'System.Collections.Generic.List[int]'; $chars = New-Object 'System.Collections.Generic.List[int]'
-        $kind = @{}
+        $kind = @{}; $lockPi = @{}
         for ($i = 0; $i -lt $room.Parts.Count; $i++) {
             $pt = $room.Parts[$i]; $nm = [string]$pt.Name
-            if ($pt.IsCharacter) { $kind[$i] = 2 }
+            $lockList = $EchoLockedDoors[[IO.Path]::GetFileNameWithoutExtension([string]$pt.Room).ToUpperInvariant()]
+            if (-not $pt.IsCharacter -and $lockList -and ($lockList -contains $nm)) { $kind[$i] = 0; $lockPi[$i] = 1 }
+            elseif ($pt.IsCharacter) { $kind[$i] = 2 }
             elseif ($nm -match '(?i)(door|gate)' -and $nm -notmatch '(?i)wall') { $kind[$i] = 0 }
             elseif ($script:echoObjs.IsObjectPart($nm) -and $nm -notmatch '^(?i)z[xy]' -and (Get-PartSpan $room $pt) -le 160) { $kind[$i] = 1 }      # (things to take or use: not trigger planes, not a rafter or a bath)
         }
-        $tp = $room.TriPart
+        $tp = $room.TriPart; $firstTri = @{}
         for ($t = 0; $t -lt $tp.Length; $t++) {
             $pi = [int]$tp[$t]; if ($pi -lt 0 -or -not $kind.ContainsKey($pi)) { continue }
             if ($dt -and $t -lt $dt.Length -and $dt[$t] -lt 0) { continue }      # (taken away: no longer in the scene -- or never drawn)
             switch ($kind[$pi]) { 0 { $doors.Add($t) } 1 { $items.Add($t) } 2 { $chars.Add($t) } }
+            if (-not $firstTri.ContainsKey($pi)) { $firstTri[$pi] = $t }
         }
         # each doorway's opening, as the portal map has it in this room's coordinates
         $segs = New-Object 'System.Collections.Generic.List[single]'
@@ -3076,6 +3162,58 @@ function Step-Echo($gq, $room, [single[]]$dv, [int[]]$dt) {
             }
         } catch { }
         $gq.SetEchoTargets(0, $doors.ToArray(), $segs.ToArray()); $gq.SetEchoTargets(1, $items.ToArray(), $null); $gq.SetEchoTargets(2, $chars.ToArray(), $null)
+        # THE LABELS (ScanWire.cs EchoLabels; Josh, 2026-10-15): a tooltip over each thing that can be PICKED UP (OBJECTS.DAT's
+        # action 6, IsTakePart), each INTERACTIVE object (IsInteractivePart), each HUMANOID and each CREATURE (by the character's model:
+        # $EchoCreatures) -- pickups and interactive objects 20 s, characters 3 s (EchoLabels.HoldOf) -- renewed by
+        # every scan. A character is all its bone parts (one ZZnnnn prefix).
+        if (-not $NoEchoLabels) {
+            if (-not $script:echoLabels) { $script:echoLabels = New-Object AztTool.EchoLabels }
+            $script:echoLabels.Begin(); $script:echoLabelsRoom = $room; $script:echoLabels.Rest = [single[]]$room.V
+            $nI = 0; $nX = 0; $nH = 0; $nC = 0; $nL = 0; $byChar = @{}
+            # A BOLT IS A LOCK (Josh, 2026-10-15: a barred door's bolt read "Interactive item detected."): the game files its bolts
+            # ('Bolt', action 8) as things to use, but a shot bolt is what keeps its door shut -- so the door nearest each bolt
+            # (within 250 units) reads "Locked door." (pinned to the door; the bolt and the door together, so drawing the bolt back
+            # or opening the door takes it away), and the bolt itself gets no tooltip.
+            $boltDoor = @{}
+            foreach ($bi in @($firstTri.Keys)) {
+                if ($kind[$bi] -ne 1 -or [string]$room.Parts[$bi].Name -notmatch '(?i)bolt') { continue }
+                $bm = Get-PartMid $dv $room.Parts[$bi]; $best = -1; $bd = 250.0
+                foreach ($di in @($firstTri.Keys)) {
+                    if ($kind[$di] -ne 0) { continue }
+                    $dm = Get-PartMid $dv $room.Parts[$di]; $dd = [Math]::Sqrt(($dm[0] - $bm[0]) * ($dm[0] - $bm[0]) + ($dm[1] - $bm[1]) * ($dm[1] - $bm[1]) + ($dm[2] - $bm[2]) * ($dm[2] - $bm[2]))
+                    if ($dd -lt $bd) { $bd = $dd; $best = $di }
+                }
+                $boltDoor[$bi] = $best
+            }
+            foreach ($bi in @($boltDoor.Keys)) {
+                $di = $boltDoor[$bi]; $bp = $room.Parts[$bi]
+                if ($di -lt 0) { continue }
+                $dp = $room.Parts[$di]; $lockPi.Remove($di)
+                $script:echoLabels.Add(4, [int[]]@([int]$dp.VFirst, [int]$bp.VFirst), [int[]]@([int]$dp.VCount, [int]$bp.VCount), [int]$firstTri[$di]); $nL++
+            }
+            foreach ($pi in @($firstTri.Keys)) {
+                $pt = $room.Parts[$pi]; $nm = [string]$pt.Name
+                if ($boltDoor.ContainsKey($pi)) { continue }      # (the bolt: its door carries the label)
+                if ($lockPi.ContainsKey($pi)) { $script:echoLabels.Add(4, [int[]]@([int]$pt.VFirst), [int[]]@([int]$pt.VCount), [int]$firstTri[$pi]); $nL++; continue }
+                if ($kind[$pi] -eq 1 -and $script:echoObjs.IsTakePart($nm)) { $script:echoLabels.Add(0, [int[]]@([int]$pt.VFirst), [int[]]@([int]$pt.VCount), [int]$firstTri[$pi]); $nI++ }
+                elseif ($kind[$pi] -eq 1 -and $script:echoObjs.IsInteractivePart($nm)) { $script:echoLabels.Add(3, [int[]]@([int]$pt.VFirst), [int[]]@([int]$pt.VCount), [int]$firstTri[$pi]); $nX++ }      # (levers, wheels, handles...: "Interactive object.")
+                elseif ($kind[$pi] -eq 2) {
+                    $pre = $(if ($nm -match '^(?i)ZZ\d{4}') { $nm.Substring(0, 6).ToUpperInvariant() } else { [string]$pt.Room })
+                    if (-not $byChar.ContainsKey($pre)) { $byChar[$pre] = New-Object 'System.Collections.Generic.List[int]' }
+                    $byChar[$pre].Add($pi)
+                }
+            }
+            foreach ($pre in $byChar.Keys) {
+                $ps = $byChar[$pre]; $vf = New-Object int[] $ps.Count; $vc = New-Object int[] $ps.Count
+                for ($q = 0; $q -lt $ps.Count; $q++) { $vf[$q] = [int]$room.Parts[$ps[$q]].VFirst; $vc[$q] = [int]$room.Parts[$ps[$q]].VCount }
+                $model = [IO.Path]::GetFileNameWithoutExtension([string]$room.Parts[$ps[0]].Room).ToUpperInvariant()
+                $isCreature = $model -match $EchoCreatures
+                $script:echoLabels.Add($(if ($isCreature) { 2 } else { 1 }), $vf, $vc, -1)
+                if ($isCreature) { $nC++ } else { $nH++ }
+                if (-not $script:echoModelSaid.ContainsKey($model)) { $script:echoModelSaid[$model] = 1; Say ("  echo labels: {0} is {1}" -f $model, $(if ($isCreature) { 'a creature (Live fauna detected)' } else { 'a humanoid (Humanoid figure detected)' })) DarkGray }
+            }
+            Say ("  echo labels: {0} pickup(s), {1} interactive, {2} locked door(s), {3} humanoid(s), {4} creature(s)" -f $nI, $nX, $nL, $nH, $nC) DarkCyan
+        }
         $script:echoChars = $chars.ToArray()
         $script:echoClock = [Diagnostics.Stopwatch]::StartNew()
         if (-not $NoBootSound) { if (-not $script:echoSound) { $script:echoSound = New-Object AztTool.BootSound; if ($BootSoundVolume -ge 0) { $script:echoSound.Volume = $BootSoundVolume } }; try { $script:echoSound.SonarPing() } catch { } }
@@ -3088,6 +3226,11 @@ function Step-Echo($gq, $room, [single[]]$dv, [int[]]$dt) {
             $gq.EchoT = [single]$t
             if ($script:echoChars -and $script:echoChars.Length) { $gq.SetEchoTargets(2, $script:echoChars, $null) }      # (creatures move: their outlines again from this frame's pose)
         }
+    }
+    if ($script:echoLabels) {
+        if (-not [object]::ReferenceEquals($script:echoLabelsRoom, $room)) { $script:echoLabels.Clear(); $script:echoLabelsRoom = $room }      # (another room: its vertex ranges mean nothing here)
+        $hideL = $blocked -or $script:convWas -or ($script:visorMenu -and $script:visorMenu.AnyPlaying) -or $gq.BlackView
+        $script:echoLabels.Step($gq, $dv, $dt, [single]$gq.EchoSpeed, [bool]$hideL)
     }
 }
 # ROOMS VISITED -- THE SAVE'S OWN (Josh, 2026-10-14: "If starting a new game, I should only see the first room on the map ... This
@@ -3403,6 +3546,30 @@ function Step-LoadPanel {
 function GuestWord([uint32]$lin) { if ($script:snapOn) { return $hv.SnapWord($lin) }; try { [BitConverter]::ToInt16([AztTool.ProcMem]::Read($g.ProcessId, [long]($g.MemBase + $lin + $script:memAt.D2), 2), 0) } catch { $null } }
 # a data write to an obj2 word the snapshot holds: to the game now, and into the snapshot so the rest of the frame sees it
 function Write-GuestSnap([uint32]$lin, [byte[]]$data) { if ($script:snapOn) { [void]$hv.WriteSnap($lin, $data) } else { [void][AztTool.ProcMem]::Write($g.ProcessId, [long]($g.MemBase + $lin + $script:memAt.D2), $data) } }
+# THE MUSIC, LOGGED (2026-10-15, Josh: KREEPY2 "plays in the Minemaze room, but I believe that room is still playing the original
+# midi file"): the game's current cue [0x152AD0] (0 awemyst .. 8 kreepy2 .. 10 peaceful) and what the overlay's CD switch made
+# of it (AztCdPoll: aztCdCur = a CD track playing, aztCdIdx = which slot, aztCdMuted = the MIDI held at 0, aztCdOnLast = F4's
+# soundtrack mode), read twice a second and said whenever any of it changes -- so a room's music can be checked from watch.log
+$script:musicWas = $null; $script:musicAt = $null
+$script:cueNames = @('AWEMYST', 'CATHEDRL', 'EGYPTIAN', 'FIGHT2', 'GHOSTS', 'GRAIL', 'INGAME', 'INGAME2', 'KREEPY2', 'KREEPY3', 'PEACEFUL', 'BOOTFX')
+function Step-MusicWatch {
+    if ($script:musicOff -or -not $symMap.ContainsKey('aztCdCur')) { return }
+    if ($script:musicAt -and $script:musicAt.ElapsedMilliseconds -lt 500) { return }
+    if ($script:musicAt) { $script:musicAt.Restart() } else { $script:musicAt = [Diagnostics.Stopwatch]::StartNew() }
+    try {
+        $cw = GuestWord 0x152AD0; if ($null -eq $cw) { return }; $cue = [int]$cw -band 0xFF
+        $ok = RdU32 (HostLin (Sym 'aztCdOk')); $cur = RdU32 (HostLin (Sym 'aztCdCur')); $idx = RdU32 (HostLin (Sym 'aztCdIdx'))
+        $muted = RdU32 (HostLin (Sym 'aztCdMuted')); $on = (RdU32 (HostLin (Sym 'aztCdOnLast'))) -band 0xFFFF
+        $now = "$cue|$ok|$cur|$idx|$muted|$on"
+        if ($now -eq $script:musicWas) { return }; $script:musicWas = $now
+        $nm = { param($i) if ($i -ge 0 -and $i -lt $script:cueNames.Count) { $script:cueNames[$i] } else { "?$i" } }
+        $what = $(if (-not $ok) { 'CD audio not available -- the MIDI plays' }
+                  elseif (-not $on) { 'soundtrack mode OFF (F4) -- the original MIDI plays' }
+                  elseif ($cur) { "the recorded soundtrack plays {0} (slot {1}){2}" -f (& $nm ([int]$idx)), $idx, $(if ($muted) { ', MIDI held at 0' } else { ' -- but the MIDI is NOT muted' }) }
+                  else { 'no CD track playing -- the MIDI plays' + $(if ($muted) { ' (held at 0)' } else { '' }) })
+        Say ("music: the game's cue is {0} ({1}); {2}" -f (& $nm $cue), $cue, $what) DarkCyan
+    } catch { $script:musicOff = $true; Say ("music watch off: {0}" -f $_.Exception.Message) Yellow }
+}
 function Step-EscWatch {
     if (-not $script:memAt -or -not $g) { return }
     if ($script:titleUnlockAt -and $script:titleUnlockAt.Elapsed.TotalSeconds -lt 5) {
@@ -5088,6 +5255,7 @@ function Invoke-Session {
             }
         }
         Step-LoadPanel      # (a load's re-boot beginning: the visor's "initiating log file" panel -- before anything here can `continue`)
+        Step-MusicWatch     # (the room's music and what the CD switch made of it, in watch.log when it changes)
         Step-EscWatch       # (after a title load: the new game's interface lock; ESC's blockers logged when it opens nothing)
         Step-QuitWatch      # (QUIT in the GPU mode: straight to the desktop, no credits)
         Step-ShotWatch      # (each shot: the input that led to it -- the right-click shooting)
@@ -5417,7 +5585,7 @@ function Invoke-Session {
             # again), and the beam fades over about a seventh of a second rather than cutting.
             if ($LampKey -gt 0) {
                 $kd = [AztTool.Keys]::DownInProcess($LampKey, $g.ProcessId)
-                if ($kd -and -not $lampKeyWas) { $lampOnNow = -not $lampOnNow; Say ("flashlight {0}" -f $(if ($lampOnNow) { 'ON' } else { 'OFF' })) Cyan }
+                if ($kd -and -not $lampKeyWas) { $lampOnNow = -not $lampOnNow; Say ("flashlight {0}" -f $(if ($lampOnNow) { 'ON' } else { 'OFF' })) Cyan; Invoke-LampClick $lampOnNow }
                 $lampKeyWas = $kd
             }
             $vp = $script:visorPending
@@ -6051,6 +6219,7 @@ try {
         }
         if ($script:gate) { $script:gate.Stage(0.97, 1.5) }
         Say ("attached to the game {0:N1} s after it appeared (guest RAM at host 0x{1:X}; obj2 delta 0x{2:X} -- 0x224000 = the 256 KB overlay window's layout, 0x1F1000 = the old)" -f $attachClock.Elapsed.TotalSeconds, $g.MemBase, $(if ($g.PSObject.Properties['Delta2']) { $g.Delta2 } else { 0 })) Green
+        try { [void][AztTool.AppMute]::Set([int]$g.ProcessId, $false) } catch { }      # (a mute left over from a renderer that stopped mid-load: off)
         $attachClock = $null; $attachSaid = $false
         $lastGamePid = $g.ProcessId
 
@@ -6102,6 +6271,9 @@ try {
             if ($script:tcRestart) { Say 'starting the picture again at the game''s own size' Yellow; $script:tcRaster = $null }
         } while ($script:tcRestart -and (Get-GamePid))
         Close-TrueColour
+        [AztTool.AudioMeter]::Mark("the game exited")
+        if ($script:loadSilent) { Set-LoadSilence $false 'the game ended' }      # (never leave DOSBox muted)
+        for ($k = 0; $k -lt 200; $k++) { $ml = [AztTool.AudioMeter]::Take(); if (-not $ml) { break }; Say $ml DarkGray }      # (what the meter has so far)
         Restore-Viewport
         try { [AztTool.SceneGraph]::Release() } catch { }
         try { $hv.Close() } catch { }
@@ -6114,6 +6286,7 @@ try {
     # a game held behind the loading screen is never left frozen, whatever ended this
     if ($script:gate) { try { $script:gate.Dispose() } catch { }; try { Write-GateNotes } catch { }; $script:gate = $null }
     Stop-SpaceGuard
+    if ($script:loadSilent -and $g) { try { Set-LoadSilence $false 'stopping' } catch { } }      # (never leave DOSBox muted)
     if ($script:gpu) { try { $script:gpu.Dispose() } catch { }; $script:gpu = $null }
     Close-TrueColour
     Restore-Viewport
