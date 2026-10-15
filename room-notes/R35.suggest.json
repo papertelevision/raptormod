@@ -1,0 +1,51 @@
+{
+    "schema":  1,
+    "room":  "R35",
+    "made":  "2026-10-14T13:55:40.1466833Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.67,
+                            "point":  [
+                                          488.08,
+                                          44.91,
+                                          -962.66
+                                      ],
+                            "normal":  [
+                                           -1,
+                                           -0.006,
+                                           0
+                                       ],
+                            "part":  "areaend",
+                            "material":  "1ENDOFAREA",
+                            "texture":  "10-r35inend.png",
+                            "uv":  [
+                                       0.48,
+                                       0.092
+                                   ],
+                            "crop":  [
+                                         41,
+                                         198,
+                                         79,
+                                         256,
+                                         128,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.1x the art\u0027s level)",
+                            "light":  {
+                                          "x":  473.08,
+                                          "y":  44.82,
+                                          "z":  -962.66,
+                                          "color":  "#FFEF44",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

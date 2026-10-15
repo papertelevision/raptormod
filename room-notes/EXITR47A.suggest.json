@@ -1,0 +1,51 @@
+{
+    "schema":  1,
+    "room":  "EXITR47A",
+    "made":  "2026-10-14T13:55:27.2860578Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.64,
+                            "point":  [
+                                          -611.02,
+                                          85.6,
+                                          21.66
+                                      ],
+                            "normal":  [
+                                           0.995,
+                                           0,
+                                           -0.105
+                                       ],
+                            "part":  "Object02",
+                            "material":  "1EXITPIC",
+                            "texture":  "04-exitpic.png",
+                            "uv":  [
+                                       0.486,
+                                       0.908
+                                   ],
+                            "crop":  [
+                                         100,
+                                         10,
+                                         150,
+                                         39,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.2x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -596.1,
+                                          "y":  85.6,
+                                          "z":  20.09,
+                                          "color":  "#FFA686",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

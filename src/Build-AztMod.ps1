@@ -951,6 +951,36 @@ $ACTOR_PERIOD = 100
 # animation down, never speed it up, and a frame rate below the animation rate
 # simply means animation runs at the frame rate as it always did.
 $ANIM_PERIOD_US = 54925
+# ---- NPC pace (Josh, 2026-10-13): every character's TRAVEL and STRIDE at NPC_RATE_PCT % of the 18.2 Hz steps -- both
+# through one accumulator (AztActorGate, AztNpcStride), so pose and travel slow together; doors, room animations and the
+# player's walk bob (aztAnimDue) are untouched. Per character (the host's aztNpcTab from a room's "npcs"): an extra
+# share and pauses. See the overlay's AztActorGate and docs\notes\azrael-npc-pace.md.
+$ENABLE_NPC_PACE = $true
+$NPC_RATE_PCT = 100     # (Josh, 2026-10-13: 90 felt too slow everywhere, then 95; now "all characters move at their 100% animation speed" -- only a room's "npcs" slow anyone: CORICORI's two creatures)
+# THE CONVERSATION'S LOOK (Josh, 2026-10-13): the log box opens once the options print, not on the conversation flag
+# (overlay AztConvBoxZ), and the game's blinking red "input locked" corner brackets are gone (no-lock-brackets-155DC;
+# the host draws its own conversation cue). See docs\notes\azrael-conversation-ui.md.
+$ENABLE_CONV_BOX_LATCH = $true
+$ENABLE_NO_LOCK_BRACKETS = $true
+# M OPENS AND CLOSES THE MAP (Josh, 2026-10-14: "Lets map the M key to open/close the map"). The game's key handler matched
+# only a lower-case 'm' (0x135BC) and then refused while the weapon is out ([0x14721C], Space's sniper sight) -- so with the
+# weapon drawn, or Shift / Caps Lock, M did nothing. Now 'm' and 'M' both go to the toggle 0x12954 (the same call opens and
+# closes it), weapon or not. The map screen's own key gate (0x12BA3) already lets both through. See azrael-map-3d.md.
+$ENABLE_M_MAP = $true
+# NO SHOT ON THE MAP (Josh, 2026-10-14: "The gun must be disabled while viewing maps, as it keeps shooting while I click to
+# drag"). The left-press handler 0x15A5C fires when the weapon is out ([0x14721C]: shot.wav, ammo 0x14694C - 1); its
+# `jz 0x1607C` at 0x15AFC (no weapon: the ordinary click) now goes through AztFireGate, which also takes the ordinary
+# click while the map / help screen is up (word 0x1525F2). The map's own click handling is unchanged.
+$ENABLE_MAP_NO_FIRE = $true
+# THE GAME'S OWN MAP, DRAWN RIGHT OR NOT AT ALL (Josh, 2026-10-14: "The old map is still showing in some rooms. Those maps
+# became corrupted ... They can be removed completely ... In retro mode we will need to include the original low rez map art
+# but make sure they are not corrupted"). The map screen composes into a 640x480 surface (0x12954: 0x1525E0, 0x280 x 0x1E0;
+# MAPS.DAT's pieces are placed in 640x480) and 0x1588C blits it to (0, 0) every frame -- on a 1600x1200 screen a
+# 640x480 picture in the top-left corner, part of it above the view where the host's true-colour picture does not reach.
+# (Its backdrop had been resized to the screen, which no longer fitted the surface: the corruption -- Build-HudArt keeps it
+# 640x480 now.) The blit's call (0x1589F) goes through AztMapBlit: the composed map is drawn centred in the 3D view, at its
+# own size; and not at all while the host draws its 3D map (aztOldMapOff, written by the watcher in true colour).
+$ENABLE_MAP_BLIT = $true
 
 # ---- frame limiter -----------------------------------------------------------
 # Gating the actor stepter alone was never going to be enough. The game is
@@ -1347,6 +1377,19 @@ $CD_DIAG         = $false
 # what state the sequence is in -- it is deliberately not the same constant, so that
 # a later phase which wedges mid-animation still hands the viewport back.
 $ENABLE_BOOT_SEQ = $true
+# --- the host's field of view ---------------------------------------------------------
+# FIELD OF VIEW (Josh, 2026-10-13: the 50 degree view "is a major reason why this game still doesn't feel modern"; 60 by
+# default, 50/60/70 to judge in game). The engine's field is Reality Lab's SetField (0x3A8A0), set to 0.8 in exactly
+# four places (0x10F83 startup, 0x11145 the 1/2/3 render level, 0x11398 / 0x11403 the viewport re-created on a room
+# load or a close-up) and never changed at run time. The game's cursor pick (0x116E4 -> 0x3BBC4 -> 0x3C1A4) reads the
+# viewport's field live, so changing the GAME's field keeps clicks, hover and shots lined up with a host picture drawn
+# at the same angle -- the reason a host-only wider view was turned down on 2026-10-05.
+# AztFovTick, every frame before the render and the pick: the host writes aztFovTan = tan(vertical FOV / 2) (0 = leave
+# the game alone: -Retro, an older host); the overlay turns it into Reality Lab's field for THIS viewport -- the
+# half-extent of its larger side, as 0x59404 applies it: x max(1, (w x sx) / (h x sy)) -- and calls SetField when the
+# viewport's own field differs (a new viewport from a room load or the 1/2/3 keys comes back at 0.8 and is caught
+# before it is drawn). [[azrael-fov]]
+$ENABLE_HOST_FOV = $true
 # An extra movie, played on the first gameplay frame -- after the game's own intro movies
 # and before the visor boot, so the player is given context instead of simply appearing.
 # 1024x576 at 12 fps: full screen width, 16:9 letterboxed by the player's own centring,
@@ -1655,7 +1698,7 @@ $BOOT_BANNER = @(
 )
 # The readout, one line at a time under the banner.
 $BOOT_LINES = @(
-    'INITIATING MS-2 HELMET H.U.D...'
+    'DEPLOYING MS-2 HELMET INTERFACE...'      # (Josh, 2026-10-14; was 'INITIATING MS-2 HELMET H.U.D...')
     'SYSTEM CHECK INITIATING...'
     'FALL DETECTED, INITIATING SELF SCAN...'
     'NO INJURIES DETECTED...'
@@ -4224,7 +4267,9 @@ $patches = @()
 # THE DEFAULT VOLUMES (Josh, 2026-10-10: "set the default volume at 50% for music and 100% for sound"). The levels are
 # int16 words in obj2's file-backed data, 0..127 (docs\system-menu-RE.md s2.1): SFX 0x14693E, music 0x146940, both 100
 # stock. Nothing saves them with a game, so these are what every session starts at: music 64 (half), effects 127 (full).
-$VOL_SFX_DEFAULT = 127; $VOL_MUSIC_DEFAULT = 64
+# (Josh, 2026-10-13: "Set the music volume to 30 by default, sound at 100 as it is now": the menu shows level x 100 / 127,
+# so 38 reads 30%)
+$VOL_SFX_DEFAULT = 127; $VOL_MUSIC_DEFAULT = 38
 $patches += New-Patch -Name 'volume-defaults-14693E' -FileOffset ($DATA_PAGES + 291 * 4096 + (0x14693E - 0x140000)) `
     -Expect ([byte[]]@(100, 0, 100, 0)) -Replace ([byte[]]@($VOL_SFX_DEFAULT, 0, $VOL_MUSIC_DEFAULT, 0)) `
     -Note ("default volumes: effects {0}/127, music {1}/127" -f $VOL_SFX_DEFAULT, $VOL_MUSIC_DEFAULT)
@@ -4608,7 +4653,7 @@ if ($ENABLE_ACTOR_TIME) {
     # defined by line 800 and this is line ~3450, so it cannot become the $null -> 0 that
     # a derived value placed above its constants silently turns into.
     $NEED_OVL_FRAME = $ENABLE_FPS_LOG -or $CAM_RECORD -or $ENABLE_SCENE_LOG -or `
-                      $ENABLE_BOOT_SEQ -or $ENABLE_CD_AUDIO
+                      $ENABLE_BOOT_SEQ -or $ENABLE_CD_AUDIO -or $ENABLE_HOST_FOV
     if ($NEED_OVL_FRAME) {
         A-LeaEaxSi $t ([uint32]($OVERLAY_BASE + 9))
         A-CallEax  $t
@@ -4784,7 +4829,13 @@ if ($ENABLE_ACTOR_TIME) {
     A-Jb $t 'AAT_done'
     A-MovWordSiImm $t 'aztTickAcc' 0   # no debt carried: one step per frame
     A-MovEaxEspPtr $t
-    A-Call $t $ACTOR_STEP              # 0x261C0 pushes esi at entry, so esi survives
+    if ($ENABLE_NPC_PACE) {
+        # through the overlay's NPC pace gate (AztActorGate, at the fixed +21 entry): it steps 0x261C0 NPC_RATE_PCT % of the time
+        A-Db $t @(0x8D, 0x8E); Add-Abs32 $t ([uint32]($OVERLAY_BASE + 21))      # lea ecx,[esi+AztOvlActor]
+        A-Db $t @(0xFF, 0xD1)                                                     # call ecx
+    } else {
+        A-Call $t $ACTOR_STEP          # 0x261C0 pushes esi at entry, so esi survives
+    }
 
     Add-Label $t 'AAT_done'
     A-PopEax $t
@@ -4989,6 +5040,8 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
     A-Jmp $ovl 'AztCdBootStart'
     #  +19  aztTypingKeys: a WORD the stub's WASD hooks read (see $g_saveList). Fixed here, asserted after assembly.
     Add-Label $ovl 'aztTypingKeys'; A-Dw $ovl 0
+    #  +21  AztOvlActor: the clock blob's actor step goes through the NPC pace gate ($ENABLE_NPC_PACE). Asserted.
+    if ($ENABLE_NPC_PACE) { Add-Label $ovl 'AztOvlActor'; A-Jmp $ovl 'AztActorGate' }
 
     # Everything that runs once at load, and everything that runs per frame. The
     # three fixed entries above are jumps so that this list can grow without moving
@@ -5080,6 +5133,28 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
     if ($ENABLE_BOOT_SEQ) {
         A-PushEbx $ovl
         A-Call $ovl 'AztBootTick'      # holds the 3D off while the visor "boots"
+        A-PopEbx $ovl
+    }
+    if ($ENABLE_NPC_PACE) {
+        # THIS FRAME'S CHARACTER STRIDE (AztNpcStride): the animation tick, thinned to aztNpcPct
+        A-MovWordSiImm $ovl 'aztCharDue' 0
+        A-CmpWordSiImm $ovl ([uint32]$tAsm.Labels['aztAnimDue']) 0
+        A-JzS $ovl 'AFA_nochar'
+        A-PushEdx $ovl
+        A-MovzxEdxSi $ovl 'aztCharAcc'
+        A-Db $ovl @(0x66, 0x03, 0x96); Add-Abs32 $ovl 'aztNpcPct'                 # add dx,[esi+aztNpcPct]
+        A-Db $ovl @(0x66, 0x83, 0xFA, 0x64)                                         # cmp dx,100
+        A-JbS $ovl 'AFA_charheld'
+        A-Db $ovl @(0x66, 0x83, 0xEA, 0x64)                                         # sub dx,100
+        A-MovWordSiImm $ovl 'aztCharDue' 1
+        Add-Label $ovl 'AFA_charheld'
+        A-MovSiDx $ovl 'aztCharAcc'
+        A-PopEdx $ovl
+        Add-Label $ovl 'AFA_nochar'
+    }
+    if ($ENABLE_HOST_FOV) {
+        A-PushEbx $ovl
+        A-Call $ovl 'AztFovTick'       # the host's field of view, before this frame's render and pick
         A-PopEbx $ovl
     }
     A-Call $ovl 'AztCdPoll'            # last, so it gets `now` live in ebx
@@ -5204,6 +5279,10 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
     Add-Label $ovl 'AztAnimStep'
     A-Call $ovl $tAsm.Labels['AztAnimGate']
     A-JzS $ovl 'AAS_out'
+    if ($ENABLE_NPC_PACE) {
+        A-Call $ovl 'AztNpcStride'                    # ebx = the character: the NPC pace and its own share
+        A-JzS $ovl 'AAS_out'
+    }
     A-Db $ovl @(0x89,0xC2)                            # mov edx, eax
     A-Db $ovl @(0x42)                                 # inc edx
     A-Db $ovl @(0x66,0x89,0x93,0x84,0x02,0x00,0x00)   # mov word [ebx+0x284], dx
@@ -10418,7 +10497,358 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
         A-Jmp  $ovl ([uint32]0x11D3A)                 # nothing picked
     }
 
+    # ---- AztFovTick: the host's field of view (see $ENABLE_HOST_FOV) ----------------------
+    # esi/edi = the deltas (from AztFrameAll). Everything saved: pushad/popad. LAST in the overlay, so adding it moved
+    # no other routine or data word.
+    if ($ENABLE_HOST_FOV) {
+        Add-Label $ovl 'AztFovTick'
+        A-Pushad $ovl
+        A-MovEaxSi $ovl 'aztFovTan'
+        A-TestEaxEax $ovl
+        A-Jle $ovl 'AFV_out'                     # 0 = the game's own field; never a field <= 0 (Reality Lab's error path)
+        A-MovEaxDi $ovl 0x152138                 # the viewport's handle
+        A-TestEaxEax $ovl
+        A-Jz $ovl 'AFV_out'                      # none yet (the intro, the boot)
+        A-Call $ovl ([uint32]0x39E50)            # handle -> object; a pure lookup, 0 if not found
+        A-TestEaxEax $ovl
+        A-Jz $ovl 'AFV_out'
+        A-MovEbxEax $ovl                         # ebx = the viewport
+        A-Db $ovl ([byte[]]@(0x8B, 0x4B, 0x2C))                       # mov ecx,[ebx+0x2C]   its device
+        A-Db $ovl ([byte[]]@(0x85, 0xC9))                             # test ecx,ecx
+        A-Jz $ovl 'AFV_out'
+        A-Db $ovl ([byte[]]@(0x8B, 0x43, 0x3C))                       # mov eax,[ebx+0x3C]   width
+        A-Db $ovl ([byte[]]@(0x0F, 0xAF, 0x81, 0x60, 0x01, 0x00, 0x00)) # imul eax,[ecx+0x160]  x the device's x scale
+        A-Db $ovl ([byte[]]@(0x8B, 0x53, 0x40))                       # mov edx,[ebx+0x40]   height
+        A-Db $ovl ([byte[]]@(0x0F, 0xAF, 0x91, 0x64, 0x01, 0x00, 0x00)) # imul edx,[ecx+0x164]  x its y scale
+        A-Db $ovl ([byte[]]@(0x39, 0xD0))                             # cmp eax,edx
+        A-JbeS $ovl 'AFV_square'                 # not wider than tall: the field is the vertical half-extent itself
+        A-Db $ovl ([byte[]]@(0x50, 0x52))                             # push eax; push edx
+        A-Db $ovl ([byte[]]@(0xDB, 0x44, 0x24, 0x04))                 # fild dword [esp+4]   w
+        A-Db $ovl ([byte[]]@(0xDA, 0x34, 0x24))                       # fidiv dword [esp]    / h
+        A-Db $ovl ([byte[]]@(0x83, 0xC4, 0x08))                       # add esp,8
+        A-FmulSi $ovl 'aztFovTan'                # field = tan(v/2) x aspect
+        A-JmpS $ovl 'AFV_have'
+        Add-Label $ovl 'AFV_square'
+        A-FldSi $ovl 'aztFovTan'
+        Add-Label $ovl 'AFV_have'
+        A-FstpSi $ovl 'aztFovWant'
+        A-MovEcxSi32 $ovl 'aztFovWant'
+        A-Db $ovl ([byte[]]@(0x3B, 0x8B, 0xFC, 0x00, 0x00, 0x00))     # cmp ecx,[ebx+0xFC]   the viewport's own +field
+        A-Jz $ovl 'AFV_out'                      # already so
+        A-Db $ovl ([byte[]]@(0xFF, 0xB6)); Add-Abs32 $ovl 'aztFovWant' # push dword [esi+aztFovWant]
+        A-MovEaxDi $ovl 0x152138
+        A-Call $ovl ([uint32]0x3A8A0)            # SetField(viewport, field) -- ret 4: it pops its argument
+        A-IncDwordSi $ovl 'aztFovSets'
+        Add-Label $ovl 'AFV_out'
+        A-Popad $ovl
+        A-Ret $ovl
+        Add-Label $ovl 'aztFovTan';  A-Dd $ovl 0          # the HOST writes it: tan(vertical FOV / 2) as a float; 0 = off
+        Add-Label $ovl 'aztFovWant'; A-Dd $ovl 0          # this frame's field (the host may read it back)
+        Add-Label $ovl 'aztFovSets'; A-Dd $ovl 0          # how many times it was applied (each new viewport, each change)
+    }
+
+    # ---- NPC PACE (Josh, 2026-10-13: "slow down the animation of all npcs by a small amount, say 10% ... the 2 creatures
+    # in the cori cori room are especially fast, so I need them only to be slowed a total of 20%. Additionally, I'd like
+    # them to pause every once in a while, rather than constantly running around ... an easier chance to scan them") -------
+    # A CHARACTER MOVES ON TWO CLOCKS (docs\notes\azrael-npc-pace.md): its TRAVEL, scripts and AI on the actor stepper
+    # 0x261C0 (AztActorTime, 18.2 Hz), its STRIDE on the move callback's frame +1 (AztAnimStep, on aztAnimDue -- which
+    # the doors, room animations and the player's walk bob share, so it is not slowed itself). Both pass through
+    # aztNpcPct here (an accumulator: 90 = 9 steps in 10), so pose and travel slow together and nothing else does.
+    # PER CHARACTER, aztNpcTab: up to 4 entries the HOST writes from a room's "npcs" block -- {dd character, db pct,
+    # db stride acc, db AI acc, db hold, db pause state, 3 spare} (12 bytes): pct scales that character's stride (AztNpcStride) and its AI step
+    # (AztNpcAi at 0x2662E: dh = 0 = no AI this step, so RandomMovement / the mover 0x258A8 wait with it); hold makes
+    # a calm wanderer stand (AztNpcHold at 0x2694E: RUN -> REST via 0x23DC8, and the game's own WANDER restart from
+    # REST is held off until the host lets go). Scripts, combat, conversations and the dead are never held.
+    if ($ENABLE_NPC_PACE) {
+        # entered from AztActorTime (the clock blob) by `lea ecx,[esi+AztOvlActor] / call ecx`, eax = 0x261C0's argument,
+        # esi = the obj1 delta
+        Add-Label $ovl 'AztActorGate'
+        A-PushEdx $ovl
+        A-MovzxEdxSi $ovl 'aztNpcAcc'
+        A-Db $ovl @(0x66, 0x03, 0x96); Add-Abs32 $ovl 'aztNpcPct'                  # add dx,[esi+aztNpcPct]
+        A-Db $ovl @(0x66, 0x83, 0xFA, 0x64)                                          # cmp dx,100
+        A-JbS $ovl 'AAG_hold'
+        A-Db $ovl @(0x66, 0x83, 0xEA, 0x64)                                          # sub dx,100
+        A-MovSiDx $ovl 'aztNpcAcc'
+        A-PopEdx $ovl
+        A-Jmp $ovl $ACTOR_STEP                                                       # the step (its ret returns to the blob)
+        Add-Label $ovl 'AAG_hold'
+        A-MovSiDx $ovl 'aztNpcAcc'
+        A-PopEdx $ovl
+        A-Ret $ovl
+
+        # the stride: ZF = 1 to HOLD this character's frame (after the global gate passed). ebx = the character.
+        # Every register preserved (pop does not touch the flags; `test esp,esp` clears ZF).
+        Add-Label $ovl 'AztNpcStride'
+        A-PushEax $ovl; A-PushEcx $ovl; A-PushEdx $ovl
+        A-CallNext $ovl
+        Add-Label $ovl 'ANS_ref'
+        A-PopEax $ovl
+        A-SubEaxImm $ovl 'ANS_ref'                                                   # eax = obj1 delta
+        A-Db $ovl @(0x66, 0x83, 0xB8); Add-Abs32 $ovl 'aztCharDue'; A-Db $ovl @(0x00) # cmp word [eax+aztCharDue],0
+        A-JzS $ovl 'ANS_done'                                                        # not a character frame: hold (ZF=1)
+        A-Db $ovl @(0x8D, 0x88); Add-Abs32 $ovl 'aztNpcTab'                          # lea ecx,[eax+aztNpcTab]
+        A-Db $ovl @(0xBA, 0x04, 0x00, 0x00, 0x00)                                    # mov edx,4
+        Add-Label $ovl 'ANS_loop'
+        A-Db $ovl @(0x39, 0x19)                                                      # cmp [ecx],ebx
+        A-JzS $ovl 'ANS_found'
+        A-Db $ovl @(0x83, 0xC1, 0x0C)                                                # add ecx,12
+        A-Db $ovl @(0x4A)                                                            # dec edx
+        A-JnzS $ovl 'ANS_loop'
+        A-Db $ovl @(0x85, 0xE4)                                                      # test esp,esp -> ZF=0: step
+        A-JmpS $ovl 'ANS_done'
+        Add-Label $ovl 'ANS_found'
+        A-Db $ovl @(0x8A, 0x51, 0x05)                                                # mov dl,[ecx+5]   the stride acc
+        A-Db $ovl @(0x02, 0x51, 0x04)                                                # add dl,[ecx+4]   + its pct
+        A-Db $ovl @(0x80, 0xFA, 0x64)                                                # cmp dl,100
+        A-JbS $ovl 'ANS_hold'
+        A-Db $ovl @(0x80, 0xEA, 0x64)                                                # sub dl,100
+        A-Db $ovl @(0x88, 0x51, 0x05)                                                # mov [ecx+5],dl
+        A-Db $ovl @(0x85, 0xE4)                                                      # test esp,esp -> ZF=0: step
+        A-JmpS $ovl 'ANS_done'
+        Add-Label $ovl 'ANS_hold'
+        A-Db $ovl @(0x88, 0x51, 0x05)                                                # mov [ecx+5],dl
+        A-Db $ovl @(0x31, 0xD2)                                                      # xor edx,edx -> ZF=1: hold
+        Add-Label $ovl 'ANS_done'
+        A-PopEdx $ovl; A-PopEcx $ovl; A-PopEax $ovl
+        A-Ret $ovl
+
+        # 0x2662E `mov dh,[eax+0x260]` (6 bytes) -> `call AztNpcAi / nop`: dh = the state, or 0 (no AI this step) for a
+        # character in the table whose AI step is not due. eax = the character; only dh changes.
+        Add-Label $ovl 'AztNpcAi'
+        A-Db $ovl @(0x8A, 0xB0, 0x60, 0x02, 0x00, 0x00)                              # mov dh,[eax+0x260]  (displaced)
+        A-PushEbx $ovl; A-PushEcx $ovl; A-PushEsi $ovl
+        A-CallNext $ovl
+        Add-Label $ovl 'ANA_ref'
+        A-PopEsi $ovl
+        A-Db $ovl @(0x81, 0xEE); Add-Abs32 $ovl 'ANA_ref'                            # sub esi,ANA_ref -> obj1 delta
+        A-Db $ovl @(0x8D, 0x9E); Add-Abs32 $ovl 'aztNpcTab'                          # lea ebx,[esi+aztNpcTab]
+        A-Db $ovl @(0xB9, 0x04, 0x00, 0x00, 0x00)                                    # mov ecx,4
+        Add-Label $ovl 'ANA_loop'
+        A-Db $ovl @(0x39, 0x03)                                                      # cmp [ebx],eax
+        A-JzS $ovl 'ANA_found'
+        A-Db $ovl @(0x83, 0xC3, 0x0C)                                                # add ebx,12
+        A-Db $ovl @(0x49)                                                            # dec ecx
+        A-JnzS $ovl 'ANA_loop'
+        A-JmpS $ovl 'ANA_out'
+        Add-Label $ovl 'ANA_found'
+        A-Db $ovl @(0x8A, 0x4B, 0x06)                                                # mov cl,[ebx+6]   the AI acc
+        A-Db $ovl @(0x02, 0x4B, 0x04)                                                # add cl,[ebx+4]   + its pct
+        A-Db $ovl @(0x80, 0xF9, 0x64)                                                # cmp cl,100
+        A-JbS $ovl 'ANA_skip'
+        A-Db $ovl @(0x80, 0xE9, 0x64)                                                # sub cl,100
+        A-Db $ovl @(0x88, 0x4B, 0x06)                                                # mov [ebx+6],cl
+        A-JmpS $ovl 'ANA_out'
+        Add-Label $ovl 'ANA_skip'
+        A-Db $ovl @(0x88, 0x4B, 0x06)                                                # mov [ebx+6],cl
+        A-Db $ovl @(0x30, 0xF6)                                                      # xor dh,dh: no AI this step
+        Add-Label $ovl 'ANA_out'
+        A-PopEsi $ovl; A-PopEcx $ovl; A-PopEbx $ovl
+        A-Ret $ovl
+
+        # 0x2694E..0x26966 (the WANDER restart: `test di,di / jz / cmp byte [eax+0x260],1 / jnz / mov edx,5 /
+        # call 0x23DC8`) -> `call AztNpcHold / jmp 0x26966`. eax = the character, di = its WANDER word.
+        Add-Label $ovl 'AztNpcHold'
+        A-Pushad $ovl
+        A-CallNext $ovl
+        Add-Label $ovl 'ANH_ref'
+        A-PopEsi $ovl
+        A-Db $ovl @(0x81, 0xEE); Add-Abs32 $ovl 'ANH_ref'                            # sub esi,ANH_ref -> obj1 delta
+        A-Db $ovl @(0x8D, 0x9E); Add-Abs32 $ovl 'aztNpcTab'                          # lea ebx,[esi+aztNpcTab]
+        A-Db $ovl @(0xB9, 0x04, 0x00, 0x00, 0x00)                                    # mov ecx,4
+        Add-Label $ovl 'ANH_loop'
+        A-Db $ovl @(0x39, 0x03)                                                      # cmp [ebx],eax
+        A-JzS $ovl 'ANH_found'
+        A-Db $ovl @(0x83, 0xC3, 0x0C)                                                # add ebx,12
+        A-Db $ovl @(0x49)                                                            # dec ecx
+        A-JnzS $ovl 'ANH_loop'
+        A-JmpS $ovl 'ANH_stock'
+        Add-Label $ovl 'ANH_found'
+        # [ebx+7]: bit 0 = the host asks for a pause, bit 7 = this paused it (the host clears bit 0 to let go);
+        # [ebx+8] = the state to pause in (REST 1, SNIFF 0xA ...: one the character's .ANI has a range for)
+        A-Db $ovl @(0xF6, 0x43, 0x07, 0x01)                                          # test byte [ebx+7],1
+        A-JzS $ovl 'ANH_resume'
+        A-Db $ovl @(0x66, 0x83, 0x78, 0x08, 0x00)                                    # cmp word [eax+8],0   hunting the player?
+        A-Jl $ovl 'ANH_stock'
+        A-Db $ovl @(0x66, 0x83, 0x78, 0x0C, 0x00)                                    # cmp word [eax+0xC],0 dead?
+        A-JzS $ovl 'ANH_stock'
+        A-Db $ovl @(0x66, 0x83, 0x78, 0x3A, 0x00)                                    # cmp word [eax+0x3A],0 a script running?
+        A-JnzS $ovl 'ANH_stock'
+        A-Db $ovl @(0x66, 0x83, 0xB8, 0x62, 0x02, 0x00, 0x00, 0x00)                  # cmp word [eax+0x262],0 talking?
+        A-JnzS $ovl 'ANH_stock'
+        A-Db $ovl @(0x80, 0xB8, 0x60, 0x02, 0x00, 0x00, 0x05)                        # cmp byte [eax+0x260],5  running?
+        A-JnzS $ovl 'ANH_out'                                                        # (paused already, or busy: no restart)
+        A-Db $ovl @(0x0F, 0xB6, 0x53, 0x08)                                          # movzx edx,byte [ebx+8]  the pause's state
+        A-Db $ovl @(0x85, 0xD2)                                                      # test edx,edx
+        A-JnzS $ovl 'ANH_state'
+        A-Db $ovl @(0xB2, 0x01)                                                      # mov dl,1 = REST (none given)
+        Add-Label $ovl 'ANH_state'
+        A-Db $ovl @(0x80, 0x4B, 0x07, 0x80)                                          # or byte [ebx+7],0x80  paused by us
+        A-Call $ovl ([uint32]0x23DC8)                                                # stand / sniff
+        A-JmpS $ovl 'ANH_out'
+        Add-Label $ovl 'ANH_resume'                                                  # not held: did we pause it?
+        A-Db $ovl @(0xF6, 0x43, 0x07, 0x80)                                          # test byte [ebx+7],0x80
+        A-JzS $ovl 'ANH_stock'
+        A-Db $ovl @(0xC6, 0x43, 0x07, 0x00)                                          # mov byte [ebx+7],0
+        A-Db $ovl @(0x8A, 0x53, 0x08)                                                # mov dl,[ebx+8]
+        A-Db $ovl @(0x84, 0xD2)                                                      # test dl,dl
+        A-JnzS $ovl 'ANH_was'
+        A-Db $ovl @(0xB2, 0x01)                                                      # mov dl,1
+        Add-Label $ovl 'ANH_was'
+        A-Db $ovl @(0x3A, 0x90, 0x60, 0x02, 0x00, 0x00)                              # cmp dl,[eax+0x260]   still in the pause?
+        A-JnzS $ovl 'ANH_stock'                                                      # (shot, scripted...: the game decides)
+        A-Db $ovl @(0xBA, 0x05, 0x00, 0x00, 0x00)                                    # mov edx,5 = RUN: off again
+        A-Call $ovl ([uint32]0x23DC8)
+        A-JmpS $ovl 'ANH_out'
+        Add-Label $ovl 'ANH_stock'                                                   # the game's own restart, as it was
+        A-Db $ovl @(0x66, 0x85, 0xFF)                                                # test di,di
+        A-JzS $ovl 'ANH_out'
+        A-Db $ovl @(0x80, 0xB8, 0x60, 0x02, 0x00, 0x00, 0x01)                        # cmp byte [eax+0x260],1
+        A-JnzS $ovl 'ANH_out'
+        A-Db $ovl @(0xBA, 0x05, 0x00, 0x00, 0x00)                                    # mov edx,5 = RUN
+        A-Call $ovl ([uint32]0x23DC8)
+        Add-Label $ovl 'ANH_out'
+        A-Popad $ovl
+        A-Ret $ovl
+
+        Add-Label $ovl 'aztNpcPct';  A-Dw $ovl $NPC_RATE_PCT     # every character's pace, % of the 18.2 Hz steps (host may write it)
+        Add-Label $ovl 'aztNpcAcc';  A-Dw $ovl 0
+        Add-Label $ovl 'aztCharAcc'; A-Dw $ovl 0
+        Add-Label $ovl 'aztCharDue'; A-Dw $ovl 0                 # this frame's character stride is due (AztFrameAll)
+        Add-Label $ovl 'aztNpcTab';  A-Db $ovl (New-Object byte[] 48)   # 4 x {dd char, db pct, db strideAcc, db aiAcc, db hold, db pauseState, 3 spare}
+    }
+
+    # ---- THE LOG BOX WAITS FOR THE OPTIONS (Josh, 2026-10-13: "the conversation log will not expand until the dialogue
+    # options are available. Currently it is open and blank until the character is done saying its first line and dialogue
+    # options appear"). The box used to open on the conversation flag itself ([0x152B1C]), so it stood open and empty all
+    # through the NPC's opening line: the game's list builder (0x17FF6) defers while a line is spoken (0x152B28 -> the
+    # pending flag 0x152B26) and only prints the options once it ends. aztConvBox latches instead:
+    #   0 = no conversation; 2 = one is up, box still collapsed; 1 = the options have printed -- open until it ends.
+    # The first frame of a conversation only ARMS it (2): the option count 0x162B34 is only zeroed when the NEXT list is
+    # built, so it is stale then, and AztBoxPrep's BOX_CONV rewinds the log's text cursor that same frame. It opens (1) once
+    # nobody is speaking, there are options, and the text cursor of the log ([0x1521AC]+6) has moved: the list is printed.
+    # Called by the box blob's AztBoxWindow and its click test in place of their [0x152B1C] test (3 bytes shorter).
+    #   in: esi = obj1 delta, edi = obj2 delta.  Keeps every register; out: ZF = 1 when the conversation holds the box open.
+    if ($ENABLE_CONV_BOX_LATCH) {
+        Add-Label $ovl 'AztConvBoxZ'
+        A-CmpWordDiImm $ovl $g_convList 0
+        A-JnzS $ovl 'ACZ_up'
+        A-MovWordSiImm $ovl 'aztConvBox' 0                      # no conversation
+        A-JmpS $ovl 'ACZ_out'
+        Add-Label $ovl 'ACZ_up'
+        A-CmpWordSiImm $ovl 'aztConvBox' 2
+        A-JzS $ovl 'ACZ_armed'
+        A-CmpWordSiImm $ovl 'aztConvBox' 0
+        A-JnzS $ovl 'ACZ_out'                                   # (1: open, stays open)
+        A-MovWordSiImm $ovl 'aztConvBox' 2                      # first sight: arm only
+        A-JmpS $ovl 'ACZ_out'
+        Add-Label $ovl 'ACZ_armed'
+        A-CmpWordDiImm $ovl ([uint32]0x152B28) 0                # a line is being spoken
+        A-JnzS $ovl 'ACZ_out'
+        A-CmpWordDiImm $ovl ([uint32]0x162B34) 0                # no options
+        A-JzS $ovl 'ACZ_out'
+        A-PushEax $ovl
+        A-Db $ovl @(0x8B, 0x87); Add-Abs32 $ovl $LOG_TEXT_OBJ  # mov eax,[edi+textobj]
+        A-Db $ovl @(0x85, 0xC0)                                 # test eax,eax
+        A-JzS $ovl 'ACZ_pop'
+        A-Db $ovl @(0x66, 0x83, 0x78, 0x06, 0x00)               # cmp word [eax+6],0   nothing printed yet
+        A-JzS $ovl 'ACZ_pop'
+        A-MovWordSiImm $ovl 'aztConvBox' 1                      # the options are up: open
+        Add-Label $ovl 'ACZ_pop'
+        A-PopEax $ovl
+        Add-Label $ovl 'ACZ_out'
+        A-CmpWordSiImm $ovl 'aztConvBox' 1
+        A-Ret $ovl
+        Add-Label $ovl 'aztConvBox'; A-Dw $ovl 0                # (the host's Panel reads it: BoxOpen)
+    }
+
+    # ---- THE ORIGINAL SCORE STAYS DOWN UNDER A RECORDED TRACK (Josh, 2026-10-13: "If I adjust volume, it still switches
+    # to the old midi. It should never switch unless I click F4"). The recorded soundtrack plays as CD audio with the MIDI
+    # sequence kept running at volume 0 (AztCdSwitch). But the game sets the MIDI's volume back to the player's level in SIX
+    # places that the overlay's slider check (a change at 0x146940) never sees, or sees a frame late:
+    #   0x3B048 (set volume now; eax = cue record, edx = level): 0x14D94 the music slider, 0x13E59, 0x13B18, 0x1154A;
+    #   0x3B088 (fade to a level; ebx = ms): 0x16CC0, and 0x17FE2 -- the end of EVERY conversation (back to the
+    #   slider's level over a second, after 0x17E6E faded it out at the start).
+    # Each now calls through a gate: while the recorded track is the source (aztCdOn) and the MIDI is held under it
+    # (aztCdMuted), the level becomes 0; otherwise the call is untouched. F4 (aztCdOn 0, aztCdMuted 0) gives the MIDI its
+    # level back as before. Every register but edx (the level) is kept; the jump keeps the caller's return address.
+    if ($ENABLE_CD_AUDIO) {
+        Add-Label $ovl 'AztMidiQuiet'
+        A-PushEsi $ovl
+        A-CallNext $ovl
+        Add-Label $ovl 'AMQ_ref'
+        A-PopEsi $ovl
+        A-Db $ovl @(0x81, 0xEE); Add-Abs32 $ovl 'AMQ_ref'                       # sub esi, AMQ_ref -> obj1 delta
+        A-CmpWordSiImm $ovl ([uint32]$asm.Labels['aztCdOn']) 0
+        A-JzS $ovl 'AMQ_out'                                                      # the original score (F4): untouched
+        A-CmpDwordSiImm $ovl 'aztCdMuted' 0
+        A-JzS $ovl 'AMQ_out'                                                      # no recorded track for this cue
+        A-XorEdxEdx $ovl                                                          # level 0 under the recorded track
+        Add-Label $ovl 'AMQ_out'
+        A-PopEsi $ovl
+        A-Ret $ovl
+        Add-Label $ovl 'AztMidiVol48'                                             # in place of `call 0x3B048`
+        A-Call $ovl 'AztMidiQuiet'
+        A-Jmp $ovl ([uint32]0x3B048)
+        Add-Label $ovl 'AztMidiVol88'                                             # in place of `call 0x3B088`
+        A-Call $ovl 'AztMidiQuiet'
+        A-Jmp $ovl ([uint32]0x3B088)
+    }
+
+    # ---- M opens and closes the map ($ENABLE_M_MAP): in place of `cmp al,'m' / jz 0x13391` at 0x135BC (al = the key's
+    # character); 0x1339F is the toggle call past the weapon test at 0x13391; 0x135C4 is where any other key goes on
+    if ($ENABLE_MAP_NO_FIRE) {
+        # in place of `jz 0x1607C` at 0x15AFC; ZF is the handler's `cmp word [weapon],0`
+        Add-Label $ovl 'AztFireGate'
+        A-Jz $ovl ([uint32]0x1607C)                # no weapon: the ordinary click, as before
+        A-PushEax $ovl; A-PushEsi $ovl; A-PushEdi $ovl
+        A-Call $ovl ([uint32]$asm.Labels['AztDeltas'])   # esi / edi = the obj1 / obj2 deltas (eax, esi, edi clobbered: all saved)
+        A-CmpWordDiImm $ovl ([uint32]0x1525F2) 0   # the map (or help) screen up?
+        A-PopEdi $ovl; A-PopEsi $ovl; A-PopEax $ovl    # (pops keep the flags)
+        A-Jnz $ovl ([uint32]0x1607C)               # yes: the ordinary click, no shot
+        A-Jmp $ovl ([uint32]0x15B02)               # no: on to the shot, as before
+    }
+    if ($ENABLE_M_MAP) {
+        Add-Label $ovl 'AztMKey'
+        A-Db $ovl @(0x3C, 0x6D)                    # cmp al, 'm'
+        A-Jz $ovl ([uint32]0x1339F)
+        A-Db $ovl @(0x3C, 0x4D)                    # cmp al, 'M'
+        A-Jz $ovl ([uint32]0x1339F)
+        A-Jmp $ovl ([uint32]0x135C4)
+    }
+
+    # ---- AztMapBlit ($ENABLE_MAP_BLIT): in place of `call 0x33F80` at 0x1589F (eax = the map's surface 0x1525E0, edx = x,
+    # ebx = y, both 0 there). Tail-jumps to the blit with the map centred in the view; returns at once while the host
+    # draws its own map (aztOldMapOff != 0). eax/esi/edi kept round the deltas; pops leave the flags.
+    if ($ENABLE_MAP_BLIT) {
+        Add-Label $ovl 'AztMapBlit'
+        A-PushEax $ovl; A-PushEsi $ovl; A-PushEdi $ovl; A-Call $ovl ([uint32]$asm.Labels['AztDeltas'])
+        A-MovEaxSi $ovl 'aztOldMapOff'
+        A-TestEaxEax $ovl
+        A-PopEdi $ovl; A-PopEsi $ovl; A-PopEax $ovl
+        A-Jnz $ovl 'AMB_skip'
+        $mbX = [int]($VIEW_X + [Math]::Max(0, ($VIEW_W - 640) / 2)); $mbY = [int]($VIEW_Y + [Math]::Max(0, ($VIEW_H - 480) / 2))
+        A-Db $ovl ([byte[]](@(0xBA) + [BitConverter]::GetBytes([int]$mbX)))      # mov edx, x
+        A-Db $ovl ([byte[]](@(0xBB) + [BitConverter]::GetBytes([int]$mbY)))      # mov ebx, y
+        A-Jmp $ovl ([uint32]0x33F80)
+        # (the host draws the map: the game's picture is not drawn -- but the strip ABOVE the view, outside the host's window,
+        # would keep the HUD's last frame (compass, top band) in the MAP's palette: a pale banner -- Josh, 2026-10-14. So that
+        # strip is covered with the backdrop's own black: its bottom rows (the wiped panel band, 322..479) blitted at
+        # y = VIEW_Y - 480, across the screen in 640-wide steps; the blit clips what falls off the screen.)
+        Add-Label $ovl 'AMB_skip'
+        for ($bx = 0; $bx -lt $SCREEN_W; $bx += 640) {
+            A-PushEax $ovl
+            A-Db $ovl ([byte[]](@(0xBA) + [BitConverter]::GetBytes([int]$bx)))                 # mov edx, x
+            A-Db $ovl ([byte[]](@(0xBB) + [BitConverter]::GetBytes([int]($VIEW_Y - 480))))     # mov ebx, y (above the screen)
+            A-Call $ovl ([uint32]0x33F80)
+            A-PopEax $ovl
+        }
+        A-Ret $ovl
+        Add-Label $ovl 'aztOldMapOff'; A-Dd $ovl 0          # the HOST writes it: 1 = it draws the map, the game's is not drawn
+    }
+
     $ovlAsm = Invoke-Asm $ovl
+    if ($ENABLE_NPC_PACE -and $ovlAsm.Labels['AztOvlActor'] -ne ($OVERLAY_BASE + 21)) { throw ("AztOvlActor must sit at 0x{0:X} (the clock blob calls that literal); it is at 0x{1:X}" -f ($OVERLAY_BASE + 21), $ovlAsm.Labels['AztOvlActor']) }
     if ($ovlAsm.Labels['aztTypingKeys'] -ne $TYPING_KEYS_AT) {
         throw ("aztTypingKeys must sit at 0x{0:X} (the stub's WASD hooks read that literal); it is at 0x{1:X}" -f $TYPING_KEYS_AT, $ovlAsm.Labels['aztTypingKeys'])
     }
@@ -10643,6 +11073,26 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
         $patches += New-Patch -Name $s.n -FileOffset $of -Expect $exp -Replace $rep -Note $s.d
     }
 
+    if ($ENABLE_NPC_PACE) {
+        # the AI step (0x2662E) and the WANDER restart (0x2694E..0x26966) -- no fixups, nothing branches into either
+        foreach ($s in @(
+            @{ n='npc-ai-2662E'; at=[uint32]0x2662E; to='AztNpcAi'; tail=$null
+               want=[byte[]]@(0x8A,0xB0,0x60,0x02,0x00,0x00)
+               d='a character''s AI step at its own pace (AztNpcAi: dh = 0 = not this step; the room''s "npcs")' },
+            @{ n='npc-hold-2694E'; at=[uint32]0x2694E; to='AztNpcHold'; tail=[uint32]0x26966
+               want=[byte[]]@(0x66,0x85,0xFF,0x74,0x13,0x80,0xB8,0x60,0x02,0x00,0x00,0x01,0x75,0x0A,0xBA,0x05,0x00,0x00,0x00,0xE8,0x62,0xD4,0xFF,0xFF)
+               d='the WANDER restart, or a pause (AztNpcHold: RUN -> REST while the host holds a character)' }
+        )) {
+            $of = Lin2File $s.at; $len = $s.want.Length
+            $exp = $raw[$of..($of + $len - 1)]
+            if ((Hex $exp) -ne (Hex $s.want)) { throw ("{0}: 0x{1:X} is not what was disassembled -- found {2}" -f $s.n, $s.at, (Hex $exp)) }
+            $rep = New-Object byte[] $len; for ($k = 0; $k -lt $len; $k++) { $rep[$k] = 0x90 }
+            (CallRel32 $s.at $ovlAsm.Labels[$s.to]).CopyTo($rep, 0)
+            if ($s.tail) { (JmpRel32 ([uint32]($s.at + 5)) $s.tail).CopyTo($rep, 5) }
+            $patches += New-Patch -Name $s.n -FileOffset $of -Expect $exp -Replace $rep -Note $s.d
+        }
+        Write-Host ("npc pace: every character at {0}% (actor steps and stride), per-character shares and pauses from the host" -f $NPC_RATE_PCT)
+    }
     Write-Host ("animation gate: one step per {0} us ({1:N1} Hz), six sites" -f `
                 $ANIM_PERIOD_US, (1000000.0 / $ANIM_PERIOD_US))
 
@@ -10658,6 +11108,68 @@ $BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
             -Replace (CallRel32 $pgAt $ovlAsm.Labels['AztPickGuard']) `
             -Note 'cursor pick: a handle Reality Lab cannot resolve means nothing picked, not a fatal error'
         Write-Host ("pick guard: 0x{0:X} -> AztPickGuard at 0x{1:X}" -f $pgAt, $ovlAsm.Labels['AztPickGuard'])
+    }
+
+    # ---- no red "input locked" brackets (Josh, 2026-10-13: "when talking to characters, there is a red glow that appears
+    # in the 4:3 aspect from the original game. I want that removed"). While a modal holds the controls -- a conversation
+    # (0x14721A, set by the opener 0x17E52) or a script lock (0x1471F0) -- the main loop draws four corner brackets of 8 lines
+    # in palette 127 (247,20,0) with 0x3847C, every other frame (the phase word 0x152108). Stock they were 20 px; the view
+    # patches (view-w1/h1-*) widened their ends but not their starts (531, 261), so in the mod they are long red lines
+    # along the view's edges, blinking at frame rate: the glow. The phase test always skips the draws now; the toggle at
+    # 0x156B2 still runs (nothing else reads 0x152108). No fixups in 0x155DC..0x155E1. The host draws its own conversation
+    # cue (the visor's amber edge and the recording badge).
+    # ---- the MIDI's volume calls through AztMidiVol48/88 (see the overlay; Josh, 2026-10-13). Each site is a plain
+    # `call rel32` with no fixups (Test-FixupsIn) and no other patch on it; the build checks each is still calling the
+    # routine it expects.
+    if ($ENABLE_CD_AUDIO) {
+        foreach ($mv in @(@(0x14D94, 0x3B048, 'AztMidiVol48', 'the music slider'),
+                          @(0x13E59, 0x3B048, 'AztMidiVol48', 'a restore after a pause'),
+                          @(0x13B18, 0x3B048, 'AztMidiVol48', 'a restore in the main loop'),
+                          @(0x1154A, 0x3B048, 'AztMidiVol48', 'a restore at a room''s cue'),
+                          @(0x16CC0, 0x3B088, 'AztMidiVol88', 'a fade back up'),
+                          @(0x17FE2, 0x3B088, 'AztMidiVol88', 'the fade back up when a conversation ends'))) {
+            $mvAt = [uint32]$mv[0]; $mvOf = Lin2File $mvAt
+            $mvExp = $raw[$mvOf..($mvOf + 4)]
+            if ((Hex $mvExp) -ne (Hex (CallRel32 $mvAt ([uint32]$mv[1])))) { throw ("midi gate: 0x{0:X} is not `call 0x{1:X}` -- found {2}" -f $mvAt, $mv[1], (Hex $mvExp)) }
+            $patches += New-Patch -Name ("midi-quiet-{0:X}" -f $mvAt) -FileOffset $mvOf -Expect $mvExp `
+                -Replace (CallRel32 $mvAt $ovlAsm.Labels[$mv[2]]) `
+                -Note ("{0}: the MIDI stays at 0 under a recorded track (F4 gives it back)" -f $mv[3])
+        }
+    }
+
+    if ($ENABLE_MAP_NO_FIRE) {
+        $fgAt = [uint32]0x15AFC; $fgOf = Lin2File $fgAt
+        $fgExp = $raw[$fgOf..($fgOf + 5)]
+        if ((Hex $fgExp) -ne (Hex ([byte[]]@(0x0F, 0x84, 0x7A, 0x05, 0x00, 0x00)))) { throw ("map-no-fire: 0x{0:X} is not `jz 0x1607C` -- found {1}" -f $fgAt, (Hex $fgExp)) }
+        $fgRep = (JmpRel32 $fgAt $ovlAsm.Labels['AztFireGate']) + [byte[]]@(0x90)
+        $patches += New-Patch -Name 'map-no-fire-15AFC' -FileOffset $fgOf -Expect $fgExp -Replace $fgRep `
+            -Note 'no shot while the map / help screen is up (AztFireGate): the left click there is the ordinary one'
+    }
+    if ($ENABLE_MAP_BLIT) {
+        $mbAt = [uint32]0x1589F; $mbOf = Lin2File $mbAt
+        $mbExp = $raw[$mbOf..($mbOf + 4)]
+        if ((Hex $mbExp) -ne (Hex (CallRel32 $mbAt ([uint32]0x33F80)))) { throw ("map-blit: 0x{0:X} is not ``call 0x33F80`` -- found {1}" -f $mbAt, (Hex $mbExp)) }
+        $patches += New-Patch -Name 'map-blit-1589F' -FileOffset $mbOf -Expect $mbExp -Replace (CallRel32 $mbAt $ovlAsm.Labels['AztMapBlit']) `
+            -Note 'the game''s map: centred in the view at its own 640x480, or not drawn while the host draws the 3D map (AztMapBlit, aztOldMapOff)'
+    }
+
+    if ($ENABLE_M_MAP) {
+        $mkAt = [uint32]0x135BC; $mkOf = Lin2File $mkAt
+        $mkExp = $raw[$mkOf..($mkOf + 7)]
+        if ((Hex $mkExp) -ne (Hex ([byte[]]@(0x3C, 0x6D, 0x0F, 0x84, 0xCD, 0xFD, 0xFF, 0xFF)))) { throw ("m-key: 0x{0:X} is not `cmp al,'m' / jz 0x13391` -- found {1}" -f $mkAt, (Hex $mkExp)) }
+        $mkRep = (JmpRel32 $mkAt $ovlAsm.Labels['AztMKey']) + [byte[]]@(0x90, 0x90, 0x90)
+        $patches += New-Patch -Name 'm-key-map-135BC' -FileOffset $mkOf -Expect $mkExp -Replace $mkRep `
+            -Note 'M (either case) opens and closes the map, weapon drawn or not (AztMKey)'
+    }
+
+    if ($ENABLE_NO_LOCK_BRACKETS) {
+        $lbAt  = [uint32]0x155DC
+        $lbOf  = Lin2File $lbAt
+        $lbExp = $raw[$lbOf..($lbOf + 5)]
+        if ((Hex $lbExp) -ne (Hex ([byte[]]@(0x0F,0x84,0xD0,0x00,0x00,0x00)))) { throw ("no-lock-brackets: 0x{0:X} is not `jz 0x156B2` -- found {1}" -f $lbAt, (Hex $lbExp)) }
+        $patches += New-Patch -Name 'no-lock-brackets-155DC' -FileOffset $lbOf -Expect $lbExp `
+            -Replace ([byte[]]@(0x90,0xE9,0xD0,0x00,0x00,0x00)) `
+            -Note 'the red blinking lock brackets: always skip their 8 line draws (nop; jmp 0x156B2)'
     }
 
     # ---- the Reality Lab error callback, so the crash names itself -----------
@@ -12368,6 +12880,8 @@ if ($ENABLE_LOG_BOX_TOGGLE) {
         -Expect (CallRel32 0x2D0BD $CONV_PICK) -Replace (CallRel32 0x2D0BD $convHit) `
         -Note ("conversation click goes through AztConvHit at 0x{0:X}: screen Y -> text-surface row" -f $convHit)
 
+    $convBoxZ = $null
+    if ($ENABLE_CONV_BOX_LATCH) { $convBoxZ = $ovlAsm.Labels['AztConvBoxZ']; if (-not $convBoxZ) { throw "AztConvBoxZ is not in the overlay" } }
     $t = New-Asm -Base $CAVE2_BASE
 
     # --- the three fixed entry points. FIRST, IN THIS ORDER, 5 bytes each ---
@@ -12420,8 +12934,13 @@ if ($ENABLE_LOG_BOX_TOGGLE) {
     A-Call $t $BOX_SAVEBASE                      # make sure aztBoxBuf is filled in
     A-CmpWordSiImm $t 'aztBoxBig' 0
     A-JnzS $t 'ABW_big'
-    A-CmpWordDiImm $t $g_convList 0
-    A-JnzS $t 'ABW_big'
+    if ($ENABLE_CONV_BOX_LATCH) {
+        A-Call $t $convBoxZ                    # the conversation holds it open once its options print (ZF)
+        A-JzS $t 'ABW_big'
+    } else {
+        A-CmpWordDiImm $t $g_convList 0
+        A-JnzS $t 'ABW_big'
+    }
     # collapsed: the window is the LAST $RECESS_H_SMALL rows of the buffer
     A-Db   $t @(0x8B,0x86); Add-Abs32 $t $BOX_BUF
     A-Db   $t @(0x05);      Add-Abs32 $t $BOX_BASE_OFF
@@ -12546,8 +13065,13 @@ if ($ENABLE_LOG_BOX_TOGGLE) {
     A-Db   $t @(0xBA); Add-Abs32 $t $FRAME_Y_SMALL                  # mov edx, small top
     A-CmpWordSiImm $t 'aztBoxBig' 0
     A-JnzS $t 'ABC_bigY'
-    A-CmpWordDiImm $t $g_convList 0
-    A-JzS  $t 'ABC_haveY'
+    if ($ENABLE_CONV_BOX_LATCH) {
+        A-Call $t $convBoxZ                    # (keeps eax: the mouse Y)
+        A-JnzS $t 'ABC_haveY'
+    } else {
+        A-CmpWordDiImm $t $g_convList 0
+        A-JzS  $t 'ABC_haveY'
+    }
     Add-Label $t 'ABC_bigY'
     A-Db   $t @(0xBA); Add-Abs32 $t $FRAME_Y_BIG
     Add-Label $t 'ABC_haveY'
@@ -13696,6 +14220,17 @@ $MAP_RECT_NEW = @($MAP_X, $MAP_Y, ($MAP_X + 102), ($MAP_Y + 68))
                     $ny = $foldout.new[1] + [int][Math]::Round(($y - $foldout.old[1]) * $foldout.new[3] / $oh)
                 } elseif ($inFoldout) {
                     throw ("un-mapped fold-out hot spot ({0},{1})..({2},{3}) -- add it to `$SYSMENU_HOT" -f $minX,$minY,$maxX,$maxY)
+                } elseif ($isStoryLog -and $ENABLE_LOG_IN_PANEL -and $ENABLE_LOG_BOX_TOGGLE) {
+                    # EXACTLY THE OPEN RECESS (Josh, 2026-10-13: "sometimes I cannot select the first option in the
+                    # dialogue choices"). Scaling the stock quad through the box carried its 5-row top inset along, x2.7
+                    # with the box: the quad began at y 555 while the options' row 0 -- which AztConvHit measures from
+                    # $RECESS_Y_BIG -- is at 541. A click on the first option's top line (most of a one-line option)
+                    # fell above the quad, so the game never raised event 0x18 for it; just below the text it worked.
+                    # Its sides were off too (28 px past the left, 31 px short of the right). The stock inset existed
+                    # because the stock table's row 0 was screen y 89 (text Y + 0x59) -- the quad's top WAS the text's
+                    # row 0, and that is what it has to stay: the recess's first row to its last, edge to edge.
+                    $nx = if ($x -eq $LOG_HOT_OLD[0]) { $RECESS_X } else { $RECESS_X + $RECESS_W - 1 }
+                    $ny = if ($y -eq $LOG_HOT_OLD[1]) { $RECESS_Y_BIG } else { $RECESS_Y_BIG + $RECESS_H_BIG - 1 }
                 } elseif ($isStoryLog) {
                     $nx = $LOG_BOX_NEW[0] + [int][Math]::Round(($x - $LOG_BOX_OLD[0]) * $LOG_SCALE_X)
                     $ny = $LOG_BOX_NEW[1] + [int][Math]::Round(($y - $LOG_BOX_OLD[1]) * $LOG_SCALE_Y)

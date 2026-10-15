@@ -195,6 +195,8 @@ namespace AztTool
         [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr h);
         [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(POINT p, uint flags);
         [DllImport("user32.dll")] static extern bool GetMonitorInfoW(IntPtr mon, ref MONITORINFO mi);
+        [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out RECT r);
+        [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr h, out RECT r);
         [DllImport("gdi32.dll")] static extern IntPtr GetStockObject(int i);
         [DllImport("kernel32.dll")] static extern IntPtr GetModuleHandleW(IntPtr name);
         [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenProcess(int access, bool inherit, int pid);
@@ -214,6 +216,10 @@ namespace AztTool
 
         public string Text = "Loading RaptorMod...";
         public string StartError = "";
+        /// <summary>WHAT IT REALLY IS ON SCREEN (Josh, 2026-10-14: 'still too small this time ... sometimes not being full screen'): each
+        /// size it takes is reported here (the gate puts it in the watcher's log), and ~1.5 s after it shows a small picture of the
+        /// whole screen is saved to ShotPath (null = none) -- so the next time it is wrong, the log and the picture say how.</summary>
+        public Action<string> Log; public string ShotPath; bool _shot; string _dpiCtx = "?";
         Thread _th; volatile bool _run; WndProcD _wp; IntPtr _hwnd; string _cls;
         readonly ManualResetEvent _up = new ManualResetEvent(false), _gone = new ManualResetEvent(false);
         readonly object _lk = new object();
@@ -268,6 +274,10 @@ namespace AztTool
         /// <summary>The credit line under the bar, and the room it takes (px at 96 dpi).</summary>
         public string Credit = "Developed by Josh Sears\nPapertelevision.com"; public double CreditBand = 48;                  // (168 at the first logo's size; 40% smaller now, and closer to the type)
         public bool Logo = true;
+        // AT ITS OWN PIXEL SIZE, always (never DrawImageUnscaled: GDI+ scales that by the bitmap's stored DPI over the target's,
+        // and a new bitmap takes its DPI from the display context of the moment -- 96 one launch, 144 the next on a 150% screen.
+        // Josh, 2026-10-14: the launch screen 'too small and a little off center to the left' = drawn at 2/3 from its corner.)
+        static void Blit(Graphics g, Image im, int x, int y) { g.DrawImage(im, new Rectangle(x, y, im.Width, im.Height), 0, 0, im.Width, im.Height, GraphicsUnit.Pixel); }
         void DrawPanel(Graphics g, int pw, int ph, double sc, double t, double shown)
         {
             g.Clear(Color.Black); g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit; g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -467,7 +477,7 @@ namespace AztTool
         {
             try
             {
-                try { SetThreadDpiAwarenessContext(new IntPtr(-4)); } catch { }
+                try { IntPtr prev = SetThreadDpiAwarenessContext(new IntPtr(-4)); _dpiCtx = prev == IntPtr.Zero ? "refused" : "per-monitor"; } catch { _dpiCtx = "failed"; }
                 _wp = WndProc; _cls = "AztLoading" + Stopwatch.GetTimestamp();
                 var wc = new WNDCLASSEX();
                 wc.cbSize = Marshal.SizeOf(typeof(WNDCLASSEX)); wc.lpfnWndProc = Marshal.GetFunctionPointerForDelegate(_wp);
@@ -492,11 +502,16 @@ namespace AztTool
                 // put the pointer back where it is: a move, so the window is asked for its (empty) cursor at once
                 POINT cp; if (GetCursorPos(out cp)) SetCursorPos(cp.x, cp.y);
 
-                double sc = Math.Max(1.0, GetDpiForWindow(_hwnd) / 96.0);
-                int pw = (int)(320 * sc), ph = (int)((64 + LogoBand + CreditBand) * sc), px = (w - pw) / 2, py = (h - ph) / 2;
-                using (var panel = new Bitmap(pw, ph))
+                // ONE SIZE, EVERY LAUNCH (Josh, 2026-10-14: "The raptor mod loading screen is sometimes full screen and sometimes
+                // smaller. It needs to be consistently the correct size"). The panel is scaled by the WINDOW'S OWN HEIGHT in its
+                // own coordinates (1.5 at 1600 rows -- the size it was designed at on Josh's 150% screen), not by the DPI the window
+                // reports, so it is the same share of the screen whether or not this thread's DPI awareness took; and the window is
+                // fitted to the primary monitor again several times a second, so DOSBox going full screen underneath (a mode or
+                // scale change) cannot leave it the wrong size. The panel re-centres when the size changes.
+                Bitmap panel = null; int pw = 0, ph = 0, px = 0, py = 0, cw = 0, chh = 0; double sc = 1;
+                try
                 {
-                    var clock = Stopwatch.StartNew(); double last = clock.Elapsed.TotalSeconds; Stopwatch fade = null; long topAt = 0;
+                    var clock = Stopwatch.StartNew(); double last = clock.Elapsed.TotalSeconds; Stopwatch fade = null; long topAt = -1000, fitAt = -1000;
                     while (_run)
                     {
                         MSG m; while (PeekMessageW(out m, IntPtr.Zero, 0, 0, 1)) { TranslateMessage(ref m); DispatchMessageW(ref m); }
@@ -504,12 +519,59 @@ namespace AztTool
                         double target; bool fin; lock (_lk) { fin = _finish; target = fin ? 1.0 : Target(); }
                         _shown += (target - _shown) * Math.Min(1, dt * (fin ? 14 : 6));
                         if (fin && _shown > 0.995) _shown = 1;
+                        // the whole primary monitor, again and again (cheap), and the panel sized from what the window really is
+                        if (clock.ElapsedMilliseconds - fitAt > 250)
+                        {
+                            fitAt = clock.ElapsedMilliseconds;
+                            var fm = new MONITORINFO(); fm.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+                            if (GetMonitorInfoW(MonitorFromPoint(new POINT(), 1), ref fm))
+                            {
+                                RECT wr; GetWindowRect(_hwnd, out wr);
+                                if (wr.l != fm.rcMonitor.l || wr.t != fm.rcMonitor.t || wr.r != fm.rcMonitor.r || wr.b != fm.rcMonitor.b)
+                                    SetWindowPos(_hwnd, HWND_TOPMOST, fm.rcMonitor.l, fm.rcMonitor.t, fm.rcMonitor.r - fm.rcMonitor.l, fm.rcMonitor.b - fm.rcMonitor.t, SWP_NOACTIVATE);
+                            }
+                            RECT cr; GetClientRect(_hwnd, out cr);
+                            int nw = Math.Max(1, cr.r - cr.l), nh = Math.Max(1, cr.b - cr.t);
+                            if (nw != cw || nh != chh || panel == null)
+                            {
+                                cw = nw; chh = nh;
+                                sc = Math.Max(1.0, chh / 1067.0);
+                                pw = (int)(320 * sc); ph = (int)((64 + LogoBand + CreditBand) * sc); px = (cw - pw) / 2; py = (chh - ph) / 2;
+                                if (panel != null) panel.Dispose();
+                                panel = new Bitmap(pw, ph);
+                                try
+                                {
+                                    RECT lw; GetWindowRect(_hwnd, out lw); var lm = new MONITORINFO(); lm.cbSize = Marshal.SizeOf(typeof(MONITORINFO)); GetMonitorInfoW(MonitorFromPoint(new POINT(), 1), ref lm);
+                                    if (Log != null) Log(string.Format("{0:N1} s: window {1},{2} {3}x{4}, client {5}x{6}, monitor {7}x{8}, dpi {9} ({10}), panel {11}x{12} at {13},{14} (scale {15:N2})",
+                                        now, lw.l, lw.t, lw.r - lw.l, lw.b - lw.t, cw, chh, lm.rcMonitor.r - lm.rcMonitor.l, lm.rcMonitor.b - lm.rcMonitor.t, GetDpiForWindow(_hwnd), _dpiCtx, pw, ph, px, py, sc));
+                                }
+                                catch { }
+                                using (var wg = Graphics.FromHwnd(_hwnd)) wg.Clear(Color.Black);      // (the old panel's place, black again)
+                            }
+                        }
                         // above DOSBox, which comes up full screen underneath after this does
                         if (clock.ElapsedMilliseconds - topAt > 100) { SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE); topAt = clock.ElapsedMilliseconds; }
                         // (Josh, 2026-10-07: the bar counts UP from empty as the screen comes up, to wherever loading has got to)
                         double disp = _shown * EaseOut(now / BarIntro);
                         using (var g = Graphics.FromImage(panel)) DrawPanel(g, pw, ph, sc, now, disp);
-                        using (var wg = Graphics.FromHwnd(_hwnd)) wg.DrawImageUnscaled(panel, px, py);
+                        using (var wg = Graphics.FromHwnd(_hwnd)) Blit(wg, panel, px, py);
+                        // (once, ~1.5 s in: the whole screen as it really looks, a third of its size)
+                        if (!_shot && ShotPath != null && now > 1.5)
+                        {
+                            _shot = true;
+                            try
+                            {
+                                var sm = new MONITORINFO(); sm.cbSize = Marshal.SizeOf(typeof(MONITORINFO)); GetMonitorInfoW(MonitorFromPoint(new POINT(), 1), ref sm);
+                                int sw = sm.rcMonitor.r - sm.rcMonitor.l, sh = sm.rcMonitor.b - sm.rcMonitor.t;
+                                using (var full = new Bitmap(sw, sh)) using (var fg = Graphics.FromImage(full))
+                                {
+                                    fg.CopyFromScreen(sm.rcMonitor.l, sm.rcMonitor.t, 0, 0, new Size(sw, sh));
+                                    using (var small = new Bitmap(Math.Max(1, sw / 3), Math.Max(1, sh / 3))) using (var sg = Graphics.FromImage(small)) { sg.DrawImage(full, 0, 0, small.Width, small.Height); small.Save(ShotPath, System.Drawing.Imaging.ImageFormat.Png); }
+                                }
+                                if (Log != null) Log("the screen as it looked at 1.5 s: " + ShotPath);
+                            }
+                            catch (Exception se) { if (Log != null) Log("no picture of the screen: " + se.Message); }
+                        }
                         if (fin && _shown >= 1)
                         {
                             if (fade == null) fade = Stopwatch.StartNew();
@@ -520,6 +582,7 @@ namespace AztTool
                         Thread.Sleep(15);
                     }
                 }
+                finally { if (panel != null) panel.Dispose(); }
             }
             catch (Exception e) { StartError = e.Message; }
             finally
@@ -941,13 +1004,24 @@ namespace AztTool
                     bool viewUp = ViewUp(t), viewFull = true; var vd = all;
                     try { vd = ViewDirty(t, out viewFull); } catch (Exception e) { DocsFault(e, t); }
                     if (viewUp) dirty = viewFull || full ? all : vd;
+                    // the grail's gold: its own rectangle, every pass (not behind a reader)
+                    bool fxOn = (GrailFx || GrailGlow) && !viewUp && _fxArea.Width > 0 && _fxArea.Height > 0;
+                    if (fxOn && GrailFx) StepFx(t);
+                    bool fgOn = !viewUp && _fgArea.Width > 0 && _fgArea.Height > 0;
+                    bool fgDue = fgOn && t - _fgDrawnAt >= 1.0 / Math.Max(5, ForeFps);
+                    if (fgDue) { StepFore(t); RenderFore(); _fgDrawnAt = t; }
                     long drawAt = Stopwatch.GetTimestamp();
                     using (var g = Graphics.FromImage(_buf))
                     {
-                        if (full) { g.DrawImage(_bg, all, all, GraphicsUnit.Pixel); if (dim > 0) using (var db = new SolidBrush(C(0x000000, ReadDim * dim))) g.FillRectangle(db, all); }
+                        if (full) { g.DrawImage(_bg, all, all, GraphicsUnit.Pixel); if (fgOn) DrawForeLayer(g); if (dim > 0) using (var db = new SolidBrush(C(0x000000, ReadDim * dim))) g.FillRectangle(db, all); }
                         g.SetClip(dirty); if (!ptrWas.IsEmpty) g.SetClip(ptrWas, System.Drawing.Drawing2D.CombineMode.Union); if (!ptrNow.IsEmpty) g.SetClip(ptrNow, System.Drawing.Drawing2D.CombineMode.Union);
+                        if (fxOn) g.SetClip(_fxArea, System.Drawing.Drawing2D.CombineMode.Union);
+                        if (fgDue) g.SetClip(_fgArea, System.Drawing.Drawing2D.CombineMode.Union);
                         g.DrawImage(_bg, all, all, GraphicsUnit.Pixel);
+                        if (fgOn) DrawForeLayer(g);                       // (the dust: its finished layer, wherever this pass repaints)
+                        if (fxOn) DrawGlow(g, t, 1);
                         if (dim > 0) using (var db = new SolidBrush(C(0x000000, ReadDim * dim))) g.FillRectangle(db, all);
+                        if (fxOn && GrailFx) DrawFx(g, 1 - ReadDim * dim);
                         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias; g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
                         DrawMenu(g, t);
                         if (_loadOpen || (t - _loadAt) < 0.4) DrawLoad(g, t);
@@ -968,6 +1042,8 @@ namespace AztTool
                         else
                         {
                             if (dirty.Width > 0 && dirty.Height > 0) wg.DrawImage(_buf, dirty, dirty, GraphicsUnit.Pixel);
+                            if (fxOn && !dirty.Contains(_fxArea)) wg.DrawImage(_buf, _fxArea, _fxArea, GraphicsUnit.Pixel);
+                            if (fgDue && !dirty.Contains(_fgArea)) wg.DrawImage(_buf, _fgArea, _fgArea, GraphicsUnit.Pixel);
                             foreach (var pr in new[] { ptrWas, ptrNow }) if (!pr.IsEmpty) { var r = Rectangle.Round(pr); wg.DrawImage(_buf, r, r, GraphicsUnit.Pixel); }
                         }
                     }
@@ -991,6 +1067,7 @@ namespace AztTool
                 if (_hwnd != IntPtr.Zero) { ShowWindow(_hwnd, 0); DestroyWindow(_hwnd); _hwnd = IntPtr.Zero; }
                 try { UnregisterClassW(_cls, GetModuleHandleW(IntPtr.Zero)); } catch { }
                 if (_bg != null) _bg.Dispose(); if (_buf != null) _buf.Dispose();
+                if (_fgLayer != null) { _fgLayer.Dispose(); _fgLayer = null; } if (_glowImg != null) { _glowImg.Dispose(); _glowImg = null; }
                 if (_curImg != null) { _curImg.Dispose(); _curImg = null; } if (_curAct != null) { _curAct.Dispose(); _curAct = null; }
                 try { FreeDocs(); } catch { }
                 _up.Set(); _gone.Set();
@@ -1055,6 +1132,7 @@ namespace AztTool
             _readPanel = new RectangleF(rx, ry, rw2, rh2);
             var ra = _readPanel; ra.Inflate(40 * _s, 40 * _s);
             _readArea = Rectangle.Intersect(Rectangle.Round(ra), new Rectangle(0, 0, _W, _H));
+            PrepareFx();                        // (the grail's gold flakes: their place and repaint rectangle)
         }
         float _artX, _artY, _artW, _artH; RectangleF _loadPanel, _readPanel; Rectangle _readArea;
 
@@ -1441,6 +1519,286 @@ namespace AztTool
             using (var ob = new Pen(C(0x2A1500, 0.9), Math.Max(1f, _s))) g.DrawPolygon(ob, pts);
         }
 
+        // ---- THE GRAIL'S GOLD (Josh, 2026-10-13: "particle effects there of very high rez gold flakes pulsing subtly upwards
+        // from around that chalice ... gold, varying sizes but as small as 1px to around 4-6px on the larger size. The smaller
+        // ones crisp, but larger ones closer and a bokeh effect. They will course upward and fade, like magic emanating from
+        // the grail itself"). Flakes leave the bowl's rim (GrailX/GrailY, its half-width GrailRimW: shares of the art, which is
+        // cover-fit) and rise, spreading a little, swaying, slowing, fading; the stream swells and eases every GrailPulse s.
+        // Most are fine and crisp: 1 px squares, a few 2-3 px; each turns as it rises and catches the light (a glint). About
+        // one in nine is CLOSER: 4-6 px, out of focus -- a see-through disc with a brighter rim and a soft halo (bokeh), rising
+        // faster and drifting wider. Sizes follow the monitor (x H/1440, at least 1). Drawn into their own repaint rectangle
+        // (_fxArea) each pass, apart from the menu's; off behind a RAPTOR DOCS reader; dimmed with the art while a log reads.
+        public bool GrailFx = true;
+        public double GrailX = 0.693, GrailY = 0.503, GrailRimW = 0.056, GrailRise = 0.30, GrailRate = 90, GrailPulse = 3.4, GrailBokeh = 0.11;
+        /// <summary>The flakes' pace (Josh, 2026-10-13: "just as smoothly, but a bit slower"): their speed, sway, glints and the
+        /// pulse are scaled by it, their lives stretched by 1/it so they still rise as far; as many stay on screen.</summary>
+        public double GrailSpeed = 0.63;      // (0.7, then "another 10%" slower -- Josh, 2026-10-13)
+        static readonly int[] GrailInks = { 0xFFDC8A, 0xFFC45A, 0xFFF3CC, 0xF0B04A };
+        class Flake { public float X, Y, VX, VY, Size, Life, Age, Phase, Tw, SwayF, SwayA; public int Ink, Tone; public bool Bokeh; }
+        readonly System.Collections.Generic.List<Flake> _flakes = new System.Collections.Generic.List<Flake>(); readonly Random _fxRnd = new Random(1996);
+        Rectangle _fxArea; float _fxCx, _fxCy, _fxRimW, _fxA, _fxK; double _fxT = -1, _fxDebt;
+        // ---- THE GRAIL LIGHTS HIS FACE (Josh, 2026-10-13: "a glow effect to illuminate the man's face, as if the grail is an
+        // actual light source, with a very subtle glow effect that brightens and becomes transparent, as if gazing into a slowly
+        // flickering flame"). Made once with the art: the face's region as the grail would light it -- each pixel screened
+        // brighter by the flame's warm colour (x 1 + GlowLift x GlowWarm), under a soft oval mask (FaceX/FaceY its centre, FaceRX/FaceRY
+        // its radii: shares of the art) strongest low on the face, where the light comes from. Each pass lays it over the art
+        // at a strength that drifts like a flame -- three slow waves (about 0.35, 0.8 and 1.9 Hz) and the flakes' swell --
+        // between GlowMin and GlowMax. Inside the flakes' repaint rectangle (grown to hold the face).
+        public bool GrailGlow = true;
+        public double FaceX = 0.737, FaceY = 0.27, FaceRX = 0.125, FaceRY = 0.215, GlowLift = 1.8, GlowMin = 0.45, GlowMax = 1.0;
+        // (Josh, 2026-10-13: first too faint to see -> lift 1.8, 0.45..1.0 ("the strength is good"); then "span his entire face
+        // and a portion of the helmet ... make it pulse slower": the oval 0.085 x 0.15 -> 0.125 x 0.215, centred a little
+        // higher, a wider flat middle, less fall-off toward the top; the flame at GlowPace x its old speed)
+        public double GlowPace = 0.5;
+        public int GlowWarm = 0xFFB86B;
+        Bitmap _glowImg; Rectangle _glowArea; readonly System.Drawing.Imaging.ImageAttributes _glowAttr = new System.Drawing.Imaging.ImageAttributes();
+        readonly System.Drawing.Imaging.ColorMatrix _glowCm = new System.Drawing.Imaging.ColorMatrix();
+        void PrepareGlow()
+        {
+            if (_glowImg != null) { _glowImg.Dispose(); _glowImg = null; }
+            _glowArea = Rectangle.Empty;
+            if (!GrailGlow || _bg == null) return;
+            float cx = _artX + (float)FaceX * _artW, cy = _artY + (float)FaceY * _artH, rx = (float)FaceRX * _artW, ry = (float)FaceRY * _artH;
+            var r = Rectangle.Intersect(Rectangle.Round(RectangleF.FromLTRB(cx - rx, cy - ry, cx + rx, cy + ry)), new Rectangle(0, 0, _W, _H));
+            if (r.Width < 8 || r.Height < 8) return;
+            var img = new Bitmap(r.Width, r.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            var src = _bg.LockBits(r, System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            var dst = img.LockBits(new Rectangle(0, 0, r.Width, r.Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            try
+            {
+                var row = new int[r.Width]; var orow = new int[r.Width];
+                double wr = ((GlowWarm >> 16) & 255) / 255.0, wg = ((GlowWarm >> 8) & 255) / 255.0, wb = (GlowWarm & 255) / 255.0;
+                for (int y = 0; y < r.Height; y++)
+                {
+                    Marshal.Copy(src.Scan0 + y * src.Stride, row, 0, r.Width);
+                    double dy = (r.Top + y + 0.5 - cy) / ry, low = Math.Max(0, Math.Min(1, 0.5 + 0.5 * dy));     // (0 at the top .. 1 at the bottom)
+                    for (int x = 0; x < r.Width; x++)
+                    {
+                        double dx = (r.Left + x + 0.5 - cx) / rx, d = Math.Sqrt(dx * dx + dy * dy);
+                        double fall = d >= 1 ? 0 : d <= 0.45 ? 1 : 1 - (d - 0.45) / 0.55; fall = fall * fall * (3 - 2 * fall);
+                        double m = fall * (0.7 + 0.3 * low);
+                        if (m <= 0.002) { orow[x] = 0; continue; }
+                        int c = row[x]; double cr = ((c >> 16) & 255) / 255.0, cg = ((c >> 8) & 255) / 255.0, cb = (c & 255) / 255.0;
+                        double lr = cr * (1 + GlowLift * wr) + 0.02 * wr, lg = cg * (1 + GlowLift * wg) + 0.02 * wg, lb = cb * (1 + GlowLift * wb) + 0.02 * wb;   // (lit: what the light falls on brightens, the shadows stay -- a screen made it haze)
+                        int a = (int)Math.Round(255 * m);
+                        orow[x] = (a << 24) | ((int)Math.Round(255 * Math.Min(1, lr) * m) << 16) | ((int)Math.Round(255 * Math.Min(1, lg) * m) << 8) | (int)Math.Round(255 * Math.Min(1, lb) * m);
+                    }
+                    Marshal.Copy(orow, 0, dst.Scan0 + y * dst.Stride, r.Width);
+                }
+            }
+            finally { _bg.UnlockBits(src); img.UnlockBits(dst); }
+            _glowImg = img; _glowArea = r;
+        }
+        /// <summary>The flame's strength at t s (GlowMin..GlowMax): three slow waves and the flakes' swell.</summary>
+        double GlowAt(double t)
+        {
+            double q = t * GlowPace;
+            double n = 0.5 + 0.5 * (0.5 * Math.Sin(2.2 * q) + 0.3 * Math.Sin(5.0 * q + 1.3) + 0.12 * Math.Sin(11.9 * q + 0.4) + 0.08 * (2 * FxPulse(t) - 1));
+            return GlowMin + (GlowMax - GlowMin) * Math.Max(0, Math.Min(1, n));
+        }
+        void DrawGlow(Graphics g, double t, double k)
+        {
+            if (_glowImg == null || k <= 0.01) return;
+            _glowCm.Matrix33 = (float)(GlowAt(t) * k); _glowAttr.SetColorMatrix(_glowCm);
+            g.DrawImage(_glowImg, _glowArea, 0, 0, _glowArea.Width, _glowArea.Height, GraphicsUnit.Pixel, _glowAttr);
+        }
+        // ---- DUST IN THE FOREGROUND (Josh, 2026-10-13: "On the lower left, I want some very large dust, very much in the
+        // foreground and huge bokeh effects, moving upward in the same pattern as the grail effects, but much slower and much
+        // more transparent (though still varied in size and opacity)"). A few dozen out-of-focus motes close to the lens in the
+        // lower left (ForeArea: x0, y0, x1, y1 shares of the WINDOW): soft discs with a faint brighter rim and a halo, ForeMin..
+        // ForeMax px across (x H/1440), each its own faintness (ForeAlpha at most), rising and swaying like the grail's flakes at
+        // a fraction of their pace, fading in and out over lives of 9-18 s and near the area's open edges. Drawn under the menu,
+        // in their own repaint rectangle; with the flakes (GrailFx).
+        // ROUND 2 (Josh, 2026-10-13: "a bit more visible and warmer, but keep some of the current level of transparent examples
+        // also, increase the density ... remove the outline effect so they are blurred circle shapes only ... increase the span
+        // ... across the lower left (fading out around the half way point), and vertically upward, fading around the title
+        // area"): warmer inks; a third stay as faint as before, the rest up to ForeAlpha; ForeCount 60; each a BLURRED disc --
+        // a soft sprite (flat middle, smooth fall-off, no rim) per ink, drawn bilinear at its size and faintness; the area
+        // runs to half the window's width and up to the title, fading over its last ForeFadeX / ForeFadeY. The area is ~1.6 Mpx,
+        // so it is repainted at ForeFps (the motes move a pixel or less between); the motes are drawn every pass, so the menu's
+        // own repaints, which overlap them, never lose them.
+        public bool ForeDust = true;
+        // ROUND 3 (Josh, 2026-10-13: "reduce the foreground dust spanning area by 20% in both directions, the frame rate is
+        // taking a big hit so perhaps a bit less of them as well"): the area 0.52 x 0.80 -> 0.416 x 0.64 of the window (and its
+        // fades with it), 60 -> 34 motes. THE HIT WAS THE DRAW, not the area: each sprite went through an ImageAttributes
+        // colour matrix (GDI+'s slow path) -- 22 ms a pass offline for 60, and still 8 ms for 34 drawn plain (any scaled
+        // GDI+ draw is slow). The motes are now composited by hand into a layer when a dust frame is due (RenderFore).
+        public double ForeX0 = 0.0, ForeY0 = 0.36, ForeX1 = 0.416, ForeY1 = 1.0, ForeFadeX = 0.144, ForeFadeY = 0.16, ForeMin = 14, ForeMax = 130, ForeAlpha = 0.46, ForeCount = 34, ForeFps = 40;
+        static readonly int[] ForeInks = { 0xFFB24A, 0xF89A30, 0xFFC872, 0xEE8A2C };
+        // THE LAYER: the art under the area (copied once) with the motes laid on it HERE, a smooth fall-off per pixel (full to
+        // 45% of the radius, smoothstep to nothing at the edge, from a table), whenever a dust frame is due; every pass then
+        // copies the finished layer, unscaled, wherever it repaints the area (GDI+'s scaled sprite draws cost 8-22 ms a pass).
+        int[] _fgBg, _fgPix; Bitmap _fgLayer; readonly float[] _fgLut = new float[1025]; double _fgDrawnAt = -9;
+        readonly System.Collections.Generic.List<Flake> _fore = new System.Collections.Generic.List<Flake>();
+        Rectangle _fgArea; double _fgT = -1, _fgDebt;
+        void PrepareFore()
+        {
+            _fore.Clear(); _fgT = -1; _fgDebt = 0; _fgDrawnAt = -9;
+            if (_fgLayer != null) { _fgLayer.Dispose(); _fgLayer = null; }
+            _fgArea = GrailFx && ForeDust ? Rectangle.Intersect(Rectangle.Round(RectangleF.FromLTRB((float)ForeX0 * _W, (float)ForeY0 * _H, (float)ForeX1 * _W, (float)ForeY1 * _H)), new Rectangle(0, 0, _W, _H)) : Rectangle.Empty;
+            if (_fgArea.Width < 8 || _fgArea.Height < 8 || _bg == null) { _fgArea = Rectangle.Empty; return; }
+            for (int i = 0; i <= 1024; i++) { double d = Math.Sqrt(i / 1024.0), v = d >= 1 ? 0 : d <= 0.45 ? 1 : 1 - (d - 0.45) / 0.55; _fgLut[i] = (float)(v * v * (3 - 2 * v)); }
+            int w = _fgArea.Width, h = _fgArea.Height; _fgBg = new int[w * h]; _fgPix = new int[w * h];
+            var bd = _bg.LockBits(_fgArea, System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            try { for (int y = 0; y < h; y++) Marshal.Copy(bd.Scan0 + y * bd.Stride, _fgBg, y * w, w); } finally { _bg.UnlockBits(bd); }
+            _fgLayer = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            // already drifting when the title appears: a life's worth of them, part-way through
+            for (int i = 0; i < (int)ForeCount; i++) _fore.Add(NewFore(true));
+            RenderFore();
+        }        Flake NewFore(bool anyAge)
+        {
+            var p = new Flake(); p.Bokeh = true; float k = Math.Max(1f, _H / 1440f), A = _H;
+            float u = R01(); p.Size = (float)(ForeMin + (ForeMax - ForeMin) * Math.Pow(u, 1.8)) * k;     // (most mid-sized, a few huge)
+            p.X = _fgArea.Left + (float)Math.Pow(R01(), 1.3) * _fgArea.Width * 1.05f - 0.05f * _fgArea.Width;   // (thicker toward the corner)
+            p.Y = _fgArea.Top + _fgArea.Height * (1.08f - 0.85f * (float)Math.Pow(R01(), 1.4));         // (anywhere in the area, more low: at their pace they rise only ~a third of it in a life)
+            float near = (float)((p.Size / k - ForeMin) / Math.Max(1, ForeMax - ForeMin));          // (bigger = nearer = a little quicker)
+            p.VY = -(0.010f + 0.012f * R01() + 0.010f * near) * A * (float)Math.Max(0.1, GrailSpeed);
+            p.VX = (0.002f + 0.006f * R01()) * A;                                                         // (a slow drift right, out of the corner)
+            p.Life = 9f + 9f * R01(); p.Phase = R01() * 6.283f; p.Tw = 0.25f + 0.5f * R01();
+            p.SwayF = (0.25f + 0.35f * R01()); p.SwayA = (0.006f + 0.012f * R01()) * A;
+            p.Ink = (int)(ForeAlpha * 1000 * (R01() < 0.35 ? 0.25 + 0.25 * R01() : 0.55 + 0.45 * R01()));   // (its own faintness, per mille: a third as faint as round 1)
+            p.Tone = _fxRnd.Next(ForeInks.Length);
+            if (anyAge) { p.Age = R01() * p.Life * 0.8f; p.Y += p.VY * p.Age; p.X += p.VX * p.Age; }
+            return p;
+        }
+        void StepFore(double t)
+        {
+            double dt = _fgT < 0 ? 0 : Math.Min(0.1, t - _fgT); _fgT = t;
+            double avgLife = 13.5;
+            _fgDebt += dt * ForeCount / avgLife;
+            while (_fgDebt >= 1 && _fore.Count < ForeCount * 2) { _fgDebt -= 1; _fore.Add(NewFore(false)); }
+            for (int i = _fore.Count - 1; i >= 0; i--)
+            {
+                var p = _fore[i]; p.Age += (float)dt;
+                if (p.Age >= p.Life || p.Y + p.Size < _fgArea.Top) { _fore.RemoveAt(i); continue; }
+                p.X += (p.VX + (float)Math.Cos(p.Age * p.SwayF + p.Phase) * p.SwayA * p.SwayF) * (float)dt;
+                p.Y += p.VY * (float)dt;
+            }
+        }
+        void RenderFore()
+        {
+            if (_fgLayer == null) return;
+            int w = _fgArea.Width, h = _fgArea.Height; Array.Copy(_fgBg, _fgPix, _fgPix.Length);
+            foreach (var p in _fore)
+            {
+                double life = Math.Min(1, p.Age / 2.5) * Math.Min(1, (p.Life - p.Age) / (0.4 * p.Life));
+                // fading out toward the area's open edges: the last ForeFadeY of it upward (the title), ForeFadeX rightward
+                double fy = (p.Y - _fgArea.Top) / Math.Max(1.0, ForeFadeY * _H), fx = (_fgArea.Right - p.X) / Math.Max(1.0, ForeFadeX * _W);
+                double edge = Math.Max(0, Math.Min(1, fy)) * Math.Max(0, Math.Min(1, fx)); edge = edge * edge * (3 - 2 * edge);
+                double a = life * edge * (p.Ink / 1000.0) * (0.85 + 0.15 * Math.Sin(p.Age * p.Tw + p.Phase));
+                if (a <= 0.003) continue;
+                // a blurred disc, no outline: 1.25 x its size across (as large as round 1's halo)
+                double R = p.Size * 1.25 / 2, cx = p.X - _fgArea.Left, cy = p.Y - _fgArea.Top, inv = 1024.0 / (R * R);
+                int x0 = Math.Max(0, (int)Math.Floor(cx - R)), x1 = Math.Min(w - 1, (int)Math.Ceiling(cx + R)), y0 = Math.Max(0, (int)Math.Floor(cy - R)), y1 = Math.Min(h - 1, (int)Math.Ceiling(cy + R));
+                int ink = ForeInks[p.Tone], ir = (ink >> 16) & 255, ig = (ink >> 8) & 255, ib = ink & 255; float af = (float)a;
+                for (int y = y0; y <= y1; y++)
+                {
+                    double dy = y + 0.5 - cy, dy2 = dy * dy; int row = y * w;
+                    for (int x = x0; x <= x1; x++)
+                    {
+                        double dx = x + 0.5 - cx; int q = (int)((dx * dx + dy2) * inv); if (q >= 1024) continue;
+                        int si = (int)(_fgLut[q] * af * 256 + 0.5); if (si <= 0) continue;
+                        int c = _fgPix[row + x], r = (c >> 16) & 255, gg = (c >> 8) & 255, bb = c & 255;
+                        r += ((ir - r) * si) >> 8; gg += ((ig - gg) * si) >> 8; bb += ((ib - bb) * si) >> 8;
+                        _fgPix[row + x] = unchecked((int)0xFF000000) | (r << 16) | (gg << 8) | bb;
+                    }
+                }
+            }
+            var bd = _fgLayer.LockBits(new Rectangle(0, 0, w, h), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            try { for (int y = 0; y < h; y++) Marshal.Copy(_fgPix, y * w, bd.Scan0 + y * bd.Stride, w); } finally { _fgLayer.UnlockBits(bd); }
+        }
+        void DrawForeLayer(Graphics g)
+        {
+            if (_fgLayer != null) g.DrawImage(_fgLayer, _fgArea, 0, 0, _fgArea.Width, _fgArea.Height, GraphicsUnit.Pixel);
+        }        void PrepareFx()
+        {
+            _fxCx = _artX + (float)GrailX * _artW; _fxCy = _artY + (float)GrailY * _artH; _fxRimW = (float)GrailRimW * _artW; _fxA = _artH;
+            _fxK = Math.Max(1f, _H / 1440f);
+            var r = RectangleF.FromLTRB(_fxCx - 0.135f * _artW, _fxCy - ((float)GrailRise + 0.05f) * _artH, _fxCx + 0.135f * _artW, _fxCy + 0.05f * _artH);
+            _fxArea = GrailFx ? Rectangle.Intersect(Rectangle.Round(r), new Rectangle(0, 0, _W, _H)) : Rectangle.Empty;
+            PrepareGlow();
+            if (!_glowArea.IsEmpty) _fxArea = _fxArea.IsEmpty ? _glowArea : Rectangle.Union(_fxArea, _glowArea);     // (one rectangle: they overlap)
+            PrepareFore();
+            _flakes.Clear(); _fxT = -1; _fxDebt = 0;
+        }
+        double FxPulse(double t) { return 0.5 + 0.5 * Math.Sin(2 * Math.PI * t * GrailSpeed / Math.Max(0.5, GrailPulse)); }
+        float R01() { return (float)_fxRnd.NextDouble(); }
+        void StepFx(double t)
+        {
+            double dt = _fxT < 0 ? 0 : Math.Min(0.1, t - _fxT); _fxT = t;
+            double pulse = FxPulse(t);
+            // new flakes: the stream swells with the pulse
+            _fxDebt += dt * GrailRate * GrailSpeed * (0.7 + 0.6 * pulse);          // (slower = longer lives: fewer a second keep the count)
+            while (_fxDebt >= 1 && _flakes.Count < 600)
+            {
+                _fxDebt -= 1;
+                var p = new Flake(); bool bk = R01() < GrailBokeh; p.Bokeh = bk;
+                float u = R01() * 2 - 1; u = Math.Sign(u) * (float)Math.Pow(Math.Abs(u), bk ? 0.8 : 1.3);      // (most from the middle of the rim)
+                p.X = _fxCx + u * _fxRimW * (bk ? 1.5f : 1f);
+                p.Y = _fxCy + (R01() - 0.65f) * 0.022f * _fxA - (bk ? R01() * 0.05f * _fxA : 0);
+                float up = (bk ? 0.075f + 0.07f * R01() : 0.04f + 0.075f * R01()) * _fxA * (float)(1 + 0.3 * pulse);
+                p.VY = -up; p.VX = u * 0.022f * _fxA * (bk ? 1.6f : 1f) + (R01() - 0.5f) * 0.012f * _fxA;
+                p.Life = bk ? 2.0f + 1.5f * R01() : 2.4f + 2.2f * R01();
+                float sp = (float)Math.Max(0.1, GrailSpeed); p.VY *= sp; p.VX *= sp; p.Life /= sp;
+                p.Size = bk ? (4f + 2.5f * R01()) * _fxK : (float)(1 + 2.2 * Math.Pow(R01(), 2.6)) * _fxK;
+                p.Phase = R01() * 6.283f; p.Tw = (2.5f + 6f * R01()) * sp; p.SwayF = (0.8f + 1.6f * R01()) * sp; p.SwayA = (0.004f + 0.01f * R01()) * _fxA;
+                p.Ink = _fxRnd.Next(GrailInks.Length);
+                _flakes.Add(p);
+            }
+            if (_fxDebt > 4) _fxDebt = 0;
+            for (int i = _flakes.Count - 1; i >= 0; i--)
+            {
+                var p = _flakes[i]; p.Age += (float)dt;
+                if (p.Age >= p.Life) { _flakes.RemoveAt(i); continue; }
+                float slow = (float)Math.Exp(-0.18 * GrailSpeed * dt);
+                p.VY *= slow; p.VX *= slow;
+                p.X += (p.VX + (float)Math.Cos(p.Age * p.SwayF + p.Phase) * p.SwayA * p.SwayF) * (float)dt;
+                p.Y += p.VY * (float)dt;
+            }
+        }
+        void DrawFx(Graphics g, double k)
+        {
+            if (k <= 0.01 || _flakes.Count == 0) return;
+            var sm = g.SmoothingMode;
+            foreach (var p in _flakes)
+            {
+                if (!_fxArea.Contains((int)p.X, (int)p.Y)) continue;
+                double life = Math.Min(1, p.Age / 0.35) * Math.Min(1, (p.Life - p.Age) / (0.45 * p.Life));
+                double edge = Math.Min(Math.Min(p.Y - _fxArea.Top, Math.Min(p.X - _fxArea.Left, _fxArea.Right - p.X)) / (0.06 * _fxA), 1.0);   // (gone before their rectangle's edge)
+                life *= Math.Max(0, edge);
+                double glint = Math.Pow(Math.Abs(Math.Sin(p.Age * p.Tw + p.Phase)), 3);           // (turning, catching the light)
+                int ink = GrailInks[p.Ink];
+                if (p.Bokeh)
+                {
+                    // close and out of focus: a soft halo, a see-through disc, a brighter rim
+                    double a = k * life * (0.75 + 0.25 * glint);
+                    float d = p.Size, h = d * 1.9f;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    using (var hb = new SolidBrush(C(ink, 0.10 * a))) g.FillEllipse(hb, p.X - h / 2, p.Y - h / 2, h, h);
+                    using (var fb = new SolidBrush(C(ink, 0.30 * a))) g.FillEllipse(fb, p.X - d / 2, p.Y - d / 2, d, d);
+                    using (var rp = new Pen(C(0xFFE3A6, 0.45 * a), Math.Max(0.8f, d * 0.16f))) g.DrawEllipse(rp, p.X - d / 2, p.Y - d / 2, d, d);
+                }
+                else if (p.Size < 1.7f * _fxK)
+                {
+                    // fine and crisp: a whole pixel (or two), no smoothing
+                    double a = k * life * (0.6 + 0.4 * glint);
+                    int px = (int)Math.Round(p.Size), x = (int)Math.Round(p.X), y = (int)Math.Round(p.Y);
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
+                    using (var b = new SolidBrush(C(glint > 0.8 ? 0xFFF0C2 : ink, a))) g.FillRectangle(b, x, y, Math.Max(1, px), Math.Max(1, px));
+                }
+                else
+                {
+                    // a little larger: a smoothed flake with a bright core when it glints
+                    double a = k * life * (0.65 + 0.35 * glint);
+                    float d = p.Size;
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    using (var b = new SolidBrush(C(ink, a))) g.FillEllipse(b, p.X - d / 2, p.Y - d / 2, d, d);
+                    if (glint > 0.6) using (var c = new SolidBrush(C(0xFFF6DA, a * (glint - 0.6) / 0.4))) g.FillRectangle(c, (int)Math.Round(p.X), (int)Math.Round(p.Y), 1, 1);
+                }
+            }
+            g.SmoothingMode = sm;
+        }
+
         /// <summary>OFFLINE: the title as it would be drawn at w x h, t seconds in, with row `sel` selected (loadOpen: the slot
         /// list up, `lsel` selected).</summary>
         /// <summary>OFFLINE: a load's reading, `rt` seconds into it (doneFor >= 0: finished that long ago).</summary>
@@ -1469,7 +1827,10 @@ namespace AztTool
             PreviewDocsState(t);
             using (var g = Graphics.FromImage(_buf))
             {
-                g.DrawImageUnscaled(_bg, 0, 0); g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias; g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                g.DrawImage(_bg, new Rectangle(0, 0, _bg.Width, _bg.Height), 0, 0, _bg.Width, _bg.Height, GraphicsUnit.Pixel); g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias; g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                if (GrailGlow) DrawGlow(g, t, 1);
+                if (GrailFx && _fxArea.Width > 0) { for (double ft = 0; ft <= t; ft += 1 / 60.0) StepFx(ft); DrawFx(g, 1); }
+                if (_fgArea.Width > 0) { for (double ft = 0; ft <= t; ft += 1 / 60.0) StepFore(ft); RenderFore(); DrawForeLayer(g); }
                 DrawMenu(g, t); if (loadOpen) DrawLoad(g, t); if (_optOpen) DrawOptions(g, t);
                 PreviewDocsDraw(g, t);
                 if (PreviewPointer) { var rr = _optOpen ? _optRect[_osel] : loadOpen ? _slotRect[_lsel] : _rowRect[_sel]; _hover = PreviewHover ? 0 : -1; DrawPointer(g, rr.Left + rr.Width * 0.62f, rr.Top + rr.Height * 0.55f); _hover = -1; }
@@ -1556,6 +1917,7 @@ namespace AztTool
         /// <summary>symBufPtr / symBootState: the overlay symbols aztInjBufPtr and aztBootState (obj1).</summary>
         public void Start(int pid, string exePath, int symBufPtr, int symBootState)
         {
+            Screen.Log = s => Note("loading screen: " + s);      // (its real size on screen, each time it changes -- the watcher's log)
             Pid = pid; _symBuf = symBufPtr; _symState = symBootState;
             using (var fs = new System.IO.FileStream(exePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete))
             { _exe = new byte[fs.Length]; int o = 0; while (o < _exe.Length) { int n = fs.Read(_exe, o, _exe.Length - o); if (n <= 0) break; o += n; } }
@@ -1781,6 +2143,10 @@ namespace AztTool
         public string TitleDocs;
         /// <summary>The texture quality in use ("NORMAL" / "ULTRA"), shown on the title's options panel.</summary>
         public string TitleTextureQuality = "ULTRA";
+        /// <summary>The grail's gold flakes on the title (TitleScreen.GrailFx; the watcher's -NoGrailDust).</summary>
+        public bool TitleGrailFx = true;
+        /// <summary>The grail's light on the man's face (TitleScreen.GrailGlow; the watcher's -NoGrailGlow).</summary>
+        public bool TitleGrailGlow = true;
         /// <summary>The title's music (Josh, 2026-10-10: "the track kreepy2 to play while this main title is on screen"): a 16-bit
         /// WAV looped from the menu's arrival until a choice fades it; its level.</summary>
         public string TitleMusic; public double TitleMusicGain = 0.55, TitleMusicFadeIn = 2.0, TitleMusicFadeOut = 1.6;
@@ -1878,7 +2244,7 @@ namespace AztTool
                 if (!((ready && voiceDone && _titleLoad.ElapsedMilliseconds > 1500) || _titleLoad.ElapsedMilliseconds > 60000)) return;
                 if (!ready) Note("the renderer still is not ready after 60 s -- the title menu anyway");
                 Screen.Finish(); if (au0 != null) au0.FadeTrack(TrackFadeSeconds);
-                var ts = new TitleScreen { ImagePath = TitleImage, SaveDir = SaveDir, GamePid = Pid, TextureQuality = TitleTextureQuality ?? "ULTRA", DocsDir = TitleDocs, RoomLoadAhead = TitleRoomLoad };
+                var ts = new TitleScreen { ImagePath = TitleImage, SaveDir = SaveDir, GamePid = Pid, TextureQuality = TitleTextureQuality ?? "ULTRA", DocsDir = TitleDocs, RoomLoadAhead = TitleRoomLoad, GrailFx = TitleGrailFx, GrailGlow = TitleGrailGlow };
                 if (!ts.Start()) { Note("title menu could not start: " + ts.StartError + " -- the game's own title waits for a key"); _titleDone = true; return; }
                 W16(_aFlag, f | 0x8000);
                 _title = ts;

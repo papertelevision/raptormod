@@ -104,3 +104,9 @@ Related: [[azrael-gpu-boot]], [[azrael-characters-host-render]], [[azrael-frame-
 - Watcher: -NoScanItems. Log line per item scan: 'item: SET: picked X, shown Y -> record'.
 - Verified: scratchpad item-live.ps1 (fake guest with the pick, hovered index and object table planted) for Red Salt, Aqua Fortis on a shared part, a BISC shield, and an unknown part (drawn, no text); the result renders through the overlay. items-draw.ps1 is the drawing sheet.
 - NOT replaced: Sailor and Zombie (no usable rig). Unused frame sets nothing scans: ESS, BOOK, PAPER, PLACK, EDNECK, RTONGS, WAX_B.
+
+## Slower, and the sniff (Josh, 2026-10-13)
+"the scanning animation (the spinning wireframe ...) spins and animates very quickly. Can we slow that down a bit? Also can the scan for these two creatures include their new sniffing animation as well?" **Built 2026-10-13; checked offline; NOT yet seen in game.**
+- **~30% slower:** `Spin` 1.76 -> 1.25 rad/s (a turn in ~5 s) and `AnimHz` 20.03 -> 14 frames/s, the walk a little under the engine's 18.2. Items turn slower too (same Spin).
+- **A second clip:** `ScanWire.SetExtra(name, from, to)`. The watcher gives a set any `SNIFF` range its installed .ANI has; today that is EUGENE and EUGENB, whose `SNIFF 11-52` Apply-AztMod adds ([[azrael-npc-pace]]). The set walks for whole cycles for about `ExtraAfter` 2 s, plays the clip once (41 frames, ~2.9 s), and walks again. Logged "scanner wireframe: EUGENE also sniffs (frames 11-52) after its walk".
+- Checked with `RenderTest`: run at 0.3 / 1.2 s, head down sniffing at 2.5 / 3.3 s, head up jaw open at 4.3 s, running again at 5.3 s.

@@ -180,14 +180,15 @@ namespace AztTool
         public int TestSlot() { return Slot(); }
         public void TestBlank() { BlankAll(); }
         public void TestRestore() { RestoreAll(); }
+        static readonly uint _ownPid = (uint)Process.GetCurrentProcess().Id;     // (once: GetCurrentProcess made a finalizable object every pass -- 2026-10-13 audit)
         bool Front()
         {
             uint p; GetWindowThreadProcessId(GetForegroundWindow(), out p);
-            return GamePid == 0 || p == (uint)GamePid || p == (uint)Process.GetCurrentProcess().Id;
+            return GamePid == 0 || p == (uint)GamePid || p == _ownPid;
         }
 
         /// <summary>Redrawn this often while up (ms): every icon loops now, so all of them keep moving.</summary>
-        public int RedrawMs = 8;
+        public int RedrawMs = 16;       // (60 a second; it was 8 -- the 2026-10-13 audit: the position still follows every pass)
 
         static double C01(double v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
         /// <summary>The icon drawing lives in CursorShapes.cs (shared with the title screen's RAPTOR DOCS).</summary>
@@ -271,7 +272,7 @@ namespace AztTool
                         {
                             Hide(); if (goneAt < 0) goneAt = ms;
                             if (ms - goneAt > AppearAfterMs) { slotWas = -1; shownSince = -1; Shape = ""; }      // (gone a while: it appears afresh)
-                            Thread.Sleep(1); continue;
+                            Thread.Sleep(6); continue;      // (hidden -- mouselook is most of play: not 1,000 passes a second -- 2026-10-13 audit)
                         }
                         goneAt = -1;
                         string name = SlotNames[slot];

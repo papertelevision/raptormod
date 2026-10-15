@@ -1,0 +1,633 @@
+{
+    "schema":  1,
+    "room":  "CHAMBNEW",
+    "made":  "2026-10-14T13:55:20.1083441Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "uplight",
+                            "confidence":  0.84,
+                            "point":  [
+                                          -409.81,
+                                          -60.8,
+                                          107.67
+                                      ],
+                            "normal":  [
+                                           0.796,
+                                           0,
+                                           -0.605
+                                       ],
+                            "part":  "bckwall04",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.291,
+                                       0.256
+                                   ],
+                            "crop":  [
+                                         62,
+                                         169,
+                                         88,
+                                         205,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 4 above the floor (2.8x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -403.44,
+                                          "y":  -60.24,
+                                          "z":  102.83,
+                                          "dir":  [
+                                                      -0.272,
+                                                      0.94,
+                                                      0.207
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F9FFCA",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 2 (bckwall04)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "uplight",
+                            "confidence":  0.84,
+                            "point":  [
+                                          -357.35,
+                                          -60.8,
+                                          -183.37
+                                      ],
+                            "normal":  [
+                                           0.605,
+                                           0,
+                                           0.796
+                                       ],
+                            "part":  "bckwall01",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.291,
+                                       0.256
+                                   ],
+                            "crop":  [
+                                         62,
+                                         169,
+                                         88,
+                                         205,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 4 above the floor (2.8x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -352.51,
+                                          "y":  -60.24,
+                                          "z":  -177,
+                                          "dir":  [
+                                                      -0.207,
+                                                      0.94,
+                                                      -0.272
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F9FFCA",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 10 (bckwall01)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "uplight",
+                            "confidence":  0.84,
+                            "point":  [
+                                          -118.94,
+                                          -60.8,
+                                          160.18
+                                      ],
+                            "normal":  [
+                                           -0.605,
+                                           0,
+                                           -0.796
+                                       ],
+                            "part":  "bckwall03",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.291,
+                                       0.256
+                                   ],
+                            "crop":  [
+                                         62,
+                                         169,
+                                         88,
+                                         205,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 4 above the floor (2.8x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -123.79,
+                                          "y":  -60.24,
+                                          "z":  153.81,
+                                          "dir":  [
+                                                      0.207,
+                                                      0.94,
+                                                      0.272
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F9FFCA",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 4 (bckwall03)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  4,
+                            "kind":  "uplight",
+                            "confidence":  0.84,
+                            "point":  [
+                                          -66.48,
+                                          -60.8,
+                                          -130.86
+                                      ],
+                            "normal":  [
+                                           -0.796,
+                                           0,
+                                           0.605
+                                       ],
+                            "part":  "bckwall02",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.291,
+                                       0.256
+                                   ],
+                            "crop":  [
+                                         62,
+                                         169,
+                                         88,
+                                         205,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 4 above the floor (2.8x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -72.85,
+                                          "y":  -60.24,
+                                          "z":  -126.02,
+                                          "dir":  [
+                                                      0.272,
+                                                      0.94,
+                                                      -0.207
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F9FFCA",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 7 (bckwall02)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  5,
+                            "kind":  "uplight",
+                            "confidence":  0.75,
+                            "point":  [
+                                          -416.73,
+                                          -58.24,
+                                          -111.92
+                                      ],
+                            "normal":  [
+                                           0.973,
+                                           0,
+                                           0.229
+                                       ],
+                            "part":  "bckwall01",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.732,
+                                       0.268
+                                   ],
+                            "crop":  [
+                                         170,
+                                         159,
+                                         209,
+                                         207,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 7 above the floor (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -408.94,
+                                          "y":  -60.24,
+                                          "z":  -110.09,
+                                          "dir":  [
+                                                      -0.333,
+                                                      0.94,
+                                                      -0.078
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFEDBB",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 12 (bckwall01)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  6,
+                            "kind":  "uplight",
+                            "confidence":  0.75,
+                            "point":  [
+                                          -338.36,
+                                          -58.24,
+                                          167.05
+                                      ],
+                            "normal":  [
+                                           0.229,
+                                           0,
+                                           -0.973
+                                       ],
+                            "part":  "bckwall04",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.732,
+                                       0.268
+                                   ],
+                            "crop":  [
+                                         170,
+                                         159,
+                                         209,
+                                         207,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 7 above the floor (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -336.52,
+                                          "y":  -60.24,
+                                          "z":  159.26,
+                                          "dir":  [
+                                                      -0.078,
+                                                      0.94,
+                                                      0.333
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFEDBB",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 3 (bckwall04)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  7,
+                            "kind":  "uplight",
+                            "confidence":  0.75,
+                            "point":  [
+                                          -137.93,
+                                          -58.24,
+                                          -190.24
+                                      ],
+                            "normal":  [
+                                           -0.229,
+                                           0,
+                                           0.973
+                                       ],
+                            "part":  "bckwall02",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.732,
+                                       0.268
+                                   ],
+                            "crop":  [
+                                         170,
+                                         159,
+                                         209,
+                                         207,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 7 above the floor (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -139.77,
+                                          "y":  -60.24,
+                                          "z":  -182.45,
+                                          "dir":  [
+                                                      0.078,
+                                                      0.94,
+                                                      -0.333
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFEDBB",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 9 (bckwall02)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  8,
+                            "kind":  "uplight",
+                            "confidence":  0.75,
+                            "point":  [
+                                          -59.56,
+                                          -58.24,
+                                          88.73
+                                      ],
+                            "normal":  [
+                                           -0.973,
+                                           0,
+                                           -0.229
+                                       ],
+                            "part":  "bckwall03",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.732,
+                                       0.268
+                                   ],
+                            "crop":  [
+                                         170,
+                                         159,
+                                         209,
+                                         207,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 7 above the floor (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -67.35,
+                                          "y":  -60.24,
+                                          "z":  86.9,
+                                          "dir":  [
+                                                      0.333,
+                                                      0.94,
+                                                      0.078
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFEDBB",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 6 (bckwall03)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  9,
+                            "kind":  "uplight",
+                            "confidence":  0.98,
+                            "point":  [
+                                          -393.43,
+                                          -54.03,
+                                          -153.86
+                                      ],
+                            "normal":  [
+                                           0.855,
+                                           0,
+                                           0.519
+                                       ],
+                            "part":  "bckwall01",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.506,
+                                       0.287
+                                   ],
+                            "crop":  [
+                                         114,
+                                         154,
+                                         146,
+                                         203,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 11 above the floor (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -386.59,
+                                          "y":  -60.24,
+                                          "z":  -149.71,
+                                          "dir":  [
+                                                      -0.292,
+                                                      0.94,
+                                                      -0.177
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFF8C1",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 11 (bckwall01)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  10,
+                            "kind":  "uplight",
+                            "confidence":  0.98,
+                            "point":  [
+                                          -380.29,
+                                          -54.03,
+                                          143.75
+                                      ],
+                            "normal":  [
+                                           0.519,
+                                           0,
+                                           -0.855
+                                       ],
+                            "part":  "bckwall04",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.506,
+                                       0.287
+                                   ],
+                            "crop":  [
+                                         114,
+                                         154,
+                                         146,
+                                         203,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 11 above the floor (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -376.14,
+                                          "y":  -60.24,
+                                          "z":  136.91,
+                                          "dir":  [
+                                                      -0.177,
+                                                      0.94,
+                                                      0.292
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFF8C1",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 1 (bckwall04)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  11,
+                            "kind":  "uplight",
+                            "confidence":  0.98,
+                            "point":  [
+                                          -96,
+                                          -54.03,
+                                          -166.94
+                                      ],
+                            "normal":  [
+                                           -0.519,
+                                           0,
+                                           0.855
+                                       ],
+                            "part":  "bckwall02",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.506,
+                                       0.287
+                                   ],
+                            "crop":  [
+                                         114,
+                                         154,
+                                         146,
+                                         203,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 11 above the floor (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -100.15,
+                                          "y":  -60.24,
+                                          "z":  -160.1,
+                                          "dir":  [
+                                                      0.177,
+                                                      0.94,
+                                                      -0.292
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFF8C1",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 8 (bckwall02)",
+                            "status":  "covered"
+                        },
+                        {
+                            "id":  12,
+                            "kind":  "uplight",
+                            "confidence":  0.98,
+                            "point":  [
+                                          -82.86,
+                                          -54.03,
+                                          130.67
+                                      ],
+                            "normal":  [
+                                           -0.855,
+                                           0,
+                                           -0.519
+                                       ],
+                            "part":  "bckwall03",
+                            "material":  "CHAMBERWALL",
+                            "texture":  "08-chwall.png",
+                            "uv":  [
+                                       0.506,
+                                       0.287
+                                   ],
+                            "crop":  [
+                                         114,
+                                         154,
+                                         146,
+                                         203,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 11 above the floor (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -89.7,
+                                          "y":  -60.24,
+                                          "z":  126.52,
+                                          "dir":  [
+                                                      0.292,
+                                                      0.94,
+                                                      0.177
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFF8C1",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "covered":  "uplight 5 (bckwall03)",
+                            "status":  "covered"
+                        }
+                    ]
+}

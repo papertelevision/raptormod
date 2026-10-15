@@ -1,8 +1,8 @@
 {
     "schema":  2,
     "room":  "SPAROOM",
-    "rev":  48,
-    "nextId":  10,
+    "rev":  55,
+    "nextId":  12,
     "notes":  [
 
               ],
@@ -831,6 +831,180 @@
                                       }
                                   ],
                           "completedAt":  "2026-10-09T17:11:32.5393834Z"
+                      },
+                      {
+                          "id":  10,
+                          "ref":  "SPAROOM/10",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:09:18.1073361Z",
+                          "updated":  "2026-10-14T20:36:23.3763956Z",
+                          "kind":  "map",
+                          "point":  [
+                                        -90.29,
+                                        194.5,
+                                        -105.16
+                                    ],
+                          "normal":  [
+                                         -0.749,
+                                         0,
+                                         0.663
+                                     ],
+                          "part":  "schains",
+                          "material":  "DORBIT",
+                          "texture":  "13-spadoor.png",
+                          "uv":  [
+                                     0.492,
+                                     8.416
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -163.67,
+                                                     111.61,
+                                                     -130.28
+                                                 ],
+                                         "fwd":  [
+                                                     0.69,
+                                                     0.73,
+                                                     0.02
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -163.67,
+                                                         "Y":  111.61,
+                                                         "Z":  -130.28,
+                                                         "Yaw":  88.34,
+                                                         "Pitch":  46.55
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -112.76,
+                                                        "y":  194.5,
+                                                        "z":  -85.29,
+                                                        "dir":  [
+                                                                    -0.749,
+                                                                    0,
+                                                                    0.663
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  "2026-10-09T16:22:49.4747455Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Omit all \"strings\" from map view",
+                                          "at":  "2026-10-14T20:09:18.1073361Z",
+                                          "shot":  "SPAROOM-10-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. All the strings are one part (schains, 120 faces from y -542 up to 920), and it is off the map. The map also frames the room better now that they no longer stretch it. Before | after attached.",
+                                          "at":  "2026-10-14T20:36:23.3763956Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json map.hide: schains"
+                                                      ],
+                                          "round":  26,
+                                          "render":  "SPAROOM-10-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4427217Z"
+                      },
+                      {
+                          "id":  11,
+                          "ref":  "SPAROOM/11",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:09:59.5362559Z",
+                          "updated":  "2026-10-14T20:36:23.3917571Z",
+                          "kind":  "map",
+                          "point":  [
+                                        -132.5,
+                                        -179.43,
+                                        -138.84
+                                    ],
+                          "normal":  [
+                                         -0.834,
+                                         0,
+                                         -0.552
+                                     ],
+                          "part":  "schains",
+                          "material":  "DORBIT",
+                          "texture":  "13-spadoor.png",
+                          "uv":  [
+                                     0.493,
+                                     -0.433
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -255.78,
+                                                     -193.32,
+                                                     -152.28
+                                                 ],
+                                         "fwd":  [
+                                                     0.91,
+                                                     0.29,
+                                                     0.29
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -255.78,
+                                                         "Y":  -193.32,
+                                                         "Z":  -152.28,
+                                                         "Yaw":  72.4,
+                                                         "Pitch":  16.62
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -157.51,
+                                                        "y":  -179.43,
+                                                        "z":  -155.4,
+                                                        "dir":  [
+                                                                    -0.834,
+                                                                    0,
+                                                                    -0.552
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:28.3412860Z",
+                                       "roomFileMtime":  "2026-10-09T16:22:49.4747455Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "the strings that span beneath the map need removed from the map view also",
+                                          "at":  "2026-10-14T20:09:59.5362559Z",
+                                          "shot":  "SPAROOM-11-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. The strings under the map are the same part as SPAROOM/10 (schains), so they are gone too. Before | after attached.",
+                                          "at":  "2026-10-14T20:36:23.3917571Z",
+                                          "changes":  [
+                                                          "rooms\\SPAROOM.json map.hide: schains"
+                                                      ],
+                                          "round":  26,
+                                          "render":  "SPAROOM-11-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4427217Z"
                       }
                   ],
     "deleted":  [

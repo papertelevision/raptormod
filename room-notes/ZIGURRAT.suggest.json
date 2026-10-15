@@ -1,0 +1,213 @@
+{
+    "schema":  1,
+    "room":  "ZIGURRAT",
+    "made":  "2026-10-14T13:55:48.1236136Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "sidelight",
+                            "confidence":  0.61,
+                            "point":  [
+                                          -315.47,
+                                          6.69,
+                                          261.28
+                                      ],
+                            "normal":  [
+                                           -0.71,
+                                           0,
+                                           -0.704
+                                       ],
+                            "part":  "walkway01",
+                            "material":  "RAMP",
+                            "texture":  "24-zg_ramp.png",
+                            "uv":  [
+                                       0.666,
+                                       0.34
+                                   ],
+                            "crop":  [
+                                         149,
+                                         74,
+                                         186,
+                                         94,
+                                         256,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan running along the wall (2.3x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -321.15,
+                                          "y":  6.69,
+                                          "z":  255.65,
+                                          "dir":  [
+                                                      -0.419,
+                                                      0.002,
+                                                      0.908
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#EBF3FF",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "sidelight",
+                            "confidence":  0.61,
+                            "point":  [
+                                          -274.64,
+                                          6.69,
+                                          301.76
+                                      ],
+                            "normal":  [
+                                           0.71,
+                                           0,
+                                           0.704
+                                       ],
+                            "part":  "walkway01",
+                            "material":  "RAMP",
+                            "texture":  "24-zg_ramp.png",
+                            "uv":  [
+                                       0.666,
+                                       0.34
+                                   ],
+                            "crop":  [
+                                         149,
+                                         74,
+                                         186,
+                                         94,
+                                         256,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan running along the wall (2.3x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -268.96,
+                                          "y":  6.69,
+                                          "z":  307.39,
+                                          "dir":  [
+                                                      -0.904,
+                                                      0.002,
+                                                      0.427
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#EBF3FF",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "uplight",
+                            "confidence":  0.76,
+                            "point":  [
+                                          -1153.08,
+                                          308.93,
+                                          1669.22
+                                      ],
+                            "normal":  [
+                                           -0.001,
+                                           0.016,
+                                           -1
+                                       ],
+                            "part":  "d5view01",
+                            "material":  "C72GENTUNNEL",
+                            "texture":  "08-2gentun.png",
+                            "uv":  [
+                                       0.166,
+                                       0.303
+                                   ],
+                            "crop":  [
+                                         28,
+                                         154,
+                                         58,
+                                         196,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 17 above the floor (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -1153.09,
+                                          "y":  297.22,
+                                          "z":  1661.22,
+                                          "dir":  [
+                                                      0,
+                                                      0.94,
+                                                      0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFB988",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  4,
+                            "kind":  "downlight",
+                            "confidence":  0.76,
+                            "point":  [
+                                          -1055.39,
+                                          575.95,
+                                          843.82
+                                      ],
+                            "normal":  [
+                                           0.967,
+                                           -0.119,
+                                           -0.225
+                                       ],
+                            "part":  "hallrear",
+                            "material":  "ZIG1",
+                            "texture":  "28-zg_zig1.png",
+                            "uv":  [
+                                       0.353,
+                                       0.657
+                                   ],
+                            "crop":  [
+                                         154,
+                                         149,
+                                         208,
+                                         214,
+                                         512,
+                                         512
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (4.6x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -1047.6,
+                                          "y":  580.95,
+                                          "z":  842,
+                                          "dir":  [
+                                                      -0.333,
+                                                      -0.94,
+                                                      0.078
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FEFEFF",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

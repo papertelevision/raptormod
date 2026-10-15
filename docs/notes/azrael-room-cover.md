@@ -101,3 +101,10 @@ See [[azrael-josh-hires-textures]] (the textures that made this necessary), [[az
     - So the memory core's reading panel was drawn only by Repaint-HeldPicture between loop passes. During a re-boot's wait and a room's decode, it stood still.
     - `Step-LoadRepaint` now repaints it ~30 times a second, from Set-LoadProgress and from the re-boot wait.
 - **Not yet seen in game.** Logs to look for: "textures to the card before the room's first frame: N in N ms, finished on the card N ms later", and "visor boot: a load -- the host's view is up after N ms of cover".
+**ONE COVER THROUGH THE WHOLE SWITCH (Josh, 2026-10-14, entering MINEMAZE: "I still see the 256 version ... then it will flicker to loading, then back, then finally the GPU version").**
+- MEASURED (watch.log 18:06:14, CHAMBNEW -> MINEMAZE): the room was recognised by its SCENE changing ("scene rebuilt") BEFORE the camera's jump. The cover started late and ended 'ready'. A moment later the jump came; its engine-draw pulse called Set-Engine3D false, which HID the card's window, so the 8-bit picture was up. The second cover managed 3 pictures in 1.27 s.
+- **Fixes:**
+  - `Set-Engine3D $false` no longer hides the card's window while a room cover is up, so the cover shows through the pulse.
+  - A cover that started late (no jump seen yet) and whose room is loaded goes to stage **'settle'** (`Loaded` = true) instead of 'ready'. It waits up to 1.5 s for the jump; the jump's pulse runs under it; then it ends 'ready', so the room's first GPU frame materializes it with the teal scan.
+  - The 'same room' stop of a loaded cover is 'ready' too.
+- Not yet seen in game.

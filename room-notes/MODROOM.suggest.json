@@ -1,0 +1,51 @@
+{
+    "schema":  1,
+    "room":  "MODROOM",
+    "made":  "2026-10-14T13:55:33.5374510Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.55,
+                            "point":  [
+                                          -81.99,
+                                          -3.33,
+                                          -116.64
+                                      ],
+                            "normal":  [
+                                           0.707,
+                                           0,
+                                           0.707
+                                       ],
+                            "part":  "wall04",
+                            "material":  "MOD_VESTWALL01",
+                            "texture":  "27-mod_vest.png",
+                            "uv":  [
+                                       0.58,
+                                       0.415
+                                   ],
+                            "crop":  [
+                                         133,
+                                         277,
+                                         174,
+                                         325,
+                                         256,
+                                         512
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.4x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -71.38,
+                                          "y":  -3.33,
+                                          "z":  -106.04,
+                                          "color":  "#FFF6B4",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

@@ -120,14 +120,20 @@ function Get-Manifest([string]$room) {
 }
 function Get-RoomList {
     $count = @{}
+    $sugg = @{}
     foreach ($nf in @(Get-ChildItem $NotesDir -Filter '*.json' -ErrorAction SilentlyContinue | Where-Object { $_.BaseName -notin 'rounds', 'submit' })) {
+        if ($nf.Name -like '*.suggest.json') {
+            # (the painted-light finder's pins still waiting for Josh)
+            try { $sd = [IO.File]::ReadAllText($nf.FullName, $utf8) | ConvertFrom-Json; $sugg[([string]$sd.room).ToUpperInvariant()] = @($sd.suggestions | Where-Object { $_ -and $_.status -eq 'pending' }).Count } catch { }
+            continue
+        }
         try { $doc = Read-RoomNotes $NotesDir $nf.BaseName; $count[$nf.BaseName.ToUpperInvariant()] = @(@($doc.notes | Where-Object { $_.status -eq 'new' }).Count, @($doc.notes | Where-Object { $_.status -eq 'review' }).Count) } catch { }
     }
     $all = @(Get-ChildItem $RenderDir -Filter '*.obj' | ForEach-Object { $_.BaseName.ToUpperInvariant() } | Sort-Object -Unique)
     $list = @()
     foreach ($r in @($batch | Where-Object { $all -contains $_ }) + @($all | Where-Object { $batch -notcontains $_ })) {
         $c = $count[$r]
-        $list += [ordered]@{ name = $r; batch = [Array]::IndexOf($batch, $r); hidden = ($hidden -contains $r); new = $(if ($c) { $c[0] } else { 0 }); review = $(if ($c) { $c[1] } else { 0 }) }
+        $list += [ordered]@{ name = $r; batch = [Array]::IndexOf($batch, $r); hidden = ($hidden -contains $r); new = $(if ($c) { $c[0] } else { 0 }); review = $(if ($c) { $c[1] } else { 0 }); painted = $(if ($sugg.ContainsKey($r)) { $sugg[$r] } else { 0 }) }
     }
     return , $list
 }
@@ -204,6 +210,32 @@ function Invoke-LookFrame([string]$room, [byte[]]$body) {
     return (New-Resp 200 'image/jpeg' $ms.ToArray() @{ 'Cache-Control' = 'no-store'; 'X-Look-Ms' = [string]$info })
 }
 
+# ---- "Map look" (Josh, 2026-10-14: the wireframe "would look exactly like the map view with the teal colors and planes in place"):
+# what the game's 3D map leaves out of the room (tools\Export-MapView.ps1: the game's own rules and the room's "map" settings),
+# made in its own process when missing or older than what it is made from, kept in <RenderDir>\map-view. ~2 s.
+$MapViewDir = Join-Path $RenderDir 'map-view'
+$script:mapJobs = @{}
+function Get-MapView([string]$room) {
+    $out = Join-Path $MapViewDir ($room + '.json')
+    $deps = @((Join-Path $RenderDir ($room + '.obj')), (Join-Path (Join-Path $RenderDir 'rooms') ($room + '.json')), (Join-Path $RenderDir 'portals.json'),
+              (Join-Path $toolDir 'LoadRoom.ps1'), (Join-Path $toolDir 'GpuRaster.cs'), (Join-Path $toolDir 'Export-MapView.ps1'), (Join-Path $RenderDir 'pickups.json'))
+    $newest = [DateTime]::MinValue; foreach ($d in $deps) { if (Test-Path $d) { $w = (Get-Item $d).LastWriteTimeUtc; if ($w -gt $newest) { $newest = $w } } }
+    if ((Test-Path $out) -and (Get-Item $out).LastWriteTimeUtc -ge $newest) { return (FileResp $out 'application/json; charset=utf-8' @{ 'Cache-Control' = 'no-store' }) }
+    $j = $script:mapJobs[$room]
+    if ($j -and $j.Proc.HasExited) {
+        # (it ran for what is there now and wrote nothing newer: it failed -- say so, and try again only once the inputs change)
+        if ($j.For -ge $newest) { return (Err 500 ('the map look could not be made for ' + $room)) }
+        $j = $null
+    }
+    if (-not $j) {
+        New-Item -ItemType Directory -Force $MapViewDir | Out-Null
+        $argLine = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Room {1} -Out "{2}"' -f (Join-Path $toolDir 'Export-MapView.ps1'), $room, $out
+        $p = Start-Process powershell -ArgumentList $argLine -WindowStyle Hidden -PassThru
+        $j = [pscustomobject]@{ Proc = $p; Started = [DateTime]::UtcNow; For = $newest }; $script:mapJobs[$room] = $j
+    }
+    return (Json @{ state = 'making'; seconds = [Math]::Round(([DateTime]::UtcNow - $j.Started).TotalSeconds, 1) } 503)
+}
+
 # ---- routing ------------------------------------------------------------------------------------------------------
 $STATIC = @{ 'viewer.js' = 'text/javascript; charset=utf-8'; 'viewer.css' = 'text/css; charset=utf-8' }
 function Invoke-Route([string]$method, [string]$path, [string]$query, [hashtable]$hdr, [byte[]]$body) {
@@ -268,6 +300,7 @@ function Invoke-Route([string]$method, [string]$path, [string]$query, [hashtable
                     }
                     return (Err 405 'not allowed')
                 }
+                if ($seg[3] -eq 'mapview') { if ($seg.Count -eq 4 -and $method -eq 'GET') { return (Get-MapView $room) }; return (Err 405 'not allowed') }
                 if ($seg[3] -eq 'look') {
                     if ($seg.Count -eq 4 -and $method -eq 'POST') { return (Invoke-LookFrame $room $body) }
                     return (Err 405 'not allowed')
@@ -339,6 +372,48 @@ function Invoke-Route([string]$method, [string]$path, [string]$query, [hashtable
                             $log[$k] | Add-Member shot $leaf -Force; Write-RoomNotes $NotesDir $room $doc
                             return (Json @{ shot = $leaf })
                         }
+                    }
+                    return (Err 405 'not allowed')
+                }
+                if ($seg[3] -eq 'suggest') {
+                    # PAINTED-LIGHT FINDER (Josh, 2026-10-14): tools\Suggest-PaintedLights.ps1 writes room-notes\<ROOM>.suggest.json --
+                    # lights the 1996 art paints (CHAMBNEW's fans, windows, glows). Josh approves or dismisses each pin here;
+                    # an approved one becomes a NEW note (kind light, the suggested light in suggest.light), so the light is
+                    # placed in the next round like any note. Lights stay his: nothing here writes rooms\*.json.
+                    $sp = Join-Path $NotesDir ($room + '.suggest.json')
+                    $sdoc = $(if (Test-Path $sp) { [IO.File]::ReadAllText($sp, $utf8) | ConvertFrom-Json } else { [pscustomobject]@{ schema = 1; room = $room; made = $null; suggestions = [object[]]@() } })
+                    if ($seg.Count -eq 4 -and $method -eq 'GET') { return (Json $sdoc) }
+                    if ($seg.Count -eq 5 -and $method -eq 'POST') {
+                        if ($body.Length -gt 64KB) { return (Err 413 'too large') }
+                        $id = 0; if (-not [int]::TryParse($seg[4], [ref]$id)) { return (Err 404 'no such suggestion') }
+                        $s = @($sdoc.suggestions | Where-Object { [int]$_.id -eq $id }) | Select-Object -First 1
+                        if (-not $s) { return (Err 404 'no such suggestion') }
+                        $in = $utf8.GetString($body) | ConvertFrom-Json
+                        $act = [string]$in.action
+                        if ($act -ne 'approve' -and $act -ne 'dismiss') { return (Err 400 'action must be "approve" or "dismiss"') }
+                        if ($s.status -eq 'approved') { return (Err 409 ('already approved: note #{0}' -f $s.note)) }
+                        $now = [DateTime]::UtcNow.ToString('o'); $note = $null
+                        if ($act -eq 'approve') {
+                            # a new note, as if Josh had clicked there: Claude's turn in the next round
+                            $doc = Read-RoomNotes $NotesDir $room; $nid = [int]$doc.nextId
+                            $what = $(if ($s.kind -eq 'window') { 'window: a light outside shining in' } else { [string]$s.kind + ' light here' })
+                            $why = [string]$s.why; if ($why) { $why = $why.Substring(0, 1).ToUpperInvariant() + $why.Substring(1) + '.' }
+                            $text = ('Approved suggestion: {0} (painted on {1}). {2}' -f $what, $s.texture, $why).Trim()
+                            $sug = [ordered]@{ light = $s.light; painted = [ordered]@{ id = $id; kind = $s.kind; confidence = $s.confidence; texture = $s.texture; uv = $s.uv } }
+                            if ($s.PSObject.Properties['rect']) { $sug.rect = $s.rect }
+                            $note = [ordered]@{ id = $nid; ref = ('{0}/{1}' -f $room, $nid); status = 'new'; created = $now; updated = $now; kind = 'light'
+                                                point = $s.point; normal = $s.normal; part = $s.part; material = $s.material; texture = $s.texture; uv = $s.uv
+                                                target = $null; camera = $(if ($in.PSObject.Properties['camera']) { $in.camera } else { $null }); suggest = [pscustomobject]$sug; seen = $null }
+                            $note.log = [object[]]@([pscustomobject]@{ who = 'josh'; text = $text; at = $now })
+                            $note = [pscustomobject]$note
+                            $doc.notes = [object[]](@($doc.notes) + @($note)); $doc.nextId = $nid + 1
+                            Write-RoomNotes $NotesDir $room $doc
+                            $s | Add-Member note $nid -Force; $s.status = 'approved'
+                        } else { $s.status = 'dismissed' }
+                        $s | Add-Member decided $now -Force
+                        $tmp = $sp + '.tmp'; [IO.File]::WriteAllText($tmp, (ConvertTo-Json -InputObject $sdoc -Depth 10), $utf8)
+                        [IO.File]::Replace($tmp, $sp, [NullString]::Value)
+                        return (Json @{ suggestion = $s; note = $note })
                     }
                     return (Err 405 'not allowed')
                 }

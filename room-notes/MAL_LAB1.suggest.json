@@ -1,0 +1,111 @@
+{
+    "schema":  1,
+    "room":  "MAL_LAB1",
+    "made":  "2026-10-14T13:55:31.9886199Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "downlight",
+                            "confidence":  0.84,
+                            "point":  [
+                                          -175.8,
+                                          52.49,
+                                          49.6
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "mal_wall01",
+                            "material":  "1MALLIK_WALL06",
+                            "texture":  "15-mal_wal6.png",
+                            "uv":  [
+                                       0.826,
+                                       0.518
+                                   ],
+                            "crop":  [
+                                         200,
+                                         107,
+                                         223,
+                                         147,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (2.4x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -167.8,
+                                          "y":  57.49,
+                                          "z":  49.6,
+                                          "dir":  [
+                                                      -0.342,
+                                                      -0.94,
+                                                      0
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC5C1",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "downlight",
+                            "confidence":  0.84,
+                            "point":  [
+                                          -175.8,
+                                          57.25,
+                                          -18.13
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "mal_wall01",
+                            "material":  "1MALLIK_WALL06",
+                            "texture":  "15-mal_wal6.png",
+                            "uv":  [
+                                       0.381,
+                                       0.549
+                                   ],
+                            "crop":  [
+                                         75,
+                                         92,
+                                         118,
+                                         150,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (2.6x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -167.8,
+                                          "y":  62.25,
+                                          "z":  -18.13,
+                                          "dir":  [
+                                                      -0.342,
+                                                      -0.94,
+                                                      0
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFBAAE",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

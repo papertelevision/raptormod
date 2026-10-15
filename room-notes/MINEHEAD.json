@@ -1,8 +1,8 @@
 {
     "schema":  2,
     "room":  "MINEHEAD",
-    "rev":  24,
-    "nextId":  7,
+    "rev":  50,
+    "nextId":  14,
     "notes":  [
 
               ],
@@ -516,6 +516,616 @@
                                       }
                                   ],
                           "completedAt":  "2026-10-09T22:15:55.9167377Z"
+                      },
+                      {
+                          "id":  9,
+                          "ref":  "MINEHEAD/9",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:13:13.8881395Z",
+                          "updated":  "2026-10-14T20:36:23.3338001Z",
+                          "kind":  "map",
+                          "point":  [
+                                        -532.73,
+                                        -71.81,
+                                        -88.32
+                                    ],
+                          "normal":  [
+                                         1,
+                                         0,
+                                         0.02
+                                     ],
+                          "part":  "minechasm",
+                          "material":  "1MH_FLOOR",
+                          "texture":  "41-mineflor.png",
+                          "uv":  [
+                                     0.131,
+                                     0.641
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -307.71,
+                                                     18.62,
+                                                     34.61
+                                                 ],
+                                         "fwd":  [
+                                                     -0.49,
+                                                     -0.28,
+                                                     -0.83
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -307.71,
+                                                         "Y":  18.62,
+                                                         "Z":  34.61,
+                                                         "Yaw":  -149.49,
+                                                         "Pitch":  -16.11
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -502.74,
+                                                        "y":  -71.81,
+                                                        "z":  -87.73,
+                                                        "dir":  [
+                                                                    1,
+                                                                    0,
+                                                                    0.02
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-12T18:46:33.0483684Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "The exception is also this side of the cliff and the cave that lurka escapes to, those can stay on the map view also",
+                                          "at":  "2026-10-14T20:13:13.8881395Z",
+                                          "shot":  "MINEHEAD-9-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. This side of the cliff and the cave Lurka escapes to are part of the same chasm mesh (minechasm), which the cut leaves whole. So they stay on the map while everything else under the floor goes (see MINEHEAD/8).",
+                                          "at":  "2026-10-14T20:36:23.3338001Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json map.keep: minechasm"
+                                                      ],
+                                          "round":  26,
+                                          "render":  "MINEHEAD-9-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:49:28.1462177Z"
+                      },
+                      {
+                          "id":  7,
+                          "ref":  "MINEHEAD/7",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:10:56.8327583Z",
+                          "updated":  "2026-10-14T20:36:23.3016031Z",
+                          "kind":  "map",
+                          "point":  [
+                                        458.16,
+                                        477.83,
+                                        -261.69
+                                    ],
+                          "normal":  [
+                                         0,
+                                         -1,
+                                         0
+                                     ],
+                          "part":  "stuff",
+                          "material":  "BLACK",
+                          "texture":  "10-n_black.png",
+                          "uv":  [
+                                     1.358,
+                                     0.166
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     833.59,
+                                                     263.76,
+                                                     -813.97
+                                                 ],
+                                         "fwd":  [
+                                                     -0.87,
+                                                     0.28,
+                                                     0.41
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  833.59,
+                                                         "Y":  263.76,
+                                                         "Z":  -813.97,
+                                                         "Yaw":  -65.02,
+                                                         "Pitch":  16.34
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  458.16,
+                                                        "y":  447.83,
+                                                        "z":  -261.69,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-12T18:46:33.0483684Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Omit giant black ceiling geometry from map view",
+                                          "at":  "2026-10-14T20:10:56.8327583Z",
+                                          "shot":  "MINEHEAD-7-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. The giant black ceiling is part of the room\u0027s main mesh (stuff), so it could not be hidden as a part. The map now accepts materials as well: stuff\u0027s BLACK faces are off it. Only that part\u0027s black faces go; the cart\u0027s and the beams\u0027 black panels stay. Before | after attached (the black sheet across the top is gone).",
+                                          "at":  "2026-10-14T20:36:23.3016031Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json map.hideMaterials: stuff/BLACK",
+                                                          "new map rule: hideMaterials (material or texture names; part/material for one part)"
+                                                      ],
+                                          "round":  26,
+                                          "render":  "MINEHEAD-7-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:49:32.1412048Z"
+                      },
+                      {
+                          "id":  8,
+                          "ref":  "MINEHEAD/8",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:12:36.3934853Z",
+                          "updated":  "2026-10-14T20:36:23.3192951Z",
+                          "kind":  "map",
+                          "point":  [
+                                        -274.15,
+                                        -132.32,
+                                        -315.27
+                                    ],
+                          "normal":  [
+                                         -0.972,
+                                         0.005,
+                                         0.236
+                                     ],
+                          "part":  "minechasm",
+                          "material":  "1MH_FLOOR",
+                          "texture":  "41-mineflor.png",
+                          "uv":  [
+                                     0.322,
+                                     0.454
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -527.42,
+                                                     -160.86,
+                                                     -183.67
+                                                 ],
+                                         "fwd":  [
+                                                     0.97,
+                                                     0.14,
+                                                     -0.21
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -527.42,
+                                                         "Y":  -160.86,
+                                                         "Z":  -183.67,
+                                                         "Yaw":  102.26,
+                                                         "Pitch":  7.94
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -303.3,
+                                                        "y":  -132.18,
+                                                        "z":  -308.18,
+                                                        "dir":  [
+                                                                    -0.972,
+                                                                    0,
+                                                                    0.236
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-12T18:46:33.0483684Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This wall, and the cliff where the lurka character is placed, need to remain on map view, but all other geometry that extends under the main floor in this room need omitted from the map view.",
+                                          "at":  "2026-10-14T20:12:36.3934853Z",
+                                          "shot":  "MINEHEAD-8-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. The map now cuts the room under the floor: everything below y -60 leaves it, and the walls that run on down into the chasm are clipped there (the floor is at -41; the cut sits a little lower so the two keys lying just under the floor stay). minechasm is exempt, so this wall and the cliff Lurka is placed on keep their full height. Before | after attached.",
+                                          "at":  "2026-10-14T20:36:23.3192951Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json map.hideBelow -60, keep: minechasm",
+                                                          "new map rule: hideBelow + keep -- a real cut (GpuRaster.ClipMapBelow), not just whole triangles"
+                                                      ],
+                                          "round":  26,
+                                          "render":  "MINEHEAD-8-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:49:40.7944309Z"
+                      },
+                      {
+                          "id":  10,
+                          "ref":  "MINEHEAD/10",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:50:15.6348339Z",
+                          "updated":  "2026-10-14T21:01:50.4992530Z",
+                          "kind":  "map",
+                          "point":  [
+                                        433.33,
+                                        477.83,
+                                        -64.74
+                                    ],
+                          "normal":  [
+                                         0,
+                                         -1,
+                                         0
+                                     ],
+                          "part":  "stuff",
+                          "material":  "BLACK",
+                          "texture":  "10-n_black.png",
+                          "uv":  [
+                                     1.335,
+                                     0.353
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     761.56,
+                                                     269.26,
+                                                     -62.89
+                                                 ],
+                                         "fwd":  [
+                                                     -0.6,
+                                                     0.54,
+                                                     -0.6
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  761.56,
+                                                         "Y":  269.26,
+                                                         "Z":  -62.89,
+                                                         "Yaw":  -134.95,
+                                                         "Pitch":  32.56
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  433.33,
+                                                        "y":  447.83,
+                                                        "z":  -64.74,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-14T20:32:24.2470854Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "CAn we remove the outline of this geometry from the map? its causing too much clutter",
+                                          "at":  "2026-10-14T20:50:15.6348339Z",
+                                          "shot":  "MINEHEAD-10-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "This black ceiling sheet is already off the map: it is the main mesh\u0027s BLACK faces, removed in round 26 (MINEHEAD/7). Room Review still shows it because the viewer draws the whole room; the 3D map no longer does.",
+                                          "at":  "2026-10-14T21:01:50.4992530Z",
+                                          "round":  27,
+                                          "changes":  [
+
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4211148Z"
+                      },
+                      {
+                          "id":  11,
+                          "ref":  "MINEHEAD/11",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:51:14.3225183Z",
+                          "updated":  "2026-10-14T21:01:50.5118601Z",
+                          "kind":  "map",
+                          "point":  [
+                                        4.25,
+                                        276.42,
+                                        248.43
+                                    ],
+                          "normal":  [
+                                         0,
+                                         0,
+                                         -1
+                                     ],
+                          "part":  "mh_saw03",
+                          "material":  "1MH_SAWS",
+                          "texture":  "33-minesaws.png",
+                          "uv":  [
+                                     0.472,
+                                     0.363
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -7.06,
+                                                     407.69,
+                                                     -242.35
+                                                 ],
+                                         "fwd":  [
+                                                     -0.2,
+                                                     -0.2,
+                                                     0.96
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -7.06,
+                                                         "Y":  407.69,
+                                                         "Z":  -242.35,
+                                                         "Yaw":  -11.87,
+                                                         "Pitch":  -11.64
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  4.25,
+                                                        "y":  276.42,
+                                                        "z":  218.43,
+                                                        "dir":  [
+                                                                    0,
+                                                                    0,
+                                                                    -1
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-14T20:32:24.2470854Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Not needed in map view, nor are any pf these criss-crossing polygons.",
+                                          "at":  "2026-10-14T20:51:14.3225183Z",
+                                          "shot":  "MINEHEAD-11-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. The saw blades (mh_saw01 to mh_saw04, the criss-crossing planes) are off the map.",
+                                          "at":  "2026-10-14T21:01:50.5118601Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json map.hide: mh_saw01, mh_saw02, mh_saw03, mh_saw04"
+                                                      ],
+                                          "round":  27,
+                                          "render":  "MINEHEAD-11-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4221161Z"
+                      },
+                      {
+                          "id":  12,
+                          "ref":  "MINEHEAD/12",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:52:34.7993096Z",
+                          "updated":  "2026-10-14T21:01:50.5245324Z",
+                          "kind":  "map",
+                          "point":  [
+                                        481.39,
+                                        -40.76,
+                                        171.76
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "stuff",
+                          "material":  "1MH_FLOOR",
+                          "texture":  "41-mineflor.png",
+                          "uv":  [
+                                     0.961,
+                                     0.857
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     261.84,
+                                                     214.3,
+                                                     393.44
+                                                 ],
+                                         "fwd":  [
+                                                     0.76,
+                                                     -0.5,
+                                                     -0.42
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  261.84,
+                                                         "Y":  214.3,
+                                                         "Z":  393.44,
+                                                         "Yaw":  119.04,
+                                                         "Pitch":  -29.82
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  481.39,
+                                                        "y":  -10.76,
+                                                        "z":  171.76,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-14T20:32:24.2470854Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Whatever this black polygon is, its not needed in this map view, the actual textured floor portion is sufficient.",
+                                          "at":  "2026-10-14T20:52:34.7993096Z",
+                                          "shot":  "MINEHEAD-12-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Left as it is, per your follow-up. (For the record: it is the main floor sheet carrying on past the room\u0027s east wall under the side passage to SPAROOM; it can be cut out later if you want.)",
+                                          "at":  "2026-10-14T21:01:50.5245324Z",
+                                          "round":  27,
+                                          "changes":  [
+
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4221161Z"
+                      },
+                      {
+                          "id":  13,
+                          "ref":  "MINEHEAD/13",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:53:07.7310273Z",
+                          "updated":  "2026-10-14T21:01:50.5392485Z",
+                          "kind":  "map",
+                          "point":  [
+                                        51.11,
+                                        -151.89,
+                                        -112.46
+                                    ],
+                          "normal":  [
+                                         0,
+                                         0,
+                                         1
+                                     ],
+                          "part":  "minechasm",
+                          "material":  "1MH_FLOOR",
+                          "texture":  "41-mineflor.png",
+                          "uv":  [
+                                     0.604,
+                                     0.628
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     118.14,
+                                                     -78.14,
+                                                     20.96
+                                                 ],
+                                         "fwd":  [
+                                                     -0.41,
+                                                     -0.4,
+                                                     -0.82
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  118.14,
+                                                         "Y":  -78.14,
+                                                         "Z":  20.96,
+                                                         "Yaw":  -153.41,
+                                                         "Pitch":  -23.38
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  51.11,
+                                                        "y":  -151.89,
+                                                        "z":  -82.46,
+                                                        "dir":  [
+                                                                    0,
+                                                                    0,
+                                                                    1
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:24.4142485Z",
+                                       "roomFileMtime":  "2026-10-14T20:32:24.2470854Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "All four sides of these two shafts that extend beneath the floor are not needed on map view.",
+                                          "at":  "2026-10-14T20:53:07.7310273Z",
+                                          "shot":  "MINEHEAD-13-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. Both shafts are off the map, all four walls each. They belong to the chasm mesh kept whole in round 26, so the map can now hide boxes of a part (\"hideBoxes\": triangles whose middle lies inside), which overrides the keep. The cliff and the cave stay.",
+                                          "at":  "2026-10-14T21:01:50.5392485Z",
+                                          "changes":  [
+                                                          "rooms\\MINEHEAD.json map.hideBoxes: minechasm in x -143..-55 and 24..112, y -460..-40, z -114..15",
+                                                          "new map rule: hideBoxes"
+                                                      ],
+                                          "round":  27,
+                                          "render":  "MINEHEAD-13-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4221161Z"
                       }
                   ],
     "deleted":  [

@@ -1,0 +1,144 @@
+{
+    "schema":  1,
+    "room":  "S3_TEST",
+    "made":  "2026-10-14T13:55:42.1855728Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "uplight",
+                            "confidence":  0.85,
+                            "point":  [
+                                          -37.48,
+                                          -29.29,
+                                          75.72
+                                      ],
+                            "normal":  [
+                                           0.704,
+                                           0,
+                                           -0.71
+                                       ],
+                            "part":  "mural1",
+                            "material":  "S3MURAL",
+                            "texture":  "09-s3mural.png",
+                            "uv":  [
+                                       0.542,
+                                       0.331
+                                   ],
+                            "crop":  [
+                                         257,
+                                         303,
+                                         298,
+                                         370,
+                                         512,
+                                         512
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 9 above the floor (4.0x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -31.85,
+                                          "y":  -33.69,
+                                          "z":  70.04,
+                                          "dir":  [
+                                                      -0.241,
+                                                      0.94,
+                                                      0.243
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FAFFEC",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "glow",
+                            "confidence":  0.82,
+                            "point":  [
+                                          221.93,
+                                          -15.52,
+                                          -124.9
+                                      ],
+                            "normal":  [
+                                           -0.703,
+                                           -0.06,
+                                           0.709
+                                       ],
+                            "part":  "entrylft",
+                            "material":  "ENTRYLFT",
+                            "texture":  "03-s3entlf.png",
+                            "uv":  [
+                                       0.812,
+                                       0.361
+                                   ],
+                            "crop":  [
+                                         394,
+                                         137,
+                                         443,
+                                         185,
+                                         512,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  211.39,
+                                          "y":  -16.43,
+                                          "z":  -114.27,
+                                          "color":  "#FFB667",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "glow",
+                            "confidence":  0.74,
+                            "point":  [
+                                          39.82,
+                                          -11.64,
+                                          93.32
+                                      ],
+                            "normal":  [
+                                           -0.71,
+                                           0,
+                                           -0.704
+                                       ],
+                            "part":  "wall03",
+                            "material":  "S3WALRT",
+                            "texture":  "02-s3walrt.png",
+                            "uv":  [
+                                       0.206,
+                                       0.369
+                                   ],
+                            "crop":  [
+                                         88,
+                                         141,
+                                         119,
+                                         179,
+                                         512,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.8x the art\u0027s level)",
+                            "light":  {
+                                          "x":  29.17,
+                                          "y":  -11.64,
+                                          "z":  82.76,
+                                          "color":  "#FFCA54",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

@@ -1,0 +1,315 @@
+{
+    "schema":  1,
+    "room":  "R22G",
+    "made":  "2026-10-14T13:55:38.8387854Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "downlight",
+                            "confidence":  0.76,
+                            "point":  [
+                                          -535.19,
+                                          -181.31,
+                                          105.03
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           1
+                                       ],
+                            "part":  "arch",
+                            "material":  "1ARCH",
+                            "texture":  "39-docarch.png",
+                            "uv":  [
+                                       0.279,
+                                       0.873
+                                   ],
+                            "crop":  [
+                                         57,
+                                         18,
+                                         85,
+                                         52,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (2.4x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -535.19,
+                                          "y":  -176.31,
+                                          "z":  113.03,
+                                          "dir":  [
+                                                      0,
+                                                      -0.94,
+                                                      -0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F3FFF7",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "downlight",
+                            "confidence":  0.76,
+                            "point":  [
+                                          -535.19,
+                                          -181.31,
+                                          -92.98
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           -1
+                                       ],
+                            "part":  "arch",
+                            "material":  "1ARCH",
+                            "texture":  "39-docarch.png",
+                            "uv":  [
+                                       0.279,
+                                       0.873
+                                   ],
+                            "crop":  [
+                                         57,
+                                         18,
+                                         85,
+                                         52,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (2.4x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -535.19,
+                                          "y":  -176.31,
+                                          "z":  -100.98,
+                                          "dir":  [
+                                                      0,
+                                                      -0.94,
+                                                      0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F3FFF7",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "downlight",
+                            "confidence":  0.76,
+                            "point":  [
+                                          -443.95,
+                                          -181.31,
+                                          -91.92
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           -1
+                                       ],
+                            "part":  "arch",
+                            "material":  "1ARCH",
+                            "texture":  "39-docarch.png",
+                            "uv":  [
+                                       0.279,
+                                       0.873
+                                   ],
+                            "crop":  [
+                                         57,
+                                         18,
+                                         85,
+                                         52,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (2.4x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -443.95,
+                                          "y":  -176.31,
+                                          "z":  -99.92,
+                                          "dir":  [
+                                                      0,
+                                                      -0.94,
+                                                      0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F3FFF7",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  4,
+                            "kind":  "downlight",
+                            "confidence":  0.76,
+                            "point":  [
+                                          -443.95,
+                                          -181.31,
+                                          103.97
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           1
+                                       ],
+                            "part":  "arch",
+                            "material":  "1ARCH",
+                            "texture":  "39-docarch.png",
+                            "uv":  [
+                                       0.279,
+                                       0.873
+                                   ],
+                            "crop":  [
+                                         57,
+                                         18,
+                                         85,
+                                         52,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (2.4x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -443.95,
+                                          "y":  -176.31,
+                                          "z":  111.97,
+                                          "dir":  [
+                                                      0,
+                                                      -0.94,
+                                                      -0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F3FFF7",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  5,
+                            "kind":  "downlight",
+                            "confidence":  0.89,
+                            "point":  [
+                                          204.5,
+                                          -181.31,
+                                          105.66
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           -1
+                                       ],
+                            "part":  "arch",
+                            "material":  "1ARCH",
+                            "texture":  "39-docarch.png",
+                            "uv":  [
+                                       0.279,
+                                       0.873
+                                   ],
+                            "crop":  [
+                                         57,
+                                         18,
+                                         85,
+                                         52,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (2.4x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  204.5,
+                                          "y":  -154.08,
+                                          "z":  97.66,
+                                          "dir":  [
+                                                      0,
+                                                      -0.94,
+                                                      0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F3FFF7",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  6,
+                            "kind":  "downlight",
+                            "confidence":  0.89,
+                            "point":  [
+                                          204.5,
+                                          -181.31,
+                                          -93.6
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           1
+                                       ],
+                            "part":  "arch",
+                            "material":  "1ARCH",
+                            "texture":  "39-docarch.png",
+                            "uv":  [
+                                       0.279,
+                                       0.873
+                                   ],
+                            "crop":  [
+                                         57,
+                                         18,
+                                         85,
+                                         52,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (2.4x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  204.5,
+                                          "y":  -154.08,
+                                          "z":  -85.6,
+                                          "dir":  [
+                                                      0,
+                                                      -0.94,
+                                                      -0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#F3FFF7",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

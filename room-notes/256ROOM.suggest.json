@@ -1,0 +1,213 @@
+{
+    "schema":  1,
+    "room":  "256ROOM",
+    "made":  "2026-10-14T13:55:17.7367001Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "uplight",
+                            "confidence":  0.79,
+                            "point":  [
+                                          -79.6,
+                                          -4.12,
+                                          -75.86
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "wall04",
+                            "material":  "BWALL02",
+                            "texture":  "08-2_wall02.png",
+                            "uv":  [
+                                       0.499,
+                                       0.253
+                                   ],
+                            "crop":  [
+                                         232,
+                                         333,
+                                         278,
+                                         416,
+                                         512,
+                                         512
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 6 above the floor (5.0x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -71.6,
+                                          "y":  -4.67,
+                                          "z":  -75.86,
+                                          "dir":  [
+                                                      -0.342,
+                                                      0.94,
+                                                      0
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFA666",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "uplight",
+                            "confidence":  0.75,
+                            "point":  [
+                                          46.4,
+                                          -2.66,
+                                          -106.58
+                                      ],
+                            "normal":  [
+                                           -1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "wall03",
+                            "material":  "BWALL03",
+                            "texture":  "09-2_wall03.png",
+                            "uv":  [
+                                       0.665,
+                                       0.261
+                                   ],
+                            "crop":  [
+                                         295,
+                                         326,
+                                         375,
+                                         414,
+                                         512,
+                                         512
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 18 above the floor (3.7x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  38.4,
+                                          "y":  -15.8,
+                                          "z":  -106.58,
+                                          "dir":  [
+                                                      0.342,
+                                                      0.94,
+                                                      0
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FF8041",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "uplight",
+                            "confidence":  0.76,
+                            "point":  [
+                                          -47.64,
+                                          -0.46,
+                                          -138.82
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           1
+                                       ],
+                            "part":  "wall02",
+                            "material":  "BWALL04",
+                            "texture":  "10-2_wall04.png",
+                            "uv":  [
+                                       0.335,
+                                       0.272
+                                   ],
+                            "crop":  [
+                                         137,
+                                         317,
+                                         214,
+                                         410,
+                                         512,
+                                         512
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 20 above the floor (3.3x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -47.64,
+                                          "y":  -15.8,
+                                          "z":  -130.82,
+                                          "dir":  [
+                                                      0,
+                                                      0.94,
+                                                      -0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FF8243",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  4,
+                            "kind":  "sidelight",
+                            "confidence":  0.63,
+                            "point":  [
+                                          -79.6,
+                                          3.92,
+                                          -37.1
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "wall04",
+                            "material":  "BWALL02",
+                            "texture":  "08-2_wall02.png",
+                            "uv":  [
+                                       0.706,
+                                       0.296
+                                   ],
+                            "crop":  [
+                                         277,
+                                         318,
+                                         418,
+                                         403,
+                                         512,
+                                         512
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan running along the wall (4.5x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -71.6,
+                                          "y":  3.92,
+                                          "z":  -37.1,
+                                          "dir":  [
+                                                      -0.342,
+                                                      0,
+                                                      -0.94
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FF9A56",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

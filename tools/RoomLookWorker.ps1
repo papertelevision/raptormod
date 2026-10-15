@@ -81,6 +81,9 @@ function Invoke-Frame($q) {
     $lamp = [bool]$q.lamp
     if ($lamp) { $r.LampRoom = [single]0.54; $r.LampPower = [single]1.68 } else { $r.LampRoom = [single]0.82; $r.LampPower = [single]0 }
     if ($null -ne $script:volLevel) { $r.LampRoom = [single]$script:volLevel }      # (a volumetric-fog room holds its level)
+    # the viewer's own angle (viewer.js GAME_FOV, the game's field of view), so its pins sit on this picture
+    $fv = $(if ($q.fov) { [Math]::Max(30.0, [Math]::Min(100.0, [double]$q.fov)) } else { 60.0 })
+    $r.SetVerticalFov($fv); $gpu.SetVerticalFov($fv); if ($S.Rs) { $S.Rs.SetVerticalFov($fv + 8) }
     $cam = Get-Cam ([double]$q.X) ([double]$q.Y) ([double]$q.Z) ([double]$q.Yaw) ([double]$q.Pitch)
     $r.SetCameraWorld($cam); Update-RoomLights $r
     $now = $S.Clock.Elapsed.TotalSeconds; $dt = [single][Math]::Min(0.1, [Math]::Max(0.0, $now - $S.Last)); $S.Last = $now
@@ -99,7 +102,7 @@ function Invoke-Frame($q) {
     }
     foreach ($grp in @($theRoom.WaterGroups)) { if (-not $grp) { continue }; $tl = New-Object 'System.Collections.Generic.List[int]'; $ys = 0.0; $yn = 0; foreach ($wt in $grp.Parts) { $wy = $theRoom.V[$wt.VFirst * 3 + 1]; if ($cam[13] -le $wy + 1) { continue }; $tl.AddRange([int[]]$wt.TriVerts); $ys += $wy; $yn++ }; if ($yn) { $gpu.AddWater($tl.ToArray(), [single]($ys / $yn)) } }
     if ($script:fx -and -not $script:partBuf) { $script:partBuf = New-Object single[] 20000 }
-    if ($script:fx) { $np = $script:fx.Gather($r, $script:partBuf); $gpu.SetParticles($script:partBuf, $np) }
+    if ($script:fx) { $np = $script:fx.Gather($r, $script:partBuf); if ($script:eyeShine) { $np = $script:eyeShine.Append($(if ($pose) { $pose.PoseV } else { $theRoom.V }), $r, [single]$(if ($r.Lamp -and $r.LampPower -gt 0) { 1 } else { 0 }), $script:partBuf, $np) }; $gpu.SetParticles($script:partBuf, $np) }
     $gpu.SetCameraWorld($cam); $gpu.CopyLighting($r)
     $gpu.Draw($theRoom.V, $theRoom.UV, $theRoom.T, $theRoom.TexIdx, $theRoom.Texes, $true, $true)
     $c = $S.Comp

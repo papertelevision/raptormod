@@ -1,0 +1,213 @@
+{
+    "schema":  1,
+    "room":  "CLOCK",
+    "made":  "2026-10-14T13:55:21.3038320Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "downlight",
+                            "confidence":  0.82,
+                            "point":  [
+                                          -1071.05,
+                                          -184.39,
+                                          1196.44
+                                      ],
+                            "normal":  [
+                                           0.809,
+                                           0,
+                                           0.588
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1CLOCK_WALL09",
+                            "texture":  "15-clo_wal9.png",
+                            "uv":  [
+                                       0.471,
+                                       0.428
+                                   ],
+                            "crop":  [
+                                         109,
+                                         130,
+                                         138,
+                                         169,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (4.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -1064.58,
+                                          "y":  -179.39,
+                                          "z":  1201.15,
+                                          "dir":  [
+                                                      -0.277,
+                                                      -0.94,
+                                                      -0.201
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC4B4",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "downlight",
+                            "confidence":  0.82,
+                            "point":  [
+                                          -761.14,
+                                          -184.39,
+                                          1421.6
+                                      ],
+                            "normal":  [
+                                           -0.809,
+                                           0,
+                                           -0.588
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1CLOCK_WALL09",
+                            "texture":  "15-clo_wal9.png",
+                            "uv":  [
+                                       0.471,
+                                       0.428
+                                   ],
+                            "crop":  [
+                                         109,
+                                         130,
+                                         138,
+                                         169,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (4.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -767.61,
+                                          "y":  -179.39,
+                                          "z":  1416.9,
+                                          "dir":  [
+                                                      0.277,
+                                                      -0.94,
+                                                      0.201
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC4B4",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "downlight",
+                            "confidence":  0.82,
+                            "point":  [
+                                          -400.52,
+                                          -184.39,
+                                          273.54
+                                      ],
+                            "normal":  [
+                                           0.809,
+                                           0,
+                                           0.588
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1CLOCK_WALL09",
+                            "texture":  "15-clo_wal9.png",
+                            "uv":  [
+                                       0.471,
+                                       0.428
+                                   ],
+                            "crop":  [
+                                         109,
+                                         130,
+                                         138,
+                                         169,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (4.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -394.05,
+                                          "y":  -179.39,
+                                          "z":  278.24,
+                                          "dir":  [
+                                                      -0.277,
+                                                      -0.94,
+                                                      -0.201
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC4B4",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  4,
+                            "kind":  "downlight",
+                            "confidence":  0.82,
+                            "point":  [
+                                          -90.62,
+                                          -184.39,
+                                          498.7
+                                      ],
+                            "normal":  [
+                                           -0.809,
+                                           0,
+                                           -0.588
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1CLOCK_WALL09",
+                            "texture":  "15-clo_wal9.png",
+                            "uv":  [
+                                       0.471,
+                                       0.428
+                                   ],
+                            "crop":  [
+                                         109,
+                                         130,
+                                         138,
+                                         169,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (4.9x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -97.09,
+                                          "y":  -179.39,
+                                          "z":  494,
+                                          "dir":  [
+                                                      0.277,
+                                                      -0.94,
+                                                      0.201
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC4B4",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

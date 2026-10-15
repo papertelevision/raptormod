@@ -1,0 +1,15 @@
+{
+  "_about": "The tunnel off STAIRS2. Room Review round 25 (2026-10-14, Josh, ATUNNEL2/1): 'the same treatment as the coricori room, but no drips, just with the moody bounce lighting' -- CORICORI's black air and painted darkness (the darkness the original art paints made real in the fog), the art's own light and shade lighting the room (artLight, as MINEHEAD and WELLROOM), no drips. The room's two torches (round 27) feed the 'gi' block's bounced light.",
+  "drips": null, "_drips": "Josh: no drips (the cave class adds them)",
+  "fog": null,
+  "embers": { "rate": 0 },
+  "volume": { "_tuned": "CORICORI's own strength (0.004 / paint 0.02) turned this light-less tunnel black in the offline render (CORICORI's torches cut through its fog; nothing does here): about a third of it, the room's level held at 1.0, and the art's darkest parts at 30% (artLight floor 0.3), so it reads as gloom, not as nothing.", "_about": "As CORICORI: black air that absorbs with distance, lit by the lights and the flashlight as they pass; paint = thicker black where the ORIGINAL art is painted dark.",
+    "density": 0.0012, "max": 0.5, "color": "#000000", "scatter": 0.14, "lamp": 1.0, "anisotropy": 0.3, "reach": 55, "far": 700, "steps": 24, "level": 1.0, "cut": 0.65,
+    "paint": { "density": 0.008, "max": 0.6, "cell": 8, "smooth": 30, "gamma": 1.5 } },
+  "artLight": { "_about": "The ORIGINAL art's painted light and shade, per texel, shades the room's level (and the bounce, once there is a light): the tunnel's lit middle and its black edges, as painted", "floor": 0.3, "gamma": 0.6, "open": 4, "close": 2, "blur": 1, "percentile": 0.85 },
+  "gi": { "_about": "Bounced light, as CORICORI -- waiting on a placed light (none here yet)", "strength": 2.5, "ambient": 0.5, "spacing": 20, "rays": 64, "bounces": 3, "albedo": 2.2 },
+  "lights": [
+    { "name": "torch on tun_06 (Room Review ATUNNEL2/3, Josh)", "_about": "Round 27: the other rooms' torch -- sconce, flame, flicker, its light 15 out along the wall's normal (the mark 53.17, -9.04, -633.19); both torches here at y -9.2 (Josh: 'at the same height').", "x": 38.35, "y": -9.2, "z": -630.86, "dir": [ -0.988, 0, 0.155 ], "shadow": true, "color": "#FFB266", "power": 1.4, "range": 260, "flicker": 0.35, "torch": { "scale": 0.8, "wall": 15 } },
+    { "name": "torch on tun_803 (Room Review ATUNNEL2/4, Josh)", "_about": "Round 27: as the first (the mark -58, -9.34, -57.46), the same height.", "x": -43.12, "y": -9.2, "z": -55.52, "dir": [ 0.992, 0, 0.129 ], "shadow": true, "color": "#FFB266", "power": 1.4, "range": 260, "flicker": 0.35, "torch": { "scale": 0.8, "wall": 15 } }
+  ]
+}

@@ -66,4 +66,6 @@ scores 0.4447 vs 0.2581 for the best lit setting. The old sweep's 0.0001 margin 
 and (b) cropping the top strip, which hid the ceiling symptom. Both corrected in
 `Tune-Lighting.ps1`.
 
-Related: [[azrael-tier-a-host-render]], [[azrael-camera-transform]], [[azrael-xaf-scene-format]]
+**2026-10-13: the field of view is no longer 50.** The game's own field is now set to the host's (60 by default) every frame -- [[azrael-fov]]. This note is how the ORIGINAL 50 was measured; offline tools comparing against stock captures still use it.
+
+Related: [[azrael-tier-a-host-render]], [[azrael-camera-transform]], [[azrael-xaf-scene-format]], [[azrael-fov]]

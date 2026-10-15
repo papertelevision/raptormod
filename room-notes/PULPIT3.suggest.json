@@ -1,0 +1,144 @@
+{
+    "schema":  1,
+    "room":  "PULPIT3",
+    "made":  "2026-10-14T13:55:38.2038742Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.58,
+                            "point":  [
+                                          -346.7,
+                                          -530.73,
+                                          -209.14
+                                      ],
+                            "normal":  [
+                                           0.76,
+                                           0.095,
+                                           0.643
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1CRYPTFLOR",
+                            "texture":  "02-cryptflr.png",
+                            "uv":  [
+                                       0.561,
+                                       0.504
+                                   ],
+                            "crop":  [
+                                         130,
+                                         52,
+                                         157,
+                                         76,
+                                         256,
+                                         128
+                                     ],
+                            "faces":  3,
+                            "why":  "a round painted glow (3.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -335.29,
+                                          "y":  -529.31,
+                                          "z":  -199.51,
+                                          "color":  "#FFDDD5",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "sidelight",
+                            "confidence":  0.57,
+                            "point":  [
+                                          -666.55,
+                                          -490.61,
+                                          -454.79
+                                      ],
+                            "normal":  [
+                                           0.672,
+                                           0,
+                                           0.74
+                                       ],
+                            "part":  "stuff",
+                            "material":  "5CRYPT",
+                            "texture":  "05-r35cryp5.png",
+                            "uv":  [
+                                       0.65,
+                                       0.381
+                                   ],
+                            "crop":  [
+                                         114,
+                                         121,
+                                         202,
+                                         185,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan running along the wall (3.7x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -661.18,
+                                          "y":  -490.61,
+                                          "z":  -448.87,
+                                          "dir":  [
+                                                      0.466,
+                                                      0,
+                                                      -0.885
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFEACC",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "glow",
+                            "confidence":  0.65,
+                            "point":  [
+                                          165.39,
+                                          -76.52,
+                                          6.56
+                                      ],
+                            "normal":  [
+                                           -1,
+                                           0,
+                                           -0.017
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1STAIR10",
+                            "texture":  "15-sst_sta1.png",
+                            "uv":  [
+                                       0.801,
+                                       0.748
+                                   ],
+                            "crop":  [
+                                         92,
+                                         53,
+                                         114,
+                                         79,
+                                         128,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (3.4x the art\u0027s level)",
+                            "light":  {
+                                          "x":  150.4,
+                                          "y":  -76.51,
+                                          "z":  6.3,
+                                          "color":  "#FFD8BA",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

@@ -101,6 +101,8 @@ namespace AztTool
         /// <summary>Host addresses in the game: the sticky box toggle (word), the conversation
         /// list (word), the cursor (two words) and the log's scroll offset (word).</summary>
         public long BoxBigAddr, ConvListAddr, CursorXAddr, CursorYAddr, LogScrollAddr;
+        /// <summary>Host address of the overlay's aztConvBox (word): 1 once a conversation's options have printed -- the box opens then, not on the conversation flag (Josh, 2026-10-13: open and blank through the NPC's first line). 0 = an older install: the conversation flag, as before.</summary>
+        public long ConvBoxAddr;
         public int LogScrollStep = 8;
 
         // ---- THE TEXT AREA: the panel's own module, stretched (Build-HudWide's textArea) -------
@@ -500,9 +502,28 @@ namespace AztTool
             if (_memDc != IntPtr.Zero) { SelectObject(_memDc, _oldBmp); DeleteDC(_memDc); _memDc = IntPtr.Zero; }
             if (_dib != IntPtr.Zero) { DeleteObject(_dib); _dib = IntPtr.Zero; }
         }
+        /// <summary>THE PANEL'S LIGHT (Josh, 2026-10-14: "add a lighting effect to the UI at the bottom. For now, let's make it dim a
+        /// bit when the map view is open. Later, I want it to change based on the brightness/darkness of each room ... in dark rooms,
+        /// the UI can feel very bright and harsh"): 1 = as drawn, lower = its colour darkened toward black (its transparency kept).
+        /// The watcher sets it; a change re-presents the panel.</summary>
+        public float Light { get { return _light; } set { float v = Math.Max(0f, Math.Min(1f, value)); if (Math.Abs(v - _light) > 0.002f) { _light = v; _dirty = true; } } }
+        float _light = 1f; int[] _lit2;
+        static int ScaleRgb(int px, int k256)
+        {   // the colour times k/256, the alpha kept
+            uint s = (uint)px, k = (uint)k256;
+            uint rb = ((s & 0x00FF00FF) * k >> 8) & 0x00FF00FF, g = (((s >> 8) & 0xFF) * k >> 8) & 0xFF;
+            return (int)((s & 0xFF000000) | rb | (g << 8));
+        }
         void Present()
         {
-            Marshal.Copy(_work, 0, _bits, _work.Length);
+            if (_light < 0.998f)
+            {
+                if (_lit2 == null || _lit2.Length != _work.Length) _lit2 = new int[_work.Length];
+                int k = (int)Math.Round(_light * 256f);
+                for (int i = 0; i < _work.Length; i++) { int v = _work[i]; _lit2[i] = v == 0 ? 0 : ScaleRgb(v, k); }
+                Marshal.Copy(_lit2, 0, _bits, _lit2.Length);
+            }
+            else Marshal.Copy(_work, 0, _bits, _work.Length);
             IntPtr sdc = GetDC(IntPtr.Zero);
             var pos = new POINT { x = _wx, y = _wy }; var size = new SIZE { cx = _ww, cy = _wh }; var src = new POINT();
             var bl = new BLENDFUNCTION { BlendOp = 0, BlendFlags = 0, SourceConstantAlpha = 255, AlphaFormat = 1 };
@@ -597,7 +618,7 @@ namespace AztTool
         void UpdateRef()
         {
             _blankCur = Overlay.GameCursorBlank;
-            if (_blankCur) { _sprN = 0; _haveLearned = false; Buffer.BlockCopy(_cur, 0, _ref, 0, _cur.Length * 4); _haveRef = true; BlankCursorReadings++; return; }
+            if (_blankCur) { _sprN = 0; _haveLearned = false; _haveRef = false; BlankCursorReadings++; return; }     // (no copy: nothing reads _ref while the game draws no cursor; the next reading with one takes it whole -- 2026-10-13 audit, a 4.5 MB copy a pass)
             int rows = ScreenH - Top;
             int cx0 = Math.Max(0, CursorX - CurBoxL), cx1 = Math.Min(ScreenW, CursorX + CurBoxR);
             int cy0 = Math.Max(0, CursorY - CurBoxL - Top), cy1 = Math.Min(rows, CursorY + CurBoxR - Top);
@@ -694,6 +715,7 @@ namespace AztTool
             if (!InvHost()) LiveKeyed(Inventory);
             if (GaugeSlot != null) DrawHealth(); else LiveKeyed(Gauge);
             if (!LogHost(e)) LogText(e);
+            if (_stOn) InitStatic(e);
             Cursor();
             ComposeMs = sw.Elapsed.TotalMilliseconds;
         }
@@ -820,6 +842,92 @@ namespace AztTool
                 }
             }
         }
+        // ---- THE DIALOGUE INTERFACE STARTING UP (Josh, 2026-10-13: "add a static effect to the text log area before it engages
+        // for dialogue. It will be static-y, like the visor sometimes displays, with a message '//Initializing Dialogue
+        // Interface...' pulsing in the center"). From the moment a conversation is up until its options print (the overlay's
+        // aztConvBox latch: 2 = up, the box still collapsed; the NPC's opening line plays meanwhile), the collapsed log's
+        // recess -- the art's, LogBoxClosed -- is a dead channel: amber snow, a little see-through (Josh, 2026-10-13: "make the
+        // static on that little screen the amber color, but a bit transparent"), in blocks of the display's scale, interlaced,
+        // a bright band rolling down and now and then a torn row; the words pulse in the middle in DARK amber on it, no plate
+        // behind them ("remove the dark background ... make the text itself the dark amber for contrast"), slipping sideways
+        // on a glitch. It fades in over StaticFadeIn s, runs at StaticFps and goes as the box opens.
+        public bool InitStaticOn = true;
+        public string InitText = "//Initializing Dialogue Interface...";
+        public double StaticFps = 30, StaticFadeIn = 0.25, PulseSeconds = 1.4, StaticAlpha = 0.4;
+        public int StaticInk = 0xFFB040, InitInk = 0xFFB040;      // (the words: the recording badge's amber, Josh 2026-10-13 -- dark amber, then dark brown, were tried)
+        bool _stOn; int _stTick = -1; double _stAt = -1; readonly Stopwatch _stClock = Stopwatch.StartNew(); uint _stRnd = 2463534242;
+        /// <summary>Is the start-up static showing, and is a new frame of it due (the compose loop draws when it is)?</summary>
+        bool StaticDue()
+        {
+            bool on = InitStaticOn && !BoxOpen && ConvBoxAddr != 0 && ConvListAddr != 0 && LogBoxClosed != null
+                      && Word(ConvListAddr) != 0 && Word(ConvBoxAddr) == 2;
+            double now = _stClock.Elapsed.TotalSeconds;
+            if (!on) { bool was = _stOn; _stOn = false; _stAt = -1; return was; }           // (one more picture: without it)
+            if (_stAt < 0) _stAt = now;
+            _stOn = true;
+            int tick = (int)(now * StaticFps); if (tick == _stTick) return false;
+            _stTick = tick; return true;
+        }
+        uint StRnd() { uint x = _stRnd; x ^= x << 13; x ^= x >> 17; x ^= x << 5; _stRnd = x; return x; }
+        void InitStatic(double e)
+        {
+            double t = _stClock.Elapsed.TotalSeconds - Math.Max(0, _stAt), fade = Math.Min(1, t / Math.Max(0.01, StaticFadeIn));
+            double[] C = LogBoxClosed, O = LogBoxOpen ?? LogBoxClosed; double fe = Math.Max(0, Math.Min(1, e));
+            double gx0 = Lerp(C[0], O[0], fe), gy0 = Lerp(C[1], O[1], fe), gx1 = Lerp(C[0] + C[2], O[0] + O[2], fe), gy1 = Lerp(C[1] + C[3], O[1] + O[3], fe);
+            int sx = XS(gx0);
+            int x0 = Math.Max(0, (int)Math.Ceiling(WX(gx0) + sx) + 1), x1 = Math.Min(_ww, (int)Math.Floor(WX(gx1) + sx) - 1);
+            int y0 = Math.Max(0, (int)Math.Ceiling(WY(gy0)) + 1), y1 = Math.Min(_wh, (int)Math.Floor(WY(gy1)) - 1);
+            if (x1 - x0 < 8 || y1 - y0 < 8) return;
+            // the snow, in blocks of the display's scale
+            int b = Math.Max(1, (int)Math.Round(_s)), H = y1 - y0;
+            double roll = (t * 0.45) % 1.3 - 0.15;                         // (the band: from above the top to below the bottom)
+            int tearA = (int)(StRnd() % (uint)H), tearB = (StRnd() & 7) == 0 ? (int)(StRnd() % (uint)H) : -1;
+            for (int by = y0; by < y1; by += b)
+            {
+                double v = (by - y0) / (double)H, band = Math.Exp(-(v - roll) * (v - roll) / 0.012);
+                bool tear = Math.Abs(by - y0 - tearA) < b * 2 || (tearB >= 0 && Math.Abs(by - y0 - tearB) < b);
+                double row = ((by / b) & 1) == 0 ? 1.0 : 0.62;              // (the interlace)
+                for (int bx = x0; bx < x1; bx += b)
+                {
+                    double n = (StRnd() & 0xFFFF) / 65535.0;
+                    double lum = Math.Min(1.0, (0.30 + 0.55 * n + 0.25 * band * n + (tear ? 0.3 * n + 0.15 : 0)) * row);
+                    int a = (int)(255 * StaticAlpha * fade);
+                    int r = (int)(((StaticInk >> 16) & 255) * lum), g = (int)(((StaticInk >> 8) & 255) * lum), bl = (int)((StaticInk & 255) * lum);
+                    int src = Premul(a, r, g, bl);
+                    int ye = Math.Min(y1, by + b), xe = Math.Min(x1, bx + b);
+                    for (int yy = by; yy < ye; yy++) { int o = yy * _ww; for (int xx = bx; xx < xe; xx++) _work[o + xx] = Over(src, _work[o + xx]); }
+                }
+            }
+            // the words, pulsing in the middle (a glitch now and then slips them sideways)
+            double pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.Sin(t * 2 * Math.PI / Math.Max(0.2, PulseSeconds) - Math.PI / 2));
+            float slip = (StRnd() % 23) == 0 ? (float)(((int)(StRnd() % 9) - 4) * _s) : 0f;
+            var hnd = GCHandle.Alloc(_work, GCHandleType.Pinned);
+            try
+            {
+                using (var bm = new Bitmap(_ww, _wh, _ww * 4, PixelFormat.Format32bppPArgb, hnd.AddrOfPinnedObject()))
+                using (var gfx = Graphics.FromImage(bm))
+                using (var fmt = (StringFormat)StringFormat.GenericTypographic.Clone())
+                {
+                    gfx.SetClip(Rectangle.FromLTRB(x0, y0, x1, y1));
+                    gfx.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit; gfx.SmoothingMode = SmoothingMode.AntiAlias;
+                    var font = TextFont(); var sz = gfx.MeasureString(InitText, font, PointF.Empty, fmt);
+                    float k = Math.Min(1f, (x1 - x0 - 24f * (float)_s) / Math.Max(1f, sz.Width));
+                    var st = gfx.Save();
+                    float cx = (x0 + x1) / 2f + slip, cy = (y0 + y1) / 2f;
+                    gfx.TranslateTransform(cx, cy); gfx.ScaleTransform(k, k);
+                    float tx = -sz.Width / 2f, ty = -sz.Height / 2f;
+                    int ia = (int)(255 * pulse * fade);
+                    // the amber ink straight on the snow, a thin dark edge under it so it reads against the amber
+                    float d = Math.Max(1f, (float)(_s * 0.6));
+                    using (var sh = new SolidBrush(Color.FromArgb(Math.Min(255, ia) * 2 / 3, 10, 6, 2)))
+                        foreach (var o in new[] { new PointF(d, d), new PointF(-d * 0.6f, 0), new PointF(d, 0), new PointF(0, d) }) gfx.DrawString(InitText, font, sh, tx + o.X, ty + o.Y, fmt);
+                    using (var ink = new SolidBrush(Color.FromArgb(Math.Min(255, ia), (InitInk >> 16) & 255, (InitInk >> 8) & 255, InitInk & 255))) gfx.DrawString(InitText, font, ink, tx, ty, fmt);
+                    gfx.Restore(st);
+                }
+            }
+            finally { hnd.Free(); }
+        }
+        static int Premul(int a, int r, int g, int b) { return (a << 24) | ((r * a / 255) << 16) | ((g * a / 255) << 8) | (b * a / 255); }
         // THE LOG TEXT, 1:1 from the game. Open (the game shows its tall recess at once): as much of it
         // as the rising screen has uncovered. Closed, or closing: the short recess.
         void LogText(double e)
@@ -1107,6 +1215,18 @@ namespace AztTool
                     gfx.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit; gfx.SmoothingMode = SmoothingMode.AntiAlias;
                     HoverOption = -1;
                     if (conv) OptionHover(gfx, rec, first, dx, sx, vy0, vy1, lh, h);
+                    // THE RIGHT MARGIN (Josh, 2026-10-13: the conversation text "butts against the right side of the dialogue
+                    // box ... It should match the padding applied to the left"): the lines start at the game's place (its
+                    // recess + dx, ~28 px inside the art's recess) and were fitted to the game's recess, which ends ~6 px short
+                    // of the art's. Now they end the left margin short of the art's right edge -- every line of the
+                    // conversation condensed alike (the game wrapped them for its own width), so the type stays even.
+                    int lineW = Math.Max(40, rec[2] - 2 * Math.Max(0, dx) - TextRight); double lineK = 1;
+                    if (conv && LogBoxOpen != null)
+                    {
+                        double tl = rec[0] + dx, margin = Math.Max(0, tl - LogBoxOpen[0]), right = LogBoxOpen[0] + LogBoxOpen[2] - margin;
+                        int w2 = (int)Math.Max(40, Math.Min(lineW, Math.Floor(right - tl)));
+                        if (w2 < lineW) { lineK = w2 / (double)lineW; lineW = w2; }
+                    }
                     string sample = null; _sampleTop = int.MinValue;
                     for (int i = tops.Count - 1; i >= 0; i--)
                     {
@@ -1119,7 +1239,7 @@ namespace AztTool
                             anyText = true;
                             if (top == _sampleTop || sample == null) { if (sample == null) { sample = ""; _sampleTop = top; } sample += (sample.Length > 0 ? " " : "") + r.Text; }
                         }
-                        if (anyText) gfx.DrawImageUnscaled(LineImage(runs, _logFonts, Math.Max(40, rec[2] - 2 * Math.Max(0, dx) - TextRight), true, LogColour), (int)Math.Round(WX(rec[0] + dx) + sx) - LinePad, (int)Math.Round(WY(sy)) - LinePad);
+                        if (anyText) Blit(gfx, LineImage(runs, _logFonts, lineW, true, LogColour, lineK), (int)Math.Round(WX(rec[0] + dx) + sx) - LinePad, (int)Math.Round(WY(sy)) - LinePad);
                     }
                     if (sample != null) TextSample = sample;
                 }
@@ -1299,7 +1419,7 @@ namespace AztTool
                         if (blank[i] || (_logAnim ? (sy + lh <= aTop || sy >= aBot) : (sy < aTop - 0.5 || sy + lh > aBot + 0.5))) continue;
                         var runs = DecodeLine(tops[i]); bool any = false;
                         foreach (var r in runs) { if (r.Ok) any = true; else DrawSurfRun(gfx, tops[i], r, tx + r.X, sy, sx); }
-                        if (any) gfx.DrawImageUnscaled(LineImage(runs, _logFonts, lineW, true, LogColour), (int)Math.Round(WX(tx) + sx) - LinePad, (int)Math.Round(WY(sy)) - LinePad);
+                        if (any) Blit(gfx, LineImage(runs, _logFonts, lineW, true, LogColour), (int)Math.Round(WX(tx) + sx) - LinePad, (int)Math.Round(WY(sy)) - LinePad);
                         if (any) sample = sigA[i];
                     }
                     if (sample != null) TextSample = sample.Trim();
@@ -1365,9 +1485,11 @@ namespace AztTool
         // Verdana gave it made narrow words look pinched. Only a line that would overrun the box is narrowed, evenly.
         readonly System.Collections.Generic.Dictionary<string, Bitmap> _lineImg = new System.Collections.Generic.Dictionary<string, Bitmap>();
         const int LinePad = 6;
-        Bitmap LineImage(HudRun[] runs, HudFont[] fonts, int lineW, bool outline, Func<int, int> colour)
+        // (at its own pixel size, always -- never DrawImageUnscaled, which scales by the bitmap's stored DPI: see LoadingScreen.Blit)
+        static void Blit(Graphics g, Image im, int x, int y) { g.DrawImage(im, new Rectangle(x, y, im.Width, im.Height), 0, 0, im.Width, im.Height, GraphicsUnit.Pixel); }
+        Bitmap LineImage(HudRun[] runs, HudFont[] fonts, int lineW, bool outline, Func<int, int> colour, double condense = 1)
         {
-            var key = new System.Text.StringBuilder(); key.Append(_s.ToString("R")).Append('|').Append(TextFace).Append(TextBold).Append(TextEm).Append('|').Append(lineW).Append(outline ? 'o' : '-');
+            var key = new System.Text.StringBuilder(); key.Append(_s.ToString("R")).Append('|').Append(TextFace).Append(TextBold).Append(TextEm).Append('|').Append(lineW).Append(outline ? 'o' : '-').Append(condense.ToString("R"));
             foreach (var r in runs) if (r.Ok) key.Append('|').Append(r.X).Append(',').Append(r.W).Append(',').Append(r.Font).Append(',').Append(colour(r.Font)).Append(',').Append(r.Text);
             string k = key.ToString(); Bitmap bm;
             if (_lineImg.TryGetValue(k, out bm)) return bm;
@@ -1392,6 +1514,7 @@ namespace AztTool
                 }
                 if (x0 < 0) { _lineImg[k] = bm; return bm; }
                 float left = (float)(x0 * _s), avail = (float)(lineW * _s) - left, kx = x > avail && x > 0 ? avail / x : 1f;
+                if (condense < 1) kx = Math.Min(kx, (float)condense);          // (a conversation: every line alike -- see LogHost)
                 float baseY = (float)(fonts[0].BaseRow * _s) + LinePad;
                 g.TranslateTransform(left + LinePad, 0); if (kx < 1f) g.ScaleTransform(kx, 1f);
                 foreach (var p in parts) DrawText(g, p.Item1, colour(p.Item2), outline, p.Item3, baseY, fmt);
@@ -1435,7 +1558,7 @@ namespace AztTool
                         }
                         int iw = 0; foreach (char ch in name) { int g = ch == ' ' ? -1 : HudDecoder.GlyphOf(ch); iw += g < 0 || g >= 139 ? 2 * _invFont.H / 7 : _invFont.End[g] - _invFont.Start[g]; }
                         var one = new[] { new HudRun { X = 0, W = iw, Font = 0, Text = name, Ok = true } };
-                        gfx.DrawImageUnscaled(LineImage(one, new[] { _invFont }, Math.Min(w, Inventory[2]), false, q => InvInk), (int)Math.Round(WX(Inventory[0]) + sx) - LinePad, (int)Math.Round(WY(Inventory[1] + y)) - LinePad);
+                        Blit(gfx, LineImage(one, new[] { _invFont }, Math.Min(w, Inventory[2]), false, q => InvInk), (int)Math.Round(WX(Inventory[0]) + sx) - LinePad, (int)Math.Round(WY(Inventory[1] + y)) - LinePad);
                         // the eye (the item held for use): the game's own picture of it
                         int id = BitConverter.ToInt16(wb, 0x16 + 2 * i);
                         if (id == marked && marked >= 0) { gfx.Flush(); LiveKeyedClip(new[] { Inventory[0] + w - 17, Inventory[1] + y, 17, pitch }, Inventory[1], Inventory[1] + Inventory[3]); }
@@ -1738,7 +1861,7 @@ namespace AztTool
                         if (_bookWas) { _bookWas = false; _dirty = true; }            // back from the book: the art again
                         CursorX = Word(CursorXAddr); CursorY = Word(CursorYAddr);
                         bool openWas = BoxOpen;
-                        BoxOpen = Word(BoxBigAddr) != 0 || Word(ConvListAddr) != 0;
+                        BoxOpen = Word(BoxBigAddr) != 0 || (ConvBoxAddr != 0 ? Word(ConvBoxAddr) == 1 : Word(ConvListAddr) != 0);
                         if (BoxOpen != openWas) Toggles++;
                         UpdateRef();
                         bool steadyChanged = Steady();
@@ -1754,6 +1877,7 @@ namespace AztTool
                         if (Anim != target) { double stepA = dt / Math.Max(0.05, AnimSeconds); Anim = target > Anim ? Math.Min(target, Anim + stepA) : Math.Max(target, Anim - stepA); }
                         SetHide();
                         bool changed = _dirty || lit != ModesLit || Anim != was || steadyChanged || _logAnim;      // (_logAnim: the log easing to its line)
+                        if (StaticDue()) changed = true;                                                             // (the dialogue interface starting up)
                         if (!changed) for (int i = 0; i < _cur.Length; i++) if (_cur[i] != _prev[i]) { changed = true; break; }
                         ModesLit = lit;
                         if (changed)
@@ -1765,7 +1889,7 @@ namespace AztTool
                     }
                 }
                 catch (Exception e) { StartError = e.GetType().Name + ": " + e.Message; }
-                Thread.Sleep((Anim != 0 && Anim != 1) || Slide < 1 || _logAnim ? 4 : 10);
+                Thread.Sleep((Anim != 0 && Anim != 1) || Slide < 1 || _logAnim || _stOn ? 4 : 16);      // (at rest 16 ms, was 10: the game's screen changes no faster -- 2026-10-13 audit)
             }
             if (_wheel != null) { _wheel.Dispose(); _wheel = null; }
             ShowWindow(_hwnd, SW_HIDE); Shown = false; FreeDib();

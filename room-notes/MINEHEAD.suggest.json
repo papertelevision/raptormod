@@ -1,0 +1,307 @@
+{
+    "schema":  1,
+    "room":  "MINEHEAD",
+    "made":  "2026-10-14T13:55:32.8370197Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "window",
+                            "confidence":  0.73,
+                            "point":  [
+                                          -202.83,
+                                          153.11,
+                                          274.77
+                                      ],
+                            "normal":  [
+                                           0,
+                                           -1,
+                                           0
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1MH_PLATFORMBTOM",
+                            "texture":  "37-mineplab.png",
+                            "uv":  [
+                                       0.678,
+                                       0.746
+                                   ],
+                            "crop":  [
+                                         148,
+                                         11,
+                                         199,
+                                         53,
+                                         256,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted window: bright panes behind a bar grid (about 14 bars across; 4.8x the art\u0027s level)",
+                            "light":  null,
+                            "rect":  [
+                                         [
+                                             -144.29,
+                                             153.11,
+                                             227.71
+                                         ],
+                                         [
+                                             -261.37,
+                                             153.11,
+                                             227.71
+                                         ],
+                                         [
+                                             -261.37,
+                                             153.11,
+                                             324.13
+                                         ],
+                                         [
+                                             -144.29,
+                                             153.11,
+                                             324.13
+                                         ]
+                                     ],
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "window",
+                            "confidence":  0.71,
+                            "point":  [
+                                          6.07,
+                                          153.11,
+                                          274.77
+                                      ],
+                            "normal":  [
+                                           0,
+                                           -1,
+                                           0
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1MH_PLATFORMBTOM",
+                            "texture":  "37-mineplab.png",
+                            "uv":  [
+                                       0.322,
+                                       0.746
+                                   ],
+                            "crop":  [
+                                         57,
+                                         11,
+                                         108,
+                                         54,
+                                         256,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted window: bright panes behind a bar grid (about 15 bars across; 4.9x the art\u0027s level)",
+                            "light":  null,
+                            "rect":  [
+                                         [
+                                             64.61,
+                                             153.11,
+                                             225.41
+                                         ],
+                                         [
+                                             -52.47,
+                                             153.11,
+                                             225.41
+                                         ],
+                                         [
+                                             -52.47,
+                                             153.11,
+                                             324.13
+                                         ],
+                                         [
+                                             64.61,
+                                             153.11,
+                                             324.13
+                                         ]
+                                     ],
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "glow",
+                            "confidence":  0.64,
+                            "point":  [
+                                          -265.56,
+                                          181.94,
+                                          256.27
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1MH_MACHINEWALL2",
+                            "texture":  "35-minemw02.png",
+                            "uv":  [
+                                       0.887,
+                                       0.098
+                                   ],
+                            "crop":  [
+                                         109,
+                                         104,
+                                         119,
+                                         123,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (2.6x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -250.56,
+                                          "y":  181.94,
+                                          "z":  256.27,
+                                          "color":  "#FFE6E6",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  4,
+                            "kind":  "glow",
+                            "confidence":  0.64,
+                            "point":  [
+                                          -140.18,
+                                          181.94,
+                                          256.27
+                                      ],
+                            "normal":  [
+                                           -1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1MH_MACHINEWALL2",
+                            "texture":  "35-minemw02.png",
+                            "uv":  [
+                                       0.887,
+                                       0.098
+                                   ],
+                            "crop":  [
+                                         109,
+                                         104,
+                                         119,
+                                         123,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (2.6x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -155.18,
+                                          "y":  181.94,
+                                          "z":  256.27,
+                                          "color":  "#FFE6E6",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  5,
+                            "kind":  "sidelight",
+                            "confidence":  0.56,
+                            "point":  [
+                                          19.11,
+                                          358,
+                                          223.36
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           -1
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1MH_MACHINEWALL",
+                            "texture":  "36-minemw01.png",
+                            "uv":  [
+                                       0.701,
+                                       0.699
+                                   ],
+                            "crop":  [
+                                         152,
+                                         22,
+                                         198,
+                                         53,
+                                         256,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan running along the wall (2.4x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  19.11,
+                                          "y":  358,
+                                          "z":  215.36,
+                                          "dir":  [
+                                                      -0.94,
+                                                      0,
+                                                      0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFE3DB",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  6,
+                            "kind":  "sidelight",
+                            "confidence":  0.61,
+                            "point":  [
+                                          -212.18,
+                                          360.29,
+                                          223.36
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           -1
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1MH_MACHINEWALL",
+                            "texture":  "36-minemw01.png",
+                            "uv":  [
+                                       0.307,
+                                       0.707
+                                   ],
+                            "crop":  [
+                                         59,
+                                         20,
+                                         106,
+                                         54,
+                                         256,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan running along the wall (2.6x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -212.18,
+                                          "y":  360.29,
+                                          "z":  215.36,
+                                          "dir":  [
+                                                      0.94,
+                                                      0,
+                                                      0.342
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFEAEA",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

@@ -95,7 +95,8 @@ function Save-RoomSubmit([string]$NotesDir, $s) {
 # every room's notes waiting on Claude
 function Get-RoomNewCounts([string]$NotesDir) {
     $c = [ordered]@{}
-    foreach ($nf in @(Get-ChildItem $NotesDir -Filter '*.json' -ErrorAction SilentlyContinue | Where-Object { $_.BaseName -notin 'rounds', 'submit' })) {
+    # (not the painted-light finder's <ROOM>.suggest.json: those are pins, not notes)
+    foreach ($nf in @(Get-ChildItem $NotesDir -Filter '*.json' -ErrorAction SilentlyContinue | Where-Object { $_.BaseName -notin 'rounds', 'submit' -and $_.Name -notlike '*.suggest.json' })) {
         $doc = Read-RoomNotes $NotesDir $nf.BaseName; $n = @($doc.notes | Where-Object { $_.status -eq 'new' }).Count
         if ($n) { $c[$doc.room] = $n }
     }

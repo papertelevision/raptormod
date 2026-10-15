@@ -90,42 +90,64 @@ namespace AztTool
             return list;
         }
 
+        // ONE HANDLE, KEPT (2026-10-13 performance audit): Read and Write used to OpenProcess + CloseHandle on every call,
+        // and the watcher makes 15-20 of them a frame (GuestWord, Step-MemCore, the menu and shot watches) -- ~35-50 us each,
+        // most of it the open/close. The handle for the last pid is now kept (read + write rights); a failed call drops it
+        // and the next call opens a fresh one, so a restarted DOSBox (a new process, maybe the same pid) is picked up.
+        static readonly object _hLock = new object();
+        static IntPtr _h = IntPtr.Zero; static int _hPid = -1;
+        static IntPtr Handle(int pid)
+        {
+            lock (_hLock)
+            {
+                if (_h != IntPtr.Zero && _hPid == pid) return _h;
+                if (_h != IntPtr.Zero) { CloseHandle(_h); _h = IntPtr.Zero; _hPid = -1; }
+                IntPtr h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, false, pid);
+                if (h == IntPtr.Zero) h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);     // (read-only if writing is refused)
+                if (h == IntPtr.Zero) throw new Exception("OpenProcess failed: " + Marshal.GetLastWin32Error());
+                _h = h; _hPid = pid; return h;
+            }
+        }
+        static void Drop(IntPtr h) { lock (_hLock) { if (_h == h && h != IntPtr.Zero) { CloseHandle(_h); _h = IntPtr.Zero; _hPid = -1; } } }
+
         public static byte[] Read(int pid, long addr, int len)
         {
-            IntPtr h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
-            if (h == IntPtr.Zero) throw new Exception("OpenProcess failed: " + Marshal.GetLastWin32Error());
-            try
+            IntPtr h = Handle(pid);
+            var buf = new byte[len];
+            IntPtr got;
+            if (!ReadProcessMemory(h, new IntPtr(addr), buf, new IntPtr(len), out got))
             {
-                var buf = new byte[len];
-                IntPtr got;
+                // (a bad address fails too -- only a dead process means the handle is stale: then try once more on a fresh one)
+                bool gone = Marshal.GetLastWin32Error() == 6 /* ERROR_INVALID_HANDLE */ || ProcessGone(h);
+                if (!gone) return null;
+                Drop(h); h = Handle(pid);
                 if (!ReadProcessMemory(h, new IntPtr(addr), buf, new IntPtr(len), out got)) return null;
-                if (got.ToInt64() != len)
-                {
-                    var trimmed = new byte[got.ToInt64()];
-                    Array.Copy(buf, trimmed, trimmed.Length);
-                    return trimmed;
-                }
-                return buf;
             }
-            finally { CloseHandle(h); }
+            if (got.ToInt64() != len)
+            {
+                var trimmed = new byte[got.ToInt64()];
+                Array.Copy(buf, trimmed, trimmed.Length);
+                return trimmed;
+            }
+            return buf;
         }
+        [DllImport("kernel32.dll", SetLastError = true)] static extern bool GetExitCodeProcess(IntPtr h, out int code);
+        static bool ProcessGone(IntPtr h) { int code; return !GetExitCodeProcess(h, out code) || code != 259 /* STILL_ACTIVE */; }
 
         // Write into the guest. This is the half of the bridge that can BREAK the running
         // game rather than merely observe it, so callers are expected to target memory
         // they own (AztMod's own BSS) rather than engine structures.
         public static bool Write(int pid, long addr, byte[] data)
         {
-            IntPtr h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ |
-                                   PROCESS_VM_WRITE | PROCESS_VM_OPERATION, false, pid);
-            if (h == IntPtr.Zero) throw new Exception("OpenProcess failed: " + Marshal.GetLastWin32Error());
-            try
+            IntPtr h = Handle(pid);
+            IntPtr written;
+            if (!WriteProcessMemory(h, new IntPtr(addr), data, new IntPtr(data.Length), out written))
             {
-                IntPtr written;
-                if (!WriteProcessMemory(h, new IntPtr(addr), data, new IntPtr(data.Length), out written))
-                    return false;
-                return written.ToInt64() == data.Length;
+                bool gone = ProcessGone(h); if (!gone) return false;
+                Drop(h); h = Handle(pid);
+                if (!WriteProcessMemory(h, new IntPtr(addr), data, new IntPtr(data.Length), out written)) return false;
             }
-            finally { CloseHandle(h); }
+            return written.ToInt64() == data.Length;
         }
 
         // Poll a 4-byte value as fast as the OS will allow, recording every CHANGE with a

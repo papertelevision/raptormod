@@ -156,3 +156,11 @@ Slower than a shell property and the only way to land on the sector DOSBox does.
 before theorising about timing.** Three wrong causes were chased — MIDI cue, PCM sample,
 drive latency — all downstream of an LBA that was simply wrong. The check is cheap: decode the
 tracks, accumulate, compare against the table. See [[azrael-early-overlay]].
+
+**THE MIDI STAYS DOWN UNDER THE RECORDED SOUNDTRACK (Josh, 2026-10-13: "If I adjust volume, it still switches to the old midi. It should never switch unless I click F4"):**
+- **Cause:** the soundtrack plays as CD audio with the MIDI sequence held at volume 0 (AztCdSwitch). The game sets the MIDI's volume back up in SIX places, and the overlay only re-muted on a slider change (0x146940), a frame late:
+  - 0x3B048 (set now): 0x14D94 the slider, 0x13E59, 0x13B18, 0x1154A;
+  - 0x3B088 (fade, ebx ms): 0x16CC0, and 0x17FE2 -- the end of EVERY conversation (0x17E6E faded it out at the start).
+- **Fix:** patches `midi-quiet-*` route those six `call`s (no fixups, no other patch on them) through overlay `AztMidiVol48` / `AztMidiVol88` -> `AztMidiQuiet`. While aztCdOn (stub cave) and aztCdMuted (overlay) are both set, it forces edx (the level) to 0; otherwise nothing changes. F4 unmutes as before. Every register but edx kept.
+- **Music default:** 30% = level 38 (`$VOL_MUSIC_DEFAULT`; the menu shows level x 100 / 127). Sound stays at 127.
+- Manifest 445 -> 451. Installed 2026-10-13, not yet heard in game.

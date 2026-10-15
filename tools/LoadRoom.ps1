@@ -600,7 +600,293 @@ function Import-AztRoom {
 # picture's triangles (to leave out and to use as the opening) and the neighbour's geometry,
 # moved. Returns AztTool.Portal[]; a doorway whose neighbour will not load is skipped and
 # keeps its picture, and the reason is put in $script:AztPortalNotes for the caller to log.
+# THE MAP'S DOORS (Josh, 2026-10-14: the map's arrows "are still in place as they are in the original game"): every doorway
+# of the room's files from the portal map (tools\Build-PortalMap.ps1: portals.json, per .XAF -- the doorway's pad 'door',
+# the way out of the room 'axis' (x, z), the room it leads to 'to'). Returns @{ Marks = float[] (8 per door, GpuRaster
+# SetMapMarks: x, y, z, out x, out z, 0 = a door, size 0, 0); Doors = @( @{ To; X; Y; Z } ) }.
+function Get-AztMapDoors([string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render') {
+    $mapPath = Join-Path $CacheDir 'portals.json'
+    $marks = New-Object 'System.Collections.Generic.List[single]'; $doors = @()
+    if (-not (Test-Path $mapPath)) { return @{ Marks = $marks.ToArray(); Doors = $doors } }
+    $stamp = (Get-Item $mapPath).LastWriteTimeUtc.Ticks
+    if ($script:AztPortalMapStamp -ne $stamp) { $script:AztPortalMap = [IO.File]::ReadAllText($mapPath) | ConvertFrom-Json; $script:AztPortalMapStamp = $stamp }
+    foreach ($f in $Files) {
+        $prop = $script:AztPortalMap.PSObject.Properties[$f.ToUpper()]; if (-not $prop) { continue }
+        foreach ($e in @($prop.Value)) {
+            if (-not $e.door -or @($e.door).Count -lt 3) { continue }
+            $ax = 0.0; $az = 1.0; if ($e.axis -and @($e.axis).Count -ge 2) { $ax = [double]$e.axis[0]; $az = [double]$e.axis[1] }
+            foreach ($v in @([single]$e.door[0], [single]$e.door[1], [single]$e.door[2], [single]$ax, [single]$az, [single]0, [single]0, [single]0)) { $marks.Add($v) }
+            $doors += @{ To = [string]$e.to; X = [double]$e.door[0]; Y = [double]$e.door[1]; Z = [double]$e.door[2] }
+        }
+    }
+    return @{ Marks = $marks.ToArray(); Doors = $doors }
+}
+# ...and the triangles the map leaves out (GpuRaster.SetMapSkip): every doorway's painted views of the next room
+# (portals.json 'views' -- the parked alternates float outside the room), matched by exact part name in that file, and the
+# characters (a pose frozen into the map).
+# A room's textures by name, in the room's texture order (Room.Texes): each file's materials in the order its OBJ first uses them,
+# the ones with no texture (TRANSPARANT, ATRANNIE...) left out -- checked on MINEHEAD: Tex[8] = 27-mineflr2 after TRANSPARANT --
+# the files one after another. Each: Mat (the material, upper case) and Leaf (the png's name, upper case, its 'NN-' prefix off).
+$script:AztTexNames = @{}
+function Get-AztTexNames([string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render') {
+    $out = New-Object 'System.Collections.Generic.List[object]'
+    foreach ($f in $Files) {
+        $n = $f.ToUpperInvariant(); $obj = Join-Path $CacheDir ($n + '.obj'); $mtl = Join-Path $CacheDir ($n + '.mtl')
+        if (-not (Test-Path $obj) -or -not (Test-Path $mtl)) { continue }
+        $key = $n + '@' + (Get-Item $obj).LastWriteTimeUtc.Ticks
+        if (-not $script:AztTexNames.ContainsKey($key)) {
+            $map = @{}; $cur = $null; $one = New-Object 'System.Collections.Generic.List[object]'
+            foreach ($l in [IO.File]::ReadAllLines($mtl)) { $s = $l.Trim(); if ($s.StartsWith('newmtl ')) { $cur = $s.Substring(7).Trim() } elseif ($s.StartsWith('map_Kd ') -and $cur) { $map[$cur] = $s.Substring(7).Trim() } }
+            $seen = @{}
+            foreach ($l in [IO.File]::ReadAllLines($obj)) {
+                if (-not $l.StartsWith('usemtl ')) { continue }
+                $m = $l.Substring(7).Trim(); if ($seen.ContainsKey($m)) { continue }; $seen[$m] = 1
+                if (-not $map.ContainsKey($m)) { continue }
+                $lf = ([IO.Path]::GetFileNameWithoutExtension($map[$m]) -replace '^\d+-', '').ToUpperInvariant()
+                $one.Add([pscustomobject]@{ Mat = $m.ToUpperInvariant(); Leaf = $lf })
+            }
+            $script:AztTexNames[$key] = $one
+        }
+        $out.AddRange($script:AztTexNames[$key])
+    }
+    return ,$out
+}
+function Get-AztMapSkip($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render') {
+    $names = @{}; $doorXYZ = New-Object 'System.Collections.Generic.List[single]'
+    $mapPath = Join-Path $CacheDir 'portals.json'
+    if (Test-Path $mapPath) {
+        $stamp = (Get-Item $mapPath).LastWriteTimeUtc.Ticks
+        if ($script:AztPortalMapStamp -ne $stamp) { $script:AztPortalMap = [IO.File]::ReadAllText($mapPath) | ConvertFrom-Json; $script:AztPortalMapStamp = $stamp }
+        foreach ($f in $Files) {
+            $prop = $script:AztPortalMap.PSObject.Properties[$f.ToUpper()]; if (-not $prop) { continue }
+            foreach ($e in @($prop.Value)) {
+                foreach ($vn in @($e.views) + @($e.parked)) { if ($vn) { $names[$f.ToUpper() + '|' + [string]$vn] = 1 } }
+                if ($e.door -and @($e.door).Count -ge 3) { $doorXYZ.Add([single]$e.door[0]); $doorXYZ.Add([single]$e.door[1]); $doorXYZ.Add([single]$e.door[2]) }
+            }
+        }
+    }
+    # ...and the parts a room's settings leave off its map (Josh, 2026-10-14: Room Review "map update" notes): rooms\<ROOM>.json
+    # "map": { "hide": [part names, exactly as the room file spells them] }
+    # MORE THAN PARTS (Josh, 2026-10-14, round 26: a giant black ceiling inside MINEHEAD's main mesh; "all other geometry that extends
+    # under the main floor"): "hideMaterials": [material or texture names -- 'BLACK', '10-n_black.png' and 'n_black' alike],
+    # "hideBelow": a height (triangles wholly under it), "keep": [parts those two leave alone]
+    $hide = @{}; $hideMat = @{}; $below = @{}; $keep = @{}; $boxes = @()
+    foreach ($f in $Files) {
+        $rp = Join-Path (Join-Path $CacheDir 'rooms') ($f.ToUpper() + '.json')
+        if (-not (Test-Path $rp)) { continue }
+        try {
+            $rj = [IO.File]::ReadAllText($rp) | ConvertFrom-Json; $F = $f.ToUpper()
+            foreach ($hn in @($rj.map.hide)) { if ($hn) { $hide[$F + '|' + [string]$hn] = 1 } }
+            foreach ($hm in @($rj.map.hideMaterials)) {
+                if (-not $hm) { continue }
+                # ("part/material": only that part's -- MINEHEAD's ceiling is stuff/BLACK, the cart's black faces stay)
+                $hs = [string]$hm; $hp = ''; $sl = $hs.IndexOf('/'); if ($sl -gt 0) { $hp = $hs.Substring(0, $sl); $hs = $hs.Substring($sl + 1) }
+                $hideMat[$F + '|' + $hp + '|' + (([IO.Path]::GetFileNameWithoutExtension($hs)) -replace '^\d+-', '').ToUpperInvariant()] = 1
+            }
+            if ($null -ne $rj.map.hideBelow) { $below[$F] = [double]$rj.map.hideBelow }
+            foreach ($kn in @($rj.map.keep)) { if ($kn) { $keep[$F + '|' + [string]$kn] = 1 } }
+            # "hideBoxes": [{ "box": [x0, y0, z0, x1, y1, z1], "part": optional }] -- triangles whose middle lies inside leave the map, "keep"
+            # or not (Josh, 2026-10-14, MINEHEAD/13: the two shafts under the floor, inside the kept chasm mesh)
+            foreach ($hb in @($rj.map.hideBoxes)) { if ($hb -and $hb.box -and @($hb.box).Count -eq 6) { $boxes += ,@($F, [string]$hb.part, [double[]]@($hb.box)) } }
+        } catch { }
+    }
+    # (the items the player can pick up, in every room: <CacheDir>\pickups.json, learned from the game's scripts by the watcher's
+    # Update-Pickups -- Josh, 2026-10-14, MINEMAZE/12: "Omit all items that are able to be picked up from the player from all maps")
+    $pick = @{}
+    $pkf = Join-Path $CacheDir 'pickups.json'
+    if (Test-Path $pkf) {
+        $pst = (Get-Item $pkf).LastWriteTimeUtc.Ticks
+        if ($script:AztPickupsStamp -ne $pst) { try { $script:AztPickups = @(([IO.File]::ReadAllText($pkf) | ConvertFrom-Json).parts) } catch { $script:AztPickups = @() }; $script:AztPickupsStamp = $pst }
+        foreach ($pn in @($script:AztPickups)) { if ($pn) { $pick[[string]$pn] = 1 } }
+    }
+    $skipPart = New-Object 'System.Collections.Generic.HashSet[int]'
+    for ($i = 0; $i -lt $Room.Parts.Count; $i++) {
+        $p = $Room.Parts[$i]
+        if ($pick.Count -and $pick.ContainsKey([string]$p.Name)) { [void]$skipPart.Add($i); continue }
+        if ($hide.Count -and $hide.ContainsKey(([string]$p.Room).ToUpper() + '|' + [string]$p.Name)) { [void]$skipPart.Add($i); continue }
+        # (and the room's occluder sheets: across the game they are named black... -- blackcover, blackout01, BLACKTOP01, MINEMAZE's black planes)
+        if ($p.IsCharacter -or $names.ContainsKey(([string]$p.Room).ToUpper() + '|' + [string]$p.Name) -or ([string]$p.Name) -match '^(?i)black') { [void]$skipPart.Add($i) }
+    }
+    # ...and whatever is not joined to the room's body (parked doors, backdrop planes, props left outside: GpuRaster.MapStrayParts)
+    try {
+        $np = $Room.Parts.Count; $vf = New-Object int[] $np; $vc = New-Object int[] $np; $sk = New-Object bool[] $np
+        for ($i = 0; $i -lt $np; $i++) { $vf[$i] = [int]$Room.Parts[$i].VFirst; $vc[$i] = [int]$Room.Parts[$i].VCount; $sk[$i] = $skipPart.Contains($i) }
+        $stray = [AztTool.GpuRaster]::MapStrayParts([single[]]$Room.V, $vf, $vc, $sk, [single]6, $doorXYZ.ToArray())
+        for ($i = 0; $i -lt $np; $i++) { if ($stray[$i]) { [void]$skipPart.Add($i) } }
+    } catch { }
+    # ...and the dark FLAT sheets (a material with no texture, near black: occluders hiding what lies beyond -- MINEMAZE's
+    # 'black' planes), which are no shape of the room
+    $darkTex = New-Object 'System.Collections.Generic.HashSet[int]'
+    try {
+        $palB = [IO.File]::ReadAllBytes('C:\Games\azrael-inject\azrael-palette.pal'); $palK = $(if (($palB | Measure-Object -Maximum).Maximum -le 63) { 4 } else { 1 })
+        for ($k = 0; $k -lt $Room.Texes.Count; $k++) {
+            $tx = $Room.Texes[$k]; if (-not $tx -or $tx.W -ne 1 -or $tx.H -ne 1) { continue }
+            $ci = [int]$tx.Idx[0] * 3; if ($ci + 2 -ge $palB.Length) { continue }
+            if ((0.3 * $palB[$ci] + 0.59 * $palB[$ci + 1] + 0.11 * $palB[$ci + 2]) * $palK -lt 40) { [void]$darkTex.Add($k) }
+        }
+    } catch { }
+    $tris = New-Object 'System.Collections.Generic.List[int]'
+    $tp = $Room.TriPart; $ti = $Room.TexIdx
+    # (the per-triangle rules: which textures a room's "hideMaterials" names, and its "hideBelow")
+    $matHit = New-Object 'System.Collections.Generic.HashSet[int]'; $texFile = @{}; $texNames = @{}
+    $partScoped = @($hideMat.Keys | Where-Object { $_ -notlike '*||*' }).Count -gt 0
+    if ($hideMat.Count) {      # (the textures' names, and which a room-wide entry hides)
+        $tn = Get-AztTexNames -Files $Files -CacheDir $CacheDir
+        # (a unit can end with a spare 1x1 texture no triangle uses -- MINEHEAD's 49th -- so a single room may have more)
+        $lineUp = $tn.Count -eq $Room.Texes.Count -or ($Files.Count -eq 1 -and $tn.Count -lt $Room.Texes.Count -and @($Room.Texes | Select-Object -Skip $tn.Count | Where-Object { $_.W -ne 1 -or $_.H -ne 1 }).Count -eq 0)
+        if ($lineUp) {
+            # (which file each texture came from: the files' textures one after another)
+            $fi = 0; $cnt = 0; $per = @(); foreach ($f in $Files) { $per += ,@($f.ToUpper(), (Get-AztTexNames -Files @($f) -CacheDir $CacheDir).Count) }
+            for ($k = 0; $k -lt $tn.Count; $k++) {
+                while ($fi -lt $per.Count -and $k -ge $cnt + $per[$fi][1]) { $cnt += $per[$fi][1]; $fi++ }
+                $F = $(if ($fi -lt $per.Count) { $per[$fi][0] } else { '' })
+                $texFile[$k] = $F; $texNames[$k] = @($tn[$k].Mat, $tn[$k].Leaf)
+                if ($hideMat.ContainsKey($F + '||' + $tn[$k].Mat) -or $hideMat.ContainsKey($F + '||' + $tn[$k].Leaf)) { [void]$matHit.Add($k) }
+            }
+        } else { $script:AztMapSkipNote = ('map: the texture names of {0} do not line up ({1} named, {2} textures) -- its hideMaterials are not applied' -f ($Files -join '+'), $tn.Count, $Room.Texes.Count) }
+    }
+    $V = $Room.V; $T = $Room.T
+    for ($tq = 0; $tq -lt $tp.Length; $tq++) {
+        if ($skipPart.Contains([int]$tp[$tq]) -or ($tq -lt $ti.Length -and $darkTex.Contains([int]$ti[$tq]))) { $tris.Add($tq); continue }
+        if ($matHit.Count -eq 0 -and $below.Count -eq 0 -and -not $partScoped -and $boxes.Count -eq 0) { continue }
+        $pt = $Room.Parts[[int]$tp[$tq]]; $F = ([string]$pt.Room).ToUpper()
+        if ($boxes.Count) {
+            $mx = 0.0; $my = 0.0; $mz = 0.0; for ($c = 0; $c -lt 3; $c++) { $vi = [int]$T[$tq * 3 + $c] * 3; $mx += $V[$vi]; $my += $V[$vi + 1]; $mz += $V[$vi + 2] }; $mx /= 3; $my /= 3; $mz /= 3
+            $inBox = $false
+            foreach ($bx in $boxes) {
+                if ($bx[0] -ne $F -or ($bx[1] -and $bx[1] -ne [string]$pt.Name)) { continue }
+                $q = $bx[2]; if ($mx -ge $q[0] -and $mx -le $q[3] -and $my -ge $q[1] -and $my -le $q[4] -and $mz -ge $q[2] -and $mz -le $q[5]) { $inBox = $true; break }
+            }
+            if ($inBox) { $tris.Add($tq); continue }
+        }
+        if ($keep.ContainsKey($F + '|' + [string]$pt.Name)) { continue }
+        if ($tq -lt $ti.Length -and $matHit.Contains([int]$ti[$tq])) { $tris.Add($tq); continue }
+        if ($partScoped -and $tq -lt $ti.Length -and $texNames.ContainsKey([int]$ti[$tq])) {
+            $nm = $texNames[[int]$ti[$tq]]; $pk = $texFile[[int]$ti[$tq]] + '|' + [string]$pt.Name + '|'
+            if ($hideMat.ContainsKey($pk + $nm[0]) -or $hideMat.ContainsKey($pk + $nm[1])) { $tris.Add($tq); continue }
+        }
+        if ($below.ContainsKey($F)) {
+            $yb = $below[$F]; $all = $true
+            for ($c = 0; $c -lt 3; $c++) { if ($V[[int]$T[$tq * 3 + $c] * 3 + 1] -ge $yb) { $all = $false; break } }
+            if ($all) { $tris.Add($tq) }
+        }
+    }
+    return ,$tris.ToArray()
+}
+# THE MAP CUT UNDER THE FLOOR (Josh, 2026-10-14, Room Review MINEHEAD/8+9): a room's "map": { "hideBelow": y, "keep": [parts] } --
+# the map clips every triangle not in "keep" at y (GpuRaster.SetMapCut / ClipMapBelow): walls that run on down under the floor end at
+# it. $null when the room has no cut; else @{ Y = the height; Tris = per triangle of $Room, true = cut it }. (Get-AztMapSkip also
+# drops what is WHOLLY under it, so the complex's rooms lose that much even where they are not clipped.)
+function Get-AztMapCut($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render') {
+    $y = $null; $keep = @{}; $cutFiles = @{}
+    foreach ($f in $Files) {
+        $rp = Join-Path (Join-Path $CacheDir 'rooms') ($f.ToUpper() + '.json')
+        if (-not (Test-Path $rp)) { continue }
+        try {
+            $rj = [IO.File]::ReadAllText($rp) | ConvertFrom-Json
+            if ($null -eq $rj.map -or $null -eq $rj.map.hideBelow) { continue }
+            if ($null -eq $y) { $y = [double]$rj.map.hideBelow }
+            $cutFiles[$f.ToUpper()] = 1
+            foreach ($kn in @($rj.map.keep)) { if ($kn) { $keep[$f.ToUpper() + '|' + [string]$kn] = 1 } }
+        } catch { }
+    }
+    if ($null -eq $y) { return $null }
+    $tp = $Room.TriPart; $flags = New-Object bool[] $tp.Length
+    for ($tq = 0; $tq -lt $tp.Length; $tq++) {
+        $pt = $Room.Parts[[int]$tp[$tq]]; $rf = ([string]$pt.Room).ToUpper()
+        $flags[$tq] = $cutFiles.ContainsKey($rf) -and -not $keep.ContainsKey($rf + '|' + [string]$pt.Name)
+    }
+    return @{ Y = [single]$y; Tris = $flags }
+}
 $script:AztPortalMap = $null; $script:AztPortalMapStamp = $null; $script:AztPortalNotes = @()
+# THE WHOLE COMPLEX (Josh, 2026-10-14: "from a room's 3D map, zoom out to every room you've visited, laid out in place and
+# linked by their doorways ... unvisited rooms stay as faint outlines"). Every room file is modelled round its own origin;
+# portals.json's 'm' carries the far room's geometry into this room's coordinates through each doorway (row vectors,
+# translation in [12..14]). From the current room outward through the VISITED rooms (a breadth-first spanning tree -- the
+# graph has loops, the first way found wins), each room placed by m x (its parent's placement); a visited room's neighbours
+# that were never visited are placed too, faint (group 2), and not walked through. The rooms' map geometry (as the room's
+# own map: doorway pictures, characters, occluders and strays left out -- Get-AztMapSkip) is kept per room once read.
+$script:AztComplexGeo = @{}
+function Get-AztComplexGeo([string]$Name, [string]$CacheDir = 'C:\Games\azrael-render') {
+    $k = $Name.ToUpperInvariant()
+    $rjp = Join-Path (Join-Path $CacheDir 'rooms') ($k + '.json'); if (Test-Path $rjp) { $k += '@' + (Get-Item $rjp).LastWriteTimeUtc.Ticks }
+    $pkf = Join-Path $CacheDir 'pickups.json'; if (Test-Path $pkf) { $k += '#' + (Get-Item $pkf).LastWriteTimeUtc.Ticks }      # (the pick-ups learned: read again)      # (its map settings changed: read again)
+    if ($null -eq $script:AztComplexGeo) { $script:AztComplexGeo = @{} }      # (a caller that took only the functions)
+    if ($script:AztComplexGeo.ContainsKey($k)) { return $script:AztComplexGeo[$k] }
+    $geo = $null
+    try {
+        $r = Import-AztRoom -Rooms @($Name) -CacheDir $CacheDir
+        $skip = New-Object 'System.Collections.Generic.HashSet[int]'
+        $sk = Get-AztMapSkip -Room $r -Files @($Name) -CacheDir $CacheDir      # (one int[]: it returns ,$list)
+        foreach ($t in $sk) { foreach ($u in @($t)) { [void]$skip.Add([int]$u) } }
+        $keep = New-Object 'System.Collections.Generic.List[int]'
+        $nt = [int]($r.T.Length / 3)
+        $rv = $r.V
+        for ($t = 0; $t -lt $nt; $t++) {
+            if ($r.TexIdx[$t] -lt 0 -or $skip.Contains($t)) { continue }
+            $i0 = $r.T[$t * 3] * 3; $i1 = $r.T[$t * 3 + 1] * 3; $i2 = $r.T[$t * 3 + 2] * 3
+            # (backdrop planes far bigger than a room -- MINEHEAD's, TRACK01's -- would swamp the complex: edges over 1200 left out)
+            $e1 = [Math]::Abs($rv[$i0] - $rv[$i1]) + [Math]::Abs($rv[$i0 + 1] - $rv[$i1 + 1]) + [Math]::Abs($rv[$i0 + 2] - $rv[$i1 + 2]); $e2 = [Math]::Abs($rv[$i1] - $rv[$i2]) + [Math]::Abs($rv[$i1 + 1] - $rv[$i2 + 1]) + [Math]::Abs($rv[$i1 + 2] - $rv[$i2 + 2]); $e3 = [Math]::Abs($rv[$i2] - $rv[$i0]) + [Math]::Abs($rv[$i2 + 1] - $rv[$i0 + 1]) + [Math]::Abs($rv[$i2 + 2] - $rv[$i0 + 2])
+            if ([Math]::Max($e1, [Math]::Max($e2, $e3)) -gt 1500) { continue }
+            $keep.Add($r.T[$t * 3]); $keep.Add($r.T[$t * 3 + 1]); $keep.Add($r.T[$t * 3 + 2])
+        }
+        $geo = @{ V = [single[]]$r.V; T = $keep.ToArray() }
+        # (its cut under the floor, as its own map: the kept triangles clipped -- Get-AztMapCut)
+        $mcut = Get-AztMapCut -Room $r -Files @($Name) -CacheDir $CacheDir
+        if ($mcut) {
+            $kt = $keep.ToArray(); $nk = [int]($kt.Length / 3); $fl = New-Object bool[] $nk; $tt0 = New-Object int[] $nk; $w = 0
+            for ($t = 0; $t -lt $nt; $t++) {
+                if ($w -ge $nk) { break }
+                if ($r.T[$t * 3] -eq $kt[$w * 3] -and $r.T[$t * 3 + 1] -eq $kt[$w * 3 + 1] -and $r.T[$t * 3 + 2] -eq $kt[$w * 3 + 2]) { $fl[$w] = $mcut.Tris[$t]; $w++ }
+            }
+            $cv = $null; $ci = $null; $ct = $null
+            [AztTool.GpuRaster]::ClipMapBelow([single[]]$r.V, [int[]]$kt, [int[]]$tt0, [bool[]]$fl, [single]$mcut.Y, [ref]$cv, [ref]$ci, [ref]$ct)
+            $geo = @{ V = [single[]]$cv; T = [int[]]$ci }
+        }
+    } catch { $geo = $null; $script:AztComplexError = "{0}: {1}" -f $Name, $_.Exception.Message }
+    $script:AztComplexGeo[$k] = $geo
+    return $geo
+}
+function Get-AztComplex([string]$Root, [string[]]$Visited, [string]$CacheDir = 'C:\Games\azrael-render', [int]$MaxRooms = 80, [switch]$ShowUnvisited) {
+    $mapPath = Join-Path $CacheDir 'portals.json'
+    if (-not (Test-Path $mapPath)) { return $null }
+    $stamp = (Get-Item $mapPath).LastWriteTimeUtc.Ticks
+    if ($script:AztPortalMapStamp -ne $stamp) { $script:AztPortalMap = [IO.File]::ReadAllText($mapPath) | ConvertFrom-Json; $script:AztPortalMapStamp = $stamp }
+    $vis = New-Object 'System.Collections.Generic.HashSet[string]'; foreach ($v in @($Visited)) { if ($v) { [void]$vis.Add($v.ToUpperInvariant()) } }
+    $root = $Root.ToUpperInvariant()
+    $placed = [ordered]@{}; $placed[$root] = [single[]]@(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+    $group = @{ $root = 0 }
+    $queue = New-Object 'System.Collections.Generic.Queue[string]'; $queue.Enqueue($root)
+    while ($queue.Count -gt 0 -and $placed.Count -lt $MaxRooms) {
+        $a = $queue.Dequeue(); $ma = $placed[$a]
+        $prop = $script:AztPortalMap.PSObject.Properties[$a]; if (-not $prop) { continue }
+        foreach ($e in @($prop.Value)) {
+            $b = ([string]$e.to).ToUpperInvariant(); if (-not $b -or $placed.Contains($b) -or -not $e.m -or @($e.m).Count -ne 16) { continue }
+            $m = [single[]]@($e.m)
+            $c = New-Object single[] 16
+            for ($i = 0; $i -lt 4; $i++) { for ($j = 0; $j -lt 4; $j++) { $sum = 0.0; for ($q = 0; $q -lt 4; $q++) { $sum += $m[$i * 4 + $q] * $ma[$q * 4 + $j] }; $c[$i * 4 + $j] = [single]$sum } }
+            $placed[$b] = $c
+            # (only the rooms the player has reached -- Josh, 2026-10-14: the helmet scans a room as he enters it, so one not yet
+            # entered is not on the map at all; the grey outlines of unvisited neighbours were too bright where they overlapped)
+            if ($vis.Contains($b)) { $group[$b] = 1; $queue.Enqueue($b) } elseif ($ShowUnvisited) { $group[$b] = 2 } else { $placed.Remove($b) }
+        }
+    }
+    $cxV = New-Object 'System.Collections.Generic.List[single]'; $cxT = New-Object 'System.Collections.Generic.List[int]'; $cxG = New-Object 'System.Collections.Generic.List[int]'      # (not $V/$T: $v and $t are the loops' -- one name in PowerShell)
+    $names = @()
+    foreach ($name in @($placed.Keys)) {
+        if ($name -eq $root) { continue }
+        $geo = Get-AztComplexGeo $name $CacheDir; if (-not $geo -or $geo.T.Length -eq 0) { continue }
+        $mm = $placed[$name]; $base = [int]($cxV.Count / 3); $gv = $geo.V
+        for ($i = 0; $i -lt $gv.Length; $i += 3) {
+            $x = $gv[$i]; $y = $gv[$i + 1]; $z = $gv[$i + 2]
+            $cxV.Add([single]($x * $mm[0] + $y * $mm[4] + $z * $mm[8] + $mm[12])); $cxV.Add([single]($x * $mm[1] + $y * $mm[5] + $z * $mm[9] + $mm[13])); $cxV.Add([single]($x * $mm[2] + $y * $mm[6] + $z * $mm[10] + $mm[14]))
+        }
+        foreach ($ix in $geo.T) { $cxT.Add($base + $ix) }
+        for ($t = 0; $t -lt $geo.T.Length / 3; $t++) { $cxG.Add([int]$group[$name]) }
+        $names += ('{0}{1}' -f $name, $(if ($group[$name] -eq 2) { '(faint)' } else { '' }))
+    }
+    return @{ V = $cxV.ToArray(); T = $cxT.ToArray(); G = $cxG.ToArray(); Rooms = $names }
+}
 function Get-AztPortals {
     param($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render',
           [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',

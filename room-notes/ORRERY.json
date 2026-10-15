@@ -1,94 +1,10 @@
 {
     "schema":  2,
     "room":  "ORRERY",
-    "rev":  27,
+    "rev":  28,
     "nextId":  8,
     "notes":  [
-                  {
-                      "id":  1,
-                      "ref":  "ORRERY/1",
-                      "status":  "review",
-                      "created":  "2026-10-09T18:22:42.4691707Z",
-                      "updated":  "2026-10-09T18:38:38.7066497Z",
-                      "kind":  "other",
-                      "point":  [
-                                    -140.41,
-                                    37.77,
-                                    145.43
-                                ],
-                      "normal":  [
-                                     0.271,
-                                     0.924,
-                                     -0.271
-                                 ],
-                      "part":  "orr_puzzle",
-                      "material":  "1ORRERYPUZZLE",
-                      "texture":  "03-or_puzzl.png",
-                      "uv":  [
-                                 0.618,
-                                 0.43
-                             ],
-                      "target":  null,
-                      "camera":  {
-                                     "pos":  [
-                                                 -73.3,
-                                                 65.28,
-                                                 62.89
-                                             ],
-                                     "fwd":  [
-                                                 -0.42,
-                                                 -0.14,
-                                                 0.9
-                                             ],
-                                     "up":  [
-                                                0,
-                                                1,
-                                                0
-                                            ],
-                                     "fov":  50,
-                                     "mirror":  true,
-                                     "gpuLook":  {
-                                                     "X":  -73.3,
-                                                     "Y":  65.28,
-                                                     "Z":  62.89,
-                                                     "Yaw":  -25.12,
-                                                     "Pitch":  -8
-                                                 }
-                                 },
-                      "suggest":  {
-                                      "light":  {
-                                                    "x":  -132.29,
-                                                    "y":  65.49,
-                                                    "z":  137.31,
-                                                    "dir":  [
-                                                                0.707,
-                                                                0,
-                                                                -0.707
-                                                            ]
-                                                }
-                                  },
-                      "seen":  {
-                                   "objMtime":  "2026-10-05T02:29:35.8057416Z",
-                                   "roomFileMtime":  null
-                               },
-                      "log":  [
-                                  {
-                                      "who":  "josh",
-                                      "text":  "The puzzle that appears when clicking this item is very tiny on the screen, and essentially does not work well. Lets make it full screen similar to the document size of the \"books\" that can be viewed",
-                                      "at":  "2026-10-09T18:22:42.4691707Z",
-                                      "shot":  "ORRERY-1-0.png"
-                                  },
-                                  {
-                                      "who":  "claude",
-                                      "text":  "Agreed -- this one is not a lighting change: the puzzle is drawn and clicked by the game itself, so making it full screen (like the books) means finding its drawing and its click spots in the game code and moving both, as was done for the save/load screen. I have split it into its own task so it gets done properly; it is not in this round.",
-                                      "at":  "2026-10-09T18:38:38.7066497Z",
-                                      "round":  19,
-                                      "changes":  [
 
-                                                  ]
-                                  }
-                              ]
-                  }
               ],
     "completed":  [
                       {
@@ -615,6 +531,92 @@
                                       }
                                   ],
                           "completedAt":  "2026-10-09T22:16:42.3123923Z"
+                      },
+                      {
+                          "id":  1,
+                          "ref":  "ORRERY/1",
+                          "status":  "complete",
+                          "created":  "2026-10-09T18:22:42.4691707Z",
+                          "updated":  "2026-10-09T18:38:38.7066497Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -140.41,
+                                        37.77,
+                                        145.43
+                                    ],
+                          "normal":  [
+                                         0.271,
+                                         0.924,
+                                         -0.271
+                                     ],
+                          "part":  "orr_puzzle",
+                          "material":  "1ORRERYPUZZLE",
+                          "texture":  "03-or_puzzl.png",
+                          "uv":  [
+                                     0.618,
+                                     0.43
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -73.3,
+                                                     65.28,
+                                                     62.89
+                                                 ],
+                                         "fwd":  [
+                                                     -0.42,
+                                                     -0.14,
+                                                     0.9
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -73.3,
+                                                         "Y":  65.28,
+                                                         "Z":  62.89,
+                                                         "Yaw":  -25.12,
+                                                         "Pitch":  -8
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -132.29,
+                                                        "y":  65.49,
+                                                        "z":  137.31,
+                                                        "dir":  [
+                                                                    0.707,
+                                                                    0,
+                                                                    -0.707
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:35.8057416Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "The puzzle that appears when clicking this item is very tiny on the screen, and essentially does not work well. Lets make it full screen similar to the document size of the \"books\" that can be viewed",
+                                          "at":  "2026-10-09T18:22:42.4691707Z",
+                                          "shot":  "ORRERY-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Agreed -- this one is not a lighting change: the puzzle is drawn and clicked by the game itself, so making it full screen (like the books) means finding its drawing and its click spots in the game code and moving both, as was done for the save/load screen. I have split it into its own task so it gets done properly; it is not in this round.",
+                                          "at":  "2026-10-09T18:38:38.7066497Z",
+                                          "round":  19,
+                                          "changes":  [
+
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4344732Z"
                       }
                   ],
     "deleted":  [

@@ -1,0 +1,51 @@
+{
+    "schema":  1,
+    "room":  "CRYPT",
+    "made":  "2026-10-14T13:55:23.1240413Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.69,
+                            "point":  [
+                                          -56.34,
+                                          19.03,
+                                          -145.38
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "Object08",
+                            "material":  "1LEFTWALL",
+                            "texture":  "19-cr_left.png",
+                            "uv":  [
+                                       0.341,
+                                       0.396
+                                   ],
+                            "crop":  [
+                                         94,
+                                         226,
+                                         239,
+                                         368,
+                                         512,
+                                         512
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (10.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -41.34,
+                                          "y":  19.03,
+                                          "z":  -145.38,
+                                          "color":  "#FFE9C6",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

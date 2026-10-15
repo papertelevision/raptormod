@@ -100,3 +100,27 @@ dialog h3 { margin: 0 0 4px; color: var(--accent); }
 #lookBar kbd { font: 11px ui-monospace, monospace; padding: 0 4px; border: 1px solid #555; border-radius: 3px; color: #bbb; }
 #lookMsg { color: #c9a227; white-space: nowrap; }
 #lookBtn.on { background: #c9a227; color: #111; border-color: #c9a227; }
+
+/* Painted lights (2026-10-14): the finder's pins (amber diamonds) and the card for the open one, top right of the view */
+#paintBtn.on { border-color: #ffb21e; color: #ffd27a; }
+#paintCount { display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px; border-radius: 9px; background: #ffb21e; color: #1a1205; font-size: 11px; font-weight: 600; }
+#paintCount[hidden] { display: none; }
+#paintBox { position: absolute; top: 8px; right: 8px; z-index: 6; width: min(380px, calc(100% - 16px)); padding: 8px 10px; border-radius: 6px;
+  background: rgba(16, 17, 20, .94); border: 1px solid #6a5326; box-shadow: 0 6px 24px rgba(0,0,0,.6); font-size: 12px; }
+#paintBox[hidden] { display: none; }
+#paintBox .pb-head { display: flex; align-items: center; gap: 6px; }
+#paintBox .pb-head b { color: #ffd27a; font-size: 13px; text-transform: capitalize; }
+#paintBox .pd { color: #ffb21e; font-size: 14px; }
+#paintBox .chip { padding: 0 6px; border-radius: 8px; background: #3a2c10; color: #ffd27a; font-size: 11px; }
+#paintBox .pb-nav { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
+#paintBox .pb-nav button, #paintBox .pb-x { padding: 0 7px; font-size: 11px; }
+#paintBox .pb-body { display: flex; gap: 10px; margin-top: 8px; }
+#paintThumb { flex: 0 0 auto; width: 132px; height: 132px; border: 1px solid #3a3e47; border-radius: 3px; image-rendering: pixelated; background: #000; }
+#paintBox .pb-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; color: var(--text); overflow-wrap: anywhere; }
+#paintBox .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; border: 1px solid #555; }
+#paintBox .acts { display: flex; gap: 6px; margin-top: 8px; }
+#paintBox .acts button { padding: 2px 10px; }
+#paintBox .acts button.ok { border-color: var(--done); color: #bfe8cf; }
+#paintBox .acts button.quiet { margin-left: auto; color: var(--dim); }
+/* a map update note (Josh, 2026-10-14): the map's teal */
+.chip.k-map { background: #123b37 !important; color: #8ff0e0 !important; }

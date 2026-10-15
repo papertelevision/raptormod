@@ -1,0 +1,93 @@
+{
+    "schema":  1,
+    "room":  "EXEC_R",
+    "made":  "2026-10-14T13:55:26.4664836Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.6,
+                            "point":  [
+                                          340.21,
+                                          -822.32,
+                                          -100.68
+                                      ],
+                            "normal":  [
+                                           -0.022,
+                                           1,
+                                           -0.018
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1EXE_FLOOR",
+                            "texture":  "32-exe_flor.png",
+                            "uv":  [
+                                       0.623,
+                                       0.498
+                                   ],
+                            "crop":  [
+                                         146,
+                                         117,
+                                         179,
+                                         139,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (2.4x the art\u0027s level)",
+                            "light":  {
+                                          "x":  339.88,
+                                          "y":  -807.33,
+                                          "z":  -100.95,
+                                          "color":  "#C0D0FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "glow",
+                            "confidence":  0.82,
+                            "point":  [
+                                          -678.33,
+                                          358.96,
+                                          -732.59
+                                      ],
+                            "normal":  [
+                                           -0.703,
+                                           -0.06,
+                                           0.709
+                                       ],
+                            "part":  "entrylft",
+                            "material":  "ENTRYLFT",
+                            "texture":  "15-s3entlf.png",
+                            "uv":  [
+                                       0.812,
+                                       0.361
+                                   ],
+                            "crop":  [
+                                         394,
+                                         137,
+                                         443,
+                                         185,
+                                         512,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -688.87,
+                                          "y":  358.05,
+                                          "z":  -721.95,
+                                          "color":  "#FFB667",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

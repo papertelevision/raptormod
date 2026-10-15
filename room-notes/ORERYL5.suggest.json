@@ -1,0 +1,102 @@
+{
+    "schema":  1,
+    "room":  "ORERYL5",
+    "made":  "2026-10-14T13:55:34.9902473Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.63,
+                            "point":  [
+                                          -103,
+                                          -56.23,
+                                          139.73
+                                      ],
+                            "normal":  [
+                                           0,
+                                           -1,
+                                           0
+                                       ],
+                            "part":  "orr_pfloor",
+                            "material":  "1ORRERYDEVICE_FL",
+                            "texture":  "26-or_devfl.png",
+                            "uv":  [
+                                       0.84,
+                                       0.301
+                                   ],
+                            "crop":  [
+                                         102,
+                                         87,
+                                         112,
+                                         93,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (2.5x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -103,
+                                          "y":  -71.23,
+                                          "z":  139.73,
+                                          "color":  "#FFFFFE",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "uplight",
+                            "confidence":  0.69,
+                            "point":  [
+                                          -140.55,
+                                          -11.21,
+                                          162.63
+                                      ],
+                            "normal":  [
+                                           0.707,
+                                           0,
+                                           -0.707
+                                       ],
+                            "part":  "orr_pic",
+                            "material":  "1ORRERYDEVICEW01",
+                            "texture":  "28-or_devw1.png",
+                            "uv":  [
+                                       0.682,
+                                       0.697
+                                   ],
+                            "crop":  [
+                                         158,
+                                         56,
+                                         186,
+                                         92,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 9 above the floor (2.3x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -134.89,
+                                          "y":  -15.51,
+                                          "z":  156.97,
+                                          "dir":  [
+                                                      -0.242,
+                                                      0.94,
+                                                      0.242
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FF8F76",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

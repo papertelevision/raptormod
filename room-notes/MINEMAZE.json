@@ -1,92 +1,352 @@
 {
     "schema":  2,
     "room":  "MINEMAZE",
-    "rev":  27,
-    "nextId":  8,
+    "rev":  48,
+    "nextId":  14,
     "notes":  [
                   {
-                      "id":  7,
-                      "ref":  "MINEMAZE/7",
+                      "id":  10,
+                      "ref":  "MINEMAZE/10",
                       "status":  "review",
-                      "created":  "2026-10-13T03:48:40.4061110Z",
-                      "updated":  "2026-10-13T03:58:16.4974244Z",
-                      "kind":  "other",
+                      "created":  "2026-10-14T21:46:41.0822096Z",
+                      "updated":  "2026-10-14T21:58:04.3801258Z",
+                      "kind":  "map",
                       "point":  [
-                                    360.93,
-                                    -53.87,
-                                    566.32
+                                    559.15,
+                                    -58.97,
+                                    535.4
                                 ],
                       "normal":  [
-                                     0.391,
-                                     0.492,
-                                     0.778
+                                     0,
+                                     1,
+                                     0
                                  ],
-                      "part":  "corr09",
-                      "material":  "1WALL2",
-                      "texture":  "21-mmzw2.png",
+                      "part":  "r3t1",
+                      "material":  "1BAPPIECE",
+                      "texture":  "03-baptapce.png",
                       "uv":  [
-                                 0.337,
-                                 0.516
+                                 0.584,
+                                 0.791
                              ],
                       "target":  null,
                       "camera":  {
                                      "pos":  [
-                                                 229.22,
-                                                 -0.59,
-                                                 677.03
+                                                 743.82,
+                                                 88.4,
+                                                 574.6
                                              ],
                                      "fwd":  [
-                                                 0.91,
-                                                 -0.21,
-                                                 -0.36
+                                                 -0.82,
+                                                 -0.56,
+                                                 0.09
                                              ],
                                      "up":  [
                                                 0,
                                                 1,
                                                 0
                                             ],
-                                     "fov":  50,
+                                     "fov":  60,
                                      "mirror":  true,
                                      "gpuLook":  {
-                                                     "X":  229.22,
-                                                     "Y":  -0.59,
-                                                     "Z":  677.03,
-                                                     "Yaw":  111.81,
-                                                     "Pitch":  -12.27
+                                                     "X":  743.82,
+                                                     "Y":  88.4,
+                                                     "Z":  574.6,
+                                                     "Yaw":  -83.57,
+                                                     "Pitch":  -34.01
                                                  }
                                  },
                       "suggest":  {
                                       "light":  {
-                                                    "x":  372.65,
-                                                    "y":  -39.09,
-                                                    "z":  589.65,
+                                                    "x":  559.15,
+                                                    "y":  -28.97,
+                                                    "z":  535.4,
                                                     "dir":  [
-                                                                0.449,
                                                                 0,
-                                                                0.894
+                                                                -1,
+                                                                0
                                                             ]
                                                 }
                                   },
                       "seen":  {
                                    "objMtime":  "2026-10-05T02:29:31.5247554Z",
-                                   "roomFileMtime":  "2026-10-09T15:34:29.5249817Z"
+                                   "roomFileMtime":  "2026-10-14T20:26:58.1064332Z"
                                },
                       "log":  [
                                   {
                                       "who":  "josh",
-                                      "text":  "This room would benefit the most from the 3d depth. The rocks could bulge a bit more throughout, using the texture shading as a guide for deep cracks and other depth indicators.",
-                                      "at":  "2026-10-13T03:48:40.4061110Z",
-                                      "shot":  "MINEMAZE-7-0.png"
+                                      "text":  "Omit from map",
+                                      "at":  "2026-10-14T21:46:41.0822096Z",
+                                      "shot":  "MINEMAZE-10-0.png"
                                   },
                                   {
                                       "who":  "claude",
-                                      "text":  "Done: here the depth now follows the art\u0027s shading, as you said -- bright rock bulges, dark areas sink, and the cracks are carved deep -- at three times the depth the other rooms use (they take only the cracks and joints). Compare with F7 in the game, or 7 in Room Review\u0027s Game look (G). The strength is two numbers in rooms\\MINEMAZE.json \"parallax\" (depth 3, shade 0.7).",
-                                      "at":  "2026-10-13T03:58:16.4974244Z",
+                                      "text":  "Done. This tapestry piece (r3t1) is off the map.",
+                                      "at":  "2026-10-14T21:58:04.3801258Z",
                                       "changes":  [
-                                                      "rooms\\MINEMAZE.json \"parallax\": { depth 3, shade 0.7 } (new: height from the art\u0027s shading)"
+                                                      "rooms\\MINEMAZE.json map.hide: r3t1"
                                                   ],
-                                      "round":  24,
-                                      "render":  "MINEMAZE-7-1-render.png"
+                                      "round":  28,
+                                      "render":  "MINEMAZE-10-1-render.png"
+                                  }
+                              ]
+                  },
+                  {
+                      "id":  11,
+                      "ref":  "MINEMAZE/11",
+                      "status":  "review",
+                      "created":  "2026-10-14T21:46:57.8172925Z",
+                      "updated":  "2026-10-14T21:58:04.4745353Z",
+                      "kind":  "map",
+                      "point":  [
+                                    585.29,
+                                    -60.23,
+                                    805.39
+                                ],
+                      "normal":  [
+                                     0,
+                                     1,
+                                     0
+                                 ],
+                      "part":  "gun",
+                      "material":  "1GUN",
+                      "texture":  "11-mmzgun_key.png",
+                      "uv":  [
+                                 0.439,
+                                 0.469
+                             ],
+                      "target":  null,
+                      "camera":  {
+                                     "pos":  [
+                                                 648.05,
+                                                 -13.25,
+                                                 707
+                                             ],
+                                     "fwd":  [
+                                                 -0.63,
+                                                 -0.41,
+                                                 0.66
+                                             ],
+                                     "up":  [
+                                                0,
+                                                1,
+                                                0
+                                            ],
+                                     "fov":  60,
+                                     "mirror":  true,
+                                     "gpuLook":  {
+                                                     "X":  648.05,
+                                                     "Y":  -13.25,
+                                                     "Z":  707,
+                                                     "Yaw":  -43.85,
+                                                     "Pitch":  -24.5
+                                                 }
+                                 },
+                      "suggest":  {
+                                      "light":  {
+                                                    "x":  585.29,
+                                                    "y":  -30.23,
+                                                    "z":  805.39,
+                                                    "dir":  [
+                                                                0,
+                                                                -1,
+                                                                0
+                                                            ]
+                                                }
+                                  },
+                      "seen":  {
+                                   "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                   "roomFileMtime":  "2026-10-14T20:26:58.1064332Z"
+                               },
+                      "log":  [
+                                  {
+                                      "who":  "josh",
+                                      "text":  "Omit these three layered on items form map.",
+                                      "at":  "2026-10-14T21:46:57.8172925Z",
+                                      "shot":  "MINEMAZE-11-0.png"
+                                  },
+                                  {
+                                      "who":  "claude",
+                                      "text":  "Done. All three layered items are off the map: the elephant gun card (gun), the bones card (bones), and the small chest (chestlid and chestbott, with r3a1 inside it).",
+                                      "at":  "2026-10-14T21:58:04.4745353Z",
+                                      "changes":  [
+                                                      "rooms\\MINEMAZE.json map.hide: gun, bones, chestlid, chestbott, r3a1"
+                                                  ],
+                                      "round":  28,
+                                      "render":  "MINEMAZE-11-1-render.png"
+                                  }
+                              ]
+                  },
+                  {
+                      "id":  12,
+                      "ref":  "MINEMAZE/12",
+                      "status":  "review",
+                      "created":  "2026-10-14T21:47:33.0328672Z",
+                      "updated":  "2026-10-14T21:58:04.4938437Z",
+                      "kind":  "map",
+                      "point":  [
+                                    404.42,
+                                    -59.91,
+                                    361.35
+                                ],
+                      "normal":  [
+                                     0,
+                                     1,
+                                     0
+                                 ],
+                      "part":  "ammobag",
+                      "material":  "1AMMO",
+                      "texture":  "12-mmzamm.png",
+                      "uv":  [
+                                 0.621,
+                                 0.543
+                             ],
+                      "target":  null,
+                      "camera":  {
+                                     "pos":  [
+                                                 378.05,
+                                                 35.59,
+                                                 321.28
+                                             ],
+                                     "fwd":  [
+                                                 0.46,
+                                                 -0.89,
+                                                 -0.03
+                                             ],
+                                     "up":  [
+                                                0,
+                                                1,
+                                                0
+                                            ],
+                                     "fov":  60,
+                                     "mirror":  true,
+                                     "gpuLook":  {
+                                                     "X":  378.05,
+                                                     "Y":  35.59,
+                                                     "Z":  321.28,
+                                                     "Yaw":  93.22,
+                                                     "Pitch":  -62.55
+                                                 }
+                                 },
+                      "suggest":  {
+                                      "light":  {
+                                                    "x":  404.42,
+                                                    "y":  -29.91,
+                                                    "z":  361.35,
+                                                    "dir":  [
+                                                                0,
+                                                                -1,
+                                                                0
+                                                            ]
+                                                }
+                                  },
+                      "seen":  {
+                                   "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                   "roomFileMtime":  "2026-10-14T20:26:58.1064332Z"
+                               },
+                      "log":  [
+                                  {
+                                      "who":  "josh",
+                                      "text":  "Omit form map. Omit all items that are able to be picked up from the player from all maps,",
+                                      "at":  "2026-10-14T21:47:33.0328672Z",
+                                      "shot":  "MINEMAZE-12-0.png"
+                                  },
+                                  {
+                                      "who":  "claude",
+                                      "text":  "Done. The ammo bag is off the map. For every item the player can pick up in every room: nothing in the game\u0027s data files marks an item as one you can take. An item only reaches the inventory through the game\u0027s scripts (script command 08, which adds to the inventory). So the renderer now reads those scripts from the game\u0027s memory the first time you open a map in a session, collects every object they can add to the inventory, and saves their room parts to pickups.json. All maps leave those parts out from then on, in game and in Room Review\u0027s map look. It runs the first time you open a map; the watcher log says \"pickups: N items the player can pick up\". I could not run it without the game, so it will be confirmed on your next play.",
+                                      "at":  "2026-10-14T21:58:04.4938437Z",
+                                      "changes":  [
+                                                      "rooms\\MINEMAZE.json map.hide: ammobag",
+                                                      "new: Watch-HostRender Update-Pickups -\u003e C:\\Games\\azrael-render\\pickups.json; Get-AztMapSkip leaves those parts off every map"
+                                                  ],
+                                      "round":  28,
+                                      "render":  "MINEMAZE-12-1-render.png"
+                                  }
+                              ]
+                  },
+                  {
+                      "id":  13,
+                      "ref":  "MINEMAZE/13",
+                      "status":  "review",
+                      "created":  "2026-10-14T21:48:43.8354989Z",
+                      "updated":  "2026-10-14T21:58:31.8453946Z",
+                      "kind":  "other",
+                      "point":  [
+                                    185.52,
+                                    -61.55,
+                                    404.06
+                                ],
+                      "normal":  [
+                                     0,
+                                     1,
+                                     -0.001
+                                 ],
+                      "part":  "corr03",
+                      "material":  "1WALL2",
+                      "texture":  "21-mmzw2.png",
+                      "uv":  [
+                                 0.518,
+                                 0.287
+                             ],
+                      "target":  null,
+                      "camera":  {
+                                     "pos":  [
+                                                 46.45,
+                                                 78.51,
+                                                 389.81
+                                             ],
+                                     "fwd":  [
+                                                 0.68,
+                                                 -0.55,
+                                                 0.48
+                                             ],
+                                     "up":  [
+                                                0,
+                                                1,
+                                                0
+                                            ],
+                                     "fov":  60,
+                                     "mirror":  true,
+                                     "gpuLook":  {
+                                                     "X":  46.45,
+                                                     "Y":  78.51,
+                                                     "Z":  389.81,
+                                                     "Yaw":  54.62,
+                                                     "Pitch":  -33.17
+                                                 }
+                                 },
+                      "suggest":  {
+                                      "light":  {
+                                                    "x":  185.51,
+                                                    "y":  -31.55,
+                                                    "z":  404.05,
+                                                    "dir":  [
+                                                                0,
+                                                                -1,
+                                                                0
+                                                            ]
+                                                }
+                                  },
+                      "seen":  {
+                                   "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                   "roomFileMtime":  "2026-10-14T20:26:58.1064332Z"
+                               },
+                      "log":  [
+                                  {
+                                      "who":  "josh",
+                                      "text":  "Add all of the painted lights you suggested in this room so I can preview in game.",
+                                      "at":  "2026-10-14T21:48:43.8354989Z",
+                                      "shot":  "MINEMAZE-13-0.png"
+                                  },
+                                  {
+                                      "who":  "claude",
+                                      "text":  "Done. All five painted lights the finder suggested for this room are in, as subtle glows 15 above the painted pools of light on the corridor floors, in the art\u0027s own colour (power 0.5, reach 90). MINEMAZE already has six placed lights and the renderer takes eight, so these are washes: no shadow, outside that limit, pointing down over their whole lower half. Their pins are marked approved.",
+                                      "at":  "2026-10-14T21:58:31.8453946Z",
+                                      "changes":  [
+                                                      "rooms\\MINEMAZE.json lights[6..10]: five painted glows (washes)",
+                                                      "room-notes\\MINEMAZE.suggest.json: all five approved (note 13)"
+                                                  ],
+                                      "round":  28,
+                                      "render":  "MINEMAZE-13-1-render.png"
                                   }
                               ]
                   }
@@ -617,6 +877,266 @@
                                       }
                                   ],
                           "completedAt":  "2026-10-09T17:11:58.7305209Z"
+                      },
+                      {
+                          "id":  7,
+                          "ref":  "MINEMAZE/7",
+                          "status":  "complete",
+                          "created":  "2026-10-13T03:48:40.4061110Z",
+                          "updated":  "2026-10-13T03:58:16.4974244Z",
+                          "kind":  "other",
+                          "point":  [
+                                        360.93,
+                                        -53.87,
+                                        566.32
+                                    ],
+                          "normal":  [
+                                         0.391,
+                                         0.492,
+                                         0.778
+                                     ],
+                          "part":  "corr09",
+                          "material":  "1WALL2",
+                          "texture":  "21-mmzw2.png",
+                          "uv":  [
+                                     0.337,
+                                     0.516
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     229.22,
+                                                     -0.59,
+                                                     677.03
+                                                 ],
+                                         "fwd":  [
+                                                     0.91,
+                                                     -0.21,
+                                                     -0.36
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  229.22,
+                                                         "Y":  -0.59,
+                                                         "Z":  677.03,
+                                                         "Yaw":  111.81,
+                                                         "Pitch":  -12.27
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  372.65,
+                                                        "y":  -39.09,
+                                                        "z":  589.65,
+                                                        "dir":  [
+                                                                    0.449,
+                                                                    0,
+                                                                    0.894
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                       "roomFileMtime":  "2026-10-09T15:34:29.5249817Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This room would benefit the most from the 3d depth. The rocks could bulge a bit more throughout, using the texture shading as a guide for deep cracks and other depth indicators.",
+                                          "at":  "2026-10-13T03:48:40.4061110Z",
+                                          "shot":  "MINEMAZE-7-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: here the depth now follows the art\u0027s shading, as you said -- bright rock bulges, dark areas sink, and the cracks are carved deep -- at three times the depth the other rooms use (they take only the cracks and joints). Compare with F7 in the game, or 7 in Room Review\u0027s Game look (G). The strength is two numbers in rooms\\MINEMAZE.json \"parallax\" (depth 3, shade 0.7).",
+                                          "at":  "2026-10-13T03:58:16.4974244Z",
+                                          "changes":  [
+                                                          "rooms\\MINEMAZE.json \"parallax\": { depth 3, shade 0.7 } (new: height from the art\u0027s shading)"
+                                                      ],
+                                          "round":  24,
+                                          "render":  "MINEMAZE-7-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T18:08:16.4610474Z"
+                      },
+                      {
+                          "id":  8,
+                          "ref":  "MINEMAZE/8",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:13:55.9830904Z",
+                          "updated":  "2026-10-14T20:36:23.3473217Z",
+                          "kind":  "map",
+                          "point":  [
+                                        1289.63,
+                                        246.98,
+                                        121.01
+                                    ],
+                          "normal":  [
+                                         -0.99,
+                                         -0.144,
+                                         0
+                                     ],
+                          "part":  "minehead",
+                          "material":  "MINEHEADPIC",
+                          "texture":  "15-mmzhead.png",
+                          "uv":  [
+                                     0.695,
+                                     0.442
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     537.57,
+                                                     306.44,
+                                                     -719.8
+                                                 ],
+                                         "fwd":  [
+                                                     0.39,
+                                                     -0.25,
+                                                     0.89
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  537.57,
+                                                         "Y":  306.44,
+                                                         "Z":  -719.8,
+                                                         "Yaw":  23.57,
+                                                         "Pitch":  -14.71
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  1259.94,
+                                                        "y":  242.65,
+                                                        "z":  121.01,
+                                                        "dir":  [
+                                                                    -1,
+                                                                    0,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                       "roomFileMtime":  "2026-10-13T05:21:23.1429247Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Omit from map",
+                                          "at":  "2026-10-14T20:13:55.9830904Z",
+                                          "shot":  "MINEMAZE-8-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. This is MINEHEAD\u0027s painted view in the doorway (part minehead). The map already leaves doorway pictures out, and it is now named in the room\u0027s map settings as well.",
+                                          "at":  "2026-10-14T20:36:23.3473217Z",
+                                          "round":  26,
+                                          "changes":  [
+                                                          "rooms\\MINEMAZE.json map.hide: minehead"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:49:06.4682298Z"
+                      },
+                      {
+                          "id":  9,
+                          "ref":  "MINEMAZE/9",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:14:40.8684660Z",
+                          "updated":  "2026-10-14T20:36:23.3612899Z",
+                          "kind":  "map",
+                          "point":  [
+                                        1074.74,
+                                        16.51,
+                                        190
+                                    ],
+                          "normal":  [
+                                         -0.96,
+                                         0.176,
+                                         0.216
+                                     ],
+                          "part":  "chasm",
+                          "material":  "CHASMWALL",
+                          "texture":  "17-mmzchas1.png",
+                          "uv":  [
+                                     0.558,
+                                     0.864
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     877.83,
+                                                     191.39,
+                                                     488.53
+                                                 ],
+                                         "fwd":  [
+                                                     0.76,
+                                                     -0.48,
+                                                     -0.44
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  877.83,
+                                                         "Y":  191.39,
+                                                         "Z":  488.53,
+                                                         "Yaw":  120.35,
+                                                         "Pitch":  -28.42
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  1045.93,
+                                                        "y":  21.8,
+                                                        "z":  196.48,
+                                                        "dir":  [
+                                                                    -0.976,
+                                                                    0,
+                                                                    0.219
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:31.5247554Z",
+                                       "roomFileMtime":  "2026-10-13T05:21:23.1429247Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Omit this section from the map",
+                                          "at":  "2026-10-14T20:14:40.8684660Z",
+                                          "shot":  "MINEMAZE-9-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. This chasm section is off the map: the rock (chasm) and the wooden scaffold inside it (chasm01, the same spot). Before | after attached; it was the piece hanging off the lower right.",
+                                          "at":  "2026-10-14T20:36:23.3612899Z",
+                                          "changes":  [
+                                                          "rooms\\MINEMAZE.json map.hide: chasm, chasm01"
+                                                      ],
+                                          "round":  26,
+                                          "render":  "MINEMAZE-9-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:49:09.8244008Z"
                       }
                   ],
     "deleted":  [

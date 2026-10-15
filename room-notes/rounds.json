@@ -1,5 +1,5 @@
 {
-    "current":  24,
+    "current":  28,
     "rounds":  [
                    {
                        "n":  1,
@@ -256,6 +256,78 @@
                                      "MINEMAZE/7",
                                      "WASHCORI/4",
                                      "WELLROOM/7"
+                                 ]
+                   },
+                   {
+                       "n":  25,
+                       "started":  "2026-10-14T05:34:55.3710076Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-025",
+                       "files":  10,
+                       "notes":  [
+                                     "ATUNNEL2/1",
+                                     "BAPTIST/1",
+                                     "CHAMBNEW/1",
+                                     "CHAMBNEW/2",
+                                     "CHAMBNEW/3",
+                                     "CHAMBNEW/4",
+                                     "CHAMBNEW/5",
+                                     "CHAMBNEW/6",
+                                     "CHAMBNEW/7",
+                                     "CHAMBNEW/8",
+                                     "CHAMBNEW/9",
+                                     "CHAMBNEW/10",
+                                     "CHAMBNEW/11",
+                                     "CHAMBNEW/12",
+                                     "CHAMBNEW/13",
+                                     "CORICORI/11"
+                                 ]
+                   },
+                   {
+                       "n":  26,
+                       "started":  "2026-10-14T20:19:39.8906638Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-026",
+                       "files":  12,
+                       "notes":  [
+                                     "BAPTIST/2",
+                                     "BAPTIST/3",
+                                     "MINEHEAD/7",
+                                     "MINEHEAD/8",
+                                     "MINEHEAD/9",
+                                     "MINEMAZE/8",
+                                     "MINEMAZE/9",
+                                     "SPAROOM/10",
+                                     "SPAROOM/11",
+                                     "WASHCORI/5",
+                                     "WASHCORI/6"
+                                 ]
+                   },
+                   {
+                       "n":  27,
+                       "started":  "2026-10-14T20:53:30.9538039Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-027",
+                       "files":  12,
+                       "notes":  [
+                                     "ATUNNEL2/3",
+                                     "ATUNNEL2/4",
+                                     "CHAMBNEW/14",
+                                     "CHAMBNEW/15",
+                                     "CHAMBNEW/16",
+                                     "MINEHEAD/10",
+                                     "MINEHEAD/11",
+                                     "MINEHEAD/12",
+                                     "MINEHEAD/13"
+                                 ]
+                   },
+                   {
+                       "n":  28,
+                       "started":  "2026-10-14T21:49:35.1505953Z",
+                       "snapshot":  "C:\\Games\\azrael-render\\rooms-history\\round-028",
+                       "files":  12,
+                       "notes":  [
+                                     "MINEMAZE/10",
+                                     "MINEMAZE/11",
+                                     "MINEMAZE/12",
+                                     "MINEMAZE/13"
                                  ]
                    }
                ]

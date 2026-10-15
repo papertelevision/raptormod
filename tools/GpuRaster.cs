@@ -148,7 +148,7 @@ namespace AztTool
         D_AttrPtr glVertexAttribPointer;
         D_CreateShader glCreateShader; D_CreateProgram glCreateProgram; D_ShaderSource glShaderSource;
         D_GetIv glGetShaderiv, glGetProgramiv; D_GetLog glGetShaderInfoLog, glGetProgramInfoLog;
-        D_Attach glAttachShader; D_GetUniform glGetUniformLocation;
+        D_Attach glAttachShader; D_GetUniform glGetUniformLocationRaw;
         D_Uni1i glUniform1i; D_Uni1f glUniform1f; D_Uni2f glUniform2f; D_Uni3f glUniform3f; D_Uni4f glUniform4f; D_Uni2i glUniform2i; D_Uni3i glUniform3i;
         D_UniV glUniform1fv, glUniform2fv, glUniform3fv, glUniform4fv; D_UniIV glUniform1iv; D_UniMat glUniformMatrix4fv, glUniformMatrix3fv;
         D_FbTex glFramebufferTexture2D; D_RbStorage glRenderbufferStorage; D_FbRb glFramebufferRenderbuffer; D_CheckFb glCheckFramebufferStatus;
@@ -588,7 +588,7 @@ namespace AztTool
             glCreateShader = Get<D_CreateShader>("glCreateShader"); glCreateProgram = Get<D_CreateProgram>("glCreateProgram"); glShaderSource = Get<D_ShaderSource>("glShaderSource");
             glGetShaderiv = Get<D_GetIv>("glGetShaderiv"); glGetProgramiv = Get<D_GetIv>("glGetProgramiv");
             glGetShaderInfoLog = Get<D_GetLog>("glGetShaderInfoLog"); glGetProgramInfoLog = Get<D_GetLog>("glGetProgramInfoLog");
-            glAttachShader = Get<D_Attach>("glAttachShader"); glGetUniformLocation = Get<D_GetUniform>("glGetUniformLocation");
+            glAttachShader = Get<D_Attach>("glAttachShader"); glGetUniformLocationRaw = Get<D_GetUniform>("glGetUniformLocation");
             glUniform1i = Get<D_Uni1i>("glUniform1i"); glUniform1f = Get<D_Uni1f>("glUniform1f"); glUniform2f = Get<D_Uni2f>("glUniform2f");
             glUniform3f = Get<D_Uni3f>("glUniform3f"); glUniform4f = Get<D_Uni4f>("glUniform4f"); glUniform2i = Get<D_Uni2i>("glUniform2i"); glUniform3i = Get<D_Uni3i>("glUniform3i");
             glUniform1fv = Get<D_UniV>("glUniform1fv"); glUniform2fv = Get<D_UniV>("glUniform2fv"); glUniform3fv = Get<D_UniV>("glUniform3fv"); glUniform4fv = Get<D_UniV>("glUniform4fv"); glUniform1iv = Get<D_UniIV>("glUniform1iv");
@@ -617,7 +617,7 @@ namespace AztTool
               glEnableVertexAttribArray(2); glVertexAttribPointer(2, 2, GL_FLOAT, 0, 40, new IntPtr(32)); glBindVertexArray(0); }
             { var nid = new uint[1]; glGenFramebuffers(1, nid); _normFbo = nid[0]; }
             LocateUniforms();
-            { var mu = new int[1]; glGetIntegerv(0x8872, mu); MatUnitOk = mu[0] > UNIT_MAT; WetUnitOk = mu[0] > UNIT_GROUND; DepthUnitOk = mu[0] > UNIT_HEIGHT; }      // (MAX_TEXTURE_IMAGE_UNITS: the companion maps', the floor heights' and the height maps' units)
+            { var mu = new int[1]; glGetIntegerv(0x8872, mu); MatUnitOk = mu[0] > UNIT_MAT; MapUnitOk = mu[0] > UNIT_MAP; WetUnitOk = mu[0] > UNIT_GROUND; DepthUnitOk = mu[0] > UNIT_HEIGHT; }      // (MAX_TEXTURE_IMAGE_UNITS: the companion maps', the floor heights' and the height maps' units)
 
             var ids = new uint[1];
             // the picture: colour, and depth + stencil as a texture (copied for the water's test)
@@ -762,6 +762,29 @@ uniform int uLightMapOn[8]; uniform sampler2D uLightMap[8]; uniform mat3 uLightA
 uniform vec3 uLightDir[8]; uniform vec2 uLightCone[8];
 // a light's colour shifting with distance (its 'colorFar', blended from tint distance .x to .y; multiplier 1 = none)
 uniform vec3 uLightTintM[8]; uniform vec2 uLightTintD[8];
+// WALL WASHES (2026-10-14, Josh, Room Review CHAMBNEW: an uplight under each spotlight painted on the walls -- twelve, past
+// the eight placed lights): steady spotlights with no shadow view, up to 16 on top of the placed lights. View space:
+// xyz + 1/range^2, colour x strength, direction, cos inner / cos outer
+uniform int uWashN; uniform vec4 uWashP[16]; uniform vec3 uWashC[16]; uniform vec3 uWashDir[16]; uniform vec2 uWashCone[16];
+// GLASS IN A TEXTURE'S HOLES (2026-10-14, Josh, BAPTIST/1 -- Raster.Tex.Glass): above 0, the texels cut out as holes are drawn
+// as a pane at this share of their own colour times uGlassTint (the light behind it); the shadow views still let light through
+uniform float uGlass; uniform vec3 uGlassTint;
+// LIGHT GATES (2026-10-14, BAPTIST/1: a sun outside the windows of a room with no ceiling came in over the walls too): a placed
+// light with a gate reaches only what it sees through that world box (its window's opening). .w of lo = on; uLightW: the
+// lights' own places in the world
+uniform vec4 uGateLo[8]; uniform vec3 uGateHi[8]; uniform vec3 uLightW[8];
+// SCORCH MARKS (2026-10-14, Josh: shot impacts -- 'scorch marks that fade where your shots hit stone'): where shots landed
+// (world xyz + radius; the surface's normal + age in seconds), a ragged sooty patch on that surface that fades over
+// uScLife, glowing ember-hot at its middle for its first moments
+uniform int uScN; uniform vec4 uScP[16]; uniform vec4 uScQ[16]; uniform float uScLife;
+// THE ECHO SCAN'S SHELL (GpuRaster.EchoT): its radius from the eye, its band's width, strength (0 = none)
+uniform vec3 uEcho;
+bool segThrough(vec3 a, vec3 b, vec3 lo, vec3 hi) {
+    vec3 d = b - a, inv = 1.0 / mix(d, vec3(1e-9), lessThan(abs(d), vec3(1e-9)));
+    vec3 t0 = (lo - a) * inv, t1 = (hi - a) * inv, tn = min(t0, t1), tf = max(t0, t1);
+    float n = max(max(max(tn.x, tn.y), tn.z), 0.0), f = min(min(min(tf.x, tf.y), tf.z), 1.0);
+    return n <= f;
+}
 // ALL-ROUND shadow views (uLightMapOn 2): six 90-degree faces in one map, 3 across x 2 down, each face's axes here (view space)
 uniform mat3 uCubeAx[6];
 // SOFT CONTACT SHADOWS (2026-10-08): a placed light has a size (world units, 0 = the old hard edge), so its shadows are
@@ -980,7 +1003,8 @@ void main() {
             st = p;
         }
     }
-    if (texture(uMask, st).r < 0.5 / 255.0) discard;        // palette index 0: a hole in the texture
+    bool glassPx = false;
+    if (texture(uMask, st).r < 0.5 / 255.0) { if (uGlass <= 0.0) discard; glassPx = true; }        // palette index 0: a hole in the texture (or a pane: uGlass)
     float artK = uArtOn != 0 ? artAt(st) : 1.0;
     if (uRelayDebug != 0 && (vFix & 28) != 0) { oColor = (vFix & 64) != 0 ? vec4(1.0, 0.0, 1.0, 1.0) : vec4((vFix & 48) == 16 ? 1.0 : 0.0, (vFix & 12) != 0 ? 1.0 : 0.0, (vFix & 32) != 0 ? 1.0 : 0.0, 1.0); return; }
     // the mix against repeats: which of eight shifts (only along the ways the surface repeats), from slow noise over the tiles
@@ -1007,10 +1031,29 @@ void main() {
         tex4 = mix(tex4, c1, gMixT);
     }
     vec3 tex = tex4.rgb * 255.0;
+    // GLASS (see uGlass): the pane at its share of its own colour, in the light behind it, unlit by the room; it shows
+    // through the fog as a lit surface does
+    if (glassPx) { oColor = vec4(min(tex * uGlassTint * uGlass, vec3(255.0)) / 255.0, uRefl != 0 ? 0.0 : 0.8); return; }
     // RELIEF. The face's own normal, turned toward the eye; then bent by the bump map in the
     // face's texture directions (worked out from how the texture runs across the screen).
     vec3 N = normalize(vTri.yzw), Vd = normalize(-vView);
     if (dot(N, Vd) < 0.0) N = -N;
+    float scGlow = 0.0;
+    if (uScN > 0 && uRefl == 0) {
+        vec3 nwS = transpose(mat3(uView)) * N; float scDark = 0.0;
+        for (int i = 0; i < 16; i++) {
+            if (i >= uScN) break;
+            vec3 d = vWorld - uScP[i].xyz; float r = uScP[i].w;
+            if (dot(d, d) > r * r * 2.0 || dot(nwS, uScQ[i].xyz) < 0.6 || abs(dot(d, uScQ[i].xyz)) > 3.0) continue;
+            float age = uScQ[i].w, fade = 1.0 - smoothstep(uScLife * 0.4, uScLife, age);
+            vec3 dd = d - uScQ[i].xyz * dot(d, uScQ[i].xyz);
+            float nz = noised(vWorld * 0.45 + vec3(float(i) * 7.1)).x;
+            float rr = length(dd) / (r * (0.8 + 0.45 * nz));
+            scDark = max(scDark, (1.0 - smoothstep(0.25, 1.0, rr)) * fade * 0.82);
+            scGlow += (1.0 - smoothstep(0.0, 0.5, rr)) * exp(-age / 0.6);
+        }
+        tex *= 1.0 - scDark;
+    }
     vec3 Np = N; float reliefK = 1.0, cavK = 1.0;
     float relK = uRelief * uReliefK;                        // (none on a shiny surface: see uReliefK)
     if (relK > 0.0) {
@@ -1192,9 +1235,15 @@ void main() {
             // facing the light, with relief: the bent normal on the light's side of the face
             float sideL = dot(dl, N) >= 0.0 ? 1.0 : -1.0;
             float facingL = relK > 0.0 ? max(dot(dl, Np) * sideL, 0.0) : abs(dot(dl, vTri.yzw));
-            float att = facingL / (sqrt(d2) * (1.0 + d2 * uLightP[i].w));
+            // (w below 0: a ONE-SIDED light -- SetLightOneSided -- lights only the side of a face the eye is on, so sunlight
+            // behind a wall does not light its inner face: BAPTIST's windows, 2026-10-14)
+            float att = facingL / (sqrt(d2) * (1.0 + d2 * abs(uLightP[i].w)));
+            if (uLightP[i].w < 0.0 && sideL < 0.0) att = 0.0;
+            if (uGateLo[i].w > 0.5 && att > 0.0 && !segThrough(uLightW[i], vWorld, uGateLo[i].xyz, uGateHi[i])) att = 0.0;
             if (uLightCone[i].y > -1.5) att *= soft((dot(-dl, uLightDir[i]) * inversesqrt(d2) - uLightCone[i].y) / max(uLightCone[i].x - uLightCone[i].y, 1e-3));
-            if (uLightMapOn[i] != 0) {
+            // (no light reaching here -- facing away, or outside a spot's cone: its shadow could change nothing, so its map is
+            // not read -- 2026-10-13 performance audit; att >= 0 and sAmb only rises, so the result is the same)
+            if (uLightMapOn[i] != 0 && att > 0.0) {
                 // from the light to this pixel, in the light view's own axes
                 vec3 q = -dl;
                 float ol = -1.0;
@@ -1231,6 +1280,23 @@ void main() {
             gain += lc; lightG += lc * (uLightCone[i].y > -1.5 ? 1.0 : exp(-d2 * uLitR));      // (all round: only near it, as the flashlight's cone; a spot: in its beam)
             // its highlight, in its own colour (att already holds the facing, the distance and the shadow)
             if (shineK > 0.0 && att > 0.0) {
+                vec3 Hl = normalize(dl * inversesqrt(d2) + Vd);
+                specC += lc * (pow(max(dot(Ns, Hl), 0.0), glossK) * (glossK + 2.0) * 0.125);
+            }
+        }
+        // THE WALL WASHES (see uWashN): as a placed spotlight, without a shadow
+        for (int i = 0; i < uWashN; i++) {
+            vec3 dl = uWashP[i].xyz - vView;
+            float d2 = max(dot(dl, dl), 1.0);
+            float sideL = dot(dl, N) >= 0.0 ? 1.0 : -1.0;
+            // (a wash grazes its wall: the full relief there turned the stone to speckle -- 40% of it)
+            float facingL = relK > 0.0 ? max(dot(dl, normalize(mix(N, Np, 0.4))) * sideL, 0.0) : abs(dot(dl, vTri.yzw));
+            float att = facingL / (sqrt(d2) * (1.0 + d2 * uWashP[i].w));
+            att *= soft((dot(-dl, uWashDir[i]) * inversesqrt(d2) - uWashCone[i].y) / max(uWashCone[i].x - uWashCone[i].y, 1e-3));
+            if (att <= 0.0) continue;
+            vec3 lc = uWashC[i] * att;
+            gain += lc; lightG += lc;
+            if (shineK > 0.0) {
                 vec3 Hl = normalize(dl * inversesqrt(d2) + Vd);
                 specC += lc * (pow(max(dot(Ns, Hl), 0.0), glossK) * (glossK + 2.0) * 0.125);
             }
@@ -1306,6 +1372,16 @@ void main() {
     }
     // what GLOWS (a companion glow map): at least its own painted colour, whatever the light
     if (glowK > 0.0) col = max(col, tex * (uGlowK * glowK));
+    if (scGlow > 0.0) { col += vec3(255.0, 130.0, 45.0) * min(scGlow, 1.2); lightG += vec3(min(scGlow, 1.0)); }
+    // THE ECHO'S SHELL passing over the room: a bright amber front with fine contour rings trailing it (a sonar's sweep)
+    if (uEcho.z > 0.0 && uRefl == 0) {
+        float dd = length(vView), x = (uEcho.x - dd) / max(uEcho.y, 1.0);
+        if (x > -1.5 && x < 6.0) {
+            float frontE = exp(-x * x * 2.0), trailE = x > 0.0 ? exp(-x / 2.2) * (0.5 + 0.5 * smoothstep(0.82, 1.0, abs(fract(dd / 9.0) * 2.0 - 1.0))) : 0.0;
+            float eg = uEcho.z * (frontE + 0.28 * trailE);
+            col += vec3(255.0, 150.0, 50.0) * eg * 0.55; lightG += vec3(eg * 0.7);
+        }
+    }      // (a fresh scorch's ember-hot middle -- through the dark air, as a light's)
     col = min(col, vec3(255.0));
     if (uFogOn != 0 && uRefl == 0) {
         float ff = soft((w - uFog.x) * uFog.y) * uFog.z;
@@ -1567,10 +1643,53 @@ void main() {
         // colour replaced by the picture, blended with 1/256 weights exactly as Overlay.Mix4.
         const string FS_COMP = @"#version 400 core
 uniform sampler2D uPic; uniform sampler2D uScreen; uniform isampler2D uMap;
-uniform float uHideFrom; uniform int uKey; uniform ivec2 uBand; uniform int uVisor; uniform int uK; uniform ivec2 uSize;
+uniform float uHideFrom; uniform int uKey; uniform int uKey2; uniform ivec2 uBand; uniform int uVisor; uniform int uK; uniform ivec2 uSize;
 uniform int uBlack;     // the game's book / item view: no world behind it, black wherever the 3D would show
 uniform vec4 uHide;     // game viewport x0 y0 x1 y1: the game's drawings there are ignored (the host draws over them)
 uniform vec4 uHide2;    // a second one (the scanner's wireframe box)
+uniform sampler2D uMapLayer; uniform float uMapK, uMapDim;     // THE MAP (DrawMap): its layer, how far it is up, how dark the world goes behind it
+uniform float uMapLines;     // the map's faint interlace (Josh, 2026-10-14: still meant to be seen in the visor): how dark its lines go
+// THE VISOR'S LIGHTS on the map (Josh, 2026-10-14): two soft teal cones from the panel's top corners, fanned in at the map,
+// as if they draw it -- while it pulses in, each SWEEPS (mirrored, the two alike): from the opposite top corner down across the
+// view, then back up to rest, brighter and with a hot narrow core; then a faint glow that stays.
+uniform vec4 uMlE;           // the two lights (picture px, rows from the top): left x, y, right x, y
+uniform vec4 uMlD;           // (unused since the pulse took the cone's shape)
+uniform vec4 uMlA;           // x: their reach (px: to the resting aim), y: unused, z: the cone's spread now (tan; the spotlight and the pulse alike), w: fan -> spotlight (0..1)
+uniform vec4 uMlC;           // the spotlights' axes (unit vectors): left x, y, right x, y
+uniform vec3 uMlK;           // x: unused, y: the pulse's strength (its fade and flicker in it), z: the spotlights' (their flicker in)
+uniform vec3 uMlCol;         // their colour (0..1)
+uniform vec2 uMlPulse;       // the pulse: its radius (px), 1 = running
+uniform vec2 uMlFl;          // the spotlights' flicker, left and right (x their strength)
+uniform float uMlConeR;      // how far out the spotlights reach yet (px): they spread out with the pulse
+// THE CONE: one shape for the spotlight AND its pulse (Josh, 2026-10-14: 'the pulsing effect needs to adhere to those same
+// shapes ... a wider version of those initial cones'): about its axis, gaussian across, the spread (tan) set from outside --
+// wide while the pulse runs, the resting width after.
+float coneAcross(vec2 d, vec2 ax, float D, float spread) {
+    float along = dot(d, ax), across = dot(d, vec2(-ax.y, ax.x));
+    if (along <= 0.0) return 0.0;
+    float c = across / (along * spread + D * 0.025); return exp(-c * c * 1.7);
+}
+// THE PULSE ('that pulse with the sort of ribbing light effect is the only one I want to see ... extend indefinitely and off
+// screen'): as the echo scan's shell, a band running out from the light, ribs of light trailing it, in the CONE's shape; no
+// fall-off with distance -- it runs on past the screen's edges.
+float beamPulse(vec2 q, vec2 e, vec2 ax, float D, float spread, float R) {
+    vec2 d = q - e; float r = length(d);
+    float band = exp(-pow((r - R) / (D * 0.0175), 2.0)) * 0.48;        // (the lead band: Josh, 2026-10-14, 'a bit less bright', then half as thick and 20% fainter)
+    float behind = R - r, rings = 0.0;
+    if (behind > 0.0) { float c = 0.5 + 0.5 * cos(behind / (D * 0.07) * 6.2831853); rings = 0.45 * c * c * c * c * exp(-behind / (D * 0.3)); }
+    return (band + rings) * coneAcross(d, ax, D, spread) * smoothstep(0.0, D * 0.05, r);
+}
+// THE SPOTLIGHT (Josh, 2026-10-14: 'when they come to rest, have them fade into the previous spotlight versions'): the cone,
+// fading away from the light, a small glow where it leaves the panel; out only as far as R (the pulse carries it out).
+float beamCone(vec2 q, vec2 e, vec2 ax, float D, float spread, float R) {
+    vec2 d = q - e; float along = dot(d, ax);
+    float g = exp(-dot(d, d) / (D * D * 0.0016)) * 0.55;
+    if (along > 0.0) {
+        float fall = exp(-along / (D * 0.95)) * smoothstep(0.0, D * 0.05, along) * (1.0 - smoothstep(D * 0.9, D * 1.6, along));
+        g += coneAcross(d, ax, D, spread) * fall * (1.0 - smoothstep(R - D * 0.2, R, length(d)));
+    }
+    return g;
+}
 // ---- the room's depth, the camera, and what is drawn into the air ----
 uniform sampler2D uDepth; uniform float uNear, uFpx; uniform vec2 uCentre; uniform mat4 uCamWorld;
 uniform float uAO, uAORad; uniform vec3 uKernel[12];
@@ -1590,6 +1709,17 @@ uniform float uVolCut;                      // the flashlight CUTS THROUGH: insi
 // glows through the darkness between it and the eye by up to uVolLitAir
 uniform float uVolLit, uVolLitAir;
 uniform int uVN; uniform vec4 uVLP[4]; uniform vec3 uVLC[4]; uniform vec3 uVLF[4]; uniform sampler2D uVLMap[4]; uniform mat3 uVCubeAx[6];
+// THE LIGHTS' AIR ONLY INSIDE THE ROOM (2026-10-14, BAPTIST/1: the sun outside its windows lit the open sky above the walls):
+// a world box (the room's own bounds); air outside it takes no placed light. uAirBox 0 = everywhere
+uniform int uAirBox; uniform vec3 uAirLo, uAirHi;
+// each air light's GATE (see FS_MAIN's uGateLo): .w of lo = on; uVLW its place (world)
+uniform vec4 uVGLo[4]; uniform vec3 uVGHi[4]; uniform vec3 uVLW[4];
+bool segThrough(vec3 a, vec3 b, vec3 lo, vec3 hi) {
+    vec3 d = b - a, inv = 1.0 / mix(d, vec3(1e-9), lessThan(abs(d), vec3(1e-9)));
+    vec3 t0 = (lo - a) * inv, t1 = (hi - a) * inv, tn = min(t0, t1), tf = max(t0, t1);
+    float n = max(max(max(tn.x, tn.y), tn.z), 0.0), f = min(min(min(tf.x, tf.y), tf.z), 1.0);
+    return n <= f;
+}
 // per light, in the air: its cross axes and direction (view space), cone (cos inner, cos outer; outer < -1.5 = all round),
 // its strength in the air, its RAYS (0..1: streaks across the cone, drifting), and its own reach (0 = the volume's)
 uniform mat3 uVLB[4]; uniform vec4 uVLK[4]; uniform float uVLR[4]; uniform vec3 uVLM[4]; uniform vec2 uVLT[4];
@@ -1702,8 +1832,11 @@ vec3 volMarch(vec3 dir, float L, float dens, float j, out float tau) {
         }
         float Tt = max(exp(-dens * t), floorT) * max(exp(-tau), 1.0 - uPaint.y);
         vec3 li = vec3(0.0), lb = vec3(0.0);
+        int vn = uVN; vec3 Pb = vec3(0.0); bool haveW = false;
+        if (uAirBox != 0) { Pb = (uCamWorld * vec4(P, 1.0)).xyz; haveW = true; if (any(lessThan(Pb, uAirLo)) || any(greaterThan(Pb, uAirHi))) vn = 0; }
         for (int k = 0; k < 4; k++) {
-            if (k >= uVN) break;
+            if (k >= vn) break;
+            if (uVGLo[k].w > 0.5) { if (!haveW) { Pb = (uCamWorld * vec4(P, 1.0)).xyz; haveW = true; } if (!segThrough(uVLW[k], Pb, uVGLo[k].xyz, uVGHi[k])) continue; }
             vec3 dl = uVLP[k].xyz - P; float d2 = max(dot(dl, dl), 1e-4), d = sqrt(d2);
             float rk = uVLR[k] > 0.0 ? uVLR[k] : uVol2.y;
             float att = uVLK[k].z / (1.0 + d2 / (rk * rk));
@@ -1777,7 +1910,7 @@ vec4 volUp(ivec2 p, float L) {
         vec2 fc = vec2(p) + 0.5;
         vec3 ray = vec3((fc.x - uCentre.x) / uFpx, (uCentre.y - fc.y) / uFpx, 1.0);
         vec3 Vp = dz > 0.0 ? ray * (uNear / dz) : ray * uMarchMax;
-        if (dz > 0.0 && uAO > 0.0) col *= ambientOcc(p, Vp);
+        if (dz > 0.0 && uAO > 0.0 && Vp.z < 800.0) col *= ambientOcc(p, Vp);     // (from 800 on its fade makes it exactly 1: 16 depth reads saved there)
         if (uMistOn != 0 || (uBeam > 0.0 && uLampOn != 0)) {
             // THE AIR between the eye and this pixel.
             vec3 dir = normalize(ray);
@@ -1864,6 +1997,27 @@ vec4 volUp(ivec2 p, float L) {
         pic = (ic.r << 16) | (ic.g << 8) | ic.b;
     }
     if (uBlack != 0) pic = 0;
+    if (uMapK > 0.001) {
+        // the world behind the map: faded back (darker, a little greyer) but still there; the map laid over it
+        vec3 c0 = vec3(ch(pic)); float l0 = dot(c0, vec3(0.30, 0.59, 0.11));
+        c0 = mix(c0, mix(c0, vec3(l0), 0.35) * (1.0 - uMapDim), uMapK);
+        vec4 m = texelFetch(uMapLayer, p, 0);
+        c0 = c0 * (1.0 - min(1.0, m.a) * uMapK) + m.rgb * 255.0 * uMapK;
+        // THE VISOR'S LIGHTS: screened over the map view, a touch of grain so the faint gradients do not band
+        if (uMlK.x + uMlK.y + uMlK.z > 0.0) {
+            vec2 q = vec2(p) + 0.5;
+            float m = uMlA.w, g = 0.0;
+            if (uMlPulse.y > 0.0) g += (beamPulse(q, uMlE.xy, uMlC.xy, uMlA.x, uMlA.z, uMlPulse.x) + beamPulse(q, uMlE.zw, uMlC.zw, uMlA.x, uMlA.z, uMlPulse.x)) * uMlK.y;
+            if (m > 0.0) g += (beamCone(q, uMlE.xy, uMlC.xy, uMlA.x, uMlA.z, uMlConeR) * uMlFl.x + beamCone(q, uMlE.zw, uMlC.zw, uMlA.x, uMlA.z, uMlConeR) * uMlFl.y) * uMlK.z * m;
+            g *= uMapK;
+            g += (fract(sin(dot(q, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * 0.006 * min(1.0, g * 20.0);
+            vec3 li = clamp(uMlCol * g, 0.0, 1.0);
+            c0 = 255.0 - (255.0 - c0) * (1.0 - li);
+        }
+        // THE VISOR'S INTERLACE over the whole map view: every few rows (one in max(2, rows / 500)) a little darker
+        if (uMapLines > 0.0) { int lp = max(2, int(round(float(uSize.y) / 500.0))); if (p.y % lp == 0) c0 *= 1.0 - uMapLines * uMapK; }
+        ivec3 mc = ivec3(clamp(round(c0), 0.0, 255.0)); pic = (mc.r << 16) | (mc.g << 8) | mc.b;
+    }
     vec4 picC = vec4(vec3(ch(pic)) / 255.0, 0.0);
     bool band = uVisor != 0 && (p.y < uBand.x || p.y >= uBand.y);
     int ix = texelFetch(uMap, ivec2(p.x, band ? 2 : 0), 0).r;
@@ -1877,8 +2031,10 @@ vec4 volUp(ivec2 p, float L) {
     if (uHide.z > uHide.x && float(ix + 1) >= uHide.x && float(ix) < uHide.z && float(iy + 1) >= uHide.y && float(iy) < uHide.w) { oColor = picC; return; }
     if (uHide2.z > uHide2.x && float(ix + 1) >= uHide2.x && float(ix) < uHide2.z && float(iy + 1) >= uHide2.y && float(iy) < uHide2.w) { oColor = picC; return; }
     int a = px(uScreen, ivec2(ix, iy)), b = px(uScreen, ivec2(ix + 1, iy)), c = px(uScreen, ivec2(ix, iy + 1)), d = px(uScreen, ivec2(ix + 1, iy + 1));
-    if (a == uKey && b == uKey && c == uKey && d == uKey) { oColor = picC; return; }
-    if (a == uKey) a = pic; if (b == uKey) b = pic; if (c == uKey) c = pic; if (d == uKey) d = pic;
+    // (the key: the colour measured as the commonest in the view, AND the key the host hands the game -- uKey2; KeyAlso)
+    bool ka = a == uKey || a == uKey2, kb = b == uKey || b == uKey2, kc = c == uKey || c == uKey2, kd = d == uKey || d == uKey2;
+    if (ka && kb && kc && kd) { oColor = picC; return; }
+    if (ka) a = pic; if (kb) b = pic; if (kc) c = pic; if (kd) d = pic;
     int nx = 256 - wx, ny = 256 - wy;
     ivec3 top = (ch(a) * nx + ch(b) * wx) >> 8, bot = (ch(c) * nx + ch(d) * wx) >> 8;
     ivec3 r = (top * ny + bot * wy) >> 8;
@@ -1896,7 +2052,9 @@ out vec4 vC; out float vSeed;
 void main() {
     vec4 p = uView * vec4(aP.xyz, 1.0);
     gl_Position = vec4(p.x * uF.x, -p.y * uF.y + uOffY * p.z, uNear, p.z);
-    gl_PointSize = clamp(2.0 * aP.w * uFpx / max(p.z, 1.0), 1.5, 256.0);
+    float ps = clamp(2.0 * aP.w * uFpx / max(p.z, 1.0), 1.5, 256.0);
+    if (aM.y < -1.5) ps = 1.0 + fract(-aM.y) * 1.2;      // a SPARK (seed -2..-3): 1 to 2 pixels, however near or far (Josh, 2026-10-14)
+    gl_PointSize = ps;
     vC = aC; vSeed = aM.y;
 }";
         const string FS_PART = @"#version 400 core
@@ -1920,6 +2078,7 @@ void main() {
         oColor = vec4(vC.rgb / 255.0 * af, af);
         return;
     }
+    if (vSeed < -1.5) { oColor = vec4(vC.rgb / 255.0 * vC.a, vC.a); return; }      // a spark: a hard point, no soft edge
     if (vSeed < -0.5) q.x *= 3.0;                         // a drip: a narrow streak
     float d2 = dot(q, q); if (d2 > 1.0) discard;
     float a = vC.a * (1.0 - d2) * (1.0 - d2);
@@ -1943,7 +2102,19 @@ void main() {
             int ok; glGetProgramiv(p, GL_LINK_STATUS, out ok);
             if (ok == 0) { var sb = new StringBuilder(8192); int n; glGetProgramInfoLog(p, sb.Capacity, out n, sb); throw new InvalidOperationException("shaders for " + what + " did not link: " + sb); }
             glDeleteShader(vs); glDeleteShader(fs);
+            _uloc.Remove(p);                  // (a reused program name: its old locations are not this one's)
             return p;
+        }
+        // UNIFORM LOCATIONS, ASKED ONCE (2026-10-13 performance audit): the passes looked ~200 names up every frame through
+        // a string-marshalled driver call (PresentPass, PostCompose, WaterUniforms, DrawSet's "uSkip", the cube faces' "uOffY",
+        // ...). A program's locations never change after it links, so each name is asked of the driver once and kept.
+        readonly System.Collections.Generic.Dictionary<uint, System.Collections.Generic.Dictionary<string, int>> _uloc = new System.Collections.Generic.Dictionary<uint, System.Collections.Generic.Dictionary<string, int>>();
+        int glGetUniformLocation(uint prog, string name)
+        {
+            System.Collections.Generic.Dictionary<string, int> d;
+            if (!_uloc.TryGetValue(prog, out d)) { d = new System.Collections.Generic.Dictionary<string, int>(); _uloc[prog] = d; }
+            int v; if (!d.TryGetValue(name, out v)) { v = glGetUniformLocationRaw(prog, name); d[name] = v; }
+            return v;
         }
 
         // uniform locations
@@ -1977,7 +2148,57 @@ void main() {
         /// <summary>Light i always takes one of the air's four places (the nearest otherwise), whatever lights are nearer.</summary>
         public void SetAirFirst(int i, bool on) { if (i >= 0 && i < Raster.MaxLights) _airFirst[i] = on; }
         readonly bool[] _airFirst = new bool[Raster.MaxLights];
-        public void ClearLightSpots() { Array.Clear(_airFirst, 0, _airFirst.Length); for (int i = 0; i < Raster.MaxLights; i++) SetLightTint(i, 1, 1, 1, 0, 1); for (int i = 0; i < Raster.MaxLights; i++) { int b = i * 8; _spot[b] = 0; _spot[b + 1] = -1; _spot[b + 2] = 0; _spot[b + 3] = 0; _spot[b + 4] = 0; _spot[b + 5] = 1; _spot[b + 6] = 0; _spot[b + 7] = 0; } }
+        /// <summary>Light i lights only the side of each face the eye is on ("oneSided": sunlight outside a window lights the
+        /// room through it, not the wall's inner face from behind). ClearLightSpots puts every light back to both sides.</summary>
+        /// <summary>The placed lights light the AIR only inside this world box (the room's bounds: BAPTIST's sun outside its
+        /// windows lit the open sky above the walls). Off = everywhere.</summary>
+        public bool AirBoxOn; public readonly float[] AirLo = new float[3], AirHi = new float[3];
+        /// <summary>Light i reaches only what it sees through this world box (a window's opening: BAPTIST's sun, 2026-10-14);
+        /// on = false takes it off. ClearLightSpots takes every gate off.</summary>
+        public void SetLightGate(int i, bool on, float x0, float y0, float z0, float x1, float y1, float z1)
+        {
+            if (i < 0 || i >= Raster.MaxLights) return; int g = i * 7;
+            _gate[g] = on ? 1f : 0f; _gate[g + 1] = Math.Min(x0, x1); _gate[g + 2] = Math.Min(y0, y1); _gate[g + 3] = Math.Min(z0, z1); _gate[g + 4] = Math.Max(x0, x1); _gate[g + 5] = Math.Max(y0, y1); _gate[g + 6] = Math.Max(z0, z1);
+        }
+        readonly float[] _gate = new float[Raster.MaxLights * 7];
+        readonly float[] _vGLo = new float[16], _vGHi = new float[12], _vLW = new float[12];
+        public void SetLightOneSided(int i, bool on) { if (i >= 0 && i < Raster.MaxLights) _oneSided[i] = on; }
+        readonly bool[] _oneSided = new bool[Raster.MaxLights];
+        /// <summary>WALL WASHES (2026-10-14, Josh, CHAMBNEW): steady spotlights with no shadow, on top of the placed lights
+        /// (a room's "lights" entries with "wash": true). Per wash, world space: x y z, range, r g b (colour x strength),
+        /// direction (unit), cone inner/outer in degrees. Up to MaxWashes; null or n 0 = none.</summary>
+        public void SetWashes(float[] w, int n)
+        {
+            _washN = 0; if (w == null) return;
+            n = Math.Max(0, Math.Min(Math.Min(n, MaxWashes), w.Length / 12));
+            for (int i = 0; i < n; i++)
+            {
+                int s = i * 12, b = i * WashStride;
+                float dx = w[s + 7], dy = w[s + 8], dz = w[s + 9], l = (float)Math.Sqrt(dx * dx + dy * dy + dz * dz); if (l < 1e-6f) { dx = 0; dy = 1; dz = 0; l = 1; }
+                for (int k = 0; k < 7; k++) _wash[b + k] = w[s + k];
+                _wash[b + 7] = dx / l; _wash[b + 8] = dy / l; _wash[b + 9] = dz / l;
+                float o = Math.Max(1f, Math.Min(w[s + 11], 89f)), inn = Math.Max(0f, Math.Min(w[s + 10], o - 0.5f));
+                _wash[b + 10] = (float)Math.Cos(inn * Math.PI / 180); _wash[b + 11] = (float)Math.Cos(o * Math.PI / 180);
+            }
+            _washN = n;
+        }
+        public const int MaxWashes = 16; const int WashStride = 12;
+        /// <summary>SHOT IMPACTS (Josh, 2026-10-14): a scorch where a shot hit -- point, the surface's normal, radius (units); the
+        /// newest 16 are kept, each fading over ScorchLife seconds (by Time). ImpactK (0..1, the watcher eases it to 0 over a
+        /// fraction of a second) lights the spot: a brief warm glow off the surface, as one more wall wash.</summary>
+        public void AddScorch(float x, float y, float z, float nx, float ny, float nz, float radius)
+        {
+            int b = _scNext * 8; _sc[b] = x; _sc[b + 1] = y; _sc[b + 2] = z; _sc[b + 3] = radius; _sc[b + 4] = nx; _sc[b + 5] = ny; _sc[b + 6] = nz; _sc[b + 7] = Time;
+            _scNext = (_scNext + 1) % 16; if (_scN < 16) _scN++;
+            ImpactAt[0] = x + nx * 6f; ImpactAt[1] = y + ny * 6f; ImpactAt[2] = z + nz * 6f; ImpactAt[3] = nx; ImpactAt[4] = ny; ImpactAt[5] = nz;
+        }
+        public void ClearScorches() { _scN = 0; _scNext = 0; ImpactK = 0f; }
+        public float ScorchLife = 30f, ImpactK, ImpactPower = 2.2f, ImpactRange = 70f; public int ImpactColour = 0xFF9A40;
+        public readonly float[] ImpactAt = new float[6];
+        readonly float[] _sc = new float[16 * 8]; int _scN, _scNext;
+        readonly float[] _wash = new float[MaxWashes * WashStride]; int _washN;
+        public int WashCount { get { return _washN; } }
+        public void ClearLightSpots() { Array.Clear(_airFirst, 0, _airFirst.Length); Array.Clear(_oneSided, 0, _oneSided.Length); Array.Clear(_gate, 0, _gate.Length); for (int i = 0; i < Raster.MaxLights; i++) SetLightTint(i, 1, 1, 1, 0, 1); for (int i = 0; i < Raster.MaxLights; i++) { int b = i * 8; _spot[b] = 0; _spot[b + 1] = -1; _spot[b + 2] = 0; _spot[b + 3] = 0; _spot[b + 4] = 0; _spot[b + 5] = 1; _spot[b + 6] = 0; _spot[b + 7] = 0; } }
         public void SetLightSpot(int i, float dx, float dy, float dz, float innerDeg, float outerDeg, float air, float airReach, float rays)
         {
             if (i < 0 || i >= Raster.MaxLights) return; int b = i * 8; float l = (float)Math.Sqrt(dx * dx + dy * dy + dz * dz); if (l < 1e-6f) { dx = 0; dy = -1; dz = 0; l = 1; }
@@ -2043,6 +2264,7 @@ void main() {
             cKey = glGetUniformLocation(p, "uKey"); cBlack = glGetUniformLocation(p, "uBlack"); cBand = glGetUniformLocation(p, "uBand"); cVisor = glGetUniformLocation(p, "uVisor"); cK = glGetUniformLocation(p, "uK"); cSize = glGetUniformLocation(p, "uSize");
         }
         // texture units: 0 colour, 1 holes, 2-3 lamp maps, 4-11 light maps, 12 the depth copy (15 the bounce, 16 the companion maps)
+        const int UNIT_MAP = 19; public bool MapUnitOk;      // (the map layer, for the compose)
         const int UNIT_LAMP = 2, UNIT_LIGHT = 4, UNIT_SURF = 12, UNIT_NORM = 13, UNIT_REFL = 14, UNIT_MAT = 16, UNIT_GROUND = 17, UNIT_HEIGHT = 18;
 
         // ---- lighting: a copy of the processor renderer's settings, taken every frame ---------
@@ -3147,6 +3369,8 @@ void main() {
                     // its material: how it shines; its companion maps, if it has them
                     var tm = texes[i];
                     glUniform1f(mShine, tm.Shine * ShineGain); glUniform1f(mGloss, tm.Gloss); glUniform1f(mMetal, tm.Metal); glUniform1f(mShineVary, tm.ShineVary); glUniform1f(mWetK, tm.Wet); glUniform1f(mReliefK, tm.Relief);
+                    glUniform1f(glGetUniformLocation(_pMain, "uGlass"), tm.Glass);
+                    if (tm.Glass > 0f) glUniform3f(glGetUniformLocation(_pMain, "uGlassTint"), ((tm.GlassTint >> 16) & 255) / 255f, ((tm.GlassTint >> 8) & 255) / 255f, (tm.GlassTint & 255) / 255f);
                     if (MatUnitOk)
                     {
                         if (tm.MatPx != null && !ReferenceEquals(g.MatSrc, tm.MatPx)) MakeMat(tm, g);      // (new or changed maps; none = keep what the card has)
@@ -3293,6 +3517,7 @@ void main() {
                 // 3b'. THE SWEEP'S LINES THROUGH THE WALLS (the materialize sweep: the room's edges the room hides)
                 LastXraySegs = 0;
                 if (_matNow && _matClock != null && MatXray) DrawXray(vx, idx, triTex, texes);
+            DrawEcho(vx, idx);      // (the visor's echo scan: its targets through the walls)
                 if (_flames.Count > 0) DrawFlames();
                 // 3c. A GHOST, as smoke over the room as it stands (before the dust and particles, her wisps among them)
                 LastGhostDrawn = false;
@@ -3303,6 +3528,7 @@ void main() {
                 // 5. PARTICLES: embers, drips, steam, kicked-up dust
                 LastParticles = 0;
                 if (_partN > 0) { DrawParticles(); LastParticles = _partN; }
+                if (MapK > 0.001f && MapUnitOk) DrawMap(vx, idx, triTex, texes);      // (the map's own layer, when it is up)
 
                 glBindVertexArray(0);
                 Check("drawing");
@@ -3375,7 +3601,7 @@ void main() {
                 lp[i * 4]     = x * V[0] + y * V[4] + z * V[8] + V[12];
                 lp[i * 4 + 1] = x * V[1] + y * V[5] + z * V[9] + V[13];
                 lp[i * 4 + 2] = x * V[2] + y * V[6] + z * V[10] + V[14];
-                float rg = _lightsW[i * 8 + 6]; lp[i * 4 + 3] = rg > 1f ? 1f / (rg * rg) : 1f;
+                float rg = _lightsW[i * 8 + 6]; lp[i * 4 + 3] = (rg > 1f ? 1f / (rg * rg) : 1f) * (_oneSided[i] ? -1f : 1f);
                 lc[i * 3] = _lightsW[i * 8 + 3]; lc[i * 3 + 1] = _lightsW[i * 8 + 4]; lc[i * 3 + 2] = _lightsW[i * 8 + 5];
                 var s = _slots[2 + i];
                 if (s != null && s.On)
@@ -3407,6 +3633,63 @@ void main() {
             var tm = new float[8 * 3]; var td = new float[8 * 2];
             for (int i = 0; i < 8; i++) { tm[i * 3] = _tint[i * 5]; tm[i * 3 + 1] = _tint[i * 5 + 1]; tm[i * 3 + 2] = _tint[i * 5 + 2]; td[i * 2] = _tint[i * 5 + 3]; td[i * 2 + 1] = _tint[i * 5 + 4]; }
             glUniform3fv(mLightTintM, 8, tm); glUniform2fv(mLightTintD, 8, td);
+            // the lights' gates (world)
+            {
+                var glo = new float[8 * 4]; var ghi = new float[8 * 3]; var lw = new float[8 * 3];
+                for (int i = 0; i < _nLights; i++)
+                {
+                    int g = i * 7; glo[i * 4 + 3] = _gate[g] > 0.5f ? 1f : 0f;
+                    for (int a = 0; a < 3; a++) { glo[i * 4 + a] = _gate[g + 1 + a]; ghi[i * 3 + a] = _gate[g + 4 + a]; lw[i * 3 + a] = _lightsW[i * 8 + a]; }
+                }
+                glUniform4fv(glGetUniformLocation(_pMain, "uGateLo[0]"), 8, glo); glUniform3fv(glGetUniformLocation(_pMain, "uGateHi[0]"), 8, ghi); glUniform3fv(glGetUniformLocation(_pMain, "uLightW[0]"), 8, lw);
+            }
+            // the echo's shell (its radius from the eye, band, strength)
+            {
+                float er = EchoT < 0f || refl ? 0f : Math.Min(EchoMax * 1.1f, EchoT * EchoSpeed);
+                float es = EchoT < 0f || refl ? 0f : EchoShell * Math.Max(0f, 1f - EchoT * EchoSpeed / (EchoMax * 1.1f));
+                glUniform3f(glGetUniformLocation(_pMain, "uEcho"), er, EchoBand, es);
+            }
+            // the scorches (world, ages by Time)
+            {
+                var sp = new float[64]; var sq = new float[64]; int sn = 0;
+                for (int i = 0; i < _scN && !refl; i++)
+                {
+                    int b = i * 8; float age = Time - _sc[b + 7]; if (age < 0f || age > ScorchLife) continue;
+                    sp[sn * 4] = _sc[b]; sp[sn * 4 + 1] = _sc[b + 1]; sp[sn * 4 + 2] = _sc[b + 2]; sp[sn * 4 + 3] = _sc[b + 3];
+                    sq[sn * 4] = _sc[b + 4]; sq[sn * 4 + 1] = _sc[b + 5]; sq[sn * 4 + 2] = _sc[b + 6]; sq[sn * 4 + 3] = age; sn++;
+                }
+                glUniform1i(glGetUniformLocation(_pMain, "uScN"), sn);
+                if (sn > 0) { glUniform4fv(glGetUniformLocation(_pMain, "uScP[0]"), 16, sp); glUniform4fv(glGetUniformLocation(_pMain, "uScQ[0]"), 16, sq); glUniform1f(glGetUniformLocation(_pMain, "uScLife"), Math.Max(1f, ScorchLife)); }
+            }
+            // the wall washes, into view space likewise
+            {
+                int wn = refl ? 0 : _washN;
+                // (and a shot's impact glow as one more: 6 units off the surface, shining back onto it in a wide spot, warm)
+                bool imp = !refl && ImpactK > 0.01f && wn < MaxWashes;
+                if (imp)
+                {
+                    int b = wn * WashStride; _wash[b] = ImpactAt[0]; _wash[b + 1] = ImpactAt[1]; _wash[b + 2] = ImpactAt[2]; _wash[b + 3] = ImpactRange;
+                    float k = ImpactPower * ImpactK; _wash[b + 4] = ((ImpactColour >> 16) & 255) / 255f * k; _wash[b + 5] = ((ImpactColour >> 8) & 255) / 255f * k; _wash[b + 6] = (ImpactColour & 255) / 255f * k;
+                    _wash[b + 7] = -ImpactAt[3]; _wash[b + 8] = -ImpactAt[4]; _wash[b + 9] = -ImpactAt[5]; _wash[b + 10] = (float)Math.Cos(75 * Math.PI / 180);      // (back at the wall: lighting round the hit) _wash[b + 11] = (float)Math.Cos(89 * Math.PI / 180);
+                    wn++;
+                }
+                var wp = new float[MaxWashes * 4]; var wc = new float[MaxWashes * 3]; var wd = new float[MaxWashes * 3]; var wk = new float[MaxWashes * 2];
+                for (int i = 0; i < wn; i++)
+                {
+                    int b = i * WashStride; float x = _wash[b], y = _wash[b + 1], z = _wash[b + 2], dx = _wash[b + 7], dy = _wash[b + 8], dz = _wash[b + 9];
+                    wp[i * 4] = x * V[0] + y * V[4] + z * V[8] + V[12]; wp[i * 4 + 1] = x * V[1] + y * V[5] + z * V[9] + V[13]; wp[i * 4 + 2] = x * V[2] + y * V[6] + z * V[10] + V[14];
+                    float rg = _wash[b + 3]; wp[i * 4 + 3] = rg > 1f ? 1f / (rg * rg) : 1f;
+                    wc[i * 3] = _wash[b + 4]; wc[i * 3 + 1] = _wash[b + 5]; wc[i * 3 + 2] = _wash[b + 6];
+                    wd[i * 3] = dx * V[0] + dy * V[4] + dz * V[8]; wd[i * 3 + 1] = dx * V[1] + dy * V[5] + dz * V[9]; wd[i * 3 + 2] = dx * V[2] + dy * V[6] + dz * V[10];
+                    wk[i * 2] = _wash[b + 10]; wk[i * 2 + 1] = _wash[b + 11];
+                }
+                glUniform1i(glGetUniformLocation(_pMain, "uWashN"), wn);
+                if (wn > 0)
+                {
+                    glUniform4fv(glGetUniformLocation(_pMain, "uWashP[0]"), MaxWashes, wp); glUniform3fv(glGetUniformLocation(_pMain, "uWashC[0]"), MaxWashes, wc);
+                    glUniform3fv(glGetUniformLocation(_pMain, "uWashDir[0]"), MaxWashes, wd); glUniform2fv(glGetUniformLocation(_pMain, "uWashCone[0]"), MaxWashes, wk);
+                }
+            }
             // THE AIR TAKES FOUR LIGHTS: the four NEAREST the eye (Josh's fifth MINEMAZE torch, 2026-10-09 -- it was the first four
             // in the room file, so a fifth lit its walls but never glowed in the fog). _air[k]: which light is the air's k-th.
             int airN = 0;
@@ -3420,6 +3703,12 @@ void main() {
                 Array.Sort(dist, order); airN = Math.Min(_nLights, 4);
                 for (int k = 0; k < 4; k++) _air[k] = k < airN ? order[k] : 0;
                 for (int k = 0; k < 4; k++) { int i = _air[k]; Array.Copy(tm, i * 3, _vM, k * 3, 3); Array.Copy(td, i * 2, _vT, k * 2, 2); }
+                // (their gates, for the air)
+                for (int k = 0; k < 4; k++)
+                {
+                    int i = _air[k], g = i * 7; _vGLo[k * 4 + 3] = (k < airN && _gate[g] > 0.5f) ? 1f : 0f;
+                    for (int a = 0; a < 3; a++) { _vGLo[k * 4 + a] = _gate[g + 1 + a]; _vGHi[k * 3 + a] = _gate[g + 4 + a]; _vLW[k * 3 + a] = _lightsW[i * 8 + a]; }
+                }
             }
             if (!refl)
             {
@@ -3719,7 +4008,124 @@ void main() {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
             _mapKey = cxi; _mapKeyR = cxiR; _mapKeyY = riy;
+            // (where the game's view lies in the picture, for the map's lights: picture x = _cmX0 + view x * _cmSx; the view's rows)
+            int c0 = -1, c1 = -1; for (int x = 0; x < W && x < cxi.Length; x++) if (cxi[x] >= 0) { if (c0 < 0) c0 = x; c1 = x; }
+            _cmSx = c0 >= 0 && cxi[c1] > cxi[c0] ? (float)(c1 - c0) / (cxi[c1] - cxi[c0]) : 0f; _cmX0 = c0 >= 0 ? c0 - cxi[c0] * _cmSx : 0f;
+            _cmVr = H; for (int y = 0; y < H && y < riy.Length; y++) if (riy[y] < 0) { _cmVr = y; break; }
             Check("sending the compose map");
+        }
+        float _cmX0, _cmSx; int _cmVr;
+        /// <summary>THE VISOR'S LIGHTS ON THE MAP (Josh, 2026-10-14: "very subtle 'lights' that come from the top left and right
+        /// portion of the lower UI ... as if the visor is drawing these vectors on the player's visor display ... a very light teal
+        /// ... fanning inward with a natural, diffused glow ... as if this lighting was drawing the map, and then still persisting as
+        /// a very faint, cone shaped glow on each side angled inward towards the map area"). Where the two lights are, in the
+        /// game's VIEW pixels (x 0..1600 across the game's view, so the panel's corners lie outside it; rows from the view's top):
+        /// the panel art's two corner horns (the watcher sets them from art\wide\wide.json).</summary>
+        public float[] MapBeamView = { -142.6f, 823.7f, 1742.6f, 823.7f };
+        /// <summary>Where they point: shares of the picture's width and of the view's rows.</summary>
+        public float MapBeamAimX = 0.5f, MapBeamAimY = 0.5f;
+        /// <summary>THE ANIMATION (Josh, 2026-10-14, simplified twice: "There is a second pulse from the lights that I like, and that's
+        /// the only one I want to see ... that pulse with the sort of ribbing light effect ... and then the flickering spotlights as
+        /// they are now ... I want that pulse to extend indefinitely and off screen, not stop at the edges ... it will span from the
+        /// projection point and spread out ... then it will fade/flicker"). ONE pulse from each light: a bright band with ribs of light
+        /// trailing it, running out in a fan that widens as it goes, on past the screen's edges; then the spotlights flicker in.
+        /// MapBeamK: the resting spotlights' strength; MapBeamSpread: their spread (tan); MapBeamFan: the pulse's fan, full width
+        /// (degrees), its top edge on the spotlight's.</summary>
+        public float MapBeamK = 0.15f, MapBeamSpread = 0.22f, MapBeamFan = 40f;
+        /// <summary>Seconds: the pulse's run (MapBeamPulseOut: how far it gets in it, as many reaches -- well off the screen); the
+        /// spotlights melting in (from MapBeamMorphAt of the run on). MapBeamPulseK: the pulse's strength.</summary>
+        public float MapBeamPulse = 1.8f, MapBeamPulseOut = 2.8f, MapBeamMorphAt = 0.5f, MapBeamMorph = 0.9f, MapBeamPulseK = 0.4f;
+        /// <summary>The spotlights' strength while the pulse carries them out, as a multiple of their resting strength.</summary>
+        public float MapBeamBoost = 1.6f;
+        /// <summary>The cone's spread (tan) while the pulse runs -- the pulse and the spotlight riding out with it share it (Josh,
+        /// 2026-10-14: 'a wider version of those initial cones, and the pulsing effect needs to adhere to those same shapes').</summary>
+        public float MapBeamPulseSpread = 0.45f;
+        /// <summary>The resting spotlights' flicker, always (0 = steady): the small waver, and how often (share of 1/14 s steps) and
+        /// how deep a dip goes.</summary>
+        public float MapBeamWaver = 0.06f, MapBeamDipOdds = 0.06f, MapBeamDip = 0.35f;
+        /// <summary>When the whole run is over (s since the map opened).</summary>
+        public float MapBeamRun { get { return Math.Max(MapBeamPulse, MapBeamPulse * MapBeamMorphAt + MapBeamMorph); } }
+        static double FlickNoise(int i) { uint h = (uint)i * 2654435761u; h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15; return (h & 0xFFFF) / 65535.0; }
+        readonly Stopwatch _beamClock = Stopwatch.StartNew();
+        /// <summary>THE MAP'S BADGE (Josh, 2026-10-14: like the "Mapping environment" one, "Accessing Map Data..." while the lights
+        /// draw the map): ScanWire.cs ScanTag shows it at this strength -- from the map's opening for as long as the sweep runs
+        /// (the pulse-in and the settle), then gone over 0.3 s -- its bar filling with MapTagProgress.</summary>
+        public float MapTagK
+        {
+            get
+            {
+                if (!MapOn || MapK <= 0.001f || MapBeamT < 0f || !MapUnitOk) return 0f;
+                float end = MapBeamRun;
+                return Math.Min(1f, MapK) * (1f - Smooth01((MapBeamT - end) / 0.3f));
+            }
+        }
+        public float MapTagProgress { get { return Smooth01(MapBeamT / Math.Max(0.1f, MapBeamRun)); } }
+        /// <summary>THE ECHO SCAN'S BADGE (Josh, 2026-10-14: on the V pulse "a similar badge but in amber, which reads 'Gathering
+        /// Environmental Data'"): shown while the shell runs out (and EchoTagHold s after), then gone over 0.3 s; its bar = the shell's reach.</summary>
+        public float EchoTagHold = 0.6f;
+        public float EchoTagK { get { if (EchoT < 0f) return 0f; float end = EchoMax / Math.Max(1f, EchoSpeed) + EchoTagHold; return 1f - Smooth01((EchoT - end) / 0.3f); } }
+        public float EchoTagProgress { get { return EchoT < 0f ? 0f : Math.Min(1f, EchoT * EchoSpeed / Math.Max(1f, EchoMax)); } }
+        public int MapBeamInk = 0xA6F0E6;
+        /// <summary>Seconds since the map opened (the watcher; below 0 = settled).</summary>
+        public float MapBeamT = -1f;
+        static float Smooth01(float x) { x = Math.Max(0f, Math.Min(1f, x)); return x * x * (3f - 2f * x); }
+        void SetBeamUniforms(bool mapUp, int gameH)
+        {
+            uint pc = _pComp; Func<string, int> L = n => glGetUniformLocation(pc, n);
+            float[] e = MapBeamView;
+            bool on = mapUp && MapBeamK > 0f && _cmSx > 0f && e != null && e.Length >= 4 && gameH > 0;
+            glUniform3f(L("uMlK"), 0f, 0f, 0f); glUniform4f(L("uMlA"), 1f, 0.5f, 0.2f, 0f); glUniform2f(L("uMlPulse"), 0f, 0f); glUniform1f(L("uMlConeR"), 1e6f);
+            if (!on) return;
+            float sy = (float)_cmVr / gameH;
+            float t = MapBeamT;
+            float ex = _cmX0 + e[0] * _cmSx, ey = e[1] * sy, exR = _cmX0 + e[2] * _cmSx, eyR = e[3] * sy;
+            float aimX = W * MapBeamAimX, aimY = _cmVr * MapBeamAimY;
+            // (angles: the LEFT light's, above the picture's horizontal; the right one is its mirror) the spotlight's axis on the aim;
+            // the fan's middle such that its top edge lies on the spotlight's top edge (so it melts into it), half the fan below it
+            double aRest = Math.Atan2(ey - aimY, aimX - ex), fanHalf = MapBeamFan * Math.PI / 360.0;
+            double aFan = aRest + Math.Atan(MapBeamSpread) - fanHalf;
+            float reach = (float)Math.Sqrt((aimX - ex) * (aimX - ex) + (aimY - ey) * (aimY - ey));
+            float morph = 1f, pulseR = 0f, pulseK = 0f, coneFlick = 1f, coneR = 1e6f, coneBoost = 1f, spread = MapBeamSpread;
+            if (t >= 0f)
+            {
+                // the pulse: from the light, out past the screen's edges, its fan widening as it goes; at full strength until its
+                // last quarter, where it fades out flickering
+                float pa = t / Math.Max(0.1f, MapBeamPulse);
+                if (pa < 1f)
+                {
+                    pulseR = reach * MapBeamPulseOut * (1f - (float)Math.Pow(1f - pa, 1.3));
+
+                    pulseK = MapBeamPulseK * Smooth01(pa / 0.04f) * (1f - Smooth01((pa - 0.72f) / 0.28f));
+                    if (pa > 0.72f && FlickNoise((int)(t * 24f)) < 0.45) pulseK *= (float)(0.2 + 0.5 * FlickNoise((int)(t * 24f) + 7919));
+                }
+                // THE SPOTLIGHTS SPREAD OUT WITH IT (Josh, 2026-10-14: "make the cone glow included in the initial pulse, spanning outward
+                // with it ... a bit brighter than how it appears in its final resting version"): reaching as far as the pulse has, at
+                // MapBeamBoost x their resting strength; from MapBeamMorphAt of the run they settle to it over MapBeamMorph s, flickering
+                coneR = pa < 1f ? pulseR : 1e6f;
+                morph = Smooth01((t - MapBeamPulse * MapBeamMorphAt) / Math.Max(0.05f, MapBeamMorph));
+                coneBoost = 1f + (MapBeamBoost - 1f) * (1f - morph);
+                spread = MapBeamSpread + (MapBeamPulseSpread - MapBeamSpread) * (1f - morph);      // (wide with the pulse, then the resting width)
+                if (morph > 0f && morph < 1f && FlickNoise((int)(t * 24f) + 31) < 0.5 - 0.3 * morph) coneFlick = (float)(0.3 + 0.5 * FlickNoise((int)(t * 24f) + 104729));
+            }
+            // 4. the resting spotlights flicker a little, always, each its own way: a small waver, now and then a dip
+            double ct = _beamClock.Elapsed.TotalSeconds; int step = (int)(ct * 14.0);
+            Func<int, float> fl = seed =>
+            {
+                double w = 1.0 - MapBeamWaver * (0.5 + 0.5 * Math.Sin(ct * (7.3 + seed * 0.0001) + seed)) * FlickNoise(step + seed);
+                if (FlickNoise(step * 3 + seed) < MapBeamDipOdds) w *= 1.0 - MapBeamDip * (0.5 + 0.5 * FlickNoise(step + seed * 7));
+                return (float)w;
+            };
+            float fx = (float)Math.Cos(aFan), fy = -(float)Math.Sin(aFan);          // (rows run down: up the picture is -y)
+            float cx = (float)Math.Cos(aRest), cy = -(float)Math.Sin(aRest);
+            glUniform4f(L("uMlE"), ex, ey, exR, eyR);
+            glUniform4f(L("uMlD"), fx, fy, -fx, fy);
+            glUniform4f(L("uMlC"), cx, cy, -cx, cy);
+            glUniform4f(L("uMlA"), Math.Max(1f, reach), 0f, spread, 1f);
+            glUniform1f(L("uMlConeR"), coneR);
+            glUniform3f(L("uMlK"), 0f, pulseK, MapBeamK * coneBoost * coneFlick);
+            glUniform2f(L("uMlPulse"), pulseR, pulseK > 0f ? 1f : 0f);
+            glUniform2f(L("uMlFl"), fl(11), fl(5003));
+            glUniform3f(L("uMlCol"), ((MapBeamInk >> 16) & 255) / 255f, ((MapBeamInk >> 8) & 255) / 255f, (MapBeamInk & 255) / 255f);
         }
         object _mapKeyR, _mapKeyY;
         /// <summary>After Draw (and any Stamp): sharpen (if sharpen > 0), then lay the game's own
@@ -3738,6 +4144,12 @@ void main() {
         /// world is not shown behind it -- black wherever the host's 3D would be (Josh, 2026-10-08). The game's own
         /// drawings (the page, the HUD) are untouched.</summary>
         public bool BlackView;
+        /// <summary>THE KEY THE HOST HANDS THE GAME (0xRRGGBB; -1 = none): always see-through in the compose, besides the colour
+        /// measured as the commonest in the view. Josh, 2026-10-14: closing the map, a #101010 "dead space" rectangle -- the map
+        /// screen leaves much of the view black, so for the frames until the game has painted the key back over it, BLACK was the
+        /// commonest colour and was taken for the key, and the real key's pixels were laid over the picture as the game's own.
+        /// The key's palette entry is unique (Initialize-TrueColour), so no drawing of the game's can be mistaken for it.</summary>
+        public int KeyAlso = -1;
         public void PostCompose(float sharpen, int[] screen, int stridePx, int gameW, int gameH, int key, int bandTop, int bandBot, bool visor)
         {
             if (screen == null || screen.Length < stridePx * (gameH - 1) + gameW) throw new ArgumentException("screen reading too small");
@@ -3784,10 +4196,17 @@ void main() {
             glActiveTexture(GL_TEXTURE0 + 1); glBindTexture(GL_TEXTURE_2D, _screenTex);
             glActiveTexture(GL_TEXTURE0 + 2); glBindTexture(GL_TEXTURE_2D, _mapTex);
             glUniform1i(cPic, 0); glUniform1i(cScreen, 1); glUniform1i(cMap, 2);
-            glUniform1i(cKey, key & 0xFFFFFF); glUniform1i(cBlack, BlackView ? 1 : 0); glUniform2i(cBand, bandTop, bandBot); glUniform1i(cVisor, visor ? 1 : 0);
+            glUniform1i(cKey, key & 0xFFFFFF); glUniform1i(glGetUniformLocation(_pComp, "uKey2"), (KeyAlso >= 0 ? KeyAlso : key) & 0xFFFFFF); glUniform1i(cBlack, BlackView ? 1 : 0); glUniform2i(cBand, bandTop, bandBot); glUniform1i(cVisor, visor ? 1 : 0);
             glUniform1f(glGetUniformLocation(_pComp, "uHideFrom"), HideFromRow == int.MaxValue ? 1e9f : (float)HideFromRow);
             { int[] hr = HideRect; glUniform4f(glGetUniformLocation(_pComp, "uHide"), hr != null ? hr[0] : 0, hr != null ? hr[1] : 0, hr != null ? hr[2] : 0, hr != null ? hr[3] : 0); }
             { int[] hr = HideRect2; glUniform4f(glGetUniformLocation(_pComp, "uHide2"), hr != null ? hr[0] : 0, hr != null ? hr[1] : 0, hr != null ? hr[2] : 0, hr != null ? hr[3] : 0); }
+            {   // the map layer (DrawMap), when it is up
+                bool mapUp = MapK > 0.001f && _mapLayerTex != 0 && MapUnitOk;
+                glUniform1f(glGetUniformLocation(_pComp, "uMapK"), mapUp ? Math.Min(1f, MapK) : 0f); glUniform1f(glGetUniformLocation(_pComp, "uMapDim"), MapDim);
+            glUniform1f(glGetUniformLocation(_pComp, "uMapLines"), Math.Max(0f, Math.Min(1f, MapLines)));
+                SetBeamUniforms(mapUp, gameH);
+                if (mapUp) { glActiveTexture(GL_TEXTURE0 + UNIT_MAP); glBindTexture(GL_TEXTURE_2D, _mapLayerTex); glUniform1i(glGetUniformLocation(_pComp, "uMapLayer"), UNIT_MAP); glActiveTexture(GL_TEXTURE0); }
+            }
             // the air and the corners
             uint pc = _pComp; Func<string, int> L = n => glGetUniformLocation(pc, n);
             glActiveTexture(GL_TEXTURE0 + 3); glBindTexture(GL_TEXTURE_2D, _depthTex);
@@ -3814,6 +4233,8 @@ void main() {
                 glUniform4f(L("uVol"), Math.Max(0f, VolDensity), Math.Max(0f, Math.Min(1f, VolMax)), Math.Max(0f, VolScatter), Math.Max(0f, VolLamp));
                 glUniform4f(L("uVol2"), Math.Max(-0.9f, Math.Min(0.9f, VolAniso)), Math.Max(1f, VolReach), Math.Max(10f, VolFar), Math.Max(1, Math.Min(64, VolSteps)));
                 glUniform3f(L("uVolCol"), (VolColor >> 16) & 255, (VolColor >> 8) & 255, VolColor & 255); glUniform3f(L("uPaintCol"), (PaintColor >> 16) & 255, (PaintColor >> 8) & 255, PaintColor & 255); glUniform1f(L("uVolCut"), Math.Max(0f, Math.Min(1f, VolCut))); glUniform1f(L("uVolLit"), Math.Max(0f, Math.Min(1f, VolLit))); glUniform1f(L("uVolLitAir"), Math.Max(0f, Math.Min(1f, VolLitAir)));
+                glUniform4fv(L("uVGLo[0]"), 4, _vGLo); glUniform3fv(L("uVGHi[0]"), 4, _vGHi); glUniform3fv(L("uVLW[0]"), 4, _vLW);
+                glUniform1i(L("uAirBox"), AirBoxOn ? 1 : 0); if (AirBoxOn) { glUniform3f(L("uAirLo"), AirLo[0], AirLo[1], AirLo[2]); glUniform3f(L("uAirHi"), AirHi[0], AirHi[1], AirHi[2]); }
                 glUniform1i(L("uVN"), _vN); glUniform4fv(L("uVLP[0]"), 4, _vP); glUniform3fv(L("uVLC[0]"), 4, _vC); glUniform3fv(L("uVLF[0]"), 4, _vF);
                 glUniformMatrix3fv(L("uVCubeAx[0]"), 6, 0, _vAx); glUniformMatrix3fv(L("uVLB[0]"), 4, 0, _vB); glUniform4fv(L("uVLK[0]"), 4, _vK); glUniform1fv(L("uVLR[0]"), 4, _vR); glUniform3fv(L("uVLM[0]"), 4, _vM); glUniform2fv(L("uVLT[0]"), 4, _vT);
                 var units = new int[4];
@@ -3894,12 +4315,39 @@ uniform int uWidOn; uniform sampler2D uWid; uniform vec4 uWidRect;
 uniform vec4 uClr0, uClr1; uniform float uClrK;
 // THE VISOR'S LABEL (ScanWire.cs ScanTag: Scanning... while the room materializes), premultiplied, at window px x, y, w, h
 uniform int uTagOn; uniform sampler2D uTag; uniform vec4 uTagRect;
+// THE CONVERSATION (ScanWire.cs ConvTag): its badge (a second label, lower left) and the amber glow round the visor's
+// edges -- strength 0..1, time (s), the view's share of the window's rows (the glow keeps off the panel below it)
+uniform int uTag2On; uniform sampler2D uTag2; uniform vec4 uTag2Rect;
+uniform float uConvK, uConvTime, uConvRows;
+// VISOR CONDENSATION (ScanWire.cs VisorFog): how far in from the view's edges the mist reaches (0..1), time, the view's share of
+// the window's rows
+uniform float uFogK, uFogT, uFogRows, uFogAmt;
 out vec4 oColor;
-vec3 tagOver(vec3 c, vec2 wp) {
-    if (uTagOn == 0) return c;
-    vec2 q = (wp - uTagRect.xy) / uTagRect.zw;
+vec3 labelOver(vec3 c, vec2 wp, sampler2D t, vec4 r) {
+    vec2 q = (wp - r.xy) / r.zw;
     if (q.x < 0.0 || q.y < 0.0 || q.x >= 1.0 || q.y >= 1.0) return c;
-    vec4 w = texture(uTag, q); return c * (1.0 - w.a) + w.rgb;
+    vec4 w = texture(t, q); return c * (1.0 - w.a) + w.rgb;
+}
+// the glow: amber light along the view's edges (a few percent of its height deep, strongest in the corners, the bottom
+// edge -- the panel's seam -- weaker), breathing slowly with a faint shimmer running round it
+vec3 convGlow(vec3 c, vec2 wp) {
+    if (uConvK <= 0.001) return c;
+    float vh = uConvRows * uDst.y;
+    if (wp.y > vh) return c;
+    vec2 e = vec2(min(wp.x, uDst.x - wp.x), min(wp.y, (vh - wp.y) * 1.6)) / vh;
+    float w = 0.05, gx = exp(-e.x / w), gy = exp(-e.y / w);
+    float edge = max(gx, gy) + 0.35 * gx * gy;
+    float ang = atan(wp.y - vh * 0.5, wp.x - uDst.x * 0.5);
+    float shimmer = 0.85 + 0.15 * sin(ang * 3.0 - uConvTime * 0.9);
+    float breathe = 0.80 + 0.20 * sin(uConvTime * 1.4);
+    float g = clamp(edge, 0.0, 1.3) * uConvK * breathe * shimmer * 0.26;
+    return c + vec3(1.0, 0.60, 0.18) * g * (1.0 - 0.5 * c);
+}
+vec3 tagOver(vec3 c, vec2 wp) {
+    c = convGlow(c, wp);
+    if (uTagOn != 0) c = labelOver(c, wp, uTag, uTagRect);
+    if (uTag2On != 0) c = labelOver(c, wp, uTag2, uTag2Rect);
+    return c;
 }
 // one picture pixel, with the visor's shading as VisorShade.Draw lays it (k + k/128, out of 256, toward the colour)
 vec3 px(ivec2 p) {
@@ -3923,11 +4371,60 @@ vec3 catmull(vec2 s) {
     return acc;
 }
 float hash(vec2 p) { p = fract(p * vec2(443.897, 441.423)); p += dot(p, p.yx + 19.19); return fract((p.x + p.y) * p.x); }
+float vn2(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y); }
+float fbm2(vec2 p) { return 0.55 * vn2(p) + 0.3 * vn2(p * 2.03 + 5.1) + 0.15 * vn2(p * 4.11 + 1.7); }
+// THE MIST ON THE GLASS (uFogK): ragged from the view's edges inward (the corners first, the bottom edge -- the panel's seam
+// -- least), slowly drifting; the picture behind it softened and veiled pale in its own light; beads of water along its
+// inner edge, each a little clear lens showing the room upside down, with a glint. uFogAmt: the room's own amount (its
+// 'visorFog' strength) -- a lighter room's mist is thinner as well as narrower (Josh, 2026-10-14, WASHCORI).
+float mistAt(vec2 q, float vh) {
+    float ex = min(q.x, uDst.x / vh - q.x), ey = min(q.y, (1.0 - q.y) * 1.5);
+    float e = min(ex, ey) - 0.35 * min(ex, 0.25) * min(ey, 0.25) / 0.25;      // (the corners reach further in)
+    float n = fbm2(q * 5.0 + vec2(uFogT * 0.02, -uFogT * 0.015));
+    float reach = uFogK * 0.21 * (0.6 + 0.8 * n);
+    return smoothstep(reach, reach - 0.05 - 0.05 * uFogK, e);
+}
+vec3 condense(vec3 c, vec2 wp, vec2 s, vec2 k) {
+    if (uFogK <= 0.002) return c;
+    float vh = uFogRows * uDst.y;
+    if (wp.y > vh) return c;
+    vec2 q = wp / vh;
+    float m = mistAt(q, vh);
+    // THE BEAD in this cell, sized by the mist at ITS OWN middle (Josh, 2026-10-14: the droplets were 'wiped with a harsh line
+    // that makes it look fake ... If they simply shrunk away instead that would sell the illusion more'): as the mist round it
+    // comes and goes, each bead grows and SHRINKS AWAY to nothing -- never cut by the mist's edge
+    vec2 cell = q * 24.0, ci = floor(cell), f = fract(cell) - 0.5, d = vec2(0.0);
+    float rad = 0.0, dd = 2.0;
+    if (hash(ci + 17.0) > 0.55) {
+        vec2 off = vec2(hash(ci + 3.1), hash(ci + 7.7)) - 0.5;
+        float mc = mistAt((ci + 0.5 + off * 0.5) / 24.0, vh);
+        float band = mc * (1.0 - mc) * 4.0 + 0.2 * mc;
+        float sz = smoothstep(0.0, 0.5, band - 0.9 * hash(ci + 23.0));      // (a wide span: each shrinks slowly as the edge recedes past it)
+        rad = (0.16 + 0.26 * hash(ci + 11.0)) * sz * (0.45 + 0.55 * uFogAmt);      // (a lighter room's beads are smaller -- WASHCORI)
+        if (rad > 0.012) { d = f - off * 0.5; dd = length(d) / rad; }
+    }
+    bool bead = dd < 1.05;
+    if (m <= 0.001 && !bead) return c;
+    float r = (4.0 + 14.0 * m * (0.4 + 0.6 * uFogAmt)) * k.x;      // (a lighter room blurs less)
+    vec3 b = c * 0.2;
+    for (int i = 0; i < 8; i++) { float a = 0.7854 * float(i) + 0.4; b += px(ivec2(s + vec2(cos(a), sin(a)) * r + 0.5)) * 0.1; }
+    float lum = dot(b, vec3(0.30, 0.59, 0.11));
+    float dens = m * (0.55 + 0.45 * fbm2(q * 14.0 + 3.3)) * (0.4 + 0.6 * uFogAmt);
+    vec3 veil = vec3(0.60, 0.64, 0.67) * (0.30 + 0.7 * lum) + b * 0.4;      // (a pale haze even over the dark: the mist holds the light about)
+    vec3 o = mix(c, mix(b, veil, 0.55), clamp(dens, 0.0, 0.92));
+    if (bead) {
+        vec3 lens = px(ivec2(s - d * (vh / 24.0) * 2.5 * k + 0.5));
+        o = mix(o, lens * 0.8 + veil * 0.4, smoothstep(1.0, 0.7, dd));
+        o *= 1.0 - 0.25 * smoothstep(0.7, 1.0, dd) * (1.0 - smoothstep(1.0, 1.05, dd));
+        o += vec3(0.55) * smoothstep(0.3, 0.0, length(d / max(rad, 1e-3) - vec2(-0.35, -0.35))) * (0.25 + 0.75 * lum + 0.2);
+    }
+    return o;
+}
 void main() {
     // the window's rows count up from its bottom; the picture's rows from its top
     vec2 wp = vec2(gl_FragCoord.x, uDst.y - gl_FragCoord.y), uv = wp / uDst, k = vec2(uSrc) / uDst;
     vec2 s = wp * k - 0.5, s0 = s;
-    if (uDmgOn == 0) { oColor = vec4(clamp(tagOver(clamp(catmull(s), 0.0, 1.0), wp), 0.0, 1.0), 1.0); return; }
+    if (uDmgOn == 0) { oColor = vec4(clamp(tagOver(condense(clamp(catmull(s), 0.0, 1.0), wp, s, k), wp), 0.0, 1.0), 1.0); return; }
     // the glass: this layer -- while the glass mends, faded in over the last one (uSweep 0..1; below 0 = none)
     vec4 fx = texture(uDmgFx, uv), paint = texture(uDmgPaint, uv);
     vec2 tx = 1.0 / vec2(textureSize(uDmgFx, 0));
@@ -4019,7 +4516,7 @@ void main() {
         m *= uClrK;
         if (m > 0.0) acc = mix(acc, catmull(s0), m);
     }
-    oColor = vec4(clamp(tagOver(clamp(acc, 0.0, 1.0), wp), 0.0, 1.0), 1.0);
+    oColor = vec4(clamp(tagOver(condense(clamp(acc, 0.0, 1.0), wp, s0, k), wp), 0.0, 1.0), 1.0);
 }";
         /// <summary>Draw into this window from now on (its pixel format is set to the context's; once per window).</summary>
         public bool AttachPresent(IntPtr hwnd)
@@ -4151,6 +4648,12 @@ void main() {
             bool tag = TagOn && _tagTex != 0;
             glUniform1i(L("uTagOn"), tag ? 1 : 0);
             if (tag) { glActiveTexture(GL_TEXTURE0 + 7); glBindTexture(GL_TEXTURE_2D, _tagTex); glUniform1i(L("uTag"), 7); glUniform4f(L("uTagRect"), _tagX, _tagY, _tagW, _tagH); glActiveTexture(GL_TEXTURE0); }
+            // the conversation's badge and glow (ConvTag)
+            bool tag2 = Tag2On && _tag2Tex != 0;
+            glUniform1i(L("uTag2On"), tag2 ? 1 : 0);
+            if (tag2) { glActiveTexture(GL_TEXTURE0 + 8); glBindTexture(GL_TEXTURE_2D, _tag2Tex); glUniform1i(L("uTag2"), 8); glUniform4f(L("uTag2Rect"), _tag2X, _tag2Y, _tag2W, _tag2H); glActiveTexture(GL_TEXTURE0); }
+            glUniform1f(L("uConvK"), ConvGlow); glUniform1f(L("uConvTime"), ConvTime); glUniform1f(L("uConvRows"), ConvRows > 0 ? ConvRows : 1f);
+            glUniform1f(L("uFogK"), Math.Max(0f, Math.Min(1f, VisorFog))); glUniform1f(L("uFogT"), VisorFogTime); glUniform1f(L("uFogRows"), VisorFogRows > 0 ? VisorFogRows : 1f); glUniform1f(L("uFogAmt"), Math.Max(0f, Math.Min(1f, VisorFogAmount)));
             glDrawArrays(GL_TRIANGLES, 0, 3);
         }
         /// <summary>The visor's label (ScanWire.cs ScanTag; premultiplied ARGB, top row first) at window px x, y (its top
@@ -4165,6 +4668,22 @@ void main() {
             if (w != _tagTW || h != _tagTH) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0); glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, px); _tagTW = w; _tagTH = h; }
             else glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, px);
             _tagX = x; _tagY = y; _tagW = w; _tagH = h; TagOn = true;
+        }
+        /// <summary>The conversation's badge (ScanWire.cs ConvTag), as SetTag; and the amber glow round the visor's edges:
+        /// strength 0..1, time (s), the view's share of the window's rows.</summary>
+        public bool Tag2On; public float ConvGlow, ConvTime, ConvRows = 1f;
+        /// <summary>VISOR CONDENSATION (ScanWire.cs VisorFog sets these each frame): how far the mist reaches in from the
+        /// view's edges (0 = none, 1 = about a third of the view's height), time, the view's share of the window's rows.</summary>
+        public float VisorFog, VisorFogTime, VisorFogRows = 1f, VisorFogAmount = 1f;      // (VisorFogAmount: the room's own amount -- its "visorFog" strength -- for the mist's thickness)
+        uint _tag2Tex; int _tag2TW, _tag2TH; float _tag2X, _tag2Y, _tag2W, _tag2H;
+        public void SetTag2(int[] px, int w, int h, float x, float y)
+        {
+            if (px == null || w <= 0 || h <= 0) { Tag2On = false; return; }
+            if (_tag2Tex == 0) _tag2Tex = NewLinearTex();
+            glBindTexture(GL_TEXTURE_2D, _tag2Tex);
+            if (w != _tag2TW || h != _tag2TH) { glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0); glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA8, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, px); _tag2TW = w; _tag2TH = h; }
+            else glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, px);
+            _tag2X = x; _tag2Y = y; _tag2W = w; _tag2H = h; Tag2On = true;
         }
         // ---- THE DAMAGED VISOR (Josh, 2026-10-10): see ScanWire.cs VisorDamage, which draws the glass's layer and the vitals
         // monitor and sets these each frame; the present pass lays them over the picture (FS_PRESENT) ---------------------
@@ -4966,6 +5485,116 @@ void main() {
     float a = uCore != 0 ? 1.0 - smoothstep(0.45, 1.0, e) : (1.0 - e) * (1.0 - e);
     oColor = vec4((uCol * lines + uFlare * (0.6 * wireHot * drawn)) * (a * uK), 0.0);
 }";
+        // ---- THE VISOR'S ECHO SCAN (Josh, 2026-10-14: "tap a key and an amber pulse ripples through the room like the map's
+        // intro wave. It outlines doors, pickups and creatures through the walls for a second"). EchoT: seconds since the
+        // ping (below 0 = none). The shell runs out from the eye at EchoSpeed to EchoMax, a band of amber light on the room's
+        // surfaces (FS_MAIN uEcho); each target's outline lights through the walls as the shell reaches it, flares, and fades
+        // over EchoFade. Targets per category (0 doors, 1 items, 2 creatures): triangles of the room as drawn (their feature
+        // edges), or line segments (doorway openings).
+        public float EchoT = -1f, EchoSpeed = 950f, EchoMax = 1900f, EchoFade = 1.4f, EchoBand = 26f, EchoShell = 1f;
+        public int[] EchoColours = { 0xFFB040, 0xFFE8A8, 0xFF6A38 };
+        public int LastEchoEdges;
+        readonly int[][] _echoTris = new int[3][]; readonly float[][] _echoSegs = new float[3][]; readonly bool[] _echoDirty = { true, true, true };
+        readonly uint[] _echoVao = new uint[3], _echoVbo = new uint[3]; readonly int[] _echoN = new int[3];
+        uint _pEcho;
+        /// <summary>A category's targets: triangles of the room (indices; the edges are built from the room as drawn each time
+        /// it is set -- creatures are set again every frame, as they move) and/or extra line segments (6 floats each).</summary>
+        public void SetEchoTargets(int cat, int[] tris, float[] segs) { if (cat < 0 || cat > 2) return; _echoTris[cat] = tris; _echoSegs[cat] = segs; _echoDirty[cat] = true; }
+        float[] EchoEdges(float[] vx, int[] idx, int[] tris, float[] segs, out int nVerts)
+        {
+            var o = new List<float>();
+            if (tris != null && tris.Length > 0)
+            {
+                // the feature edges of those triangles: every edge but the ones two of them share lying flat together
+                var edges = new Dictionary<long, int>(); var eA = new List<int>(); var eB = new List<int>(); var eN = new List<float[]>(); var eC = new List<int>(); var eFlat = new List<bool>();
+                int nv = vx.Length / 3;
+                foreach (int t in tris)
+                {
+                    if (t < 0 || t * 3 + 2 >= idx.Length) continue;
+                    int[] v = { idx[t * 3], idx[t * 3 + 1], idx[t * 3 + 2] };
+                    if (v[0] >= nv || v[1] >= nv || v[2] >= nv) continue;
+                    float ux = vx[v[1] * 3] - vx[v[0] * 3], uy = vx[v[1] * 3 + 1] - vx[v[0] * 3 + 1], uz = vx[v[1] * 3 + 2] - vx[v[0] * 3 + 2];
+                    float wx = vx[v[2] * 3] - vx[v[0] * 3], wy = vx[v[2] * 3 + 1] - vx[v[0] * 3 + 1], wz = vx[v[2] * 3 + 2] - vx[v[0] * 3 + 2];
+                    float nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx, nl = (float)Math.Sqrt(nx * nx + ny * ny + nz * nz);
+                    if (nl < 1e-6f) continue; var n = new[] { nx / nl, ny / nl, nz / nl };
+                    for (int k = 0; k < 3; k++)
+                    {
+                        int a = v[k], b = v[(k + 1) % 3]; if (a > b) { int s = a; a = b; b = s; }
+                        long key = ((long)a << 32) | (uint)b; int ei;
+                        if (!edges.TryGetValue(key, out ei)) { edges[key] = eA.Count; eA.Add(a); eB.Add(b); eN.Add(n); eC.Add(1); eFlat.Add(false); }
+                        else { eC[ei]++; float d = eN[ei][0] * n[0] + eN[ei][1] * n[1] + eN[ei][2] * n[2]; if (eC[ei] == 2 && Math.Abs(d) > 0.9995f) eFlat[ei] = true; else eFlat[ei] = false; }
+                    }
+                }
+                for (int e = 0; e < eA.Count; e++)
+                {
+                    if (eFlat[e] && eC[e] == 2) continue;
+                    int a = eA[e] * 3, b = eB[e] * 3;
+                    MapSeg(o, vx[a], vx[a + 1], vx[a + 2], vx[b], vx[b + 1], vx[b + 2]);
+                }
+            }
+            if (segs != null) for (int i = 0; i + 5 < segs.Length; i += 6) MapSeg(o, segs[i], segs[i + 1], segs[i + 2], segs[i + 3], segs[i + 4], segs[i + 5]);
+            nVerts = o.Count / XSTRIDE; return o.ToArray();
+        }
+        void DrawEcho(float[] vx, int[] idx)
+        {
+            LastEchoEdges = 0;
+            if (EchoT < 0f) return;
+            if (_pEcho == 0)
+            {
+                _pEcho = Link(VS_XRAY, FS_ECHO, "the echo's outlines");
+                for (int c = 0; c < 3; c++)
+                {
+                    var ids = new uint[1]; glGenVertexArrays(1, ids); _echoVao[c] = ids[0]; glBindVertexArray(_echoVao[c]);
+                    glGenBuffers(1, ids); _echoVbo[c] = ids[0]; glBindBuffer(GL_ARRAY_BUFFER, _echoVbo[c]);
+                    int st = XSTRIDE * 4; int[] sizes = { 3, 3, 2 }; int off = 0;
+                    for (int a = 0; a < 3; a++) { glEnableVertexAttribArray((uint)a); glVertexAttribPointer((uint)a, sizes[a], GL_FLOAT, 0, st, new IntPtr(off * 4)); off += sizes[a]; }
+                }
+            }
+            for (int c = 0; c < 3; c++)
+            {
+                if (!_echoDirty[c]) continue;
+                _echoDirty[c] = false; int n;
+                var verts = EchoEdges(vx, idx, _echoTris[c], _echoSegs[c], out n); _echoN[c] = n;
+                glBindVertexArray(_echoVao[c]); glBindBuffer(GL_ARRAY_BUFFER, _echoVbo[c]);
+                if (n > 0) glBufferDataF(GL_ARRAY_BUFFER, new IntPtr((long)n * XSTRIDE * 4), verts, GL_STREAM_DRAW);
+            }
+            glBindFramebuffer(GL_FRAMEBUFFER, _fbo); glViewport(0, 0, W, H);
+            glUseProgram(_pEcho); Func<string, int> L = s => glGetUniformLocation(_pEcho, s);
+            glUniformMatrix4fv(L("uView"), 1, 0, _view); glUniform2f(L("uF"), _focal * VHf / W, _focal * VHf / H);
+            glUniform1f(L("uNear"), NearZ); glUniform1f(L("uOffY"), OffY); glUniform2f(L("uHalf"), W * 0.5f, H * 0.5f);
+            float[] V = _view; float tx = V[12], ty = V[13], tz = V[14];
+            glUniform3f(L("uEye"), -(V[0] * tx + V[1] * ty + V[2] * tz), -(V[4] * tx + V[5] * ty + V[6] * tz), -(V[8] * tx + V[9] * ty + V[10] * tz));
+            float R = Math.Min(EchoMax, EchoT * EchoSpeed), tail = Math.Max(0f, EchoT - EchoMax / Math.Max(1f, EchoSpeed));
+            glUniform4f(L("uEcho"), R, Math.Max(0.1f, EchoFade), Math.Max(1f, EchoSpeed), tail);
+            glDisable(GL_DEPTH_TEST); glDepthMask(0); glDisable(GL_CULL_FACE); glDisable(GL_STENCIL_TEST);
+            glEnable(GL_BLEND); glBlendFunc(GL_ONE, GL_ONE); glColorMask(1, 1, 1, 0);
+            float res = H / 1200f;
+            for (int c = 0; c < 3; c++)
+            {
+                if (_echoN[c] == 0) continue; LastEchoEdges += _echoN[c] / 6;
+                int col = EchoColours[c];
+                glUniform3f(L("uCol"), ((col >> 16) & 255) / 255f, ((col >> 8) & 255) / 255f, (col & 255) / 255f);
+                glBindVertexArray(_echoVao[c]);
+                glUniform1f(L("uWidth"), 4.5f * res); glUniform1f(L("uK"), 0.30f); glUniform1i(L("uCore"), 0); glDrawArrays(GL_TRIANGLES, 0, _echoN[c]);
+                glUniform1f(L("uWidth"), 1.1f * res); glUniform1f(L("uK"), 1.1f); glUniform1i(L("uCore"), 1); glDrawArrays(GL_TRIANGLES, 0, _echoN[c]);
+            }
+            glDisable(GL_BLEND); glColorMask(1, 1, 1, 1); glEnable(GL_DEPTH_TEST); glDepthFunc(GL_GREATER); glDepthMask(1); glBindVertexArray(0);
+            Check("the echo's outlines");
+        }
+        const string FS_ECHO = @"#version 400 core
+in vec3 vW; in float vSide;
+uniform float uK; uniform int uCore; uniform vec3 uEye, uCol;
+uniform vec4 uEcho;      // the shell's radius now, how long an outline lasts after it passes (s), the shell's speed, seconds since it reached its end
+out vec4 oColor;
+void main() {
+    float d = length(vW - uEye);
+    if (d > uEcho.x) discard;                                           // (the shell has not reached it yet)
+    float since = (uEcho.x - d) / uEcho.z + uEcho.w;                    // seconds since the shell passed this point
+    float k = exp(-since / uEcho.y) * (1.0 + 2.2 * exp(-since / 0.09));      // a flare as it is struck, then dying away
+    float e = abs(vSide);
+    float a = uCore != 0 ? 1.0 - smoothstep(0.45, 1.0, e) : (1.0 - e) * (1.0 - e);
+    oColor = vec4(mix(uCol, vec3(1.0), 0.35 * exp(-since / 0.09)) * (a * uK * k), 0.0);
+}";
         /// <summary>The room's edges for the lines through the walls: 6 vertices (two triangles) an edge.</summary>
         float[] BuildXray(float[] vx, int[] idx, int[] triTex, Raster.Tex[] texes, out int nVerts)
         {
@@ -5054,6 +5683,583 @@ void main() {
             glUniform1f(L("uWidth"), MatXrayCore * res); glUniform1f(L("uK"), MatXrayK); glUniform1i(L("uCore"), 1); glDrawArrays(GL_TRIANGLES, 0, _xN);
             glDisable(GL_BLEND); glColorMask(1, 1, 1, 1); glEnable(GL_DEPTH_TEST); glDepthFunc(GL_GREATER); glDepthMask(1); glBindVertexArray(0);
             Check("the sweep's lines through walls");
+        }
+
+        // ---- THE MAP (Josh, 2026-10-14: "revamp the maps ... the same 3d wireframes we've used for roomscanning ... when a player
+        // clicks the map button ... a dimmed version of the visor view, the world behind faded back but still visible. We then see
+        // the 3d wireframe, with basic shading in place but no textures. The user can click to rotate the map, and the arrows that
+        // indicate doors etc are still in place as they are in the original game, but in modern vector graphics"). The room seen
+        // from outside, turning about its middle (MapYaw / MapPitch, degrees; MapZoom): its faces CUT AWAY where they face from the
+        // eye -- the room is built to be seen from inside, so dropping the faces turned away from an outside eye removes the near
+        // walls and the ceiling (a doll's house) -- shaded flat in the scan's teal (no textures), its edges as the materialize
+        // sweep's glowing lines (BuildXray: the room's shape, not its triangles; dimmer where hidden), and its marks: amber arrows
+        // on the doors' floor pads, pointing out, sliding gently; the player's ring and the way they face. Drawn into its own layer
+        // (premultiplied) the compose lays over the picture, which it dims by MapDim as the map fades in (MapK).
+        public bool MapOn; public float MapK, MapYaw = 30f, MapPitch = 52f, MapZoom = 1f, MapDim = 0.72f, MapFovDeg = 34f;
+        public int MapInk = 0x5FD8C0, MapFlare = 0xCFFFF4, MapMarkInk = 0xFFB040, MapMarkHot = 0xFFE3A6;
+        /// <summary>Which way round the room's faces are wound for an eye outside it (the cut-away keeps the faces whose winding
+        /// is this way round on screen; flip if the map shows the ceiling instead of the floor).</summary>
+        public bool MapCullFlip;
+        /// <summary>THE MAP PULSES IN (Josh, 2026-10-14: "When the maps first load, I want them to quickly animate in by the
+        /// wireframes 'pulsing' in as the animate from one side to the other, like they grow from nothing to larger, then back to
+        /// normal size in a wave across the geometry, then becoming interactive"). Seconds since the map opened (below 0 = no
+        /// intro: as it is); each edge and face grows about its own middle from nothing to MapPulse over full size and settles,
+        /// as a wave crosses the room from the screen's left to its right in MapIntroSeconds (its front MapWaveWidth of the room
+        /// wide), glowing as it passes; the marks come in as it ends.</summary>
+        public float MapIntro = -1f, MapIntroSeconds = 1.1f, MapWaveWidth = 0.35f, MapPulse = 0.35f;
+        /// <summary>Lines and faces: how bright the edges are where seen / where hidden, how opaque the shaded faces are.</summary>
+        public float MapLineK = 1f, MapHiddenK = 0.28f, MapFaceK = 0.38f, MapCore = 1.1f, MapHalo = 4.5f;
+        public int LastMapEdges, LastMapFaces; public double LastMapMs;
+        float[] _mapMarks = new float[0]; int _mapMarkN;
+        /// <summary>The map's marks, 8 floats each: x, y, z (room units), direction x, z (a door: which way is out; the player:
+        /// which way they face), kind (0 = a door, 1 = the player), size (units; 0 = the default), 0.</summary>
+        public void SetMapMarks(float[] m, int n) { _mapMarks = m ?? new float[0]; _mapMarkN = Math.Max(0, Math.Min(n, _mapMarks.Length / 8)); }
+        /// <summary>THE ROOM WITHOUT ITS DOORWAY PICTURES (Josh, 2026-10-14: "we dont want to include door geometry in the maps ... the
+        /// alternate door polygons which float outside of the actual map. So all secondary door geometry needs removed"): the
+        /// triangles the map leaves out -- every doorway's painted views of the next room (portals.json 'views', the parked
+        /// alternates among them), and the characters. Null = none. Setting it builds the map's geometry again.</summary>
+        public void SetMapSkip(int[] tris) { _mapSkip = tris; _mapFor = null; }
+        /// <summary>THE MAP CUT UNDER THE FLOOR (Josh, 2026-10-14, Room Review MINEHEAD/8: "all other geometry that extends under the main
+        /// floor in this room need omitted from the map view" -- the room's walls run on down into the chasm): the triangles flagged
+        /// (true) are cut at height y -- what lies under it leaves the map, what crosses it is clipped along it. NaN = no cut. A room's
+        /// "map": { "hideBelow", "keep" } (LoadRoom.ps1 Get-AztMapCut). Setting it builds the map's geometry again.</summary>
+        public void SetMapCut(float y, bool[] tris) { _mapCutY = y; _mapCut = tris; _mapFor = null; }
+        float _mapCutY = float.NaN; bool[] _mapCut;
+        /// <summary>The triangles flagged in cut[] clipped to y >= cutY (Sutherland-Hodgman, so the winding is kept): what is wholly under
+        /// it is dropped, what crosses it becomes one or two triangles ending on it; the rest are copied as they are. The vertices are
+        /// all kept (indices stay valid), the new ones added after them. Per triangle out, the triTex of the triangle it came from.</summary>
+        public static void ClipMapBelow(float[] vx, int[] idx, int[] triTex, bool[] cut, float cutY, out float[] vxOut, out int[] idxOut, out int[] ttOut)
+        {
+            var v = new List<float>(vx); var io = new List<int>(idx.Length); var to = new List<int>(idx.Length / 3);
+            var made = new Dictionary<long, int>();
+            int nv0 = vx.Length / 3, nt = Math.Min(idx.Length / 3, triTex.Length);
+            Func<int, int, int> cross = (a, b) =>
+            {
+                long k = (long)Math.Min(a, b) * nv0 + Math.Max(a, b); int r;
+                if (made.TryGetValue(k, out r)) return r;
+                float ya = vx[a * 3 + 1], yb = vx[b * 3 + 1], s = (cutY - ya) / (yb - ya);
+                r = v.Count / 3; made[k] = r;
+                v.Add(vx[a * 3] + (vx[b * 3] - vx[a * 3]) * s); v.Add(cutY); v.Add(vx[a * 3 + 2] + (vx[b * 3 + 2] - vx[a * 3 + 2]) * s);
+                return r;
+            };
+            var poly = new List<int>(4);
+            for (int t = 0; t < nt; t++)
+            {
+                int i0 = idx[t * 3], i1 = idx[t * 3 + 1], i2 = idx[t * 3 + 2];
+                bool c0 = vx[i0 * 3 + 1] >= cutY, c1 = vx[i1 * 3 + 1] >= cutY, c2 = vx[i2 * 3 + 1] >= cutY;
+                if (cut == null || t >= cut.Length || !cut[t] || (c0 && c1 && c2)) { io.Add(i0); io.Add(i1); io.Add(i2); to.Add(triTex[t]); continue; }
+                if (!c0 && !c1 && !c2) continue;
+                poly.Clear(); int[] q = { i0, i1, i2 }; bool[] inn = { c0, c1, c2 };
+                for (int s = 0; s < 3; s++)
+                {
+                    int a = q[s], b = q[(s + 1) % 3]; bool ia = inn[s], ib = inn[(s + 1) % 3];
+                    if (ia) poly.Add(a);
+                    if (ia != ib) poly.Add(cross(a, b));
+                }
+                for (int s = 1; s + 1 < poly.Count; s++) { io.Add(poly[0]); io.Add(poly[s]); io.Add(poly[s + 1]); to.Add(triTex[t]); }
+            }
+            vxOut = v.ToArray(); idxOut = io.ToArray(); ttOut = to.ToArray();
+        }
+        /// <summary>THE WHOLE COMPLEX (Josh, 2026-10-14: "from a room's 3D map, zoom out to every room you've visited, laid out in
+        /// place and linked by their doorways ... unvisited rooms stay as faint outlines"): the OTHER rooms, already placed in this
+        /// room's coordinates (through the doorways' transforms), as one soup -- vertices, triangles, and per triangle its group
+        /// (1 = visited, 2 = known but not visited: faint). Drawn round the current room as the map zooms out (MapComplexK).
+        /// Null = none.</summary>
+        public void SetMapComplex(float[] vx, int[] idx, int[] grp) { _mcV = vx; _mcI = idx; _mcG = grp; _mcDirty = true; }
+        /// <summary>How much of the rest of the complex shows (0..1; the watcher fades it in as the map zooms out past the
+        /// room); MapComplexDim: the unvisited rooms' share of the visited ones' strength.</summary>
+        public float MapComplexK, MapComplexDim = 0.14f;
+        /// <summary>At the furthest zoom, the lines' width and strength as shares of their weight close up.</summary>
+        public float MapFarWidth = 0.45f, MapFarK = 0.45f;
+        /// <summary>The map view's faint interlace: how much darker its lines are (0 = none; Josh, 2026-10-14: "very low opacity,
+        /// something like 5-10%").</summary>
+        public float MapLines = 0.08f;
+        /// <summary>The rooms the player is not in: their strength as a share of the current room's (Josh, 2026-10-14: 0.75, then
+        /// "slightly more transparent").</summary>
+        public float MapOtherK = 0.55f;
+        /// <summary>The rooms not yet reached: a faint grey outline rather than the map's teal (Josh, 2026-10-14: "rooms that have
+        /// not yet been discovered to be a fainter gray outline, so they remain rather hidden ... Only after the player reaches the
+        /// room will it become the current faded teal"); its glow's colour beside it.</summary>
+        public int MapUnseenInk = 0x6C7278, MapUnseenFlare = 0x8C9298;
+        public int LastComplexFaces;
+        float[] _mcV; int[] _mcI, _mcG; bool _mcDirty; float _mcR;
+        readonly uint[] _mcFVao = new uint[2], _mcFVbo = new uint[2], _mcLVao = new uint[2], _mcLVbo = new uint[2]; readonly int[] _mcFN = new int[2], _mcLN = new int[2];
+        void BuildComplex()
+        {
+            _mcDirty = false; _mcR = 0f;
+            for (int g = 0; g < 2; g++) { _mcFN[g] = 0; _mcLN[g] = 0; }
+            if (_mcV == null || _mcI == null || _mcG == null) return;
+            var dummy = new[] { new Raster.Tex(new byte[1], 1, 1) };
+            for (int g = 0; g < 2; g++)
+            {
+                if (_mcFVao[g] == 0)
+                {
+                    var ids = new uint[1];
+                    glGenVertexArrays(1, ids); _mcFVao[g] = ids[0]; glBindVertexArray(_mcFVao[g]); glGenBuffers(1, ids); _mcFVbo[g] = ids[0]; glBindBuffer(GL_ARRAY_BUFFER, _mcFVbo[g]);
+                    glEnableVertexAttribArray(0); glVertexAttribPointer(0, 3, GL_FLOAT, 0, 36, IntPtr.Zero); glEnableVertexAttribArray(1); glVertexAttribPointer(1, 3, GL_FLOAT, 0, 36, new IntPtr(12)); glEnableVertexAttribArray(2); glVertexAttribPointer(2, 3, GL_FLOAT, 0, 36, new IntPtr(24));
+                    glGenVertexArrays(1, ids); _mcLVao[g] = ids[0]; glBindVertexArray(_mcLVao[g]); glGenBuffers(1, ids); _mcLVbo[g] = ids[0]; glBindBuffer(GL_ARRAY_BUFFER, _mcLVbo[g]);
+                    int st = XSTRIDE * 4; int[] sizes = { 3, 3, 2 }; int off = 0;
+                    for (int a = 0; a < 3; a++) { glEnableVertexAttribArray((uint)a); glVertexAttribPointer((uint)a, sizes[a], GL_FLOAT, 0, st, new IntPtr(off * 4)); off += sizes[a]; }
+                }
+                int nt = Math.Min(_mcI.Length / 3, _mcG.Length);
+                var tt = new int[nt]; var fv = new List<float>();
+                for (int t = 0; t < nt; t++)
+                {
+                    bool mine = _mcG[t] == g + 1; tt[t] = mine ? 0 : -1; if (!mine) continue;
+                    int a = _mcI[t * 3], b = _mcI[t * 3 + 1], c = _mcI[t * 3 + 2];
+                    float ax = _mcV[a * 3], ay = _mcV[a * 3 + 1], az = _mcV[a * 3 + 2], bx = _mcV[b * 3], by = _mcV[b * 3 + 1], bz = _mcV[b * 3 + 2], cx = _mcV[c * 3], cy = _mcV[c * 3 + 1], cz = _mcV[c * 3 + 2];
+                    float ux = bx - ax, uy = by - ay, uz = bz - az, wx = cx - ax, wy = cy - ay, wz = cz - az;
+                    float nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx, nl = (float)Math.Sqrt(nx * nx + ny * ny + nz * nz);
+                    if (nl < 1e-6f) { tt[t] = -1; continue; }
+                    nx /= nl; ny /= nl; nz /= nl;
+                    float mx = (ax + bx + cx) / 3f, my = (ay + by + cy) / 3f, mz = (az + bz + cz) / 3f;
+                    foreach (var q in new[] { new[] { ax, ay, az }, new[] { bx, by, bz }, new[] { cx, cy, cz } })
+                    {
+                        fv.Add(q[0]); fv.Add(q[1]); fv.Add(q[2]); fv.Add(nx); fv.Add(ny); fv.Add(nz); fv.Add(mx); fv.Add(my); fv.Add(mz);
+                        float dx = q[0] - _mapCx, dy = q[1] - _mapCy, dz = q[2] - _mapCz; _mcR = Math.Max(_mcR, (float)Math.Sqrt(dx * dx + dy * dy + dz * dz));
+                    }
+                }
+                _mcFN[g] = fv.Count / 9;
+                glBindVertexArray(_mcFVao[g]); glBindBuffer(GL_ARRAY_BUFFER, _mcFVbo[g]);
+                if (_mcFN[g] > 0) glBufferDataF(GL_ARRAY_BUFFER, new IntPtr((long)fv.Count * 4), fv.ToArray(), GL_STREAM_DRAW);
+                int ne; var ev = BuildXray(_mcV, _mcI, tt, dummy, out ne); _mcLN[g] = ne;
+                glBindVertexArray(_mcLVao[g]); glBindBuffer(GL_ARRAY_BUFFER, _mcLVbo[g]);
+                if (ne > 0) glBufferDataF(GL_ARRAY_BUFFER, new IntPtr((long)ne * XSTRIDE * 4), ev, GL_STREAM_DRAW);
+            }
+            glBindVertexArray(0);
+        }
+        /// <summary>THE ROOM'S BODY ONLY (Josh, 2026-10-14: no floating door pieces; then every room): the parts not part of the
+        /// room -- parked doors, a parked machine (ORRERY's rings wait 37,000 units below), backdrop planes, props left outside.
+        /// Parts whose boxes touch (within `gap` units) are one piece. THE ROOM is the piece holding the most doors (`doors`:
+        /// x, y, z triples; then the most vertices); any other piece whose box's middle lies outside the room's box (grown by a
+        /// tenth) is stray, so the free-standing things inside the room stay. `skip` marks parts already left out.</summary>
+        public static bool[] MapStrayParts(float[] v, int[] vFirst, int[] vCount, bool[] skip, float gap, float[] doors)
+        {
+            int n = vFirst.Length; var lo = new float[n * 3]; var hi = new float[n * 3]; var ok = new bool[n];
+            for (int p = 0; p < n; p++)
+            {
+                if ((skip != null && p < skip.Length && skip[p]) || vCount[p] <= 0) continue;
+                float x0 = float.MaxValue, y0 = float.MaxValue, z0 = float.MaxValue, x1 = float.MinValue, y1 = float.MinValue, z1 = float.MinValue;
+                for (int i = vFirst[p]; i < vFirst[p] + vCount[p] && i * 3 + 2 < v.Length; i++)
+                {
+                    float x = v[i * 3], y = v[i * 3 + 1], z = v[i * 3 + 2];
+                    if (x < x0) x0 = x; if (y < y0) y0 = y; if (z < z0) z0 = z; if (x > x1) x1 = x; if (y > y1) y1 = y; if (z > z1) z1 = z;
+                }
+                if (x0 > x1) continue;
+                lo[p * 3] = x0; lo[p * 3 + 1] = y0; lo[p * 3 + 2] = z0; hi[p * 3] = x1; hi[p * 3 + 1] = y1; hi[p * 3 + 2] = z1; ok[p] = true;
+            }
+            var root = new int[n]; for (int p = 0; p < n; p++) root[p] = p;
+            Func<int, int> find = a => { while (root[a] != a) { root[a] = root[root[a]]; a = root[a]; } return a; };
+            for (int a = 0; a < n; a++)
+            {
+                if (!ok[a]) continue;
+                for (int b = a + 1; b < n; b++)
+                {
+                    if (!ok[b]) continue;
+                    if (lo[a * 3] - gap > hi[b * 3] || lo[b * 3] - gap > hi[a * 3] || lo[a * 3 + 1] - gap > hi[b * 3 + 1] || lo[b * 3 + 1] - gap > hi[a * 3 + 1] || lo[a * 3 + 2] - gap > hi[b * 3 + 2] || lo[b * 3 + 2] - gap > hi[a * 3 + 2]) continue;
+                    int ra = find(a), rb = find(b); if (ra != rb) root[ra] = rb;
+                }
+            }
+            // each piece: its box, its vertices, the doors in it
+            var pLo = new Dictionary<int, float[]>(); var pHi = new Dictionary<int, float[]>(); var verts = new Dictionary<int, long>();
+            for (int p = 0; p < n; p++)
+            {
+                if (!ok[p]) continue; int r = find(p); float[] l, h;
+                if (!pLo.TryGetValue(r, out l)) { l = new[] { float.MaxValue, float.MaxValue, float.MaxValue }; h = new[] { float.MinValue, float.MinValue, float.MinValue }; pLo[r] = l; pHi[r] = h; verts[r] = 0; }
+                else h = pHi[r];
+                for (int k = 0; k < 3; k++) { l[k] = Math.Min(l[k], lo[p * 3 + k]); h[k] = Math.Max(h[k], hi[p * 3 + k]); }
+                verts[r] += vCount[p];
+            }
+            int room = -1; int bestDoors = -1; long bestV = -1;
+            foreach (var r in pLo.Keys)
+            {
+                int nd = 0;
+                if (doors != null) for (int d = 0; d + 2 < doors.Length; d += 3)
+                {
+                    bool inside = true; for (int k = 0; k < 3; k++) if (doors[d + k] < pLo[r][k] - 40 || doors[d + k] > pHi[r][k] + 40) inside = false;
+                    if (inside) nd++;
+                }
+                if (nd > bestDoors || (nd == bestDoors && verts[r] > bestV)) { bestDoors = nd; bestV = verts[r]; room = r; }
+            }
+            var stray = new bool[n]; if (room < 0) return stray;
+            float[] rl = pLo[room], rh = pHi[room]; var grow = new float[3]; for (int k = 0; k < 3; k++) grow[k] = (rh[k] - rl[k]) * 0.1f;
+            var strayPiece = new Dictionary<int, bool>();
+            foreach (var r in pLo.Keys)
+            {
+                if (r == room) { strayPiece[r] = false; continue; }
+                bool inside = true; for (int k = 0; k < 3; k++) { float m = (pLo[r][k] + pHi[r][k]) * 0.5f; if (m < rl[k] - grow[k] || m > rh[k] + grow[k]) inside = false; }
+                strayPiece[r] = !inside;
+            }
+            for (int p = 0; p < n; p++) if (ok[p] && strayPiece[find(p)]) stray[p] = true;
+            return stray;
+        }        int[] _mapSkip;
+        uint _mapFbo, _mapLayerTex, _mapDepth, _pMapFace, _pMapLine, _mfVao, _mfVbo, _mlVao, _mlVbo, _mkVao, _mkVbo, _mkfVao, _mkfVbo;
+        int _mfN, _mlN; object _mapFor; float _mapCx, _mapCy, _mapCz, _mapR;
+        readonly float[] _mapMvp = new float[16]; float _mapEyeX, _mapEyeY, _mapEyeZ;
+        // the intro's wave (both programs): uWave = progress 0..1, the front's width, on, how far past full size; uWaveAx = the
+        // screen's left-to-right in the room; uWaveC = the room's middle and radius
+        const string MAP_WAVE = @"
+uniform vec4 uWave; uniform vec3 uWaveAx; uniform vec4 uWaveC;
+// scale and glow of a piece whose middle is at m
+vec2 wave(vec3 m) {
+    if (uWave.z < 0.5) return vec2(1.0, 0.0);
+    float u = clamp((dot(m - uWaveC.xyz, uWaveAx) / max(uWaveC.w, 1.0) + 1.0) * 0.5, 0.0, 1.0);
+    float ph = clamp((uWave.x * (1.0 + uWave.y) - u) / uWave.y, 0.0, 1.0);
+    float grow = smoothstep(0.0, 0.55, ph) * (1.0 + uWave.w);
+    float s = mix(grow, 1.0, smoothstep(0.55, 1.0, ph));
+    float glow = smoothstep(0.0, 0.25, ph) * (1.0 - smoothstep(0.45, 1.0, ph));
+    return vec2(s, glow);
+}
+";
+        const string VS_MAPF = @"#version 400 core
+layout(location = 0) in vec3 aP; layout(location = 1) in vec3 aN; layout(location = 2) in vec3 aC;
+uniform mat4 uMvp; out vec3 vP; out vec3 vN; out float vGlow;
+" + MAP_WAVE + @"
+void main() {
+    vec2 w = wave(aC); vec3 p = aC + (aP - aC) * w.x;
+    if (w.x < 0.002) { vP = aP; vN = aN; vGlow = 0.0; gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }      // (not reached yet: nothing at all)
+    vP = aP; vN = aN; vGlow = w.y; gl_Position = uMvp * vec4(p, 1.0);
+}";
+        const string FS_MAPF = @"#version 400 core
+in vec3 vP; in vec3 vN; in float vGlow;
+uniform vec3 uEye, uCol, uLight; uniform float uK; uniform int uFlat, uFlip;
+out vec4 oColor;
+void main() {
+    if (uFlat != 0) { oColor = vec4(uCol * uK, uK); return; }
+    vec3 n = normalize(vN), v = normalize(uEye - vP);
+    // THE CUT-AWAY: keep the faces turned toward the eye (a room's inside faces its middle, so from outside the near walls and
+    // the ceiling are turned away and drop out); which winding counts as 'toward' is uFlip
+    bool toward = dot(n, v) > 0.0; if (uFlip != 0) toward = !toward;
+    if (!toward) discard;
+    if (uFlip != 0) n = -n;
+    float lam = max(dot(n, normalize(uLight)), 0.0), up = clamp(n.y, 0.0, 1.0);
+    float shade = 0.06 + 0.42 * lam + 0.30 * up;                    // (floors read lightest, walls by the light)
+    float rim = pow(1.0 - abs(dot(n, v)), 3.0);                     // (a little edge light on faces seen side-on)
+    vec3 c = uCol * (shade + 0.35 * rim) * (1.0 + 1.6 * vGlow);
+    oColor = vec4(c * uK, uK);
+}";
+        const string VS_MAPL = @"#version 400 core
+layout(location = 0) in vec3 aA; layout(location = 1) in vec3 aB; layout(location = 2) in vec2 aES;
+uniform mat4 uMvp; uniform vec2 uHalf; uniform float uWidth, uBias;
+out float vSide; out float vGlow;
+" + MAP_WAVE + @"
+void main() {
+    vec3 mid = (aA + aB) * 0.5; vec2 w = wave(mid);
+    if (w.x < 0.002) { vSide = 0.0; vGlow = 0.0; gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }      // (not reached yet: no speck of its line's caps)
+    vec4 a = uMvp * vec4(mid + (aA - mid) * w.x, 1.0), b = uMvp * vec4(mid + (aB - mid) * w.x, 1.0);
+    vSide = aES.y; vGlow = w.y;
+    float lim = 1e-3;
+    if (a.w < lim && b.w < lim) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+    if (a.w < lim) a = mix(a, b, (lim - a.w) / (b.w - a.w));
+    if (b.w < lim) b = mix(b, a, (lim - b.w) / (a.w - b.w));
+    vec2 sa = a.xy / a.w * uHalf, sb = b.xy / b.w * uHalf, d = sb - sa; float l = length(d);
+    vec2 dn = l > 1e-4 ? d / l : vec2(1.0, 0.0), n = vec2(-dn.y, dn.x);
+    bool atB = aES.x > 0.5; vec4 c = atB ? b : a;
+    vec2 s = c.xy / c.w * uHalf + n * (aES.y * uWidth) + dn * ((atB ? 0.5 : -0.5) * uWidth);
+    gl_Position = vec4(s / uHalf * c.w, c.z - uBias * c.w, c.w);      // (pulled a little toward the eye: no fighting with its faces)
+}";
+        const string FS_MAPL = @"#version 400 core
+in float vSide; in float vGlow;
+uniform vec3 uCol; uniform float uK; uniform int uCore;
+out vec4 oColor;
+void main() {
+    float e = abs(vSide);
+    float a = uCore != 0 ? 1.0 - smoothstep(0.45, 1.0, e) : (1.0 - e) * (1.0 - e);
+    float k = a * uK * (1.0 + 2.0 * vGlow); oColor = vec4(uCol * k, min(1.0, k));
+}";
+        static float[] MapLookAt(float ex, float ey, float ez, float cx, float cy, float cz)
+        {
+            float fx = cx - ex, fy = cy - ey, fz = cz - ez, fl = (float)Math.Sqrt(fx * fx + fy * fy + fz * fz); fx /= fl; fy /= fl; fz /= fl;
+            float sx = fy * 0 - fz * 1, sy = fz * 0 - fx * 0, sz = fx * 1 - fy * 0, sl = (float)Math.Sqrt(sx * sx + sy * sy + sz * sz);     // s = f x up(0,1,0)
+            if (sl < 1e-5f) { sx = 1; sy = 0; sz = 0; sl = 1; }
+            sx /= sl; sy /= sl; sz /= sl;
+            float ux = sy * fz - sz * fy, uy = sz * fx - sx * fz, uz = sx * fy - sy * fx;
+            return new[] { sx, ux, -fx, 0, sy, uy, -fy, 0, sz, uz, -fz, 0, -(sx * ex + sy * ey + sz * ez), -(ux * ex + uy * ey + uz * ez), fx * ex + fy * ey + fz * ez, 1 };
+        }
+        static float[] MapMul(float[] a, float[] b)      // column-major a x b
+        {
+            var r = new float[16];
+            for (int c = 0; c < 4; c++) for (int rr = 0; rr < 4; rr++) { float s = 0; for (int k = 0; k < 4; k++) s += a[k * 4 + rr] * b[c * 4 + k]; r[c * 4 + rr] = s; }
+            return r;
+        }
+        /// <summary>The room's static geometry for the map, once a room: faces (position + face normal) and its edges.</summary>
+        void BuildMap(float[] vx, int[] idx, int[] triTex, Raster.Tex[] texes)
+        {
+            // (the triangles left out: their texture taken away in a copy, so the faces and the edges both pass them by)
+            if (_mapSkip != null && _mapSkip.Length > 0)
+            {
+                var tt2 = (int[])triTex.Clone();
+                foreach (int t in _mapSkip) if (t >= 0 && t < tt2.Length) tt2[t] = -1;
+                triTex = tt2;
+            }
+            // (the cut under the floor: the flagged triangles clipped -- the faces and the edges both see the clipped room)
+            if (!float.IsNaN(_mapCutY) && _mapCut != null)
+            {
+                float[] cv; int[] ci, ct; ClipMapBelow(vx, idx, triTex, _mapCut, _mapCutY, out cv, out ci, out ct);
+                vx = cv; idx = ci; triTex = ct;
+            }
+            int nt = Math.Min(idx.Length / 3, triTex.Length);
+            var fv = new List<float>(nt * 18);
+            float x0 = float.MaxValue, y0 = float.MaxValue, z0 = float.MaxValue, x1 = float.MinValue, y1 = float.MinValue, z1 = float.MinValue;
+            for (int t = 0; t < nt; t++)
+            {
+                int tt = triTex[t]; if (tt < 0 || tt >= texes.Length || texes[tt] == null || texes[tt].Moves || texes[tt].Ghost) continue;
+                int a = idx[t * 3], b = idx[t * 3 + 1], c = idx[t * 3 + 2];
+                float ax = vx[a * 3], ay = vx[a * 3 + 1], az = vx[a * 3 + 2], bx = vx[b * 3], by = vx[b * 3 + 1], bz = vx[b * 3 + 2], cx = vx[c * 3], cy = vx[c * 3 + 1], cz = vx[c * 3 + 2];
+                float ux = bx - ax, uy = by - ay, uz = bz - az, wx = cx - ax, wy = cy - ay, wz = cz - az;
+                float nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx, nl = (float)Math.Sqrt(nx * nx + ny * ny + nz * nz);
+                if (nl < 1e-6f) continue; nx /= nl; ny /= nl; nz /= nl;
+                float mx = (ax + bx + cx) / 3f, my = (ay + by + cy) / 3f, mz = (az + bz + cz) / 3f;
+                foreach (var p in new[] { new[] { ax, ay, az }, new[] { bx, by, bz }, new[] { cx, cy, cz } })
+                {
+                    fv.Add(p[0]); fv.Add(p[1]); fv.Add(p[2]); fv.Add(nx); fv.Add(ny); fv.Add(nz); fv.Add(mx); fv.Add(my); fv.Add(mz);
+                    if (p[0] < x0) x0 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[2] < z0) z0 = p[2];
+                    if (p[0] > x1) x1 = p[0]; if (p[1] > y1) y1 = p[1]; if (p[2] > z1) z1 = p[2];
+                }
+            }
+            _mfN = fv.Count / 9;
+            if (_mfN == 0) { _mapCx = _mapCy = _mapCz = 0; _mapR = 100; } else { _mapCx = (x0 + x1) / 2; _mapCy = (y0 + y1) / 2; _mapCz = (z0 + z1) / 2; _mapR = 0.5f * (float)Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0) + (z1 - z0) * (z1 - z0)); }
+            glBindVertexArray(_mfVao); glBindBuffer(GL_ARRAY_BUFFER, _mfVbo);
+            if (_mfN > 0) glBufferDataF(GL_ARRAY_BUFFER, new IntPtr((long)fv.Count * 4), fv.ToArray(), GL_STREAM_DRAW);
+            int ne; var ev = BuildXray(vx, idx, triTex, texes, out ne); _mlN = ne;
+            glBindVertexArray(_mlVao); glBindBuffer(GL_ARRAY_BUFFER, _mlVbo);
+            if (_mlN > 0) glBufferDataF(GL_ARRAY_BUFFER, new IntPtr((long)_mlN * XSTRIDE * 4), ev, GL_STREAM_DRAW);
+            glBindVertexArray(0);
+        }
+        // a line from a to b in the lines' vertex layout (6 vertices)
+        static void MapSeg(List<float> o, float ax, float ay, float az, float bx, float by, float bz)
+        {
+            for (int v = 0; v < 6; v++)
+            {
+                float end = (v == 1 || v == 2 || v == 4) ? 1f : 0f, side = (v == 2 || v == 4 || v == 5) ? 1f : -1f;
+                o.Add(ax); o.Add(ay); o.Add(az); o.Add(bx); o.Add(by); o.Add(bz); o.Add(end); o.Add(side);
+            }
+        }
+        /// <summary>The marks for this frame: outlines (lines) and fills (flat triangles, position + a dummy normal).</summary>
+        void BuildMarks(float time, List<float> lines, List<float> fills)
+        {
+            for (int i = 0; i < _mapMarkN; i++)
+            {
+                int b = i * 8; float x = _mapMarks[b], y = _mapMarks[b + 1] + 1.5f, z = _mapMarks[b + 2], dx = _mapMarks[b + 3], dz = _mapMarks[b + 4];
+                float dl = (float)Math.Sqrt(dx * dx + dz * dz); if (dl < 1e-5f) { dx = 0; dz = 1; } else { dx /= dl; dz /= dl; }
+                float px = -dz, pz = dx;                                   // (across)
+                float sz = _mapMarks[b + 6] > 0 ? _mapMarks[b + 6] : _mapR * 0.06f;
+                if (_mapMarks[b + 5] == 0)
+                {
+                    // A DOOR: a chevron arrow on its pad, pointing out, sliding outward and back (two strokes, the second following)
+                    for (int k = 0; k < 2; k++)
+                    {
+                        float ph = (float)((time * 0.6 + k * 0.5) % 1.0), off = (ph - 0.5f) * sz * 0.5f, fade = (float)Math.Sin(Math.PI * ph);
+                        float cx = x + dx * (off + k * sz * 0.35f), cz = z + dz * (off + k * sz * 0.35f);
+                        float tx = cx + dx * sz * 0.5f, tz = cz + dz * sz * 0.5f, lx = cx - dx * sz * 0.1f + px * sz * 0.55f, lz = cz - dz * sz * 0.1f + pz * sz * 0.55f;
+                        float rx = cx - dx * sz * 0.1f - px * sz * 0.55f, rz = cz - dz * sz * 0.1f - pz * sz * 0.55f;
+                        float ix = cx + dx * sz * 0.12f, iz = cz + dz * sz * 0.12f;
+                        if (fade > 0.05f)
+                        {
+                            MapSeg(lines, lx, y, lz, tx, y, tz); MapSeg(lines, tx, y, tz, rx, y, rz); MapSeg(lines, rx, y, rz, ix, y, iz); MapSeg(lines, ix, y, iz, lx, y, lz);
+                            foreach (var p in new[] { lx, y, lz, tx, y, tz, ix, y, iz, ix, y, iz, tx, y, tz, rx, y, rz }) fills.Add(p);
+                        }
+                    }
+                    // the pad itself: a faint square under it
+                    float h = sz * 0.75f;
+                    MapSeg(lines, x - dx * h - px * h, y, z - dz * h - pz * h, x - dx * h + px * h, y, z - dz * h + pz * h);
+                    MapSeg(lines, x + dx * h - px * h, y, z + dz * h - pz * h, x + dx * h + px * h, y, z + dz * h + pz * h);
+                }
+                else
+                {
+                    // THE PLAYER: a ring, a pulse going out from it, and a wedge the way they face
+                    int n = 24; float r = sz * 0.45f, pr = r * (1f + 1.6f * (float)((time * 0.7) % 1.0));
+                    for (int k = 0; k < n; k++)
+                    {
+                        double a0 = 2 * Math.PI * k / n, a1 = 2 * Math.PI * (k + 1) / n;
+                        MapSeg(lines, x + r * (float)Math.Cos(a0), y, z + r * (float)Math.Sin(a0), x + r * (float)Math.Cos(a1), y, z + r * (float)Math.Sin(a1));
+                    }
+                    for (int k = 0; k < n; k += 2)
+                    {
+                        double a0 = 2 * Math.PI * k / n, a1 = 2 * Math.PI * (k + 1) / n;
+                        MapSeg(lines, x + pr * (float)Math.Cos(a0), y, z + pr * (float)Math.Sin(a0), x + pr * (float)Math.Cos(a1), y, z + pr * (float)Math.Sin(a1));
+                    }
+                    float wx0 = x + dx * r * 1.1f, wz0 = z + dz * r * 1.1f, wtx = x + dx * r * 2.4f, wtz = z + dz * r * 2.4f;
+                    float wl = x + dx * r * 1.0f + px * r * 0.6f, wlz = z + dz * r * 1.0f + pz * r * 0.6f, wr = x + dx * r * 1.0f - px * r * 0.6f, wrz = z + dz * r * 1.0f - pz * r * 0.6f;
+                    MapSeg(lines, wl, y, wlz, wtx, y, wtz); MapSeg(lines, wtx, y, wtz, wr, y, wrz);
+                    foreach (var p in new[] { wl, y, wlz, wtx, y, wtz, wr, y, wrz, x - r * 0.35f, y, z, x + r * 0.35f * 0, y, z + r * 0.35f, x + r * 0.35f, y, z }) fills.Add(p);
+                    foreach (var p in new[] { x, y, z + 0, x, y, z, x, y, z }) fills.Add(p);
+                }
+            }
+        }
+        /// <summary>Draws the map layer (when MapK > 0): called at the end of Draw, with the room it drew.</summary>
+        void DrawMap(float[] vx, int[] idx, int[] triTex, Raster.Tex[] texes)
+        {
+            var sw = Stopwatch.StartNew();
+            if (_mapFbo == 0)
+            {
+                _pMapFace = Link(VS_MAPF, FS_MAPF, "the map's faces"); _pMapLine = Link(VS_MAPL, FS_MAPL, "the map's lines");
+                var ids = new uint[1];
+                glGenFramebuffers(1, ids); _mapFbo = ids[0]; glBindFramebuffer(GL_FRAMEBUFFER, _mapFbo);
+                _mapLayerTex = ColourTex(); glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _mapLayerTex, 0);
+                glGenTextures(1, ids); _mapDepth = ids[0]; glBindTexture(GL_TEXTURE_2D, _mapDepth);
+                glTexImage2DN(GL_TEXTURE_2D, 0, (int)GL_DEPTH_COMPONENT32F, W, H, 0, GL_DEPTH_COMPONENT, GL_FLOAT, IntPtr.Zero);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (int)GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (int)GL_NEAREST);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _mapDepth, 0);
+                Complete("the map");
+                foreach (var pr in new[] { 0, 1, 2, 3 })
+                {
+                    glGenVertexArrays(1, ids); uint vao = ids[0]; glBindVertexArray(vao); glGenBuffers(1, ids); uint vbo = ids[0]; glBindBuffer(GL_ARRAY_BUFFER, vbo);
+                    if (pr == 0 || pr == 3)
+                    {
+                        int st = (pr == 0 ? 9 : 6) * 4; glEnableVertexAttribArray(0); glVertexAttribPointer(0, 3, GL_FLOAT, 0, st, IntPtr.Zero);
+                        if (pr == 0) { glEnableVertexAttribArray(1); glVertexAttribPointer(1, 3, GL_FLOAT, 0, st, new IntPtr(12)); glEnableVertexAttribArray(2); glVertexAttribPointer(2, 3, GL_FLOAT, 0, st, new IntPtr(24)); }
+                    }
+                    else
+                    {
+                        int st = XSTRIDE * 4; int[] sizes = { 3, 3, 2 }; int off = 0;
+                        for (int a = 0; a < 3; a++) { glEnableVertexAttribArray((uint)a); glVertexAttribPointer((uint)a, sizes[a], GL_FLOAT, 0, st, new IntPtr(off * 4)); off += sizes[a]; }
+                    }
+                    if (pr == 0) { _mfVao = vao; _mfVbo = vbo; } else if (pr == 1) { _mlVao = vao; _mlVbo = vbo; } else if (pr == 2) { _mkVao = vao; _mkVbo = vbo; } else { _mkfVao = vao; _mkfVbo = vbo; }
+                }
+                glBindVertexArray(0);
+            }
+            if (!ReferenceEquals(_mapFor, vx)) { _mapFor = vx; BuildMap(vx, idx, triTex, texes); _mcDirty = true; }
+            if (_mcDirty) BuildComplex();
+            float cxK = (_mcFN[0] + _mcFN[1] + _mcLN[0] + _mcLN[1]) > 0 ? Math.Max(0f, Math.Min(1f, MapComplexK)) : 0f;
+            // the eye: round the room's middle
+            float yaw = MapYaw * (float)Math.PI / 180f, pitch = Math.Max(5f, Math.Min(89f, MapPitch)) * (float)Math.PI / 180f;
+            float fov = Math.Max(10f, MapFovDeg) * (float)Math.PI / 180f, aspect = (float)W / Math.Max(1f, VHf);
+            float dist = _mapR / (float)Math.Sin(fov * 0.5f) * 1.02f / Math.Max(0.03f, MapZoom);      // (zoomed out past the room: the complex round it)
+            if (aspect < 1f) dist /= aspect;
+            _mapEyeX = _mapCx + dist * (float)(Math.Cos(pitch) * Math.Sin(yaw)); _mapEyeY = _mapCy + dist * (float)Math.Sin(pitch); _mapEyeZ = _mapCz + dist * (float)(Math.Cos(pitch) * Math.Cos(yaw));
+            var view = MapLookAt(_mapEyeX, _mapEyeY, _mapEyeZ, _mapCx, _mapCy, _mapCz);
+            float reachR = cxK > 0f ? Math.Max(_mapR, _mcR) : _mapR;
+            float near = Math.Max(1f, dist - reachR * 1.6f), far = dist + reachR * 1.6f, ff = 1f / (float)Math.Tan(fov * 0.5f);
+            // (the picture's VIEW rows: the band the 3D is shown in; the map is framed there, below it nothing is seen)
+            float sy = VHf / H;
+            var proj = new float[] { ff / aspect, 0, 0, 0, 0, ff, 0, 0, 0, 0, (far + near) / (near - far), -1, 0, 0, 2 * far * near / (near - far), 0 };
+            var mvp = MapMul(proj, view);
+            // (the picture's row 0 is its TOP, and the view band is its first VHf rows: y is turned over and squeezed into the
+            // band -- clip y' = -(sy y) - (1 - sy) w)
+            for (int c = 0; c < 4; c++) mvp[c * 4 + 1] = -sy * mvp[c * 4 + 1] - (1f - sy) * mvp[c * 4 + 3];
+            // (and x turned over too: the game's world is the other handedness from this look-at, so every map came out MIRRORED
+            // -- Josh, 2026-10-14, WASHCORI: its balcony on the left, in the room on the right. Checked against the room's own view)
+            for (int c = 0; c < 4; c++) mvp[c * 4] = -mvp[c * 4];
+            Array.Copy(mvp, _mapMvp, 16);
+            glBindFramebuffer(GL_FRAMEBUFFER, _mapFbo); glViewport(0, 0, W, H);
+            glColorMask(1, 1, 1, 1); glDepthMask(1); glClearColor(0, 0, 0, 0); glClearDepth(1.0); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glDisable(GL_STENCIL_TEST); glDisable(GL_CULL_FACE);
+            float k = Math.Max(0f, Math.Min(1f, MapK));
+            Func<int, float> R = c => ((c >> 16) & 255) / 255f; Func<int, float> G = c => ((c >> 8) & 255) / 255f; Func<int, float> B = c => (c & 255) / 255f;
+            // the intro's wave
+            float wp = MapIntro < 0 ? 1f : MapIntro / Math.Max(0.1f, MapIntroSeconds); bool waveOn = MapIntro >= 0 && wp < 1f;
+            float wax = -(float)Math.Cos(yaw), waz = (float)Math.Sin(yaw);                         // (the screen's left to right -- x is turned over, see the mirror above)
+            Action<uint> setWave = pg =>
+            {
+                glUseProgram(pg);
+                glUniform4f(glGetUniformLocation(pg, "uWave"), Math.Max(0f, wp), Math.Max(0.05f, MapWaveWidth), waveOn ? 1f : 0f, MapPulse);
+                glUniform3f(glGetUniformLocation(pg, "uWaveAx"), wax, 0f, waz); glUniform4f(glGetUniformLocation(pg, "uWaveC"), _mapCx, _mapCy, _mapCz, _mapR);
+            };
+            setWave(_pMapLine); setWave(_pMapFace);
+            float markK = waveOn ? Math.Max(0f, Math.Min(1f, (wp - 0.7f) / 0.3f)) : 1f;
+            // 1. the faces: depth for the lines' test, the shading over it
+            glUseProgram(_pMapFace);
+            glUniformMatrix4fv(glGetUniformLocation(_pMapFace, "uMvp"), 1, 0, mvp);
+            glUniform3f(glGetUniformLocation(_pMapFace, "uEye"), _mapEyeX, _mapEyeY, _mapEyeZ);
+            glUniform3f(glGetUniformLocation(_pMapFace, "uCol"), R(MapInk), G(MapInk), B(MapInk));
+            glUniform3f(glGetUniformLocation(_pMapFace, "uLight"), (float)Math.Sin(yaw + 0.8), 1.4f, (float)Math.Cos(yaw + 0.8));
+            glUniform1f(glGetUniformLocation(_pMapFace, "uK"), MapFaceK); glUniform1i(glGetUniformLocation(_pMapFace, "uFlat"), 0); glUniform1i(glGetUniformLocation(_pMapFace, "uFlip"), MapCullFlip ? 1 : 0);
+            glEnable(GL_DEPTH_TEST); glDepthFunc(0x0201 /*LESS*/);
+            glEnable(GL_BLEND); glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            glBindVertexArray(_mfVao); if (_mfN > 0) glDrawArrays(GL_TRIANGLES, 0, _mfN);
+            // 2. the edges: where seen, then fainter where the kept faces hide them
+            glUseProgram(_pMapLine);
+            glUniformMatrix4fv(glGetUniformLocation(_pMapLine, "uMvp"), 1, 0, mvp); glUniform2f(glGetUniformLocation(_pMapLine, "uHalf"), W * 0.5f, H * 0.5f);
+            glUniform1f(glGetUniformLocation(_pMapLine, "uBias"), 0.0008f);
+            glDepthMask(0); glBlendFunc(GL_ONE, GL_ONE);
+            float res = H / 1200f; int uW = glGetUniformLocation(_pMapLine, "uWidth"), uK = glGetUniformLocation(_pMapLine, "uK"), uC = glGetUniformLocation(_pMapLine, "uCore"), uCol = glGetUniformLocation(_pMapLine, "uCol");
+            // ZOOMED OUT, FINER LINES (Josh, 2026-10-14: the rooms "very bright when zooming out ... the linework is a thicker
+            // weight"): the lines keep their pixel width while the rooms shrink, so they pile up -- thinner and quieter the
+            // further out, down to MapFarWidth / MapFarK of their weight at the furthest zoom
+            float zk = Math.Max(0f, Math.Min(1f, (MapZoom - 0.06f) / 0.54f)); zk = zk * zk * (3f - 2f * zk);
+            res *= MapFarWidth + (1f - MapFarWidth) * zk; float lineK = MapFarK + (1f - MapFarK) * zk;
+            glBindVertexArray(_mlVao);
+            if (_mlN > 0)
+            {
+                foreach (var pass in new[] { 0, 1 })
+                {
+                    glDepthFunc(pass == 0 ? 0x0203u /*LEQUAL*/ : 0x0204u /*GREATER*/);
+                    float kk = (pass == 0 ? MapLineK : MapHiddenK) * lineK;
+                    glUniform3f(uCol, R(MapInk), G(MapInk), B(MapInk));
+                    glUniform1f(uW, MapHalo * res); glUniform1f(uK, kk * 0.22f); glUniform1i(uC, 0); glDrawArrays(GL_TRIANGLES, 0, _mlN);
+                    glUniform3f(uCol, R(MapFlare), G(MapFlare), B(MapFlare));
+                    glUniform1f(uW, MapCore * res); glUniform1f(uK, kk * 0.8f); glUniform1i(uC, 1); glDrawArrays(GL_TRIANGLES, 0, _mlN);
+                }
+            }
+            // 2b. THE REST OF THE COMPLEX (as the map zooms out): the visited rooms as the room is drawn, the unvisited ones faint;
+            // no intro wave on them
+            LastComplexFaces = 0;
+            if (cxK > 0.01f)
+            {
+                glUseProgram(_pMapFace); glUniform4f(glGetUniformLocation(_pMapFace, "uWave"), 1f, 0.1f, 0f, 0f);
+                glUseProgram(_pMapLine); glUniform4f(glGetUniformLocation(_pMapLine, "uWave"), 1f, 0.1f, 0f, 0f);
+                for (int g = 0; g < 2; g++)
+                {
+                    float gk = cxK * (g == 0 ? MapOtherK : MapComplexDim);      // (visited rooms under the current one: faded teal -- MapOtherK)
+                    if (_mcFN[g] > 0)
+                    {
+                        // (no depth written by the other rooms' faces, and their lines drawn whole: seen from above, rooms below another's
+                        // floor were thinned by the hidden-line pass and looked cut off -- Josh, 2026-10-14)
+                        glUseProgram(_pMapFace); glDepthMask(0); glDepthFunc(0x0201 /*LESS*/); glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                        glUniform1f(glGetUniformLocation(_pMapFace, "uK"), MapFaceK * gk * (g == 0 ? 0.8f : 0.2f));
+                        int fInk = g == 0 ? MapInk : MapUnseenInk; glUniform3f(glGetUniformLocation(_pMapFace, "uCol"), R(fInk), G(fInk), B(fInk));
+                        glBindVertexArray(_mcFVao[g]); glDrawArrays(GL_TRIANGLES, 0, _mcFN[g]); LastComplexFaces += _mcFN[g] / 3;
+                    }
+                    if (_mcLN[g] > 0)
+                    {
+                        glUseProgram(_pMapLine); glDepthMask(0); glBlendFunc(GL_ONE, GL_ONE); glBindVertexArray(_mcLVao[g]);
+                        foreach (var pass in new[] { 0 })
+                        {
+                            glDepthFunc(0x0207u /*ALWAYS*/);
+                            float kk = MapLineK * 0.8f * gk * lineK;
+                            int lInk = g == 0 ? MapInk : MapUnseenInk, lFlare = g == 0 ? MapInk : MapUnseenFlare;      // (visited: the map's teal, no white-hot core -- that stays the current room's; the unvisited: grey)
+                            glUniform3f(uCol, R(lInk), G(lInk), B(lInk));
+                            glUniform1f(uW, MapHalo * res); glUniform1f(uK, kk * 0.22f); glUniform1i(uC, 0); glDrawArrays(GL_TRIANGLES, 0, _mcLN[g]);
+                            glUniform3f(uCol, R(lFlare), G(lFlare), B(lFlare));
+                            glUniform1f(uW, MapCore * res); glUniform1f(uK, kk * 0.8f); glUniform1i(uC, 1); glDrawArrays(GL_TRIANGLES, 0, _mcLN[g]);
+                        }
+                    }
+                }
+                glUseProgram(_pMapLine);
+            }
+            LastMapEdges = _mlN / 6; LastMapFaces = _mfN / 3;
+            // 3. the marks: over everything, amber
+            if (_mapMarkN > 0 && markK > 0.01f)
+            {
+                var ml = new List<float>(); var mf = new List<float>(); BuildMarks(Time, ml, mf);
+                glDisable(GL_DEPTH_TEST);
+                if (mf.Count > 0)
+                {
+                    var fa = new float[mf.Count / 3 * 6]; for (int i = 0, j = 0; i < mf.Count; i += 3, j += 6) { fa[j] = mf[i]; fa[j + 1] = mf[i + 1]; fa[j + 2] = mf[i + 2]; }
+                    glUseProgram(_pMapFace); glUniform1i(glGetUniformLocation(_pMapFace, "uFlat"), 1);
+                    glUniform3f(glGetUniformLocation(_pMapFace, "uCol"), R(MapMarkInk), G(MapMarkInk), B(MapMarkInk)); glUniform1f(glGetUniformLocation(_pMapFace, "uK"), 0.45f * markK);
+                    glUniform4f(glGetUniformLocation(_pMapFace, "uWave"), 1f, 0.35f, 0f, 0f);      // (the marks do not wave)
+                    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                    glBindVertexArray(_mkfVao); glBindBuffer(GL_ARRAY_BUFFER, _mkfVbo); glBufferDataF(GL_ARRAY_BUFFER, new IntPtr((long)fa.Length * 4), fa, GL_STREAM_DRAW);
+                    glDrawArrays(GL_TRIANGLES, 0, fa.Length / 6);
+                    glUniform1i(glGetUniformLocation(_pMapFace, "uFlat"), 0);
+                }
+                if (ml.Count > 0)
+                {
+                    glUseProgram(_pMapLine); glBlendFunc(GL_ONE, GL_ONE);
+                    glUniform4f(glGetUniformLocation(_pMapLine, "uWave"), 1f, 0.35f, 0f, 0f);
+                    var la = ml.ToArray();
+                    glBindVertexArray(_mkVao); glBindBuffer(GL_ARRAY_BUFFER, _mkVbo); glBufferDataF(GL_ARRAY_BUFFER, new IntPtr((long)la.Length * 4), la, GL_STREAM_DRAW);
+                    int n = la.Length / XSTRIDE;
+                    glUniform3f(uCol, R(MapMarkInk), G(MapMarkInk), B(MapMarkInk)); glUniform1f(uW, MapHalo * 1.3f * res); glUniform1f(uK, 0.35f * markK); glUniform1i(uC, 0); glDrawArrays(GL_TRIANGLES, 0, n);
+                    glUniform3f(uCol, R(MapMarkHot), G(MapMarkHot), B(MapMarkHot)); glUniform1f(uW, MapCore * 1.6f * res); glUniform1f(uK, markK); glUniform1i(uC, 1); glDrawArrays(GL_TRIANGLES, 0, n);
+                }
+            }
+            // back to the picture's own state (reversed depth)
+            glDisable(GL_BLEND); glDepthMask(1); glEnable(GL_DEPTH_TEST); glDepthFunc(GL_GREATER); glClearDepth(0.0); glBindVertexArray(0);
+            Check("the map");
+            LastMapMs = sw.Elapsed.TotalMilliseconds;
         }
 
         // ---- A GHOST (Josh, 2026-10-11, WELLROOM: Niamh, the floating lady -- "more ethereal ... transparent ghost-like ...
@@ -5560,6 +6766,114 @@ void main() {
             {
                 if (_dc != IntPtr.Zero) { ReleaseDC(_hwnd, _dc); _dc = IntPtr.Zero; }
                 if (_hwnd != IntPtr.Zero) { DestroyWindow(_hwnd); _hwnd = IntPtr.Zero; }
+            }
+        }
+    }
+
+    // ---- THE PLACED LIGHTS, EVERY FRAME (2026-10-13 performance audit) ------------------------------
+    // Update-RoomLights (the watcher) worked out each placed light's flicker, its dancing point and its
+    // cycling colour in script, a few dozen property reads and Math calls per light per frame; the
+    // shadow views' loop after it read them back. The same maths, in the same order and the same
+    // precision (doubles, cast to float where the script cast), now runs here from a copy of the
+    // room's lights made once per room. STILL EVERY FRAME: throttled, the flicker and the dancing
+    // shadows would visibly step. [[azrael-atmosphere]] [[azrael-perf-audit]]
+    public class RoomLightSet
+    {
+        public sealed class L
+        {
+            public float X, Y, Z, Range;
+            public double R, G, B, Power, Flicker, Phase, Dance, CycleSec, CycleOff;
+            public int[] Cycle;            // null = a steady colour
+            public double[] Dir;           // null = no direction (no shadow view)
+            public double Noise, Jx, Jy, Jz;   // per-frame state
+        }
+        public readonly List<L> Lights = new List<L>();
+        /// <summary>Each light's shadow-view raster (null where it casts none), as Set-RoomAtmosphere made them.</summary>
+        public Raster[] Views;
+        readonly Random _rnd;
+        public RoomLightSet() { _rnd = new Random(); }
+        /// <summary>A fixed seed: for checking against the script's maths (the same Random, the same jitter).</summary>
+        public RoomLightSet(int seed) { _rnd = new Random(seed); }
+
+        public void Add(float x, float y, float z, double r, double g, double b, double power, float range, double flicker, double phase, double dance, int[] cycle, double cycleSec, double cycleOff, double[] dir)
+        {
+            Lights.Add(new L { X = x, Y = y, Z = z, R = r, G = g, B = b, Power = power, Range = range, Flicker = flicker, Phase = phase, Dance = dance, Cycle = cycle, CycleSec = cycleSec, CycleOff = cycleOff, Dir = (dir != null && dir.Length == 3) ? dir : null });
+        }
+        public int Count { get { return Lights.Count; } }
+        public double JitterX(int i) { return Lights[i].Jx; }
+        public double JitterY(int i) { return Lights[i].Jy; }
+        public double JitterZ(int i) { return Lights[i].Jz; }
+
+        /// <summary>This frame's strength, colour and position of every light into ras.Lights (8 floats
+        /// each) and ras.LightCount; the bounced light's flicker into gpu.GiFlicker when it is on.</summary>
+        public void Update(Raster ras, double t, GpuRaster gpu)
+        {
+            int n = Lights.Count; ras.LightCount = 0;
+            if (n == 0) return;
+            float[] o = ras.Lights;
+            for (int i = 0; i < n; i++)
+            {
+                L l = Lights[i];
+                // a torch: two slow sways and a little jitter, never below about half strength
+                l.Noise = 0.7 * l.Noise + 0.3 * (_rnd.NextDouble() - 0.5);
+                double f = 1.0 + l.Flicker * (0.55 * Math.Sin(t * 7.9 + l.Phase) + 0.3 * Math.Sin(t * 19.3 + l.Phase * 2.1) + 1.2 * l.Noise);
+                if (f < 0.45) f = 0.45;
+                double p = l.Power * f; int b = i * 8;
+                // DANCING SHADOWS: the light's point wanders round the flame, and up when it flares
+                double amp = l.Flicker > 0 ? l.Dance : 0;
+                if (amp > 0)
+                {
+                    l.Jx = amp * (0.5 * Math.Sin(t * 5.3 + l.Phase) + 0.3 * Math.Sin(t * 12.7 + l.Phase * 1.9) + 0.4 * l.Noise);
+                    l.Jz = amp * (0.5 * Math.Sin(t * 4.6 + l.Phase * 2.7) + 0.3 * Math.Sin(t * 11.3 + l.Phase * 0.7) - 0.4 * l.Noise);
+                    l.Jy = amp * 0.6 * Math.Max(-1.0, Math.Min(1.5, (f - 1.0) / l.Flicker));
+                }
+                else { l.Jx = 0.0; l.Jy = 0.0; l.Jz = 0.0; }
+                o[b] = (float)(l.X + l.Jx); o[b + 1] = (float)(l.Y + l.Jy); o[b + 2] = (float)(l.Z + l.Jz);
+                double cr = l.R, cg = l.G, cb = l.B;
+                if (l.Cycle != null)
+                {
+                    // its colour round the loop: which two colours it is between, eased (smoothstep) from one to the next
+                    int nc = l.Cycle.Length; double u = ((t / Math.Max(1.0, l.CycleSec) + l.CycleOff) % 1.0) * nc;
+                    int k0 = ((int)Math.Floor(u)) % nc, k1 = (k0 + 1) % nc;
+                    double mixK = u - Math.Floor(u); mixK = mixK * mixK * (3 - 2 * mixK); int c0 = l.Cycle[k0], c1 = l.Cycle[k1];
+                    cr = ((1 - mixK) * ((c0 >> 16) & 255) + mixK * ((c1 >> 16) & 255)) / 255.0;
+                    cg = ((1 - mixK) * ((c0 >> 8) & 255) + mixK * ((c1 >> 8) & 255)) / 255.0;
+                    cb = ((1 - mixK) * (c0 & 255) + mixK * (c1 & 255)) / 255.0;
+                }
+                o[b + 3] = (float)(cr * p); o[b + 4] = (float)(cg * p); o[b + 5] = (float)(cb * p); o[b + 6] = l.Range;
+            }
+            ras.LightCount = n;
+            if (gpu != null && gpu.GiOn)
+            {
+                double sw = 0.0, sf = 0.0;
+                for (int i = 0; i < n; i++)
+                {
+                    L l = Lights[i]; double pw = l.Power * (l.R + l.G + l.B); sw += pw;
+                    sf += pw * ((double)o[i * 8 + 3] + (double)o[i * 8 + 4] + (double)o[i * 8 + 5]) / Math.Max(1e-6, l.Power * (l.R + l.G + l.B));
+                }
+                gpu.GiFlicker = (float)(sw > 0 ? sf / sw : 1);
+            }
+        }
+
+        /// <summary>Aim light li's shadow view from where it is this frame (it dances), looking the way
+        /// it faces; the view's raster, or null for a light with none.</summary>
+        public Raster AimView(int li, out float x, out float y, out float z)
+        {
+            x = y = z = 0;
+            Raster lz = (Views != null && li < Views.Length) ? Views[li] : null; if (lz == null) return null;
+            L l = Lights[li]; double[] d = l.Dir; if (d == null) return null;
+            int upAx = Math.Abs(d[1]) > 0.9 ? 0 : 1;      // a light facing straight up or down: lean on x instead
+            x = (float)(l.X + l.Jx); y = (float)(l.Y + l.Jy); z = (float)(l.Z + l.Jz);
+            lz.LookAt(x, y, z, (float)(x + d[0] * 100), (float)(y + d[1] * 100), (float)(z + d[2] * 100), upAx);
+            return lz;
+        }
+        /// <summary>THE PLACED LIGHTS' VIEWS on the graphics card: each shadowing light all round from where it is this frame.</summary>
+        public void CardViews(GpuRaster gpu, int face)
+        {
+            for (int li = 0; li < Lights.Count; li++)
+            {
+                float x, y, z; if (AimView(li, out x, out y, out z) == null) continue;
+                gpu.SetLightCube(li, x, y, z, face);
             }
         }
     }

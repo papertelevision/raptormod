@@ -19,8 +19,8 @@ namespace AztTool
     public class Particles
     {
         public const int Stride = 10;          // per particle out: x y z, size (world), r g b (0..255), alpha, additive (0/1), seed
-        struct P { public float x, y, z, vx, vy, vz, age, life, size, size1, seed; public byte kind; }
-        const byte EMBER = 1, DRIP = 2, SPLASH = 3, STEAM = 4, KICK = 5, SHAFT = 6, WMIST = 7, GHOST = 8;
+        struct P { public float x, y, z, vx, vy, vz, age, life, size, size1, seed, dvx, dvy, dvz; public byte kind; }      // (dv: the push from the player walking through -- see ReactStrength)
+        const byte EMBER = 1, DRIP = 2, SPLASH = 3, STEAM = 4, KICK = 5, SHAFT = 6, WMIST = 7, GHOST = 8, SPARK = 9, PUFF = 10;
         readonly List<P> _p = new List<P>(512);
         readonly Random _rnd = new Random(11);
         float R() { return (float)_rnd.NextDouble(); }
@@ -50,6 +50,33 @@ namespace AztTool
         public float KickRate = 0f, KickSize = 7f, KickLife = 1.6f, KickAlpha = 0.22f, KickStep = 26f, KickAhead = 60f;
         public int KickColor = 0x8A7A64;
         public float EyeHeight = 45f;          // where the feet are, below the eye, when the floor is not found
+        /// <summary>SHOT IMPACTS (Josh, 2026-10-14: "sparks, a brief glow and scorch marks that fade where your shots hit
+        /// stone"): a burst of sparks off the surface at (x, y, z) facing (nx, ny, nz) -- white-hot, cooling through orange to
+        /// red as they fly and fall -- and a small puff of stone dust. Strength scales how many and how far.</summary>
+        public void Impact(float x, float y, float z, float nx, float ny, float nz, float strength)
+        {
+            int n = (int)Math.Round(SparkCount * Math.Max(0.2f, strength));
+            for (int i = 0; i < n; i++)
+            {
+                // off the surface: the normal plus a random spread, faster near the normal
+                float rx = R() * 2 - 1, ry = R() * 2 - 1, rz = R() * 2 - 1; float rl = (float)Math.Sqrt(rx * rx + ry * ry + rz * rz) + 1e-4f; rx /= rl; ry /= rl; rz /= rl;
+                if (rx * nx + ry * ny + rz * nz < 0) { rx = -rx; ry = -ry; rz = -rz; }
+                float sp = SparkSpeed * (0.35f + R() * 0.9f) * strength, mix = 0.45f;
+                float vx = (nx * mix + rx * (1 - mix)), vy = (ny * mix + ry * (1 - mix)) + 0.25f, vz = (nz * mix + rz * (1 - mix));
+                Add(new P { kind = SPARK, x = x + nx * 0.6f, y = y + ny * 0.6f, z = z + nz * 0.6f, vx = vx * sp, vy = vy * sp, vz = vz * sp, life = SparkLife * (0.4f + R() * 0.9f), size = SparkSize * (0.5f + R() * 0.8f), seed = R() });
+            }
+            for (int i = 0; i < 3; i++)
+                Add(new P { kind = PUFF, x = x + nx * 2f, y = y + ny * 2f, z = z + nz * 2f, vx = nx * (8f + R() * 10f) + (R() - 0.5f) * 8f, vy = ny * (8f + R() * 10f) + 3f + R() * 4f, vz = nz * (8f + R() * 10f) + (R() - 0.5f) * 8f, life = 1.2f + R() * 0.8f, size = 3f + R() * 2f, size1 = 10f + R() * 6f, seed = R() });
+        }
+        public int SparkCount = 44, SparkColor = 0xFFD890; public float SparkSpeed = 160f, SparkLife = 0.6f, SparkSize = 0.9f, PuffAlpha = 0.22f; public int PuffColor = 0x8A8074;
+        /// <summary>The sparks' warm colours (each spark takes one by its seed): white-hot, yellow, amber, orange, red-orange.</summary>
+        public int[] SparkHues = { 0xFFF4D8, 0xFFD878, 0xFFB050, 0xFF8A30, 0xF0602A };
+        /// <summary>DUST THAT REACTS (Josh, 2026-10-14: "motes in BAPTIST's sunbeams and CORICORI's shaft swirl as you walk
+        /// through them"): the shafts' specks within ReactRadius of the player's body (a column from the floor to just over the
+        /// eye) are pushed aside -- outward, a little along the way he walks and curling round behind him as a wake -- by an
+        /// extra velocity of their own that dies away over about ReactSettle seconds, so they drift back into the beam's slow
+        /// float. ReactStrength 0 = none. A standing player stirs nothing.</summary>
+        public float ReactStrength = 1f, ReactRadius = 42f, ReactSettle = 1.6f;
         public int MaxParticles = 1500;
 
         // the lights embers come from: x y z per light (only those that flicker)
@@ -176,6 +203,11 @@ namespace AztTool
             FloorY = float.IsNaN(FloorY) ? feet : FloorY + (feet - FloorY) * Math.Min(1f, dt * 8f);
 
             for (int i = 0; i < _dropN; i++) _drops[i * 4 + 3] += dt;
+            // the player's own movement this step (for the dust that reacts): none on the first step or a jump of 30+ (a load)
+            float pvx = 0f, pvz = 0f, psp = 0f;
+            if (_haveLast) { float mx = ex - _lx, mz = ez - _lz, mm = (float)Math.Sqrt(mx * mx + mz * mz); if (mm < 30f) { pvx = mx / dt; pvz = mz / dt; psp = mm / dt; } }
+            bool react = ReactStrength > 0f && psp > 4f;
+            float reachR = ReactRadius, decay = (float)Math.Exp(-dt * 3f / Math.Max(0.2f, ReactSettle));
             // move and age what there is
             for (int i = _p.Count - 1; i >= 0; i--)
             {
@@ -197,6 +229,8 @@ namespace AztTool
                         }
                         break;
                     case SPLASH: p.vy -= Gravity * dt; break;
+                    case SPARK: p.vy -= Gravity * 0.55f * dt; p.vx *= 1f - 1.2f * dt; p.vz *= 1f - 1.2f * dt; break;
+                    case PUFF: p.vx *= 1f - Math.Min(1f, 2f * dt); p.vy *= 1f - Math.Min(1f, 1.5f * dt); p.vz *= 1f - Math.Min(1f, 2f * dt); break;
                     case STEAM:
                         p.vx += (R() - 0.5f) * 8f * dt; p.vz += (R() - 0.5f) * 8f * dt;
                         break;
@@ -211,6 +245,23 @@ namespace AztTool
                         p.vx *= 1f - Math.Min(1f, 2.5f * dt); p.vz *= 1f - Math.Min(1f, 2.5f * dt); p.vy -= 4f * dt;
                         break;
                     case SHAFT:
+                        // PUSHED BY THE PLAYER (see ReactStrength): outward from his body, dragged along his way, curling into
+                        // a wake behind him; the push dies away on its own
+                        if (react)
+                        {
+                            float qx = p.x - ex, qz = p.z - ez, qd = (float)Math.Sqrt(qx * qx + qz * qz);
+                            float top = ey + 6f, bot = (float.IsNaN(FloorY) ? ey - EyeHeight : FloorY) - 2f;
+                            if (qd < reachR && p.y < top && p.y > bot)
+                            {
+                                float w = (1f - qd / reachR); w *= w;
+                                float ox = qd > 1e-3f ? qx / qd : pvx / psp, oz = qd > 1e-3f ? qz / qd : pvz / psp;
+                                float hx = pvx / psp, hz = pvz / psp, side = ox * hz - oz * hx;          // (which side of his path)
+                                float k = ReactStrength * w * dt * 9f;
+                                p.dvx += k * (ox * psp * 0.9f + pvx * 0.45f - hz * side * psp * 0.5f);
+                                p.dvz += k * (oz * psp * 0.9f + pvz * 0.45f + hx * side * psp * 0.5f);
+                                p.dvy += k * psp * (0.25f + 0.3f * (p.seed - 0.5f));
+                            }
+                        }
                         // a slow wander, settling a little
                         p.vx += (R() - 0.5f) * 4f * dt; p.vz += (R() - 0.5f) * 4f * dt; p.vx *= 1f - 0.3f * dt; p.vz *= 1f - 0.3f * dt;
                         {
@@ -226,7 +277,7 @@ namespace AztTool
                                 float tx = dy * rz - dz * ry, ty = dz * rx - dx * rz, tz = dx * ry - dy * rx;          // (the radius turned a quarter)
                                 float nx = rx * c + tx * s, ny = ry * c + ty * s, nz = rz * c + tz * s;
                                 float rl = (float)Math.Sqrt(nx * nx + ny * ny + nz * nz), lim = _shafts[b + 6] * Math.Max(al, 1f) * 0.85f;
-                                if (rl > lim && rl > 1e-4f) { float k = lim / rl; nx *= k; ny *= k; nz *= k; }
+                                if (rl > lim && rl > 1e-4f && p.dvx * p.dvx + p.dvy * p.dvy + p.dvz * p.dvz < 4f) { float k = lim / rl; nx *= k; ny *= k; nz *= k; }      // (not while pushed out of it)
                                 p.x = ax + dx * al + nx; p.y = ay + dy * al + ny; p.z = az + dz * al + nz;
                                 // (Josh, round 27: "more natural, just a bunch of particles floating around slowly and ethereal ...
                                 // much slower"): each eases toward a slow, smooth drift of its own -- a gently changing field, no
@@ -240,6 +291,7 @@ namespace AztTool
                         break;
                 }
                 p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+                if (p.kind == SHAFT) { p.x += p.dvx * dt; p.y += p.dvy * dt; p.z += p.dvz * dt; p.dvx *= decay; p.dvy *= decay; p.dvz *= decay; }
                 _p[i] = p;
             }
 
@@ -381,7 +433,7 @@ namespace AztTool
                 if (v[2] < 1f) continue;
                 float sx = cx0 + v[0] * fpx / v[2], sy = cy0 - v[1] * fpx / v[2];
                 if (sx < -200 || sy < -200 || sx > W + 200 || sy > H + 200) continue;
-                bool add = p.kind == EMBER || p.kind == SHAFT || p.kind == GHOST;
+                bool add = p.kind == EMBER || p.kind == SHAFT || p.kind == GHOST || p.kind == SPARK;
                 order.Add(new KeyValuePair<float, int>(add ? 1e9f - v[2] : -v[2], i));       // alpha ones far to near, then the additive ones
             }
             order.Sort((a, b) => a.Key.CompareTo(b.Key));
@@ -402,6 +454,22 @@ namespace AztTool
                         float heat = Math.Min(1f, 1.9f * (1f - t * t)) * (0.75f + 0.25f * (float)Math.Sin((p.age * 23f) + p.seed * 40f));      // bright most of their life, dying at the end
                         cr = ((col >> 16) & 255) * heat; cg = ((col >> 8) & 255) * heat * heat; cb = (col & 255) * heat * heat * heat;
                         alpha = 1f; break;
+                    case SPARK:
+                    {
+                        // TINY AND MANY (Josh, 2026-10-14: 'much smaller ... too cartoonish. Think a bunch of 1-2 pixel sparks at different warm
+                        // colors'): each its own warm colour by its seed -- white-hot, yellow, amber, orange, red-orange -- cooling toward a
+                        // deep red and dimming as it goes, a flicker on it; drawn as a hard 1-2 pixel point (the card's spark mode, seed -2..-3)
+                        additive = true; float hot = 1f - t, fl = 0.75f + 0.25f * (float)Math.Sin(p.age * 70f + p.seed * 50f);
+                        int si = (int)(p.seed * SparkHues.Length) % SparkHues.Length; int hc = SparkHues[si];
+                        float br = (0.35f + 0.65f * hot) * fl, cool = t * t;
+                        cr = (((hc >> 16) & 255) * (1f - cool) + 190f * cool) * br; cg = (((hc >> 8) & 255) * (1f - cool) + 45f * cool) * br; cb = ((hc & 255) * (1f - cool) + 15f * cool) * br;
+                        alpha = Math.Min(1f, 1.4f * hot + 0.2f); size = p.size; break;
+                    }
+                    case PUFF:
+                        col = PuffColor; size = p.size + (p.size1 - p.size) * t;
+                        float pl = Math.Max(lit, 0.55f);
+                        cr = ((col >> 16) & 255) * pl; cg = ((col >> 8) & 255) * pl; cb = (col & 255) * pl;
+                        alpha = PuffAlpha * (1f - t) * Math.Min(1f, t * 10f); break;
                     case DRIP: case SPLASH:
                         col = DripColor; cr = ((col >> 16) & 255) * lit; cg = ((col >> 8) & 255) * lit; cb = (col & 255) * lit;
                         alpha = p.kind == DRIP ? 1f : 0.8f * (1f - t); cr = Math.Max(cr, 60f); cg = Math.Max(cg, 66f); cb = Math.Max(cb, 70f); break;    // (a drip glints a little even outside the beam)
@@ -442,10 +510,139 @@ namespace AztTool
                 int q = n * Stride;
                 dst[q] = p.x; dst[q + 1] = p.y; dst[q + 2] = p.z; dst[q + 3] = size;
                 dst[q + 4] = Math.Min(255f, cr); dst[q + 5] = Math.Min(255f, cg); dst[q + 6] = Math.Min(255f, cb);
-                dst[q + 7] = alpha; dst[q + 8] = additive ? 1f : 0f; dst[q + 9] = p.kind == STEAM ? (SteamFine ? 3f : 1f) + p.seed : p.kind == WMIST ? 1f + p.seed : p.kind == GHOST ? 1f + p.seed : (p.kind == DRIP ? -1f : p.seed);      // (water mist and a ghost's wisps: the steam's soft puff)
+                dst[q + 7] = alpha; dst[q + 8] = additive ? 1f : 0f; dst[q + 9] = p.kind == SPARK ? -2f - p.seed * 0.999f : p.kind == STEAM ? (SteamFine ? 3f : 1f) + p.seed : p.kind == WMIST || p.kind == PUFF ? 1f + p.seed : p.kind == GHOST ? 1f + p.seed : (p.kind == DRIP ? -1f : p.seed);      // (water mist and a ghost's wisps: the steam's soft puff)
                 n++;
             }
             return n;
         }
     }
-}
+    /// <summary>EYE SHINE (Josh, 2026-10-14: "creature eyes catch your helmet lamp with a glint in the dark"): a creature's eyes
+    /// (a part holding both eyes, split into its two clusters as posed) glint back at the player when the helmet lamp's beam
+    /// falls on them and the creature faces him (from its head's middle out through its eyes) -- a hard pin of light in the
+    /// eye's colour with a soft halo, glowing (additive), behind walls hidden by the depth test like any particle. Brighter in
+    /// the beam's hot spot, a little in its halo, nothing with the lamp off. Appended to the particle buffer after Gather.</summary>
+    public class EyeShine
+    {
+        public float Size = 1.3f, Halo = 6f, Strength = 1f, FaceFrom = 0.15f, FaceFull = 0.75f;
+        readonly List<int[]> _eyes = new List<int[]>();           // per creature: eye part first, count, head part first, count, neck first, count
+        readonly List<int> _cols = new List<int>();
+        public int Count { get { return _eyes.Count; } }
+        public void Clear() { _eyes.Clear(); _cols.Clear(); }
+        /// <summary>One creature: its eye part's vertices (first, count in the posed room) and its head's (for which way it
+        /// faces; count 0 = always facing), and the shine's colour (0xRRGGBB).</summary>
+        public void Add(int eyeFirst, int eyeCount, int headFirst, int headCount, int color) { Add(eyeFirst, eyeCount, headFirst, headCount, 0, 0, color); }
+        /// <summary>...with its neck too: when the eye part is missing or not on the head (CORICORI's EUEYE carries a stale
+        /// transform in the engine), the eyes are placed on the head instead -- forward of its middle (away from the neck),
+        /// either side.</summary>
+        public void Add(int eyeFirst, int eyeCount, int headFirst, int headCount, int neckFirst, int neckCount, int color) { _eyes.Add(new[] { eyeFirst, eyeCount, headFirst, headCount, neckFirst, neckCount }); _cols.Add(color); }
+        public int LastShown, LastFromHead;
+        /// <summary>(diagnostics: the last eye looked at -- where, how much of the beam, how much it faced the player)</summary>
+        public float LastX, LastY, LastZ, LastBeam, LastFace;
+        static bool Mid(float[] vx, int f, int k, out double x, out double y, out double z, out double rad)
+        {
+            x = y = z = rad = 0; if (k <= 0 || (f + k) * 3 > vx.Length) return false;
+            for (int i = f; i < f + k; i++) { x += vx[i * 3]; y += vx[i * 3 + 1]; z += vx[i * 3 + 2]; }
+            x /= k; y /= k; z /= k;
+            for (int i = f; i < f + k; i++) { double dx = vx[i * 3] - x, dy = vx[i * 3 + 1] - y, dz = vx[i * 3 + 2] - z; rad = Math.Max(rad, Math.Sqrt(dx * dx + dy * dy + dz * dz)); }
+            return true;
+        }
+        /// <summary>The glints this frame into dst from particle n on (Particles.Stride floats each); returns the new count.
+        /// vx: the room as posed; r: the camera and the lamp; lamp: 0..1, the lamp's own level (0 = off).</summary>
+        public int Append(float[] vx, Raster r, float lamp, float[] dst, int n)
+        {
+            LastShown = 0; LastFromHead = 0;
+            if (vx == null || dst == null || lamp <= 0.01f || Strength <= 0f) return n;
+            int cap = dst.Length / Particles.Stride;
+            float fpx = r.FocalPx, cx = r.W * 0.5f + r.LampCx, cy = r.CentreY + r.LampCy;
+            double ci = Math.Cos(r.LampInnerDeg * Math.PI / 180), co = Math.Cos(r.LampOuterDeg * Math.PI / 180), ch = Math.Cos(Math.Max(r.LampOuterDeg, r.LampHaloDeg) * Math.PI / 180);
+            for (int c = 0; c < _eyes.Count; c++)
+            {
+                int[] e = _eyes[c]; int f = e[0], k = e[1];
+                double hx0, hy0, hz0, hr; bool haveHead = Mid(vx, e[2], e[3], out hx0, out hy0, out hz0, out hr);
+                double[] m = new double[6]; bool placed = false;
+                if (k >= 2 && (f + k) * 3 <= vx.Length)
+                {
+                // the two eyes: the vertex farthest from the first, then each vertex to the nearer of the two ends; their middles
+                int a = f, b = f; float best = -1f;
+                for (int i = f; i < f + k; i++) { float dx = vx[i * 3] - vx[a * 3], dy = vx[i * 3 + 1] - vx[a * 3 + 1], dz = vx[i * 3 + 2] - vx[a * 3 + 2], d = dx * dx + dy * dy + dz * dz; if (d > best) { best = d; b = i; } }
+                best = -1f; int a2 = a;
+                for (int i = f; i < f + k; i++) { float dx = vx[i * 3] - vx[b * 3], dy = vx[i * 3 + 1] - vx[b * 3 + 1], dz = vx[i * 3 + 2] - vx[b * 3 + 2], d = dx * dx + dy * dy + dz * dz; if (d > best) { best = d; a2 = i; } }
+                a = a2;
+                int na = 0, nb = 0;
+                for (int i = f; i < f + k; i++)
+                {
+                    float x = vx[i * 3], y = vx[i * 3 + 1], z = vx[i * 3 + 2];
+                    float da = (x - vx[a * 3]) * (x - vx[a * 3]) + (y - vx[a * 3 + 1]) * (y - vx[a * 3 + 1]) + (z - vx[a * 3 + 2]) * (z - vx[a * 3 + 2]);
+                    float db = (x - vx[b * 3]) * (x - vx[b * 3]) + (y - vx[b * 3 + 1]) * (y - vx[b * 3 + 1]) + (z - vx[b * 3 + 2]) * (z - vx[b * 3 + 2]);
+                    if (da <= db) { m[0] += x; m[1] += y; m[2] += z; na++; } else { m[3] += x; m[4] += y; m[5] += z; nb++; }
+                }
+                if (na > 0 && nb > 0)
+                {
+                    for (int q = 0; q < 3; q++) { m[q] /= na; m[q + 3] /= nb; }
+                    // (not on the head: a stale transform -- placed from the head instead, below)
+                    double ex2 = (m[0] + m[3]) * 0.5 - hx0, ey2 = (m[1] + m[4]) * 0.5 - hy0, ez2 = (m[2] + m[5]) * 0.5 - hz0;
+                    placed = !haveHead || Math.Sqrt(ex2 * ex2 + ey2 * ey2 + ez2 * ez2) < hr * 2.5 + 4;
+                }
+                }
+                if (!placed)
+                {
+                    // ON THE HEAD: forward = from the neck's middle through the head's, out to its front; the two eyes either side
+                    double nx0, ny0, nz0, nr;
+                    if (!haveHead || !Mid(vx, e[4], e[5], out nx0, out ny0, out nz0, out nr)) continue;
+                    double fdx = hx0 - nx0, fdy = hy0 - ny0, fdz = hz0 - nz0, fl = Math.Sqrt(fdx * fdx + fdy * fdy + fdz * fdz); if (fl < 1e-4) continue;
+                    fdx /= fl; fdy /= fl; fdz /= fl;
+                    double sdx = -fdz, sdz = fdx, sl = Math.Sqrt(sdx * sdx + sdz * sdz); if (sl < 1e-4) { sdx = 1; sdz = 0; sl = 1; }
+                    sdx /= sl; sdz /= sl;
+                    double fwd = hr * 0.55, side = hr * 0.32, up = hr * 0.18;
+                    m[0] = hx0 + fdx * fwd + sdx * side; m[1] = hy0 + fdy * fwd + up; m[2] = hz0 + fdz * fwd + sdz * side;
+                    m[3] = hx0 + fdx * fwd - sdx * side; m[4] = hy0 + fdy * fwd + up; m[5] = hz0 + fdz * fwd - sdz * side;
+                    LastFromHead++;
+                }
+                // which way it faces: from its head's middle out through the eyes' middle
+                double fx = 0, fy = 0, fz = 0; bool haveFace = false;
+                if (haveHead)
+                {
+                    fx = (m[0] + m[3]) * 0.5 - hx0; fy = (m[1] + m[4]) * 0.5 - hy0; fz = (m[2] + m[5]) * 0.5 - hz0;
+                    double fl = Math.Sqrt(fx * fx + fy * fy + fz * fz); if (fl > 1e-4) { fx /= fl; fy /= fl; fz /= fl; haveFace = true; }
+                }
+                int col = _cols[c];
+                for (int q = 0; q < 2; q++)
+                {
+                    float px = (float)m[q * 3], py = (float)m[q * 3 + 1], pz = (float)m[q * 3 + 2];
+                    float[] v = r.ViewPoint(px, py, pz);
+                    if (v[2] < 2f) continue;
+                    float sx = r.W * 0.5f + v[0] * fpx / v[2], sy = r.CentreY - v[1] * fpx / v[2];
+                    double ddx = sx - cx, ddy = sy - cy, cs = 1.0 / Math.Sqrt(1.0 + (ddx * ddx + ddy * ddy) / (fpx * fpx));
+                    double hot = Smooth((cs - co) / Math.Max(1e-4, ci - co)), halo = Smooth((cs - ch) / Math.Max(1e-4, co - ch));
+                    double beam = Math.Max(hot, 0.3 * halo);
+                    if (beam <= 0.01) { LastX = px; LastY = py; LastZ = pz; LastBeam = 0; continue; }
+                    double face = 1.0;
+                    if (haveFace)
+                    {
+                        // toward the player: the camera is the view space's origin, so back along v in the room
+                        float[] w0 = r.ViewPoint(px + (float)fx, py + (float)fy, pz + (float)fz);
+                        double tx = w0[0] - v[0], ty = w0[1] - v[1], tz = w0[2] - v[2], tl = Math.Sqrt(tx * tx + ty * ty + tz * tz), vl = Math.Sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+                        double dot = tl > 1e-6 && vl > 1e-6 ? -(tx * v[0] + ty * v[1] + tz * v[2]) / (tl * vl) : 1.0;
+                        face = Smooth((dot - FaceFrom) / Math.Max(1e-3, FaceFull - FaceFrom));
+                    }
+                    LastX = px; LastY = py; LastZ = pz; LastBeam = (float)beam; LastFace = (float)face;
+                    float g = (float)(beam * face * lamp * Strength);
+                    if (g <= 0.01f) continue;
+                    // (the halo first, then the pin; both glowing)
+                    for (int layer = 0; layer < 2 && n < cap; layer++)
+                    {
+                        int o = n * Particles.Stride; bool pin = layer == 1;
+                        dst[o] = px; dst[o + 1] = py; dst[o + 2] = pz;
+                        dst[o + 3] = pin ? Size : Halo;
+                        float tint = pin ? 0.7f : 0.1f;      // (the pin runs toward white)
+                        dst[o + 4] = ((col >> 16) & 255) * (1 - tint) + 255 * tint; dst[o + 5] = ((col >> 8) & 255) * (1 - tint) + 255 * tint; dst[o + 6] = (col & 255) * (1 - tint) + 255 * tint;
+                        dst[o + 7] = Math.Min(1f, g * (pin ? 1.0f : 0.6f)); dst[o + 8] = 1f; dst[o + 9] = 0.5f;
+                        n++;
+                    }
+                    LastShown++;
+                }
+            }
+            return n;
+        }
+        static double Smooth(double t) { t = Math.Max(0, Math.Min(1, t)); return t * t * (3 - 2 * t); }
+    }}

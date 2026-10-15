@@ -62,6 +62,7 @@ namespace AztTool
         }
         class Rig
         {
+            public int ExtraFrom = -1, ExtraTo = -1;     // a second clip played after the walk (SetExtra), -1 = none
             public string Name, Key; public Bone[] Bones; public bool[] Mask; public bool Transpose;      // (Key: the .XAF file's size and date, for the start-angle cache)
             public List<bool[]> Frames = new List<bool[]>();     // the game's ten frames (ink masks), for AutoPhase
             public double From, To;                               // the WALK cycle (frame To == frame From)
@@ -136,6 +137,9 @@ namespace AztTool
             }
             return got;
         }
+        /// <summary>Is this a part the game knows as an object (OBJECTS.DAT's room part or object name) -- something to take
+        /// or use (the echo scan's items)?</summary>
+        public bool IsObjectPart(string part) { return !string.IsNullOrEmpty(part) && _objs.ContainsKey(part); }
         ObjInfo ObjectFor(string picked, string display = null)
         {
             List<ObjInfo> l; if (picked == null || !_objs.TryGetValue(picked, out l) || l.Count == 0) return null;
@@ -436,6 +440,41 @@ namespace AztTool
         }
         /// <summary>The rig's walk cycle and idle range (frames), for the caller's own clock.</summary>
         public double[] BodyRanges(string name) { Rig r; if (!_rigs.TryGetValue(name, out r)) return null; return new[] { r.From, r.To, r.RestFrom, r.RestTo }; }
+        // ==== FOR THE VISOR BOOT (Josh, 2026-10-14: "a wireframe of the raptor, slowly revolving as a scan line slowly moves up and
+        // down the body"): the rig's edges posed and turned, for BootHd to draw in the boot's own style ====
+        /// <summary>The rig's edges at `frame`, turned `turn` radians about its upright, in units of its height about its middle:
+        /// x across, y UP, z away from the eye. 7 floats an edge: x0 y0 z0 x1 y1 z1 and the bone's index. Returns how many.</summary>
+        public int RigEdges(string name, double frame, double turn, ref float[] buf)
+        {
+            Rig r; if (!_rigs.TryGetValue(name, out r)) return 0;
+            var W = Pose(r, frame); double cp = Math.Cos(turn), sp = Math.Sin(turn), u = 1.0 / r.H;
+            if (buf == null || buf.Length < r.Edges * 7) buf = new float[r.Edges * 7];
+            int n = 0; var P = new float[64 * 3];
+            for (int i = 0; i < r.Bones.Length; i++)
+            {
+                var b = r.Bones[i]; var v = b.V; var m = W[i]; int nv = v.Length / 3;
+                if (b.Edge.Length == 0) continue;
+                if (P.Length < nv * 3) P = new float[nv * 3];
+                for (int q = 0; q < nv; q++)
+                {
+                    double vx = v[q * 3], vy = v[q * 3 + 1], vz = v[q * 3 + 2];
+                    double x = (vx * m[0] + vy * m[4] + vz * m[8] + m[12] - r.Cx) * u, y = (vx * m[1] + vy * m[5] + vz * m[9] + m[13] - r.Cy) * u, z = (vx * m[2] + vy * m[6] + vz * m[10] + m[14] - r.Cz) * u;
+                    P[q * 3] = (float)(x * cp + z * sp); P[q * 3 + 1] = (float)y; P[q * 3 + 2] = (float)(-x * sp + z * cp);
+                }
+                var e = b.Edge;
+                for (int q = 0; q + 1 < e.Length; q += 2)
+                {
+                    int a = e[q] * 3, c = e[q + 1] * 3, o = n * 7;
+                    buf[o] = P[a]; buf[o + 1] = P[a + 1]; buf[o + 2] = P[a + 2]; buf[o + 3] = P[c]; buf[o + 4] = P[c + 1]; buf[o + 5] = P[c + 2]; buf[o + 6] = i;
+                    n++;
+                }
+            }
+            return n;
+        }
+        /// <summary>The rig's bone names, in the order RigEdges numbers them.</summary>
+        public string[] RigBones(string name) { Rig r; if (!_rigs.TryGetValue(name, out r)) return null; var s = new string[r.Bones.Length]; for (int i = 0; i < s.Length; i++) s[i] = r.Bones[i].Name; return s; }
+        /// <summary>How far it reaches round its upright, against its height (a long tail turning is wider than it is tall).</summary>
+        public double RigReach(string name) { Rig r; if (!_rigs.TryGetValue(name, out r)) return 0; return r.R / r.H; }
 
         // ---- .XAF: a tiny tokenizer and block tree ----
         class XNode { public string Key, Name; public List<XNode> Kids = new List<XNode>(); public List<double> Nums = new List<double>(); }
@@ -910,8 +949,19 @@ namespace AztTool
         public int Teal = 0x5FD8C0, TealFlare = 0xCFFFF4, Halo = 0x0E5A50;
         /// <summary>How fast it turns (rad/s), how far it leans toward the eye (rad), its height against the box, the
         /// angle it starts at, and how fast it walks (animation frames/s). Josh 2026-10-07: "speed up the animation
-        /// by a little bit, maybe 10%" -- both the turn and the walk (the engine's own rate is 18.2065).</summary>
-        public double Spin = 1.76, Tilt = 0.14, Fill = 0.88, Phase = 0, AnimHz = 20.03;
+        /// by a little bit, maybe 10%" -- both the turn and the walk (the engine's own rate is 18.2065): 1.76 / 20.03.
+        /// Josh 2026-10-13: it "spins and animates very quickly. Can we slow that down a bit?" -- ~30% slower: a turn
+        /// in 5 s, the walk a little under the engine's rate.</summary>
+        public double Spin = 1.25, Tilt = 0.14, Fill = 0.88, Phase = 0, AnimHz = 14.0;
+        /// <summary>THE SECOND CLIP (Josh, 2026-10-13: "can the scan for these two creatures include their new sniffing
+        /// animation as well?"): a set with one (SetExtra -- the watcher gives it any SNIFF range its .ANI has) walks for about
+        /// ExtraAfter seconds (whole cycles), plays the clip once, and walks again.</summary>
+        public double ExtraAfter = 2.0;
+        public bool SetExtra(string name, int from, int to)
+        {
+            Rig r; if (!_rigs.TryGetValue(name, out r) || to <= from) return false;
+            r.ExtraFrom = from; r.ExtraTo = to; return true;
+        }
         /// <summary>How much bigger than the game's box it is drawn (anchored at the box's top-left): 1.4, then 15% more.</summary>
         public double BoxScale = 1.61;
         /// <summary>Place the box by the VISOR BAND's column map (true): the band lays the game's top rows across the full
@@ -1255,6 +1305,12 @@ namespace AztTool
             if (_itemSets.TryGetValue(name, out r) && !_rigs.ContainsKey(name)) { DrawFrames(g, r, bx, by, bw, bh, alpha, t); return; }
             if (!_rigs.TryGetValue(name, out r)) return;
             double span = r.To - r.From, f = span > 0 ? r.From + ((t * AnimHz) % span + span) % span : r.From;      // (span 0: a single pose)
+            if (span > 0 && r.ExtraTo > r.ExtraFrom)
+            {
+                // the walk for whole cycles, then the second clip once through (SetExtra)
+                double cyc = Math.Max(1, Math.Round(ExtraAfter * AnimHz / span)), walk = cyc * span, ex = r.ExtraTo - r.ExtraFrom, x = ((t * AnimHz) % (walk + ex) + walk + ex) % (walk + ex);
+                f = x < walk ? r.From + x % span : r.ExtraFrom + (x - walk);
+            }
             DrawPose(g, r, bx, by, bw, bh, alpha, f, r.Dir * t * Spin, 0);
         }
         // AN ITEM: the game's own frames as line art -- a soft halo under crisp ink, scaled to the box, each held and then
@@ -1531,26 +1587,41 @@ namespace AztTool
     /// <summary>THE VISOR'S "Scanning..." LABEL (Josh, 2026-10-13: "for this new animation, each time it shows, I want a small
     /// 'Scanning...' label to appear in the lower right of the visor area in typical in-universe style. It will be on screen
     /// the same amount of time as the wireframes so very brief"). While the room materializes (GpuRaster.MatTagK): the damage
-    /// badge's dark glass plate and corner brackets, mirrored to the lower right, in the scan's teal -- a turning radar sweep,
+    /// badge's dark glass plate and corner brackets, at the lower left (moved from the right, 2026-10-13), in the scan's teal -- a turning radar sweep,
     /// the word with its dots ticking on, and a thin bar that fills as the wave crosses the room (MatProgress). It flickers
     /// on and fades with the outlines' trail. Drawn here (GDI+, premultiplied) Fps times a second; the card lays it over the
     /// picture in its present pass (GpuRaster.SetTag), so the frames never come back through the processor for it.</summary>
     public class ScanTag
     {
         public int Ink = 0x5FD8C0, Flare = 0xCFFFF4, Glass = 0x021214;
-        public string Text = "Scanning";
+        public string Text = "Mapping environment";      // (Josh, 2026-10-13: was "Scanning"; the dots tick on after it)
+        /// <summary>The same badge on the 3D map while its lights draw it (GpuRaster.MapTagK; Josh, 2026-10-14).</summary>
+        public string MapText = "Accessing Map Data";
+        /// <summary>...and on the visor's echo scan (V), in its amber (GpuRaster.EchoTagK; Josh, 2026-10-14).</summary>
+        public string EchoText = "Gathering Environmental Data";
+        public int EchoInk = 0xFFB040, EchoFlare = 0xFFE3A6, EchoGlass = 0x140C02;
+        int _ink = 0x5FD8C0, _flare = 0xCFFFF4, _glass = 0x021214;
+        /// <summary>The gap between the badge and the panel under it (window px at a 1238-row view; it scales with the view).</summary>
+        public float AbovePanel = 20f;
         public double FadeIn = 0.18, Fps = 40;
         public bool Enabled = true;
         public long Shows;
         readonly Overlay _ov; readonly Stopwatch _clock = Stopwatch.StartNew();
-        double _onAt = -1, _drawnAt = -1; int[] _px; int _w, _h; float _em = -1, _textW;
+        double _onAt = -1, _drawnAt = -1; int[] _px; int _w, _h; float _em = -1, _textW; string _shown, _textFor;
         public ScanTag(Overlay ov) { _ov = ov; }
         static double Noise(int i) { uint h = (uint)i * 2654435761u; h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15; return (h & 0xFFFF) / 65535.0; }
         static Font FontOf(float em) { return new Font("Consolas", em, FontStyle.Bold, GraphicsUnit.Pixel); }
         /// <summary>Every frame, on the card's thread, before the picture is presented.</summary>
         public void Step(GpuRaster gpu)
         {
-            float k = Enabled ? gpu.MatTagK : 0f;
+            // which message: the room materializing (teal), the map drawing (teal), the echo scan (amber) -- the strongest shows
+            float kMat = Enabled ? gpu.MatTagK : 0f, kMap = Enabled ? gpu.MapTagK : 0f, kEcho = Enabled ? gpu.EchoTagK : 0f;
+            int which = kMap > kMat && kMap >= kEcho ? 1 : kEcho > kMat ? 2 : 0;
+            float k = which == 1 ? kMap : which == 2 ? kEcho : kMat;
+            float prog = which == 1 ? gpu.MapTagProgress : which == 2 ? gpu.EchoTagProgress : gpu.MatProgress;
+            string want = which == 1 ? MapText : which == 2 ? EchoText : Text;
+            if (want != _shown) { _shown = want; _onAt = -1; }          // (a new message: it flickers on afresh)
+            if (which == 2) { _ink = EchoInk; _flare = EchoFlare; _glass = EchoGlass; } else { _ink = Ink; _flare = Flare; _glass = Glass; }
             double now = _clock.Elapsed.TotalSeconds;
             if (k <= 0.001f) { _onAt = -1; gpu.TagOn = false; return; }
             if (_onAt < 0) { _onAt = now; _drawnAt = -1; Shows++; }
@@ -1560,7 +1631,7 @@ namespace AztTool
             double t = now - _onAt, a = Math.Min(1.0, t / FadeIn) * k;
             if (t < 0.22 && Noise((int)(t * 60)) < 0.3 + 0.5 * (1 - t / 0.22)) a *= 0.2;      // (a ragged flicker on)
             int vr = Math.Max(64, Math.Min(H, _ov != null ? _ov.ViewRowsOf(H) : H));
-            float x, y; var px = Render(t, a, gpu.MatProgress, W, vr, out x, out y);
+            float x, y; var px = Render(t, a, prog, W, vr, out x, out y);
             gpu.SetTag(px, _w, _h, x, y);
         }
         /// <summary>The label at time t (s) and strength a, for a window W wide whose view is vr rows: its pixels (premultiplied
@@ -1568,15 +1639,21 @@ namespace AztTool
         public int[] Render(double t, double a, float prog, int W, int vr, out float x, out float y)
         {
             float em = Math.Max(12f, vr / 58f), pad = em * 0.7f, icon = em * 1.2f;
-            if (em != _em)
+            string text = _shown ?? Text;
+            if (em != _em || text != _textFor)
             {
-                _em = em;
+                _em = em; _textFor = text;
                 using (var b = new Bitmap(1, 1)) using (var g = Graphics.FromImage(b)) using (var f = FontOf(em))
-                    _textW = g.MeasureString(Text + "...", f, PointF.Empty, StringFormat.GenericTypographic).Width;   // (the plate keeps its size as the dots come)
+                    _textW = g.MeasureString(text + "...", f, PointF.Empty, StringFormat.GenericTypographic).Width;   // (the plate keeps its size as the dots come)
             }
             float bw = pad + icon + em * 0.55f + _textW + pad, bh = em * 2.3f, margin = em * 0.3f;
             int w = (int)Math.Ceiling(bw + 2 * margin), h = (int)Math.Ceiling(bh + 2 * margin);
-            x = W * 0.945f + em * 0.8f - bw - margin; y = vr * 0.86f - bh - margin;
+            // (the lower LEFT of the visor -- Josh, 2026-10-13: "on the left side of the visor, not the right" -- where the
+            // damage badge and the conversation badge sit; none of them shows at the same moment as a room materializing)
+            // (MOVED to the MIDDLE, just above the panel -- Josh, 2026-10-14: "move the 'accessing map data' badge to the middle, just
+            // above the UI by about 20px padding, same goes for the 'Mapping Environment' badge which should use the exact same style":
+            // the view's last row is the panel's top, PanelTop)
+            x = W * 0.5f - w * 0.5f; y = vr - AbovePanel * vr / 1238f - bh - margin;
             if (_px == null || _px.Length != w * h) _px = new int[w * h]; else Array.Clear(_px, 0, _px.Length);
             _w = w; _h = h;
             var hnd = GCHandle.Alloc(_px, GCHandleType.Pinned);
@@ -1589,9 +1666,9 @@ namespace AztTool
                     g.SmoothingMode = SmoothingMode.AntiAlias; g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
                     float x0 = margin, y0 = margin, x1 = margin + bw, y1 = margin + bh;
                     // the glass: the view behind darkened toward a teal black, interlaced
-                    using (var gb = new SolidBrush(Color.FromArgb((int)(150 * a), Color.FromArgb(Glass)))) g.FillRectangle(gb, x0, y0, bw, bh);
+                    using (var gb = new SolidBrush(Color.FromArgb((int)(150 * a), Color.FromArgb(_glass)))) g.FillRectangle(gb, x0, y0, bw, bh);
                     using (var il = new SolidBrush(Color.FromArgb((int)(55 * a), Color.Black))) for (float yy = y0; yy < y1; yy += 3) g.FillRectangle(il, x0, yy, bw, 1);
-                    var ink = Color.FromArgb((int)(235 * a), Color.FromArgb(Ink));
+                    var ink = Color.FromArgb((int)(235 * a), Color.FromArgb(_ink));
                     // the visor's corner brackets
                     float L = em * 0.6f;
                     using (var pen = new Pen(ink, Math.Max(1.5f, em / 9f)))
@@ -1603,25 +1680,192 @@ namespace AztTool
                     }
                     // the radar: two rings, a fading wedge behind a turning arm
                     float cx = x0 + pad + icon / 2, cy = y0 + bh * 0.45f, r = icon * 0.46f;
-                    using (var thin = new Pen(Color.FromArgb((int)(140 * a), Color.FromArgb(Ink)), Math.Max(1f, em / 14f)))
+                    using (var thin = new Pen(Color.FromArgb((int)(140 * a), Color.FromArgb(_ink)), Math.Max(1f, em / 14f)))
                     {
                         g.DrawEllipse(thin, cx - r, cy - r, 2 * r, 2 * r); g.DrawEllipse(thin, cx - r * 0.5f, cy - r * 0.5f, r, r);
                     }
                     double ang = t * 300.0 % 360.0;       // (degrees: a turn every 1.2 s)
                     for (int i = 0; i < 6; i++)
-                        using (var wb = new SolidBrush(Color.FromArgb((int)(75 * a * (1 - i / 6.0)), Color.FromArgb(Ink))))
+                        using (var wb = new SolidBrush(Color.FromArgb((int)(75 * a * (1 - i / 6.0)), Color.FromArgb(_ink))))
                             g.FillPie(wb, cx - r, cy - r, 2 * r, 2 * r, (float)(ang - 10 * (i + 1)), 10f);
                     double ar = ang * Math.PI / 180;
-                    using (var arm = new Pen(Color.FromArgb((int)(250 * a), Color.FromArgb(Flare)), Math.Max(1.5f, em / 10f)))
+                    using (var arm = new Pen(Color.FromArgb((int)(250 * a), Color.FromArgb(_flare)), Math.Max(1.5f, em / 10f)))
                         g.DrawLine(arm, cx, cy, cx + r * (float)Math.Cos(ar), cy + r * (float)Math.Sin(ar));
                     // the word, its dots ticking on
-                    string s = Text + new string('.', (int)(t * 3.2) % 4);
+                    string s = text + new string('.', (int)(t * 3.2) % 4);
                     float tx = cx + icon / 2 + em * 0.55f, ty = cy - em * 0.62f;
                     using (var tb = new SolidBrush(ink)) g.DrawString(s, font, tb, tx, ty, StringFormat.GenericTypographic);
                     // the bar: how far the wave has crossed the room
                     float by = y1 - em * 0.42f, bx0 = tx, bx1 = x1 - pad, fx = bx0 + (bx1 - bx0) * Math.Max(0f, Math.Min(1f, prog));
-                    using (var track = new Pen(Color.FromArgb((int)(70 * a), Color.FromArgb(Ink)), Math.Max(1f, em / 12f))) g.DrawLine(track, bx0, by, bx1, by);
-                    if (fx > bx0 + 0.5f) using (var fill = new Pen(Color.FromArgb((int)(240 * a), Color.FromArgb(Flare)), Math.Max(1.5f, em / 9f))) g.DrawLine(fill, bx0, by, fx, by);
+                    using (var track = new Pen(Color.FromArgb((int)(70 * a), Color.FromArgb(_ink)), Math.Max(1f, em / 12f))) g.DrawLine(track, bx0, by, bx1, by);
+                    if (fx > bx0 + 0.5f) using (var fill = new Pen(Color.FromArgb((int)(240 * a), Color.FromArgb(_flare)), Math.Max(1.5f, em / 9f))) g.DrawLine(fill, bx0, by, fx, by);
+                }
+            }
+            finally { hnd.Free(); }
+            return _px;
+        }
+    }
+    /// <summary>VISOR CONDENSATION (Josh, 2026-10-14: "steam in the spa rooms fogs the edges of your visor, then clears"). In a
+    /// room with steam (the watcher passes it), the visor mists over from its edges: in over FogIn seconds on entering, held a
+    /// little, then evaporating back toward the edges (ClearSeconds) to a faint rim (Rest) -- with now and then a fresh waft of
+    /// steam (every WaftEvery seconds, give or take) that mists it again partway. Leaving the room it clears (LeaveSeconds).
+    /// The card draws it in the present pass (GpuRaster.VisorFog: the edge haze, the picture softened behind it, beads of
+    /// water at its inner edge); this only sets how far in it reaches.</summary>
+    public class VisorFog
+    {
+        // (clearing much slower -- Josh, 2026-10-14: 'make the condensation disappear much slower': ClearSeconds 7 -> 18, LeaveSeconds 4 -> 10,
+        // evaporating at 1/4 s instead of 1/1.5 s)
+        public double FogIn = 1.6, Hold = 2.5, ClearSeconds = 18.0, Rest = 0.22, LeaveSeconds = 10.0, WaftEvery = 22, WaftPeak = 0.75, WaftIn = 1.2;
+        public float Strength = 1f;
+        /// <summary>How far the mist runs on below the view's bottom row, as a share of the window's height (Josh, 2026-10-14:
+        /// its bottom edge showed as a hard line above the panel art -- "move the bottom portion ... down by around 100px": 0.065
+        /// of his 1536-row window), so its cut-off lies behind the panel.</summary>
+        public float BelowPanel = 0.065f;
+        public bool Enabled = true;
+        readonly Overlay _ov; readonly Stopwatch _clock = Stopwatch.StartNew(); readonly Random _rnd = new Random();
+        double _k, _stepAt = -1, _inSince = -1, _waftAt = -1, _waftT = -1;
+        public VisorFog(Overlay ov) { _ov = ov; }
+        public double Level { get { return _k; } }
+        /// <summary>Every frame, before the picture is presented: whether the room steams (and the visor is in use -- no map,
+        /// no boot cover).</summary>
+        public void Step(GpuRaster gpu, bool steamy)
+        {
+            double now = _clock.Elapsed.TotalSeconds, dt = _stepAt < 0 ? 0 : Math.Min(0.25, now - _stepAt); _stepAt = now;
+            steamy = steamy && Enabled;
+            double target;
+            if (!steamy) { _inSince = -1; _waftT = -1; target = 0; _k = Math.Max(0, _k - dt / LeaveSeconds); }
+            else
+            {
+                if (_inSince < 0) { _inSince = now; _waftAt = now + WaftEvery * (0.8 + 0.6 * _rnd.NextDouble()); }
+                double t = now - _inSince;
+                // entering: up to full, held, then clearing to the rest level
+                if (t < FogIn) target = t / FogIn;
+                else if (t < FogIn + Hold) target = 1;
+                else target = Math.Max(Rest, 1 - (t - FogIn - Hold) / ClearSeconds);
+                // a waft of steam: up to WaftPeak and away again
+                if (now >= _waftAt && _waftT < 0) { _waftT = now; _waftAt = now + WaftEvery * (0.7 + 0.6 * _rnd.NextDouble()); }
+                if (_waftT >= 0)
+                {
+                    double w = now - _waftT, wk = w < WaftIn ? w / WaftIn : Math.Max(0, 1 - (w - WaftIn - 1.0) / ClearSeconds);
+                    if (w > WaftIn + 1.0 + ClearSeconds) _waftT = -1;
+                    target = Math.Max(target, WaftPeak * Math.Min(1, wk));
+                }
+                // fogging is quick, evaporating slow
+                double rate = target > _k ? 1.0 / 0.35 : 1.0 / 4.0;
+                _k += (target - _k) * Math.Min(1, dt * rate);
+            }
+            int H = gpu.PresentH; int vr = Math.Max(64, Math.Min(H, _ov != null ? _ov.ViewRowsOf(H) : H));
+            gpu.VisorFogAmount = Math.Min(1f, Strength);      // (a lighter room: thinner as well as narrower)
+            gpu.VisorFog = (float)(_k * Strength); gpu.VisorFogTime = (float)(now % 1000.0); gpu.VisorFogRows = H > 0 ? Math.Min(1f, (float)vr / H + BelowPanel) : 1f;
+        }
+    }
+    /// <summary>THE VISOR RECORDS A CONVERSATION (Josh, 2026-10-13: in place of the original's red glow, "a subtle amber glow
+    /// that is on the outside edge of the visor anytime the character is engaged with a npc dialogue. Then a small soundwave
+    /// icon at the bottom left of the visor, with small text beneath: Conversation recording engaged..."). While a
+    /// conversation is up ([0x152B1C]; the watcher passes it and whether a line is being spoken, [0x152B28]): the visor's
+    /// edges glow amber, breathing slowly (GpuRaster.ConvGlow, in the present pass), and at the lower left -- the scanning
+    /// label's plate mirrored, in the visor's amber -- a soundwave that moves with the voice (calm while nobody speaks), a
+    /// recording dot, and the words beneath, their dots ticking on. It flickers on like the scanning label and fades out
+    /// when the conversation ends. Drawn here Fps times a second; the card lays it over the picture (GpuRaster.SetTag2).</summary>
+    public class ConvTag
+    {
+        public int Ink = 0xFFB040, Flare = 0xFFE2B0, Glass = 0x140C02;
+        public string Text = "Conversation recording engaged";
+        public double FadeIn = 0.18, FadeOut = 0.5, GlowIn = 0.7, GlowOut = 0.9, Fps = 30;
+        public float GlowStrength = 1f;
+        public bool Enabled = true;
+        public long Shows;
+        readonly Overlay _ov; readonly Stopwatch _clock = Stopwatch.StartNew();
+        double _onAt = -1, _drawnAt = -1, _k, _glow, _stepAt = -1, _voice; int[] _px; int _w, _h; float _em = -1, _textW;
+        public ConvTag(Overlay ov) { _ov = ov; }
+        static double Noise(int i) { uint h = (uint)i * 2654435761u; h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15; return (h & 0xFFFF) / 65535.0; }
+        static Font FontOf(float em) { return new Font("Consolas", em, FontStyle.Bold, GraphicsUnit.Pixel); }
+        /// <summary>Every frame, on the card's thread, before the picture is presented: a conversation is up; a line is
+        /// being spoken.</summary>
+        public void Step(GpuRaster gpu, bool conv, bool speaking)
+        {
+            double now = _clock.Elapsed.TotalSeconds, dt = _stepAt < 0 ? 0 : Math.Min(0.25, now - _stepAt); _stepAt = now;
+            bool on = Enabled && conv;
+            _k = on ? Math.Min(1, _k + dt / FadeIn) : Math.Max(0, _k - dt / FadeOut);
+            _glow = on ? Math.Min(1, _glow + dt / GlowIn) : Math.Max(0, _glow - dt / GlowOut);
+            _voice += ((speaking ? 1.0 : 0.0) - _voice) * Math.Min(1, dt * 6);           // (the wave eases between talk and quiet)
+            int W = gpu.PresentW, H = gpu.PresentH;
+            int vr = Math.Max(64, Math.Min(H, _ov != null ? _ov.ViewRowsOf(H) : H));
+            double g = _glow * _glow * (3 - 2 * _glow);
+            gpu.ConvGlow = (float)(g * GlowStrength); gpu.ConvTime = (float)(now % 1000.0); gpu.ConvRows = H > 0 ? (float)vr / H : 1f;
+            if (_k <= 0.001) { _onAt = -1; gpu.Tag2On = false; return; }
+            if (_onAt < 0) { _onAt = now; _drawnAt = -1; Shows++; }
+            if (W < 64 || H < 64) { gpu.Tag2On = false; return; }
+            if (_drawnAt >= 0 && now - _drawnAt < 1.0 / Fps) return;           // (the last one stays on the card)
+            _drawnAt = now;
+            double t = now - _onAt, a = _k;
+            if (on && t < 0.22 && Noise((int)(t * 60) + 17) < 0.3 + 0.5 * (1 - t / 0.22)) a *= 0.2;      // (a ragged flicker on)
+            float x, y; var px = Render(t, a, _voice, W, vr, out x, out y);
+            gpu.SetTag2(px, _w, _h, x, y);
+        }
+        /// <summary>The badge at time t (s), strength a and voice 0..1 (a line being spoken), for a window W wide whose view
+        /// is vr rows: its pixels (premultiplied ARGB, _w x _h) and where its top left goes (window px).</summary>
+        public int[] Render(double t, double a, double voice, int W, int vr, out float x, out float y)
+        {
+            float em = Math.Max(12f, vr / 58f), sem = em * 0.78f, pad = em * 0.7f;
+            if (em != _em)
+            {
+                _em = em;
+                using (var b = new Bitmap(1, 1)) using (var g = Graphics.FromImage(b)) using (var f = FontOf(sem))
+                    _textW = g.MeasureString(Text + "...", f, PointF.Empty, StringFormat.GenericTypographic).Width;   // (the plate keeps its size as the dots come)
+            }
+            float waveH = em * 1.25f, bw = pad + _textW + pad, bh = pad * 0.8f + waveH + em * 0.35f + sem * 1.15f + pad * 0.7f, margin = em * 0.3f;
+            int w = (int)Math.Ceiling(bw + 2 * margin), h = (int)Math.Ceiling(bh + 2 * margin);
+            x = W * 0.055f - em * 0.8f - margin; y = vr * 0.86f - bh - margin;
+            if (_px == null || _px.Length != w * h) _px = new int[w * h]; else Array.Clear(_px, 0, _px.Length);
+            _w = w; _h = h;
+            var hnd = GCHandle.Alloc(_px, GCHandleType.Pinned);
+            try
+            {
+                using (var bm = new Bitmap(w, h, w * 4, PixelFormat.Format32bppPArgb, hnd.AddrOfPinnedObject()))
+                using (var g = Graphics.FromImage(bm))
+                using (var font = FontOf(sem))
+                {
+                    g.SmoothingMode = SmoothingMode.AntiAlias; g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                    float x0 = margin, y0 = margin, x1 = margin + bw, y1 = margin + bh;
+                    // the glass: the view behind darkened toward an amber black, interlaced
+                    using (var gb = new SolidBrush(Color.FromArgb((int)(140 * a), Color.FromArgb(Glass)))) g.FillRectangle(gb, x0, y0, bw, bh);
+                    using (var il = new SolidBrush(Color.FromArgb((int)(55 * a), Color.Black))) for (float yy = y0; yy < y1; yy += 3) g.FillRectangle(il, x0, yy, bw, 1);
+                    var ink = Color.FromArgb((int)(235 * a), Color.FromArgb(Ink));
+                    // the visor's corner brackets
+                    float L = em * 0.6f;
+                    using (var pen = new Pen(ink, Math.Max(1.5f, em / 9f)))
+                    {
+                        g.DrawLines(pen, new[] { new PointF(x0, y0 + L), new PointF(x0, y0), new PointF(x0 + L, y0) });
+                        g.DrawLines(pen, new[] { new PointF(x1 - L, y0), new PointF(x1, y0), new PointF(x1, y0 + L) });
+                        g.DrawLines(pen, new[] { new PointF(x0, y1 - L), new PointF(x0, y1), new PointF(x0 + L, y1) });
+                        g.DrawLines(pen, new[] { new PointF(x1 - L, y1), new PointF(x1, y1), new PointF(x1, y1 - L) });
+                    }
+                    // the recording dot, breathing
+                    float wy0 = y0 + pad * 0.8f, cy = wy0 + waveH / 2, dr = em * 0.2f, dx = x0 + pad + dr;
+                    double pulse = 0.55 + 0.45 * Math.Sin(t * 4.2);
+                    using (var db = new SolidBrush(Color.FromArgb((int)(250 * a * pulse), Color.FromArgb(Flare)))) g.FillEllipse(db, dx - dr, cy - dr, 2 * dr, 2 * dr);
+                    using (var dg = new Pen(Color.FromArgb((int)(90 * a * pulse), Color.FromArgb(Ink)), Math.Max(1f, em / 14f))) g.DrawEllipse(dg, dx - dr * 1.9f, cy - dr * 1.9f, dr * 3.8f, dr * 3.8f);
+                    // the soundwave: bars across the plate, moving with the voice (a low ripple while nobody speaks), the
+                    // middle ones tallest; a thin centre line under them
+                    float bx0 = dx + dr * 2.8f, bx1 = x1 - pad;
+                    int n = Math.Max(12, (int)((bx1 - bx0) / (em * 0.32f)));
+                    float step = (bx1 - bx0) / n, bwid = Math.Max(1.2f, step * 0.5f);
+                    using (var cl = new Pen(Color.FromArgb((int)(70 * a), Color.FromArgb(Ink)), Math.Max(1f, em / 16f))) g.DrawLine(cl, bx0, cy, bx1, cy);
+                    for (int i = 0; i < n; i++)
+                    {
+                        double u = (i + 0.5) / n, env = Math.Sin(Math.PI * u);
+                        double talk = 0.25 + 0.75 * Math.Abs(Math.Sin(t * 9.0 + i * 0.9) * Math.Sin(t * 5.3 + i * 0.37 + 1.7)) * (0.6 + 0.4 * Noise((int)(t * 14) * 97 + i));
+                        double calm = 0.10 + 0.08 * Math.Sin(t * 2.4 - u * 9.0);
+                        double hgt = (calm + (talk - calm) * voice) * (0.35 + 0.65 * env);
+                        float hh = (float)Math.Max(1.0, hgt * waveH * 0.5), bx = bx0 + step * i + (step - bwid) / 2;
+                        var col = Color.FromArgb((int)(a * (150 + 90 * env)), Color.FromArgb(hgt > 0.55 ? Flare : Ink));
+                        using (var bb = new SolidBrush(col)) g.FillRectangle(bb, bx, cy - hh, bwid, 2 * hh);
+                    }
+                    // the words beneath, their dots ticking on
+                    string s = Text + new string('.', (int)(t * 2.4) % 4);
+                    float tx = x0 + pad, ty = wy0 + waveH + em * 0.35f;
+                    using (var tb = new SolidBrush(ink)) g.DrawString(s, font, tb, tx, ty, StringFormat.GenericTypographic);
                 }
             }
             finally { hnd.Free(); }
@@ -1737,8 +1981,14 @@ namespace AztTool
             _widA = wa > _widA ? Math.Min(wa, _widA + dt / 0.6) : Math.Max(wa, _widA - dt / 0.8);
             if (_widA > 0.01 && w >= 64 && h >= 64)
             {
-                float rx, ry; int ww, wh; var px = Widget(now, w, h, out ww, out wh, out rx, out ry);
-                gpu.SetVisorWidget(px, ww, wh, rx, ry);
+                // 30 times a second, like the other visor labels (it was every presented frame, with two fonts made each time --
+                // the 2026-10-13 audit); between, the last one stays on the card
+                if (now - _widDrawnAt >= 1.0 / 30 || !gpu.VisorWidget)
+                {
+                    _widDrawnAt = now;
+                    float rx, ry; int ww, wh; var px = Widget(now, w, h, out ww, out wh, out rx, out ry);
+                    gpu.SetVisorWidget(px, ww, wh, rx, ry);
+                }
             }
             else gpu.VisorWidget = false;
         }
@@ -1786,6 +2036,7 @@ namespace AztTool
         // ---- THE VITALS MONITOR: the visor's little scope above the damage badge ----
         int[] _wpx; Bitmap _wbm;
         static Color Argb(int a, int rgb) { return Color.FromArgb(Math.Max(0, Math.Min(255, a)), (rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255); }
+        double _widDrawnAt = -1;
         int[] Widget(double now, int w, int h, out int ww, out int wh, out float x, out float y)
         {
             double vr = h * ViewFrac(h); float em = (float)Math.Max(12, vr / 46.0);

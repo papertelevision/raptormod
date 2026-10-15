@@ -32,7 +32,13 @@
 #                                       walk never covers $JumpUnits in a single frame
 [CmdletBinding()]
 param(
-    [double]$Fov = 50,            # MEASURED -- see tools\Tune-Geometry.ps1
+    # FIELD OF VIEW (Josh, 2026-10-13: the 50 degrees "is a major reason why this game still doesn't feel modern"): the
+    # vertical angle of the game's view, in degrees. 0 = the player's choice in <GameDir>\raptormod-settings.json ("fov"),
+    # else 60. The GAME's field is set to match every frame (the overlay's AztFovTick reads aztFovTan, a data word written
+    # here), so its clicks, hover and shots stay lined up with the picture. -Retro is always the game's own 50 (measured,
+    # tools\Tune-Geometry.ps1). -FovKey (F12) cycles 50 / 60 / 70 in play. [[azrael-fov]]
+    [double]$Fov = 0,
+    [int]$FovKey = 0x7B,
     [switch]$Light,
     [int]$ShadeLevels = 32,
     [double]$FogScale = 1.6,
@@ -122,6 +128,11 @@ param(
     # Read by the host from Windows, only while the game window is in front: see tools\Keys.cs.
     [int]$LampKey = 0x46,
     [switch]$LampStartsOff,
+    # THE FLASHLIGHT STARTS OFF (Josh, 2026-10-13: "start the game with the flashlight off. Later I will add more
+    # 'visibility low' flashlight suggestions"): off when the watcher starts and again when a NEW game boots (not a load's
+    # re-boot -- the player's own choice stays); F turns it on. -LampStartsOn = the old way. (-LampStartsOff still works.)
+    [switch]$LampStartsOn,
+    [switch]$NoSteadyPlay,          # characters eased one tick per pose as before, not played back steadily (SceneGraph.Smoother.Adaptive)
     #   -LampHalo    how much of the lamp goes into the wide, dim corona round the hot spot
     #   -LampLag     seconds the beam takes to catch up with the view when you turn (0 = rigid)
     # (First defaults were 0.70 / 0.90 / 600 / 10-24: Josh, 2026-10-05 -- "a vignette effect but
@@ -217,6 +228,7 @@ param(
     # The boot's own sound: low, soft digital blips as its lines land and type out (tools\BootHd.cs BootSound).
     # -NoBootSound silences it; -BootSoundVolume sets its peak level (0..1, default 0.36).
     [switch]$NoBootSound,
+    [switch]$NoStandUp,             # a new game's reveal without the raptor getting up (BootHd.StandUp: the view's tilt, the visor's dust)
     # THE LOADING SCREEN'S SOUND (Josh, 2026-10-07): 'Loading ... Raptor Mod.' over his raptormod_loading track (art\loading,
     # built by design\boot-sounds\Make-LoadingAudio.ps1). The game is let go only once the voice has finished; the track fades.
     [switch]$NoLoadingSound,
@@ -319,6 +331,21 @@ param(
     # loaded game is handed over, and once a new game's boot animation is done, the room sweeps in from the scan's teal wireframe
     # to full texture in a fast wave (GpuRaster.StartMaterialize). -NoMaterialize: none.
     [switch]$NoMaterialize,
+    # THE CONVERSATION CUE (Josh, 2026-10-13: in place of the original's red glow, which the manifest now removes): while
+    # a conversation is up, the visor's edges glow amber and a soundwave badge reads "Conversation recording engaged..."
+    # at the lower left (ScanWire.cs ConvTag, in the card's present pass); until the options print, the collapsed log box
+    # shows static and '//Initializing Dialogue Interface...' (Panel.InitStatic). -NoConvCue: none of it.
+    # FOOTSTEPS (BootHd.cs Footsteps; Josh, 2026-10-14): subtle steps as the player walks, by what is underfoot (stone, tile, wood,
+    # metal, water), at the game's effects level. -NoFootsteps: none; -FootstepVolume: a walking step's peak (0..1, default 0.2).
+    [switch]$NoFootsteps, [double]$FootstepVolume = -1,
+    [switch]$NoConvCue, [switch]$NoVisorFog, [switch]$NoEyeShine, [switch]$NoImpacts, [switch]$NoEcho, [double]$MapPanelLight = 0.6, [switch]$NoMapLights, [double]$MapZoomStart = 1.5, [int]$EchoKey = 0x56,
+    # THE SHOT RECORD's input history (Step-ShotWatch): every frame's buttons kept, to explain a shot nobody meant (Josh,
+    # 2026-10-11). Off by default since the 2026-10-13 performance audit (7 guest reads a frame); the weapon log stays.
+    [switch]$ShotLog,
+    # THE EARLY HAND-SHAKE (2026-10-13 performance audit): in steady true colour (aztInjSync 0) 'ready' is armed right after
+    # the camera read instead of at the end of the frame, so the guest clears it while the host draws and the next wait is
+    # one read. -NoEarlyReady = the end-of-frame order everywhere, as before.
+    [switch]$NoEarlyReady,
 
     # THE PICTURE IS DRAWN AT THE SIZE IT IS SHOWN, WHATEVER THE DISPLAY. Nothing here names a
     # resolution: the size is measured from where the game's viewport actually sits on this
@@ -404,6 +431,16 @@ param(
     # THE TITLE MENU: the 4K title with Continue / Load / Options / Quit / Story, shown by the loading gate while the game
     # holds its title stage (Build-AztMod $ENABLE_TITLE_MENU). -NoTitleMenu (or -Retro): the game's own title, waiting for a key.
     [switch]$NoTitleMenu,
+    # THE GRAIL'S GOLD on the title (Josh, 2026-10-13): fine gold flakes rising from the chalice, a few close ones as bokeh
+    # (LoadingScreen.cs TitleScreen.GrailFx). -NoGrailDust: the art alone.
+    [switch]$NoGrailDust,
+    # ...and the grail's light flickering on the man's face (TitleScreen.GrailGlow). -NoGrailGlow: none.
+    [switch]$NoGrailGlow,
+    # THE 3D MAP (Josh, 2026-10-14): the map button shows the room as the scan's wireframe over the dimmed visor view, turned
+    # by dragging with the left button (wheel: closer / further), the doors as amber arrows (GpuRaster.DrawMap, Step-Map).
+    # Every room (Josh, 2026-10-14, after the CORICORI proof: "I want this map solution added to all rooms in the game");
+    # -Map3DRooms A,B: only those (and -Map3DAll is the default anyway); -NoMap3D: the game's own maps.
+    [switch]$NoMap3D, [string[]]$Map3DRooms = @('*'), [switch]$Map3DAll,
     # the game's own system menu (fold-out) in true colour, not the host's visor one (VisorMenu.SetSys / Set-SysMenuHot)
     [switch]$NoSysMenu,
     # VISOR READOUTS: a room's "visor" block types a message onto the visor on entering (e.g. MINEMAZE with the flashlight off). -NoVisorNotes: none.
@@ -652,9 +689,12 @@ if ($Launch) {
             $gt.Sound = -not ($NoBootSound -or $NoLoadingSound)
             # the title menu (LoadingScreen.cs TitleScreen): the art, and where the saves are for Continue / Load
             $gt.TitleOn = -not ($NoTitleMenu -or $Retro); $gt.TitleImage = (Join-Path $toolDir '..\art\title\title_4k.png'); $gt.SaveDir = (Join-Path $GameDir 'GAME\AZRAEL'); $gt.TitleTextureQuality = $script:texQuality.ToUpperInvariant()
+            $gt.TitleGrailFx = -not $NoGrailDust                                    # (the grail's gold flakes on the title)
+            $gt.TitleGrailGlow = -not $NoGrailGlow                                  # (and its light on his face)
             $gt.TitleMusic = (Join-Path $toolDir '..\art\title\title-music.wav')      # (KREEPY3, Josh's soundtrack, looped under the menu)
             $gt.TitleDocs = (Join-Path $GameDir 'raptordocs')                         # (RAPTOR DOCS: the manual and the print-outs -- tools\Build-RaptorDocs.ps1)
             $gt.TitleRoomLoad = [bool]($TrueColour -and -not $NoRgb)                  # (a title load's bar carries the room's textures: Set-LoadProgress)
+            try { $gt.Screen.ShotPath = (Join-Path $CacheDir 'loading-screen.png') } catch { }      # (the launch screen as it really looked, 1.5 s in -- Josh, 2026-10-14: 'sometimes not full screen')
             $gt.Stage(0.6, 6)
             $gt.Start($gamePid0, (Join-Path $GameDir 'GAME\AZRAEL\R.EXE'), [Convert]::ToInt32($sb.Groups[1].Value, 16), [Convert]::ToInt32($ss.Groups[1].Value, 16))
             $script:gate = $gt
@@ -666,7 +706,7 @@ if ($Launch) {
 Add-Type -Path @((Join-Path $toolDir 'Raster.cs'), (Join-Path $toolDir 'Quantize.cs'), (Join-Path $toolDir 'HostView.cs'),
                  (Join-Path $toolDir 'SceneGraph.cs'), (Join-Path $toolDir 'Keys.cs'), (Join-Path $toolDir 'Overlay.cs'), (Join-Path $toolDir 'Motes.cs'),
                  (Join-Path $toolDir 'GpuRaster.cs'), (Join-Path $toolDir 'GiBake.cs'), (Join-Path $toolDir 'Particles.cs'), (Join-Path $toolDir 'Panel.cs'), (Join-Path $toolDir 'Pointer.cs'), (Join-Path $toolDir 'CursorShapes.cs'), (Join-Path $toolDir 'CursorIcons.cs'),
-                 (Join-Path $toolDir 'BootHd.cs'), (Join-Path $toolDir 'ScanWire.cs'), (Join-Path $toolDir 'RoomCover.cs'), (Join-Path $toolDir 'TexTwins.cs')) `
+                 (Join-Path $toolDir 'BootHd.cs'), (Join-Path $toolDir 'ScanWire.cs'), (Join-Path $toolDir 'RoomCover.cs'), (Join-Path $toolDir 'TexTwins.cs'), (Join-Path $toolDir 'FrameStep.cs')) `
          -ReferencedAssemblies 'System.Drawing', 'System.Web.Extensions' -ErrorAction Stop
 # ProcMem (RdU32 and every other guest read here) was only compiled inside Get-AztGuestBase, so when the loading
 # gate had already found the game -- and that search was skipped -- the first read threw and ended the watcher
@@ -735,6 +775,17 @@ $S_rapStk  = $(if ($symMap.ContainsKey('aztRaptorStack')) { [uint32]$symMap['azt
 # whether a capture can work at all, and it should never again be an assumption.
 $S_delta1  = $(if ($symMap.ContainsKey('aztCamDelta1')) { [uint32]$symMap['aztCamDelta1'] } else { [uint32]0 })
 $S_delta2  = $(if ($symMap.ContainsKey('aztCamDelta2')) { [uint32]$symMap['aztCamDelta2'] } else { [uint32]0 })
+# THE FIELD OF VIEW (see -Fov): the angle, and whether the game is to follow the host (not in -Retro, not with an overlay
+# that has no AztFovTick -- an older install keeps the game's own 50 and the host follows it).
+$S_fovTan = $(if ($symMap.ContainsKey('aztFovTan')) { [uint32]$symMap['aztFovTan'] } else { [uint32]0 })
+# (the game's own map: not drawn while the host draws its 3D map -- AztMapBlit, Josh 2026-10-14)
+$S_oldMapOff = $(if ($symMap.ContainsKey('aztOldMapOff')) { [uint32]$symMap['aztOldMapOff'] } else { [uint32]0 })
+$script:fovGame = -not $Retro
+if ($script:fovGame -and $Fov -le 0) { try { $sp = Join-Path $GameDir 'raptormod-settings.json'; if (Test-Path $sp) { $fs = (Get-Content $sp -Raw | ConvertFrom-Json).fov; if ($fs) { $Fov = [double]$fs } } } catch { } }
+if ($Retro -or $Fov -le 0) { $Fov = $(if ($Retro) { 50 } else { 60 }) }
+$Fov = [Math]::Max(30.0, [Math]::Min(100.0, $Fov))
+$script:fovNote = $null      # (said with the start line: Say is defined further down)
+if ($script:fovGame -and -not $S_fovTan) { if ($Fov -ne 50) { $script:fovNote = "this install's overlay cannot set the game's field (no aztFovTan) -- the view stays at the game's 50; reinstall for $Fov" }; $Fov = 50; $script:fovGame = $false }
 $S_frameNo = $(if ($symMap.ContainsKey('aztCamFrameNo')) { [uint32]$symMap['aztCamFrameNo'] } else { [uint32]0 })
 $S_rapEsp  =$(if ($symMap.ContainsKey('aztRaptorEsp')) { [uint32]$symMap['aztRaptorEsp'] } else { [uint32]0 })
 
@@ -1037,7 +1088,7 @@ function Write-RaptorForensics([string]$dump, [uint32]$d1) {
 
 function Test-RaptorTrap {
     if (-not $S_rapHit) { return $false }
-    if ((RdU32 (HostLin $S_rapHit)) -eq 0) { return $false }
+    if ((RdU32 $(if ($script:hlRapHit) { $script:hlRapHit } else { HostLin $S_rapHit })) -eq 0) { return $false }      # (the address worked out once per attach: Invoke-Session)
 
     $code = RdU32 (HostLin $S_rapCode)
     $low  = [int]($code -band 0xFF)
@@ -1096,6 +1147,9 @@ function Test-RaptorTrap {
 # the whole difference between ~10 ms and several hundred. The pointers themselves are the
 # fingerprint: a rebuilt scene allocates new ones.
 function Get-SceneFingerprint([uint32]$camObj, [int]$cap = 220) {
+    # (2026-10-13 performance audit: the same walk in C#, SceneGraph.Fingerprint -- ~660 PowerShell calls here were a
+    # 10-30 ms hitch twice a second; the script version below stays only as the fallback)
+    try { return [AztTool.SceneGraph]::Fingerprint([int]$g.ProcessId, [long]$g.MemBase, [uint32]$camObj, $cap) } catch { }
     $p = $camObj
     for ($i = 0; $i -lt 16; $i++) {
         $par = RdU32 ([long]($g.MemBase + $p + 0x30))
@@ -1281,6 +1335,10 @@ function Get-LiveCharacters([string[]]$nodes, [string[]]$roomFiles) {
             $groups[$Matches[1]].Add($Matches[2])
         }
     }
+    # THE SAME CHARACTERS AS LAST TIME: the same answer (2026-10-13 performance audit -- the match below is ~10k script
+    # iterations, a 10-20 ms hitch once a second; it only depends on the prefixes, their bone names and the room's files)
+    $memoKey = ($roomFiles -join '+') + '|' + ((@($groups.Keys) | Sort-Object | ForEach-Object { $_ + '=' + ($groups[$_] -join ',') }) -join ';')
+    if ($null -ne $script:liveCharMemo -and $script:liveCharMemoKey -eq $memoKey) { return $script:liveCharMemo }
     $res = @()
     foreach ($pre in @($groups.Keys | Sort-Object)) {
         $bones = $groups[$pre]
@@ -1299,6 +1357,7 @@ function Get-LiveCharacters([string[]]$nodes, [string[]]$roomFiles) {
             $res += [pscustomobject]@{ Xaf = $best; Prefix = $pre; Hits = $bestHit; Of = $bones.Count }
         }
     }
+    $script:liveCharMemoKey = $memoKey; $script:liveCharMemo = $res
     return $res
 }
 # THE ENGINE'S MESH AGAINST OURS. The transform probe above came back clean -- the frames of a
@@ -1912,7 +1971,7 @@ function Start-RoomCover([string]$why) {
     if (Test-LoadUi) { return }      # (a game being loaded or booted: its own panel / the visor boot covers the room -- Set-LoadProgress)
     if (-not $script:roomCoverPainter) { $script:roomCoverPainter = New-Object AztTool.RoomCover }
     $script:roomCoverPainter.Reset()
-    $script:roomCover = [pscustomobject]@{ Clock = [Diagnostics.Stopwatch]::StartNew(); Target = 0.02; Stage = 'pulse'; Why = $why; LastShow = -1.0; Shows = 0; WaitFrom = 0.0; Hold = 0L; NothingSince = $null }
+    $script:roomCover = [pscustomobject]@{ Clock = [Diagnostics.Stopwatch]::StartNew(); Target = 0.02; Stage = 'pulse'; Why = $why; LastShow = -1.0; Shows = 0; WaitFrom = 0.0; Hold = 0L; NothingSince = $null; Loaded = $false; SettleFrom = 0.0 }
     $script:rgbProgress = { param($d, $t) Set-RoomCoverTarget (0.15 + 0.55 * $d / [Math]::Max(1, $t)) 'textures' }
     Show-RoomCover -Force
 }
@@ -1992,6 +2051,169 @@ function Step-LoadGuard {
     # (the room's dark glass holds until the sweep starts, on the next frame: StartMaterialize lets it go)
     if ($NoMaterialize -and $script:gpu) { $script:gpu.MatHold = $false }
     $script:matPending = 'the loaded game is in view (its loading panel gone)'
+}
+# ---- THE FIELD OF VIEW (see -Fov): every loop the host writes tan(v/2) for the overlay's AztFovTick (a data word; 0 in
+# -Retro = the game's own field), F12 cycles 50/60/70, and every 2 s the game's viewport is read back: its own field as
+# the game will draw and pick with it (Reality Lab applies it to the viewport's longer side: x max(1, w*sx / h*sy), as
+# 0x59404 does). In -Retro the host follows that live value.
+$script:fovAt = $null; $script:fovSeen = $false; $script:fovMiss = 0; $script:fovKeyWas = $false
+function Set-HostFov([double]$v) {
+    $script:Fov = $v
+    if ($r) { $r.SetVerticalFov($v) }
+    if ($script:gpu) { $script:gpu.SetVerticalFov($v) }
+    if ($rs) { $rs.SetVerticalFov($v + 8) }; if ($rs2) { $rs2.SetVerticalFov($v + 8) }      # (the lamp sees a little past the view)
+}
+function Get-GameFov {
+    if (-not $S_delta2) { return $null }
+    $script:rapD2 = RdU32 (HostLin $S_delta2)
+    $h = RdU32 (GuestObj2 0x152138); if (-not $h) { return $null }
+    $o = Resolve-RlHandle $h; if (-not $o) { return $null }
+    $b = [AztTool.ProcMem]::Read($g.ProcessId, (GuestPtr $o), 0x100); if (-not $b) { return $null }
+    $field = [BitConverter]::ToSingle($b, 0xFC); $w = [BitConverter]::ToInt32($b, 0x3C); $hh = [BitConverter]::ToInt32($b, 0x40); $dev = [BitConverter]::ToUInt32($b, 0x2C)
+    if ($field -le 0 -or $w -le 0 -or $hh -le 0 -or $dev -lt 0x1000) { return $null }
+    $d = [AztTool.ProcMem]::Read($g.ProcessId, (GuestPtr ($dev + 0x160)), 8); if (-not $d) { return $null }
+    $sx = [BitConverter]::ToInt32($d, 0); $sy = [BitConverter]::ToInt32($d, 4); if ($sx -le 0 -or $sy -le 0) { return $null }
+    $a = ($w * [double]$sx) / ($hh * [double]$sy)
+    return 2 * [Math]::Atan($(if ($a -gt 1) { $field / $a } else { $field })) * 180 / [Math]::PI
+}
+function Step-Fov {
+    if (-not $S_fovTan -or -not $hv) { return }
+    if ($FovKey -gt 0 -and $script:fovGame) {
+        $k = $false; try { $k = [AztTool.Keys]::DownInProcess($FovKey, $g.ProcessId) } catch { }
+        if ($k -and -not $script:fovKeyWas) {
+            $nv = $(if ($script:Fov -lt 55) { 60 } elseif ($script:Fov -lt 62.5) { 65 } elseif ($script:Fov -lt 67.5) { 70 } else { 50 })
+            Set-HostFov $nv; $script:fovSeen = $false; $script:fovMiss = 0; $script:fovAt = $null
+            Say ("field of view: {0} degrees (F12: 50 / 60 / 65 / 70)" -f $nv) Cyan; Show-ToggleNote ('FIELD OF VIEW: {0} DEG' -f $nv)
+        }
+        $script:fovKeyWas = $k
+    }
+    $tan = $(if ($script:fovGame) { [Math]::Tan($script:Fov * [Math]::PI / 360) } else { 0.0 })
+    $fbits = [BitConverter]::ToUInt32([BitConverter]::GetBytes([single]$tan), 0)
+    if ($fbits -ne $script:fovBits -or -not $script:fovWr -or $script:fovWr.ElapsedMilliseconds -ge 500) {      # (2026-10-13 audit: not every frame)
+        try { [void]$hv.WriteU32((HostLin $S_fovTan), $fbits) } catch { }
+        $script:fovBits = $fbits; if ($script:fovWr) { $script:fovWr.Restart() } else { $script:fovWr = [Diagnostics.Stopwatch]::StartNew() }
+    }
+    if ($script:fovAt -and $script:fovAt.Elapsed.TotalSeconds -lt 2) { return }
+    if ($script:fovAt) { $script:fovAt.Restart() } else { $script:fovAt = [Diagnostics.Stopwatch]::StartNew() }
+    $gv = $null; try { $gv = Get-GameFov } catch { }
+    if ($null -eq $gv) { return }
+    if (-not $script:fovGame) {
+        if ([Math]::Abs($gv - $script:Fov) -gt 0.3) { Set-HostFov ([Math]::Round($gv, 2)); Say ("field of view: following the game's own {0:N1} degrees" -f $gv) DarkCyan }
+        return
+    }
+    if ([Math]::Abs($gv - $script:Fov) -le 0.3) {
+        if (-not $script:fovSeen) { $script:fovSeen = $true; $sets = 0; try { $sets = $hv.ReadU32((HostLin (Sym 'aztFovSets'))) } catch { }; Say ("field of view: the game draws and picks at {0:N1} degrees, as the host draws ({1} viewport(s) set so far)" -f $gv, $sets) DarkCyan }
+        $script:fovMiss = 0
+    } elseif (++$script:fovMiss -eq 2) { Say ("field of view: the game's viewport is still at {0:N1} degrees, the host at {1} -- the overlay has not applied it" -f $gv, $script:Fov) Yellow }
+}
+# ---- NPC PACE, PER ROOM (Josh, 2026-10-13: the two creatures in CORICORI "slowed a total of 20% ... pause every once in a
+# while, rather than constantly running around ... an easier chance to scan them"). Every character already runs at the
+# build's NPC_RATE_PCT (90%: the overlay's AztActorGate / AztNpcStride). A room's "npcs" block names characters (the
+# game's actor names, e.g. "EUGENE") with:
+#   "speed": a share of the ORIGINAL pace (0.8 = 20% slower in all); the overlay's per-character share is speed / 0.9;
+#   "pauseEvery": [min, max] seconds between pauses (none = never pauses);
+#   "pauseAnim": the state to pause in -- one the character's .ANI has a range for: "SNIFF" (EUGENE/EUGENB, added at
+#   install by Apply-AztMod: frames 11-52 of EUGBLD.XAF, a sniff and look-round already in the model), "REST", "ROAR"...;
+#   "pauseSpeed": the pace while paused (default = speed) -- the clip plays at it (Josh, 2026-10-13: the run another 20%
+#   slower, "the sniff and pause animation is perfect" as it was);
+#   "pauseFrames": how long, in that clip's frames at the pause's pace (41 = one sniff), else "pauseFor": [min,
+#   max] seconds. The run starts again from the overlay (AztNpcHold) when the host lets go.
+# The host finds them in the game's character table (0x1521C4: 0x6F buckets at +2, nodes {+0 next, +4 name, +8 character})
+# and writes the overlay's aztNpcTab (4 x 12 bytes: {dd character, db pct, db strideAcc, db aiAcc, db hold, db pauseState}); a pause is the hold
+# byte: bit 0 = pause, set and cleared by the host; bit 7 = paused, set by AztNpcHold (RUN -> the pause state), which also
+# sets RUN again once bit 0 is clear. (The first version paused into REST and left the restart to the game's WANDER rule
+# -- EUGENE.ANI has no WANDER, so they stood for good: "the creatures in that room are now frozen in place".)
+$script:npcStates = @{ REST = 1; WALK = 2; SLEEP = 3; START_RUN = 4; RUN = 5; END_RUN = 6; PICKUP = 7; DROP = 8; ROAR = 9; SNIFF = 10; AWAKE = 11; FACE_YOU = 20 }
+$script:npcRoom = $null; $script:npcRules = $null; $script:npcAt = $null; $script:npcState = @{}; $script:npcSaid = @{}
+$script:npcRnd = New-Object Random
+function Get-NpcChars {
+    # name -> character pointer (the game's own values), from the character table
+    $res = @{}
+    $b = [AztTool.ProcMem]::Read($g.ProcessId, (GuestObj2 0x1521C4), 2 + 4 * 0x6F); if (-not $b) { return $res }
+    for ($i = 0; $i -lt 0x6F; $i++) {
+        $node = [BitConverter]::ToUInt32($b, 2 + 4 * $i)
+        for ($k = 0; $k -lt 64 -and $node -ge 0x1000; $k++) {
+            $nb = [AztTool.ProcMem]::Read($g.ProcessId, (GuestPtr $node), 12); if (-not $nb) { break }
+            $np = [BitConverter]::ToUInt32($nb, 4); $ch = [BitConverter]::ToUInt32($nb, 8)
+            if ($np -ge 0x1000 -and $ch -ge 0x1000) {
+                $sb = [AztTool.ProcMem]::Read($g.ProcessId, (GuestPtr $np), 16)
+                if ($sb) { $z = [Array]::IndexOf($sb, [byte]0); if ($z -gt 0) { $res[[Text.Encoding]::ASCII.GetString($sb, 0, $z).ToUpperInvariant()] = $ch } }
+            }
+            $node = [BitConverter]::ToUInt32($nb, 0)
+        }
+    }
+    return $res
+}
+function Write-NpcEntry([int]$slot, [uint32]$ch, [int]$pct, [int]$state) {
+    $at = (HostLin (Sym 'aztNpcTab')) + 12 * $slot
+    $e = [byte[]]@(0, 0, 0, 0, [byte]$pct, 0, 0, 0, [byte]$state, 0, 0, 0); [BitConverter]::GetBytes($ch).CopyTo($e, 0)
+    [void][AztTool.ProcMem]::Write($g.ProcessId, $at, $e)
+}
+function Step-NpcPace {
+    if (-not $symMap.ContainsKey('aztNpcTab') -or -not $S_delta2) { return }
+    if ($script:npcTick -and $script:npcTick.ElapsedMilliseconds -lt 100) { return }      # (10 Hz: 2026-10-13 performance audit)
+    if ($script:npcTick) { $script:npcTick.Restart() } else { $script:npcTick = [Diagnostics.Stopwatch]::StartNew() }
+    $room = [string]$script:rapRoom
+    if ($room -ne $script:npcRoom) {
+        $script:npcRoom = $room; $script:npcRules = $null; $script:npcState = @{}; $script:npcAt = $null
+        try { [void][AztTool.ProcMem]::Write($g.ProcessId, (HostLin (Sym 'aztNpcTab')), (New-Object byte[] 48)) } catch { }
+        try {
+            $own = Join-Path $RoomsDir ("{0}.json" -f ($room -split '\+')[0])
+            if ($room -and (Test-Path $own)) { $o = Get-Content $own -Raw | ConvertFrom-Json; if ($o.PSObject.Properties['npcs']) { $script:npcRules = $o.npcs } }
+        } catch { Say ("npcs: {0}.json could not be read ({1})" -f $room, $_.Exception.Message) Yellow }
+    }
+    if (-not $script:npcRules) { return }
+    $now = [Diagnostics.Stopwatch]::GetTimestamp() / [double][Diagnostics.Stopwatch]::Frequency
+    # every half second: who is here (characters come and go with scripts), and their entries
+    if (-not $script:npcAt -or $script:npcAt.Elapsed.TotalSeconds -ge 0.5) {
+        if ($script:npcAt) { $script:npcAt.Restart() } else { $script:npcAt = [Diagnostics.Stopwatch]::StartNew() }
+        $script:rapD2 = RdU32 (HostLin $S_delta2)
+        $chars = $null; try { $chars = Get-NpcChars } catch { return }
+        $rate = 90.0; try { $rate = [double]($hv.ReadU32((HostLin (Sym 'aztNpcPct'))) -band 0xFFFF) } catch { }
+        if ($rate -le 0) { $rate = 90.0 }
+        $slot = 0; $seen = @{}
+        foreach ($p in $script:npcRules.PSObject.Properties) {
+            if ($p.Name.StartsWith('_') -or -not $chars.ContainsKey($p.Name.ToUpperInvariant())) { continue }
+            if ($slot -ge 4) { break }
+            $ch = [uint32]$chars[$p.Name.ToUpperInvariant()]; $rule = $p.Value; $seen[$ch] = 1
+            $speed = $(if ($null -ne $rule.speed) { [double]$rule.speed } else { $rate / 100.0 })
+            $pct = [int][Math]::Max(10, [Math]::Min(100, [Math]::Round($speed * 10000.0 / $rate)))
+            $ps = 1; if ($rule.pauseAnim -and $script:npcStates.ContainsKey(([string]$rule.pauseAnim).ToUpperInvariant())) { $ps = $script:npcStates[([string]$rule.pauseAnim).ToUpperInvariant()] }
+            # one pause in the clip's own frames: the stride steps at 18.2 Hz x the build's rate x this character's share
+            $pspd = $(if ($null -ne $rule.pauseSpeed) { [double]$rule.pauseSpeed } else { $speed })
+            $ppct = [int][Math]::Max(10, [Math]::Min(100, [Math]::Round($pspd * 10000.0 / $rate)))
+            $hz = 18.2065 * ($rate / 100.0) * ($ppct / 100.0)      # (the clip's frame rate while paused)
+            $st = $script:npcState[$ch]
+            if (-not $st) {
+                $st = @{ Slot = $slot; Pct = $pct; PausePct = $ppct; Hold = 0; Next = $now + (Get-NpcSpan $rule.pauseEvery 6 12); Until = 0.0; Name = $p.Name; State = $ps; Hz = $hz }
+                $script:npcState[$ch] = $st
+                try { Write-NpcEntry $slot $ch $pct $ps } catch { }
+                if (-not $script:npcSaid[$p.Name + $room]) { $script:npcSaid[$p.Name + $room] = $true; Say ("npcs: {0} in {1} at {2:P0} of the original pace{3}" -f $p.Name, $room, $speed, $(if ($rule.pauseEvery) { ', pausing now and then' } else { '' })) DarkCyan }
+            } elseif ($st.Slot -ne $slot -or $st.Pct -ne $pct) { $st.Slot = $slot; $st.Pct = $pct; $st.PausePct = $ppct; $st.Hz = $hz; $st.Hold = 0; try { Write-NpcEntry $slot $ch $pct $ps } catch { } }
+            $slot++
+        }
+        foreach ($k in @($script:npcState.Keys)) { if (-not $seen.ContainsKey($k)) { $script:npcState.Remove($k) } }
+        for ($s = $slot; $s -lt 4; $s++) { try { Write-NpcEntry $s 0 0 0 } catch { } }
+    }
+    # the pauses: each character on its own timer
+    foreach ($ch in @($script:npcState.Keys)) {
+        $st = $script:npcState[$ch]; $rule = $script:npcRules.($st.Name)
+        if (-not $rule -or -not $rule.pauseEvery) { continue }
+        $hb = (HostLin (Sym 'aztNpcTab')) + 12 * $st.Slot + 7
+        if ($st.Hold -eq 0 -and $now -ge $st.Next) {
+            $st.Hold = 1
+            $st.Until = $now + $(if ($rule.pauseFrames -and $st.Hz -gt 0) { [double]$rule.pauseFrames / $st.Hz } else { Get-NpcSpan $rule.pauseFor 2 4 })
+            try { [void][AztTool.ProcMem]::Write($g.ProcessId, $hb - 3, [byte[]]@([byte]$st.PausePct)); [void][AztTool.ProcMem]::Write($g.ProcessId, $hb, [byte[]]@(1)) } catch { }      # (the pause's own pace, then the pause)
+        } elseif ($st.Hold -eq 1 -and $now -ge $st.Until) {
+            $st.Hold = 0; $st.Next = $now + (Get-NpcSpan $rule.pauseEvery 6 12)
+            # let go: bit 0 off, the overlay's bit 7 kept -- AztNpcHold sets the run again and clears it
+            try { $cur = [AztTool.ProcMem]::Read($g.ProcessId, $hb, 1); [void][AztTool.ProcMem]::Write($g.ProcessId, $hb, [byte[]]@([byte]($cur[0] -band 0x80))); [void][AztTool.ProcMem]::Write($g.ProcessId, $hb - 3, [byte[]]@([byte]$st.Pct)) } catch { }      # (and its running pace back)
+        }
+    }
+}
+function Get-NpcSpan($pair, [double]$lo, [double]$hi) {
+    if ($pair -and @($pair).Count -ge 2) { $lo = [double]@($pair)[0]; $hi = [double]@($pair)[1] } elseif ($pair) { $lo = [double]$pair; $hi = $lo }
+    return $lo + ($hi - $lo) * $script:npcRnd.NextDouble()
 }
 function Stop-RoomCover([string]$how) {
     $c = $script:roomCover; if (-not $c) { return }
@@ -2161,7 +2383,9 @@ function Set-Engine3D([ref]$flag, [bool]$suppress) {
         Enable-HostFps
     } else {
         # the game's own picture is the picture again -- unless the host's boot is covering it (a re-boot after a load)
-        if ($script:ov -and -not ($script:bootHd -and $script:bootHd.Covering)) { $script:ov.Hide() }
+        # (...nor while the room's loading cover is up: it shows through the card's window, and hiding it here put the 8-bit picture on
+        # screen through the engine-draw pulse -- Josh, 2026-10-14, entering MINEMAZE: '256 version ... loading, then back')
+        if ($script:ov -and -not ($script:bootHd -and $script:bootHd.Covering) -and -not $script:roomCover) { $script:ov.Hide() }
         Disable-HostFps          # the engine draws for itself again: its own cap, its own step
         [void]$hv.WriteU32((HostLin $S_parts), 0)
         [void]$hv.WriteU32((HostLin $S_enable), 0)
@@ -2177,7 +2401,9 @@ function Set-Engine3D([ref]$flag, [bool]$suppress) {
 # 'run'. Any failure ends in the 8-bit picture being injected exactly as without the switch.
 $script:ov = $null; $script:tcOn = $false; $script:tcPush = $null
 function Close-TrueColour {
+    if ($S_oldMapOff -and $hv) { try { [void]$hv.WriteU32((HostLin $S_oldMapOff), [uint32]0) } catch { }; $script:oldMapWr = $null }      # (the game draws its own map again)
     Restore-SysMenuHot      # (the game's own fold-out clicks, before the host stops drawing its menu)
+    Restore-MapHot          # (the map screen's own click, if the 3D map was up)
     Stop-BootHd
     Stop-VisorShade
     if ($script:ov) { $script:ov.Decorate = $null; $script:ov.Decorate3 = $null; $script:ov.Decorate4 = $null }
@@ -2226,6 +2452,9 @@ function Start-WidePanel($ovl) {
         $lay = Get-Content (Join-Path $wd '..\hud-layout.json') -Raw | ConvertFrom-Json
         $pn = New-Object AztTool.Panel($g.ProcessId, $ovl, (Resolve-Path $wd).Path)
         $pn.K = [double]$wi.k; $pn.ArtX0 = [int]$wi.artX0; $pn.ArtY0 = [int]$wi.artY0; $pn.HiScale = [int]$wi.hiScale
+        # (THE MAP'S LIGHTS sit on the art's two corner horns: their tips at art column 18, row 15 from the image's origin -- panel-off.png
+        # at hiScale 2 -- the right one the mirror of the left about the screen's middle; GpuRaster.MapBeamView takes VIEW pixels, rows from 49)
+        try { $bxL = [double]$wi.gameX0 + 18 * [double]$wi.k; $byL = [double]$wi.gameY0 + 15 * [double]$wi.k - 49; $script:mapBeamView = [single[]]@($bxL, $byL, (1600 - $bxL), $byL) } catch { $script:mapBeamView = $null }
         $pn.Inventory = [int[]]@($wi.inventory.x, $wi.inventory.y, $wi.inventory.w, $wi.inventory.h)
         $pn.Gauge = [int[]]@($wi.gauge.x, $wi.gauge.y, $wi.gauge.w, $wi.gauge.h)
         # THE TEXT AREA: the panel's own module, stretched as it opens (Build-HudWide's textArea)
@@ -2285,6 +2514,8 @@ function Start-WidePanel($ovl) {
         $pn.ConvListAddr = [long]($g.MemBase + 0x152B1C + $d2)        # g_convList: a conversation holds the box open
         $pn.CursorXAddr = [long]($g.MemBase + 0x182D6C + $d2); $pn.CursorYAddr = [long]($g.MemBase + 0x182D6E + $d2)
         if ($symMap.ContainsKey('aztLogScroll')) { $pn.LogScrollAddr = HostLin (Sym 'aztLogScroll') }
+        if ($symMap.ContainsKey('aztConvBox')) { $pn.ConvBoxAddr = HostLin (Sym 'aztConvBox') }   # the box opens once the options print (overlay AztConvBoxZ)
+        $pn.InitStaticOn = -not $NoConvCue -and -not $Retro                                  # until then the collapsed log shows static + '//Initializing Dialogue Interface...' (Panel.InitStatic)
         # THE HUD'S TEXT IN VECTOR TYPE (Josh, 2026-10-09; docs\text-render-RE.md): the log read back out of the game's text
         # surface and the inventory's names out of its list, drawn in Verdana at the display's resolution. -NoHostText:
         # the game's own pixels, as before.
@@ -2379,6 +2610,9 @@ function Start-ScanWire($ovl) {
             if ($sw.Add($an, $xaf, [string[]]$fr, $rg[0], $rg[1])) {
                 $got += $an
                 $sw.AddCharacter($an, $an, $(if ($des.ContainsKey($an)) { $des[$an] } else { $null }))
+                # its SNIFF, when its .ANI has one (EUGENE / EUGENB: added at install), plays in the scan after the walk
+                $ms = [regex]::Match($at, '(?im)^\s*SNIFF\s+(\d+)\s*-\s*(\d+)')
+                if ($ms.Success -and $sw.SetExtra($an, [int]$ms.Groups[1].Value, [int]$ms.Groups[2].Value)) { Say ("scanner wireframe: {0} also sniffs (frames {1}-{2}) after its walk" -f $an, $ms.Groups[1].Value, $ms.Groups[2].Value) DarkCyan }
                 Say ("scanner wireframe: {0} ({1} {2}-{3}, {4} frames{5})" -f $sw.RigInfo, $rg[2], $rg[0], $rg[1], $fr.Count, $(if ($des.ContainsKey($an)) { '' } else { ', no text' })) DarkCyan
             } else { $skipped += $sw.LastError }
         }
@@ -2444,6 +2678,9 @@ function Initialize-TrueColour {
         $scrW = [int]$man.view.screenW; $scrH = [int]$man.view.screenH
         $o = New-Object AztTool.Overlay($g.ProcessId, $W, $H, $scrW, $scrH, [int]$man.view.injX, [int]$man.view.injY)
         $script:ov = $o
+        # (the key we hand the game is always see-through in the compose, whatever colour is commonest in the view: closing the map left
+        # the view mostly black for a few frames, black was taken for the key, and the real key showed as a #101010 block -- Josh, 2026-10-14)
+        $o.KeyAlso = $script:tcPal32[$keyA] -band 0xFFFFFF; $script:keyAlsoSaid = $false
         if ($TcRect)  { $q = @($TcRect -split '[,; ]+' | Where-Object { $_ } | ForEach-Object { [int]$_ });  if ($q.Count -eq 4) { $o.FixX = $q[0]; $o.FixY = $q[1]; $o.FixW = $q[2]; $o.FixH = $q[3] } else { Say '-TcRect needs x,y,w,h -- ignored' Yellow } }
         if ($TcNudge) { $q = @($TcNudge -split '[,; ]+' | Where-Object { $_ } | ForEach-Object { [int]$_ }); if ($q.Count -eq 4) { $o.NudgeX = $q[0]; $o.NudgeY = $q[1]; $o.NudgeW = $q[2]; $o.NudgeH = $q[3] } else { Say '-TcNudge needs dx,dy,dw,dh -- ignored' Yellow } }
         $o.Wide = (-not $NoWide -and -not $NoRgb -and -not $TcGameSize)
@@ -2536,6 +2773,17 @@ function Start-BootHd {
         $pw = $(if ($script:ov.RectW -gt 0) { $script:ov.RectW } elseif ($script:tcRW -gt 0) { $script:tcRW } else { $W })
         $ph = $(if ($script:ov.RectH -gt 0) { $script:ov.RectH } elseif ($script:tcRH -gt 0) { $script:tcRH } else { $H })
         if ($script:visorShade) { $b.Shade = $script:visorShade }
+        $b.StandUp = (-not $NoStandUp)
+        # THE SELF SCAN (2026-10-14): the raptor's own rig turning in the right column while the readout loads; its idle from KURT.ANI
+        try {
+            $rg = @(124, 136, 143, 147); $ka = Join-Path (Split-Path $TexDir) 'AZRAEL\KURT.ANI'
+            if (Test-Path $ka) {
+                $kt = [IO.File]::ReadAllText($ka)
+                $mw = [regex]::Match($kt, '(?im)^\s*WALK\s+(\d+)\s*-\s*(\d+)'); if ($mw.Success) { $rg[0] = [int]$mw.Groups[1].Value; $rg[1] = [int]$mw.Groups[2].Value }
+                $mr = [regex]::Match($kt, '(?im)^\s*REST\s+(\d+)\s*-\s*(\d+)'); if ($mr.Success) { $rg[2] = [int]$mr.Groups[1].Value; $rg[3] = [int]$mr.Groups[2].Value }
+            }
+            $b.LoadRaptor((Join-Path $TexDir 'RAPTOR.XAF'), $rg[0], $rg[1], $rg[2], $rg[3])
+        } catch { Say ("visor boot: no self scan ({0})" -f $_.Exception.Message) Yellow }
         $b.Sound.On = (-not $NoBootSound); if ($BootSoundVolume -ge 0) { $b.Sound.Volume = $BootSoundVolume }
         $hs = Join-Path $toolDir '..\art\boot\hud-ratchet.wav'
         if (-not $NoHudSound -and (Test-Path $hs)) { $b.HudSoundPath = (Resolve-Path $hs).Path; $b.HudSoundLevel = $HudSoundLevel }
@@ -2623,6 +2871,410 @@ function Set-SysMenuHot {
     $script:sysHotOrig = $orig
     Say ("system menu: the fold-out's clicks moved to the visor layout ({0} records, {1} region boxes{2})" -f $moved.Count, $boxes, $(if ($bad) { "; $bad did not match and were left alone" } else { '' })) $(if ($bad -or $boxes -lt $moved.Count) { 'Yellow' } else { 'Cyan' })
 }
+# ---- THE 3D MAP (Josh, 2026-10-14: "when a player clicks the map button in the lower UI, they will be taken to a dimmed version
+# of the visor view, the world behind faded back but still visible. We then see the 3d wireframe, with basic shading in place but
+# no textures. The user can click to rotate the map, and the arrows that indicate doors etc are still in place as they are in the
+# original game, but in modern vector graphics ... Lets start with the coricori room first as a proof of concept").
+# THE GAME'S MAP SCREEN (docs\notes\azrael-map-3d.md): the toggle 0x12954 flips word 0x1525F2 (map OR help, the same flag),
+# switches the hot spots to screen 6 -- one whole-screen region whose command closes it -- and blits its composed picture
+# (MAPBKGRD + the room's top-down PCX pieces + arrow PCXs from MAPS.DAT) over the whole screen every frame; the main loop
+# keeps running (and our frame hook) but skips the 3D, the actors and the scripts. The help screen is told apart by the
+# palette the toggle loads (HELP.PCX's, at 0x1525F4). While the 3D map is up for this room:
+#   * the game's picture is left out of the view (the compose's hide rect: the whole game screen) and the card draws the map
+#     over the dimmed world (GpuRaster.MapK, DrawMap) -- the world held still: the camera as it was when the map opened;
+#   * the doors from the portal map (Get-AztMapDoors), the player where they stand (the floor under the eye, from the main
+#     loop's $room -- read through PowerShell's dynamic scope), facing where they look;
+#   * a drag with the left button turns it, the wheel brings it closer (RawMouse: DOSBox holds the mouse captured);
+#   * a click must not close it, so screen 6's one region is moved -- at run time, in guest memory, and put back -- onto the
+#     MAP button's own box (screen 0's region for command 6): the map button closes it, as do right-click and M.
+$script:mapOpen = $false; $script:map3d = $false; $script:mapHelp = $false; $script:mapKNow = 0.0; $script:mapClock = $null
+$script:mapYaw = 0.0; $script:mapPitch = 52.0; $script:mapZoom = 1.0; $script:mapYawT = 0.0; $script:mapPitchT = 52.0; $script:mapZoomT = 1.0
+$script:mapMouse = $null; $script:mapHotOrig = $null; $script:mapFreezeCam = $null; $script:mapDoors = $null; $script:mapDoorsFor = $null
+$script:mapPals = $null
+function Get-PcxPalette([string]$path) {
+    try { $b = [IO.File]::ReadAllBytes($path); if ($b.Length -lt 769 -or $b[$b.Length - 769] -ne 12) { return $null }; return [byte[]]$b[($b.Length - 768)..($b.Length - 1)] } catch { return $null }
+}
+# the help screen and the map share 0x1525F2: the toggle loads HELP.PCX's palette for help, CORICORI.PCX's for every map
+function Test-MapIsHelp {
+    if (-not $script:mapPals) {
+        $md = Join-Path $GameDir 'GAME\AZTEX\MAPS'
+        $script:mapPals = @{ Help = Get-PcxPalette (Join-Path $md 'HELP.PCX'); Map = Get-PcxPalette (Join-Path $md 'CORICORI.PCX') }
+    }
+    $hp = $script:mapPals.Help; $mp = $script:mapPals.Map
+    if (-not $hp -or -not $mp) { return $false }
+    $live = $null; try { $live = [AztTool.ProcMem]::Read($g.ProcessId, [long]($g.MemBase + 0x1525F4 + $script:memAt.D2), 768) } catch { }
+    if (-not $live -or $live.Length -ne 768) { return $false }
+    # (the game may keep it as 8-bit or as the VGA's 6-bit: compare both ways, take the nearer)
+    $dh = [long]0; $dm = [long]0; $dh6 = [long]0; $dm6 = [long]0
+    for ($i = 0; $i -lt 768; $i += 3) { $dh += [Math]::Abs($live[$i] - $hp[$i]); $dm += [Math]::Abs($live[$i] - $mp[$i]); $dh6 += [Math]::Abs($live[$i] - ($hp[$i] -shr 2)); $dm6 += [Math]::Abs($live[$i] - ($mp[$i] -shr 2)) }
+    return ([Math]::Min($dh, $dh6) -lt [Math]::Min($dm, $dm6))
+}
+# screen objects: 0x164D9C + N x 14 = {word count, dword -> region pointers}; a region = {word n, dword -> points, word x0 y0 x1 y1}
+function Get-HotRegion([uint32]$screenObj, [int]$index) {
+    $sb = [AztTool.ProcMem]::Read($g.ProcessId, [long]($g.MemBase + $screenObj + $script:memAt.D2), 6)
+    $cnt = [BitConverter]::ToInt16($sb, 0); $arr = [BitConverter]::ToUInt32($sb, 2)
+    if ($index -ge $cnt -or $arr -lt 0x1000) { return $null }
+    $rp = [long]($g.MemBase + [BitConverter]::ToUInt32([AztTool.ProcMem]::Read($g.ProcessId, [long]($g.MemBase + $arr + 4 * $index), 4), 0))
+    $rb = [AztTool.ProcMem]::Read($g.ProcessId, $rp, 14); $n = [BitConverter]::ToInt16($rb, 0); $pp = [long]($g.MemBase + [BitConverter]::ToUInt32($rb, 2))
+    return @{ At = $rp; N = $n; Points = $pp; Box = @([BitConverter]::ToInt16($rb, 6), [BitConverter]::ToInt16($rb, 8), [BitConverter]::ToInt16($rb, 10), [BitConverter]::ToInt16($rb, 12)) }
+}
+function Set-MapHot {
+    if ($script:mapHotOrig -or -not $script:memAt) { return }
+    try {
+        $btn = Get-HotRegion 0x164D9C 5          # screen 0, region 5: the MAP button (command 6)
+        $map = Get-HotRegion 0x164DF0 0          # screen 6's one region: the whole screen
+        if (-not $btn -or -not $map -or $map.N -lt 3 -or $map.N -gt 12) { Say 'map: the map screen''s click region was not found -- a click closes it as before' Yellow; return }
+        if ($btn.Box[1] -lt 600) { Say ("map: screen 0's region 5 is not down in the panel ({0}) -- a click closes the map as before" -f ($btn.Box -join ',')) Yellow; return }
+        $x0 = $btn.Box[0]; $y0 = $btn.Box[1]; $x1 = $btn.Box[2] - 1; $y1 = $btn.Box[3] - 1
+        $pts = @($x0, $y0, $x1, $y0, $x1, $y1, $x0, $y1); for ($k = 4; $k -lt $map.N; $k++) { $pts += @($x0, $y1) }
+        $nb = New-Object byte[] (4 * $map.N); for ($k = 0; $k -lt 2 * $map.N; $k++) { [Array]::Copy([BitConverter]::GetBytes([int16]$pts[$k]), 0, $nb, 2 * $k, 2) }
+        $bx = New-Object byte[] 8; for ($k = 0; $k -lt 4; $k++) { [Array]::Copy([BitConverter]::GetBytes([int16]$btn.Box[$k]), 0, $bx, 2 * $k, 2) }
+        $script:mapHotOrig = @(@($map.Points, [AztTool.ProcMem]::Read($g.ProcessId, $map.Points, 4 * $map.N)), @(($map.At + 6), [AztTool.ProcMem]::Read($g.ProcessId, $map.At + 6, 8)))
+        [void][AztTool.ProcMem]::Write($g.ProcessId, $map.Points, $nb); [void][AztTool.ProcMem]::Write($g.ProcessId, $map.At + 6, $bx)
+        if (-not $script:mapHotSaid) { $script:mapHotSaid = $true; Say ("map: a click no longer closes the 3D map -- only the MAP button does ({0}); and right-click, M" -f ($btn.Box -join ',')) DarkCyan }
+    } catch { Say ("map: moving its click region failed: {0}" -f $_.Exception.Message) Yellow }
+}
+function Restore-MapHot {
+    if (-not $script:mapHotOrig) { return }
+    foreach ($o in $script:mapHotOrig) { try { [void][AztTool.ProcMem]::Write($g.ProcessId, [long]$o[0], [byte[]]$o[1]) } catch { } }
+    $script:mapHotOrig = $null
+}
+# ---- FOOTSTEPS (BootHd.cs Footsteps; Josh, 2026-10-14: "footsteps ... subtle sound effects, which would change based on the
+# different flooring being walked on (mainly stone, tile, wood)") ----------------------------------------------------------------
+# A step every stride of ground the eye covers (none for a jump, a fall, or while the map, a boot or room cover, a conversation
+# or a visor panel has the player); what is underfoot from the floor triangle's texture material (rooms\_materials.json), a
+# room's "footsteps" block naming surfaces by hand: false = none in that room; { "default": "wood", "<texture leaf or
+# material>": "tile", ... } (stone, tile, wood, metal, water). At the game's own effects setting (SFX off = none).
+# -NoFootsteps: none; -FootstepVolume: a walking step's peak. [[azrael-footsteps]]
+$script:steps = $null; $script:stepsOff = $false; $script:stepsSfxAt = $null
+function Set-RoomFootsteps($atm) {
+    $f = $script:steps; if (-not $f) { return }
+    $f.Reset(); $f.Named.Clear(); $f.RoomDefault = $null; $f.On = $true
+    # the floors named for every room (rooms\_footsteps.json: the painted floors that are really tile or wood), then the room's own
+    $sets = @()
+    $tp = Join-Path $RoomsDir '_footsteps.json'
+    try {
+        if (Test-Path $tp) {
+            $st = (Get-Item $tp).LastWriteTimeUtc
+            if (-not $script:stepsTable -or $script:stepsTableAt -ne $st) { $script:stepsTable = ([IO.File]::ReadAllText($tp) | ConvertFrom-Json).surfaces; $script:stepsTableAt = $st }
+            if ($script:stepsTable) { $sets += ,$script:stepsTable }
+        }
+    } catch { Say ("footsteps table problem: {0}" -f $_.Exception.Message) Yellow }
+    $b = $(if ($atm) { $atm.Footsteps } else { $null })
+    if ($b -is [bool]) { $f.On = $b; if (-not $b) { return } } elseif ($null -ne $b) { $sets += ,$b }
+    foreach ($set in $sets) { foreach ($pr in $set.PSObject.Properties) {
+        if ($pr.Name -like '_*') { continue }
+        $sv = $null; try { $sv = [Enum]::Parse([AztTool.Footsteps+Surface], [string]$pr.Value, $true) } catch { Say ("  footsteps: '{0}' is not a surface (stone, tile, wood, metal, water)" -f $pr.Value) Yellow; continue }
+        if ($pr.Name -eq 'default') { $f.RoomDefault = $sv } else { $f.Named[$pr.Name] = $sv }
+    } }
+}
+function Step-Footsteps([single]$dtS, $m, [single[]]$dv, $room, [int[]]$dt, $texes) {
+    if (-not $room -or -not $room.T) { return }
+    if (-not $script:steps) {
+        $script:steps = New-Object AztTool.Footsteps
+        if ($BootSoundVolume -ge 0) { $script:steps.Sound.Volume = $BootSoundVolume }
+        if ($FootstepVolume -ge 0) { $script:steps.Level = $FootstepVolume }
+        $script:steps.Warm(); Set-RoomFootsteps $script:roomAtmNow
+        Say ("footsteps: on (a walking step peaks at {0}; -NoFootsteps for none)" -f $script:steps.Level) DarkCyan
+    }
+    # the game's own effects setting (the system menu's SFX toggle and level, 0x14693A / 0x14693E), twice a second
+    if (-not $script:stepsSfxAt -or $script:stepsSfxAt.ElapsedMilliseconds -gt 500) {
+        $first = -not $script:stepsSfxAt; $script:stepsSfxAt = [Diagnostics.Stopwatch]::StartNew()
+        $sb = $null
+        try { if ($script:snapOn) { $sb = $hv.SnapBytes(0x14693A, 8) } elseif ($script:memAt -and $script:memAt.Snd) { $sb = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Snd, 8) } } catch { }
+        if ($sb -and $sb.Length -ge 6) {
+            $sOn = [BitConverter]::ToInt16($sb, 0) -ne 0; $sLv = [int][BitConverter]::ToInt16($sb, 4)
+            $script:steps.SfxShare = $(if (-not $sOn) { 0.0 } elseif ($sLv -ge 0 -and $sLv -le 127) { $sLv / 127.0 } else { 1.0 })
+            if ($first) { Say ("  footsteps: the game's effects {0}, level {1}/127" -f $(if ($sOn) { 'on' } else { 'OFF' }), $sLv) DarkGray }
+        }
+    }
+    $quiet = $script:mapFreezeCam -or ($script:bootHd -and $script:bootHd.Covering) -or $script:roomCover -or $script:convWas -or ($script:visorMenu -and $script:visorMenu.AnyPlaying)
+    $k = $script:steps.Update($dtS, $m[12], $m[13], $m[14], $dv, [int[]]$room.T, $dt, $texes, [bool]$quiet)
+    if ($k -and ($script:steps.Steps -le 3 -or $k -ne $script:stepsLastKind)) { Say ("  footstep: {0}" -f $k) DarkGray }
+    if ($k) { $script:stepsLastKind = $k }
+}# Every true-colour frame, before the hide rects: returns $true while the 3D map covers the view.
+# THE VISOR'S ECHO SCAN (Josh, 2026-10-14: "tap a key and an amber pulse ripples through the room like the map's intro
+# wave. It outlines doors, pickups and creatures through the walls for a second"). -EchoKey (V: the game binds no V or v --
+# its ascii dispatch at 0x12E75 compares H M P Q X Y h m p r s x y and punctuation; host keys are not taken from the game)
+# starts it: a sonar ping, an amber shell running out over the room (GpuRaster.EchoT; FS_MAIN's uEcho), and as it reaches
+# them the outlines of the DOORS (door/gate parts and each doorway's opening, portals.json farQuad), the ITEMS (parts the
+# game's OBJECTS.DAT names, still in the scene) and the CREATURES (character parts, as they move) light up through the walls,
+# flare and fade (GpuRaster.SetEchoTargets). Not while the map, a boot cover or the room cover is up. -NoEcho: none.
+$script:echoClock = $null; $script:echoWas = $false
+function Get-PartSpan($room, $pt) {
+    $v = $room.V; $lo = @(1e9, 1e9, 1e9); $hi = @(-1e9, -1e9, -1e9)
+    for ($i = [int]$pt.VFirst; $i -lt [int]$pt.VFirst + [int]$pt.VCount; $i++) { for ($k = 0; $k -lt 3; $k++) { $q = $v[$i * 3 + $k]; if ($q -lt $lo[$k]) { $lo[$k] = $q }; if ($q -gt $hi[$k]) { $hi[$k] = $q } } }
+    return [Math]::Max($hi[0] - $lo[0], [Math]::Max($hi[1] - $lo[1], $hi[2] - $lo[2]))
+}
+function Step-Echo($gq, $room, [single[]]$dv, [int[]]$dt) {
+    if ($NoEcho -or -not $gq) { return }
+    $down = $false; try { $down = [AztTool.Keys]::DownInProcess($EchoKey, $g.ProcessId) } catch { }
+    $press = $down -and -not $script:echoWas; $script:echoWas = $down
+    $blocked = $script:mapFreezeCam -or ($script:bootHd -and $script:bootHd.Covering) -or $script:roomCover
+    if ($press -and -not $blocked -and $room -and $room.TriPart) {
+        if (-not $script:echoObjs) {
+            $script:echoObjs = New-Object AztTool.ScanWire
+            try { $op = Join-Path (Join-Path (Split-Path $TexDir -Parent) 'AZRAEL') 'OBJECTS.DAT'; if (Test-Path $op) { [void]$script:echoObjs.LoadObjects($op) } } catch { }
+        }
+        $doors = New-Object 'System.Collections.Generic.List[int]'; $items = New-Object 'System.Collections.Generic.List[int]'; $chars = New-Object 'System.Collections.Generic.List[int]'
+        $kind = @{}
+        for ($i = 0; $i -lt $room.Parts.Count; $i++) {
+            $pt = $room.Parts[$i]; $nm = [string]$pt.Name
+            if ($pt.IsCharacter) { $kind[$i] = 2 }
+            elseif ($nm -match '(?i)(door|gate)' -and $nm -notmatch '(?i)wall') { $kind[$i] = 0 }
+            elseif ($script:echoObjs.IsObjectPart($nm) -and $nm -notmatch '^(?i)z[xy]' -and (Get-PartSpan $room $pt) -le 160) { $kind[$i] = 1 }      # (things to take or use: not trigger planes, not a rafter or a bath)
+        }
+        $tp = $room.TriPart
+        for ($t = 0; $t -lt $tp.Length; $t++) {
+            $pi = [int]$tp[$t]; if ($pi -lt 0 -or -not $kind.ContainsKey($pi)) { continue }
+            if ($dt -and $t -lt $dt.Length -and $dt[$t] -lt 0) { continue }      # (taken away: no longer in the scene -- or never drawn)
+            switch ($kind[$pi]) { 0 { $doors.Add($t) } 1 { $items.Add($t) } 2 { $chars.Add($t) } }
+        }
+        # each doorway's opening, as the portal map has it in this room's coordinates
+        $segs = New-Object 'System.Collections.Generic.List[single]'
+        try {
+            foreach ($f in @([string]$script:rapRoom -split '\+')) {
+                if (-not $script:AztPortalMap) { [void](Get-AztMapDoors -Files @($f)) }
+                $prop = $script:AztPortalMap.PSObject.Properties[$f.ToUpper()]; if (-not $prop) { continue }
+                foreach ($e in @($prop.Value)) {
+                    $q = @($e.farQuad); if ($q.Count -lt 12) { continue }
+                    for ($c = 0; $c -lt 4; $c++) { $n = ($c + 1) % 4; foreach ($k in 0..2) { $segs.Add([single]$q[$c * 3 + $k]) }; foreach ($k in 0..2) { $segs.Add([single]$q[$n * 3 + $k]) } }
+                }
+            }
+        } catch { }
+        $gq.SetEchoTargets(0, $doors.ToArray(), $segs.ToArray()); $gq.SetEchoTargets(1, $items.ToArray(), $null); $gq.SetEchoTargets(2, $chars.ToArray(), $null)
+        $script:echoChars = $chars.ToArray()
+        $script:echoClock = [Diagnostics.Stopwatch]::StartNew()
+        if (-not $NoBootSound) { if (-not $script:echoSound) { $script:echoSound = New-Object AztTool.BootSound; if ($BootSoundVolume -ge 0) { $script:echoSound.Volume = $BootSoundVolume } }; try { $script:echoSound.SonarPing() } catch { } }
+        Say ("echo scan: {0} door triangle(s) + {1} doorway(s), {2} item triangle(s), {3} creature triangle(s)" -f $doors.Count, [int]($segs.Count / 24), $items.Count, $chars.Count) DarkCyan
+    }
+    if ($script:echoClock) {
+        $t = $script:echoClock.Elapsed.TotalSeconds
+        if ($t -gt ($gq.EchoMax / [Math]::Max(1, $gq.EchoSpeed)) + 4 * $gq.EchoFade -or $blocked) { $script:echoClock = $null; $gq.EchoT = -1 }
+        else {
+            $gq.EchoT = [single]$t
+            if ($script:echoChars -and $script:echoChars.Length) { $gq.SetEchoTargets(2, $script:echoChars, $null) }      # (creatures move: their outlines again from this frame's pose)
+        }
+    }
+}
+# ROOMS VISITED -- THE SAVE'S OWN (Josh, 2026-10-14: "If starting a new game, I should only see the first room on the map ... This
+# needs to be tied to the individual save file"). The game keeps them itself: 100 words at 0x162E4C, one per MAPS.DAT room number,
+# set to 1 on entering a room (0x11591), cleared for a new game (0x1148E), and WRITTEN TO / READ FROM the save file with it (the
+# save routine's fwrite at 0x2270B and the load's fread at 0x22891, 0xC8 bytes each). Its old map screen drew a neighbour's
+# thumbnail only if its word was set. Here: the words read when the map opens, each number turned into the room's file by
+# MAPS.DAT's numbering -- a seed table below, and every number the watcher sees the player standing in (word [[0x1841C8]], the
+# map toggle's own room) learned and kept in <CacheDir>\room-numbers.json. A room whose number is not known yet is left off.
+$script:roomNumSeed = @{ 0 = 'CORICORI'; 1 = 'WASHCORI'; 2 = 'SPAROOM'; 3 = 'MINEMAZE'; 4 = 'CHAMBNEW'; 5 = 'ORRERY'; 6 = 'BAPTIST'; 7 = 'MINEHEAD'
+    8 = 'TUNNMAZE'; 9 = 'WELLROOM'; 10 = 'CHAPEL'; 11 = 'VESTRY'; 12 = 'CLOISIM6'; 15 = 'EDCRTSIM'; 22 = 'INTRVIEW'; 23 = 'LAB'; 24 = 'ATUNNEL2'
+    27 = 'DRAIN1'; 28 = 'D3-D9'; 29 = 'DRAIN5'; 30 = 'DRAIN7'; 35 = 'ENTRY_D'; 36 = 'EXEC_R'; 37 = 'TREEMAZE'; 38 = 'COB_LAIR'; 39 = 'CLOCK'
+    40 = 'KITCHEN'; 41 = 'GSTUDIO'; 42 = 'MEATLOCK'; 43 = 'ZIGURRAT'; 49 = 'CRYPT'; 56 = 'R43'; 57 = 'LIGHT'; 58 = 'THEOTRAP'; 59 = 'DECISION'
+    60 = 'MAL_LAB1'; 61 = 'POIS_GR'; 64 = 'AQUADUCT'; 65 = 'WWCA'; 66 = 'FIGHT_R'; 67 = 'TUNNJ' }
+$script:roomNums = $null
+function Get-RoomNumbers {
+    if ($null -eq $script:roomNums) {
+        $script:roomNums = @{}; foreach ($k in $script:roomNumSeed.Keys) { $script:roomNums[[int]$k] = $script:roomNumSeed[$k] }
+        try { $rp = Join-Path $CacheDir 'room-numbers.json'; if (Test-Path $rp) { $j = [IO.File]::ReadAllText($rp) | ConvertFrom-Json; foreach ($pp in $j.PSObject.Properties) { $script:roomNums[[int]$pp.Name] = ([string]$pp.Value).ToUpperInvariant() } } } catch { }
+    }
+    return $script:roomNums
+}
+function Get-GameRoomNumber {
+    try {
+        $po = [uint32]$(if ($script:snapOn) { $hv.SnapU32(0x1841C8) } else { RdU32 ([long]($g.MemBase + 0x1841C8 + $script:memAt.D2)) })
+        if ($po -lt 0x1000 -or $po -ge 0x10000000) { return -1 }
+        $n = [int]((RdU32 ([long]$g.MemBase + $po)) -band 0xFFFF); if ($n -ge 0 -and $n -lt 100) { return $n }
+    } catch { }
+    return -1
+}
+# (the player is in $name: its number, learned -- a new pairing is kept)
+function Note-RoomNumber([string]$name) {
+    if (-not $name -or -not $script:memAt) { return }
+    $n = Get-GameRoomNumber; if ($n -lt 0) { return }
+    $rn = Get-RoomNumbers; $u = $name.ToUpperInvariant()
+    if ($rn[$n] -ne $u) {
+        $rn[$n] = $u
+        try { $o = [ordered]@{}; foreach ($k in ($rn.Keys | Sort-Object)) { if ($script:roomNumSeed[$k] -ne $rn[$k]) { $o[[string]$k] = $rn[$k] } }; [IO.File]::WriteAllText((Join-Path $CacheDir 'room-numbers.json'), ($o | ConvertTo-Json), (New-Object Text.UTF8Encoding $false)) } catch { }
+        Say ("map: room number {0} is {1}" -f $n, $u) DarkCyan
+    }
+}
+# the rooms this save has visited, as room files ($null when they cannot be read: the host's own list is used instead)
+# THE ITEMS THE PLAYER CAN PICK UP (Josh, 2026-10-14, Room Review MINEMAZE/12: "Omit all items that are able to be picked up from the
+# player from all maps"). Nothing in OBJECTS.DAT or OBJLIST.DAT marks them (checked); an item reaches the inventory only through the
+# game's scripts: command 08 (AddInventoryItem 0x288E2, the script interpreter's case 0x2AFAC; 09 takes one away). The scripts, as the
+# game decoded them from world.dat, are in its memory: [0x1841F0] = word count of lists, [0x1841F4] = 6-byte {word count, dword ->
+# command pointers}; a command = byte op, word object id. Read once a session (the game has loaded its world), each id turned into its
+# room part by OBJECTS.DAT's record of that number -- trusted only when the game's own object table ([0x1841D0], name at +0x3F) shows
+# the same names -- and kept in <CacheDir>\pickups.json, which Get-AztMapSkip reads for every room's map (and Room Review's map look).
+$script:pickupsDone = $false; $script:pickupsTry = $null
+function Update-Pickups {
+    if ($script:pickupsDone -or -not $script:memAt -or -not $g) { return }
+    if ($script:pickupsTry -and $script:pickupsTry.Elapsed.TotalSeconds -lt 10) { return }
+    $script:pickupsTry = [Diagnostics.Stopwatch]::StartNew()
+    try {
+        $d2 = [long]$script:memAt.D2; $mb = [long]$g.MemBase; $pid0 = $g.ProcessId
+        $rd = { param([long]$a, [int]$n) [AztTool.ProcMem]::Read($pid0, $a, $n) }
+        $nl = [BitConverter]::ToUInt16((& $rd ($mb + 0x1841F0 + $d2) 2), 0)
+        $tbl = [BitConverter]::ToUInt32((& $rd ($mb + 0x1841F4 + $d2) 4), 0)
+        if ($nl -le 0 -or $nl -gt 20000 -or $tbl -lt 0x1000 -or $tbl -ge 0x10000000) { return }      # (no world yet)
+        $lists = & $rd ($mb + $tbl) ($nl * 6)
+        $ids = @{}
+        for ($i = 0; $i -lt $nl; $i++) {
+            $cnt = [BitConverter]::ToUInt16($lists, $i * 6); $ptr = [BitConverter]::ToUInt32($lists, $i * 6 + 2)
+            if ($cnt -le 0 -or $cnt -gt 5000 -or $ptr -lt 0x1000 -or $ptr -ge 0x10000000) { continue }
+            $cp = & $rd ($mb + $ptr) ($cnt * 4)
+            for ($j = 0; $j -lt $cnt; $j++) {
+                $c = [BitConverter]::ToUInt32($cp, $j * 4); if ($c -lt 0x1000 -or $c -ge 0x10000000) { continue }
+                $cb = & $rd ($mb + $c) 3
+                if ($cb[0] -eq 8) { $ids[[int][BitConverter]::ToUInt16($cb, 1)] = 1 }
+            }
+        }
+        if ($ids.Count -eq 0) { return }
+        # OBJECTS.DAT: display name +0, object name +0x3C, room part +0x78 (603-byte records after a word count)
+        $op = Join-Path (Join-Path (Split-Path $TexDir -Parent) 'AZRAEL') 'OBJECTS.DAT'; $ob = [IO.File]::ReadAllBytes($op); $on = [BitConverter]::ToUInt16($ob, 0)
+        $str = { param([byte[]]$b, [int]$p, [int]$len) $e = $p; while ($e -lt $p + $len -and $e -lt $b.Length -and $b[$e] -ne 0) { $e++ }; [Text.Encoding]::ASCII.GetString($b, $p, $e - $p) }
+        $otab = [BitConverter]::ToUInt32((& $rd ($mb + 0x1841D0 + $d2) 4), 0)
+        $objs = New-Object 'System.Collections.Generic.List[object]'; $same = 0; $checked = 0
+        foreach ($id in ($ids.Keys | Sort-Object)) {
+            if ($id -ge $on) { continue }
+            $rec = 2 + $id * 603; $disp = & $str $ob $rec 0x3C; $part = & $str $ob ($rec + 0x78) 0x53
+            $live = ''
+            try { $lo = [BitConverter]::ToUInt32((& $rd ($mb + $otab + $id * 4) 4), 0); if ($lo -ge 0x1000 -and $lo -lt 0x10000000) { $live = & $str (& $rd ($mb + $lo + 0x3F) 0x3C) 0 0x3C } } catch { }
+            if ($live) { $checked++; if ($live -eq $disp) { $same++ } }
+            $objs.Add([ordered]@{ id = $id; name = $disp; object = (& $str $ob ($rec + 0x3C) 0x3C); part = $part })
+        }
+        if ($checked -lt 3 -or $same -lt 0.8 * $checked) { Say ("pickups: the game's object names do not line up with OBJECTS.DAT ({0} of {1}) -- not used" -f $same, $checked) Yellow; $script:pickupsDone = $true; return }
+        $parts = @($objs | ForEach-Object { $_.part } | Where-Object { $_ } | Sort-Object -Unique)
+        $doc = [ordered]@{ about = 'Items the player can pick up: every object the game''s scripts add to the inventory (command 08), read from its memory by Watch-HostRender (Update-Pickups). Get-AztMapSkip leaves these parts off every map.'; made = [DateTime]::UtcNow.ToString('o'); parts = $parts; objects = $objs.ToArray() }
+        $pf = Join-Path $CacheDir 'pickups.json'; $js = ConvertTo-Json $doc -Depth 5
+        $old = $(if (Test-Path $pf) { try { ([IO.File]::ReadAllText($pf) | ConvertFrom-Json).parts -join '|' } catch { '' } } else { '' })
+        if ($old -ne ($parts -join '|')) { [IO.File]::WriteAllText($pf, $js, (New-Object Text.UTF8Encoding $false)); Say ("pickups: {0} items the player can pick up ({1} room parts) -- left off every map; pickups.json written" -f $objs.Count, $parts.Count) Cyan }
+        else { Say ("pickups: {0} items the player can pick up, as before" -f $objs.Count) DarkCyan }
+        $script:pickupsDone = $true
+    } catch { Say ("pickups: could not read the game's scripts ({0})" -f $_.Exception.Message) Yellow }
+}
+function Get-GameVisited {
+    if (-not $script:memAt) { return $null }
+    try { $vb = [AztTool.ProcMem]::Read($g.ProcessId, [long]($g.MemBase + 0x162E4C + $script:memAt.D2), 200) } catch { return $null }
+    if (-not $vb -or $vb.Length -lt 200) { return $null }
+    $rn = Get-RoomNumbers; $out = New-Object 'System.Collections.Generic.List[string]'
+    for ($n = 0; $n -lt 100; $n++) { if ([BitConverter]::ToInt16($vb, $n * 2) -ne 0 -and $rn.ContainsKey($n) -and -not $out.Contains($rn[$n])) { $out.Add($rn[$n]) } }
+    return ,$out
+}
+# ROOMS VISITED, for the whole-complex map (Josh, 2026-10-14): every room the watcher sees the player in, kept in
+# <CacheDir>\visited-rooms.json across sessions, emptied when a NEW game boots (a load keeps it: the map shows what this
+# machine's player has seen).
+$script:mapVisited = $null
+function Get-MapVisited {
+    if ($null -eq $script:mapVisited) {
+        $script:mapVisited = New-Object 'System.Collections.Generic.List[string]'
+        try { $vp = Join-Path $CacheDir 'visited-rooms.json'; if (Test-Path $vp) { foreach ($v in @(([IO.File]::ReadAllText($vp) | ConvertFrom-Json).rooms)) { if ($v) { $script:mapVisited.Add(([string]$v).ToUpperInvariant()) } } } } catch { }
+    }
+    return ,$script:mapVisited      # (the list itself: returned bare, an empty one comes back as nothing -- 2026-10-14, it ended the session)
+}
+function Save-MapVisited { try { [IO.File]::WriteAllText((Join-Path $CacheDir 'visited-rooms.json'), (@{ rooms = @($script:mapVisited); at = (Get-Date).ToString('s') } | ConvertTo-Json), (New-Object Text.UTF8Encoding $false)) } catch { } }
+function Add-MapVisited([string]$name) {
+    if (-not $name) { return }; $v = Get-MapVisited; $u = $name.ToUpperInvariant()
+    if (-not $v.Contains($u)) { $v.Add($u); Save-MapVisited }
+}
+function Clear-MapVisited { $v = Get-MapVisited; if ($v.Count) { $v.Clear(); Save-MapVisited; Say 'map: a new game -- rooms visited cleared' DarkCyan } }
+function Step-Map {
+    $gq = $script:gpu
+    # THE GAME'S OWN MAP is not drawn at all while the host draws the 3D map (AztMapBlit reads aztOldMapOff; 0 again on close)
+    if ($S_oldMapOff -and $hv -and (-not $script:oldMapWr -or $script:oldMapWr.ElapsedMilliseconds -ge 500)) {
+        try { [void]$hv.WriteU32((HostLin $S_oldMapOff), [uint32]$(if ($NoMap3D -or -not $gq) { 0 } else { 1 })) } catch { }
+        if ($script:oldMapWr) { $script:oldMapWr.Restart() } else { $script:oldMapWr = [Diagnostics.Stopwatch]::StartNew() }
+    }
+    if ($script:learnRoomAt -and $script:learnRoomAt.Elapsed.TotalSeconds -ge 2 -and $script:memAt) { try { if (([string]$script:rapRoom -split '\+')[0] -eq $script:learnRoom) { Note-RoomNumber $script:learnRoom } } catch { }; $script:learnRoomAt = $null }
+    if ($NoMap3D -or -not $gq -or -not $script:memAt) { return $false }
+    $open = $false; $w = GuestWord 0x1525F2; if ($null -ne $w) { $open = $w -ne 0 }
+    $rname = ([string]$script:rapRoom -split '\+')[0]
+    if ($open -and -not $script:mapOpen) {
+        $script:mapHelp = Test-MapIsHelp
+        try { Update-Pickups } catch { }      # (the items the player can pick up: off every map -- once a session)
+        $script:map3d = (-not $script:mapHelp) -and ($Map3DAll -or (@($Map3DRooms) -contains '*') -or (@($Map3DRooms | ForEach-Object { $_.ToUpperInvariant() }) -contains $rname.ToUpperInvariant()))
+        if ($script:map3d) {
+            $mrj = Join-Path (Join-Path $CacheDir 'rooms') ($rname.ToUpper() + '.json'); $mst = $(if (Test-Path $mrj) { (Get-Item $mrj).LastWriteTimeUtc.Ticks } else { 0 }); $pkf = Join-Path $CacheDir 'pickups.json'; if (Test-Path $pkf) { $mst = [string]$mst + '|' + (Get-Item $pkf).LastWriteTimeUtc.Ticks }      # (its "map" settings: "hide")
+            if ($script:mapDoorsFor -ne $script:rapRoom -or $script:mapSkipRoom -ne $room -or $script:mapSkipStamp -ne $mst) {
+                $script:mapDoorsFor = $script:rapRoom; $script:mapSkipRoom = $room; $script:mapSkipStamp = $mst
+                $mfiles = @([string]$script:rapRoom -split '\+')
+                $script:mapDoors = Get-AztMapDoors -Files $mfiles
+                # (the doorway pictures -- the parked alternates float outside the room -- and the characters: left out of the map)
+                $mskip = @(); try { if ($room -and $room.Parts) { $mskip = Get-AztMapSkip -Room $room -Files $mfiles } } catch { Say ("map: its doorway pictures could not be found ({0})" -f $_.Exception.Message) Yellow }
+                $gq.SetMapSkip([int[]]$mskip)
+                # (its cut under the floor -- a room's map.hideBelow / keep, Room Review MINEHEAD/8: walls running on down under the floor end there)
+                $mcut = $null; try { if ($room -and $room.Parts) { $mcut = Get-AztMapCut -Room $room -Files $mfiles } } catch { }
+                if ($mcut) { $gq.SetMapCut([single]$mcut.Y, [bool[]]$mcut.Tris) } else { $gq.SetMapCut([single]::NaN, $null) }
+            }
+            # the world held still behind it, and the map turned to look the way the player does
+            $cam = $null; try { $cam = [single[]]$script:lastCamM } catch { }
+            if ($cam -and $cam.Length -ge 16) { $script:mapFreezeCam = [single[]]$cam.Clone(); $script:mapYawT = [Math]::Atan2(-$cam[8], -$cam[10]) * 180 / [Math]::PI } else { $script:mapFreezeCam = $null }
+            $script:mapYaw = $script:mapYawT; $script:mapPitch = $script:mapPitchT = 52.0; $script:mapZoom = $script:mapZoomT = $MapZoomStart      # (Josh, 2026-10-14: "more zoomed in by default")
+            $script:mapIntroClock = [Diagnostics.Stopwatch]::StartNew()      # (THE MAP PULSES IN: GpuRaster.MapIntro)
+            # THE WHOLE COMPLEX round it: the visited rooms placed through the doorways, their unvisited neighbours faint
+            # (LoadRoom.ps1 Get-AztComplex); shown as the map zooms out past the room
+            # (THE SAVE'S OWN visited rooms -- the game's words, saved and loaded with it; the host's list only if they cannot be read)
+            try { Note-RoomNumber $rname } catch { }
+            $vl = $null; try { $vl = Get-GameVisited } catch { }
+            if ($null -eq $vl) { $vl = New-Object 'System.Collections.Generic.List[string]'; foreach ($v in (Get-MapVisited)) { $vl.Add($v) } }
+            if (-not $vl.Contains($rname.ToUpperInvariant())) { $vl.Add($rname.ToUpperInvariant()) }
+            $csig = $rname + '|' + ($vl -join ',')
+            if ($script:complexSig -ne $csig) {
+                $script:complexSig = $csig; $sw = [Diagnostics.Stopwatch]::StartNew()
+                try {
+                    $cx = Get-AztComplex -Root $rname -Visited @($vl) -CacheDir $CacheDir
+                    if ($cx -and $cx.T.Length) { $gq.SetMapComplex([single[]]$cx.V, [int[]]$cx.T, [int[]]$cx.G); Say ("map: the complex round it -- {0} ({1:N0} ms)" -f ($cx.Rooms -join ', '), $sw.Elapsed.TotalMilliseconds) Cyan }
+                    else { $gq.SetMapComplex($null, $null, $null) }
+                } catch { Say ("map: the complex could not be laid out ({0})" -f $_.Exception.Message) Yellow; $gq.SetMapComplex($null, $null, $null) }
+            }
+            Set-MapHot
+            if (-not $script:mapMouse) { $script:mapMouse = New-Object AztTool.RawMouse; $script:mapMouse.GamePid = [int]$g.ProcessId; if (-not $script:mapMouse.Start()) { Say ("map: the mouse cannot turn it ({0})" -f $script:mapMouse.StartError) Yellow } }
+            Say ("map: the 3D map of {0} -- {1} door(s): {2}; drag to turn, wheel to come closer" -f $rname, @($script:mapDoors.Doors).Count, ((@($script:mapDoors.Doors) | ForEach-Object { $_.To }) -join ', ')) Cyan
+        } elseif ($script:mapHelp) { Say 'map: the help screen (the game''s own)' DarkGray }
+        else { Say ("map: the game's own map ({0} has no 3D map yet: -Map3DRooms / -Map3DAll)" -f $rname) DarkGray }
+    }
+    if (-not $open -and $script:mapOpen) {
+        Restore-MapHot
+        if ($script:mapMouse) { try { $script:mapMouse.Dispose() } catch { }; $script:mapMouse = $null }
+        $script:mapFreezeCam = $null
+    }
+    $script:mapOpen = $open
+    $up = $open -and $script:map3d
+    # the fade: in over 0.35 s, out over 0.2 s (it goes as the game puts its view back)
+    if (-not $script:mapClock) { $script:mapClock = [Diagnostics.Stopwatch]::StartNew() }
+    $dt = [Math]::Min(0.1, $script:mapClock.Elapsed.TotalSeconds); $script:mapClock.Restart()
+    $script:mapKNow = $(if ($up) { [Math]::Min(1.0, $script:mapKNow + $dt / 0.35) } else { [Math]::Max(0.0, $script:mapKNow - $dt / 0.2) })
+    if (-not $up) { $script:map3d = $script:map3d -and $open }
+    if ($script:mapKNow -le 0) { $gq.MapK = 0; $gq.MapOn = $false; if ($script:panel -and $script:panel.Light -lt 1) { try { $script:panel.Light = 1 } catch { } }; return $false }
+    # turning: the drag (counts of the mouse), eased; the wheel, closer or further
+    $introT = $(if ($script:mapIntroClock) { $script:mapIntroClock.Elapsed.TotalSeconds } else { 99.0 })
+    $introOn = $introT -lt [double]$gq.MapIntroSeconds
+    $gq.MapIntro = [single]$(if ($introOn) { $introT } else { -1 })
+    # THE VISOR'S LIGHTS (Josh, 2026-10-14): two faint teal cones from the panel's top corners -- brighter while the map draws, then a glow that stays
+    $gq.MapBeamT = [single]$introT; if ($NoMapLights) { $gq.MapBeamK = 0 } elseif ($script:mapBeamView) { $gq.MapBeamView = $script:mapBeamView }
+    if ($up -and $script:mapMouse) {
+        $dx = 0; $dy = 0; $wh = 0; $left = $false; $script:mapMouse.Take([ref]$dx, [ref]$dy, [ref]$wh, [ref]$left)
+        if ($introOn) { $dx = 0; $dy = 0; $wh = 0 }      # (interactive once it has pulsed in)
+        $script:mapYawT += $dx * 0.22; $script:mapPitchT = [Math]::Max(12.0, [Math]::Min(88.0, $script:mapPitchT + $dy * 0.18))      # (yaw +: the map is no longer mirrored, so a drag turns it the same way it did)
+        if ($wh -ne 0) { $script:mapZoomT = [Math]::Max(0.06, [Math]::Min(3.0, $script:mapZoomT * [Math]::Pow(1.12, $wh / 120.0))) }      # (below the room's own framing, 0.6: out to the whole complex)
+    }
+    $e = 1 - [Math]::Exp(-$dt / 0.08)
+    $script:mapYaw += ($script:mapYawT - $script:mapYaw) * $e; $script:mapPitch += ($script:mapPitchT - $script:mapPitch) * $e; $script:mapZoom += ($script:mapZoomT - $script:mapZoom) * $e
+    # the marks: the doors, and the player where they stand (on the floor under the eye), facing where they look
+    $mk = New-Object 'System.Collections.Generic.List[single]'
+    if ($script:mapDoors) { $mk.AddRange([single[]]$script:mapDoors.Marks) }
+    $cam = $script:mapFreezeCam
+    if ($cam) {
+        $py = $cam[13] - 40; try { $rg = $room; if ($rg -and $rg.V) { $fd = [AztTool.Raster]::RayDistance($rg.V, $rg.T, $rg.TexIdx, $cam[12], $cam[13], $cam[14], 0, -1, 0, 600); if ($fd -lt 600) { $py = $cam[13] - $fd } } } catch { }
+        foreach ($v in @([single]$cam[12], [single]$py, [single]$cam[14], [single]$cam[8], [single]$cam[10], [single]1, [single]0, [single]0)) { $mk.Add($v) }
+    }
+    $gq.SetMapMarks($mk.ToArray(), [int]($mk.Count / 8))
+    # (the rest of the complex fades in as soon as the map is zoomed out a little from where it opens -- Josh, 2026-10-14: he had
+    # to zoom out "way too far" -- from just under the opening zoom to 0.4 under it)
+    $zc = [Math]::Max(0.0, [Math]::Min(1.0, ($MapZoomStart - 0.05 - $script:mapZoom) / 0.4)); $gq.MapComplexK = [single]($zc * $zc * (3 - 2 * $zc))
+    # THE PANEL DIMS while the map is up (Josh, 2026-10-14) -- Panel.Light, following the map's own fade
+    if ($script:panel) { try { $script:panel.Light = [single](1.0 - (1.0 - $MapPanelLight) * $script:mapKNow) } catch { } }
+    $gq.MapOn = $up; $gq.MapK = [single]$script:mapKNow; $gq.MapYaw = [single]$script:mapYaw; $gq.MapPitch = [single]$script:mapPitch; $gq.MapZoom = [single]$script:mapZoom
+    return $true
+}
 function Restore-SysMenuHot {
     if (-not $script:sysHotOrig) { return }
     foreach ($o in $script:sysHotOrig) { try { [void][AztTool.ProcMem]::Write($g.ProcessId, [long]$o[0], [byte[]]$o[1]) } catch { } }
@@ -2637,6 +3289,7 @@ function Restore-SysMenuHot {
 function Repaint-HeldPicture {
     $o = $script:ov; $gq = $script:gpu; $vm = $script:visorMenu
     if (-not $o -or -not $gq -or -not $vm -or -not $script:gpuClean) { return }
+    if ($script:snapOn -and $hv) { $hv.SnapTake() }      # (outside the frame -- a save's stall, a load's repaint: the words read now, as before)
     Step-MemCore $o
     if (-not $vm.AnyPlaying) { return }
     if ($vm.Writing -or $vm.ReadPlaying -or $script:loadBusy) { $o.HoldFreshUntil = [Diagnostics.Stopwatch]::GetTimestamp() + [Diagnostics.Stopwatch]::Frequency }      # (a second ahead, renewed while it writes / reads)
@@ -2695,7 +3348,7 @@ function Step-LoadPanel {
         return
     }
     if ($NoMemCore -or -not $script:ov -or -not $symMap.ContainsKey('aztReboot')) { return }
-    try { $rb = $hv.ReadU32((HostLin (Sym 'aztReboot'))) } catch { return }
+    try { $rb = $hv.ReadU32($(if ($script:hlReboot) { $script:hlReboot } else { HostLin (Sym 'aztReboot') })) } catch { return }
     $was = $script:loadRebootWas; $script:loadRebootWas = $rb
     if ($rb -ne 1 -or $null -eq $was -or $was -ne 0) { return }
     if ($script:visorMenu -and $script:visorMenu.ReadPlaying) { return }      # (already reading: started at OK)
@@ -2712,18 +3365,35 @@ function Step-LoadPanel {
 # by script opcode 0x26477 -- cmd 5, the menu, refuses while it is set; walking does not care), and the load swaps the room out
 # from under the script that would have unlocked it. A saved game is never locked, so for the first seconds after a title load
 # the lock (and 0x14721A, cmd 5's other refusal) is cleared. And whenever ESC opens nothing, every one of its blockers is logged.
-function GuestWord([uint32]$lin) { try { [BitConverter]::ToInt16([AztTool.ProcMem]::Read($g.ProcessId, [long]($g.MemBase + $lin + $script:memAt.D2), 2), 0) } catch { $null } }
+# (from the frame's guest snapshot when there is one -- HostView.SnapWord, see THE GUEST SNAPSHOT in Invoke-Session; it reads
+# live outside the snapshot's blocks. 2026-10-13 performance audit)
+function GuestWord([uint32]$lin) { if ($script:snapOn) { return $hv.SnapWord($lin) }; try { [BitConverter]::ToInt16([AztTool.ProcMem]::Read($g.ProcessId, [long]($g.MemBase + $lin + $script:memAt.D2), 2), 0) } catch { $null } }
+# a data write to an obj2 word the snapshot holds: to the game now, and into the snapshot so the rest of the frame sees it
+function Write-GuestSnap([uint32]$lin, [byte[]]$data) { if ($script:snapOn) { [void]$hv.WriteSnap($lin, $data) } else { [void][AztTool.ProcMem]::Write($g.ProcessId, [long]($g.MemBase + $lin + $script:memAt.D2), $data) } }
 function Step-EscWatch {
     if (-not $script:memAt -or -not $g) { return }
     if ($script:titleUnlockAt -and $script:titleUnlockAt.Elapsed.TotalSeconds -lt 5) {
         foreach ($lk in @(0x1471F0, 0x14721A)) {
             $v = GuestWord $lk
             if ($v) {
-                try { [void][AztTool.ProcMem]::Write($g.ProcessId, [long]($g.MemBase + $lk + $script:memAt.D2), [byte[]]@(0, 0)) } catch { }
+                try { Write-GuestSnap $lk ([byte[]]@(0, 0)) } catch { }
                 if (-not $script:titleUnlockSaid) { $script:titleUnlockSaid = $true; Say ("system menu: the new game's interface lock (0x{0:X} = {1}) outlived the title load -- cleared" -f $lk, $v) Yellow }
             }
         }
     } elseif ($script:titleUnlockAt) { $script:titleUnlockAt = $null }
+    # THE QUIT CONFIRMATION ONLY FROM 'q' (Josh, 2026-10-13: "If I hit escape key, it should not automatically initiate the
+    # quit confirmation. That only occurs when I click 'q' for quit"). 'q' (0x13599) asks for it with word 0x15259A, which
+    # the game turns into cmd 13 -- and clears -- only when the fold-out finishes sliding OPEN (0x1496C). A 'q' pressed
+    # while the fold-out is already open (cmd 5 closes it) or while it cannot open (help, map, a conversation...) leaves
+    # the word set, and the next open by ANY means -- ESC -- lands in the quit confirmation (a stock quirk,
+    # docs\system-menu-RE.md s4). So the request lives 2 s after a 'q' (plenty for its own slide-in); after that it is
+    # cleared (a data write).
+    $qd = $false; try { $qd = [AztTool.Keys]::DownInProcess(0x51, $g.ProcessId) } catch { }
+    if ($qd) { $script:quitKeyAt = [Diagnostics.Stopwatch]::StartNew() }
+    if ((GuestWord 0x15259A) -and -not ($script:quitKeyAt -and $script:quitKeyAt.Elapsed.TotalSeconds -lt 2)) {
+        try { Write-GuestSnap 0x15259A ([byte[]]@(0, 0)) } catch { }
+        if ($script:quitReqSaid -lt 3) { $script:quitReqSaid++; Say 'system menu: a stale quit request (a q that opened nothing) cleared -- ESC opens the menu, not the quit confirmation' DarkCyan }
+    }
     $down = $false; try { $down = [AztTool.Keys]::DownInProcess(0x1B, $g.ProcessId) } catch { }
     if ($down -and -not $script:escWas) { $script:escAt = [Diagnostics.Stopwatch]::StartNew(); $script:escFold = GuestWord 0x1523D6 }
     $script:escWas = $down
@@ -2781,6 +3451,12 @@ function Step-ShotWatch {
         Say ("space guard: Space held back {0} time(s) just after a spoken line; {1} passed; {2} line ends seen; {3} held Space released early" -f $sgd.Swallowed, $sgd.Passed, $sgd.LineEnds, $sgd.EarlyUps) DarkYellow
     }
     if (-not $script:memAt -or -not $g) { return }
+    # (2026-10-13 performance audit: 7 guest reads every frame for a diagnostic -- 10 times a second is plenty for the
+    # weapon and ammo logs; -ShotLog keeps the old every-frame input history for the SHOT RECORD)
+    if (-not $ShotLog) {
+        if ($script:shotThin -and $script:shotThin.ElapsedMilliseconds -lt 100) { return }
+        if ($script:shotThin) { $script:shotThin.Restart() } else { $script:shotThin = [Diagnostics.Stopwatch]::StartNew() }
+    }
     $am = GuestWord 0x14694C; if ($null -eq $am) { return }
     # THE WEAPON (word 0x14721C; the game's SPACE key toggles it -- "Toggle MS7 Sniper sight"). While it is out the cursor pick
     # 0x116E4 skips every contextual cursor (0x119D6) -- no pick-up / use / door cursors -- and the left button fires. Josh
@@ -2794,8 +3470,10 @@ function Step-ShotWatch {
         Say ("weapon {0}{1}; conversation {2}" -f $(if ($wp) { "DRAWN -- the game's crosshair: no pick-up / use cursors, the left button fires, until Space puts it away" } else { 'put away' }), $ago, (GuestWord 0x152B1C)) DarkYellow
     }
     if ($null -ne $wp) { $script:shotWeapon = $wp }
-    $s = '{0:N2}:L{1}R{2}C{3}M{4}' -f $script:shotClock.Elapsed.TotalSeconds, (GuestWord 0x182DA6), (GuestWord 0x182DAA), (GuestWord 0x14721C), (GuestWord 0x147218)
-    $script:shotHist.Add($s); while ($script:shotHist.Count -gt 24) { $script:shotHist.RemoveAt(0) }
+    if ($ShotLog) {
+        $s = '{0:N2}:L{1}R{2}C{3}M{4}' -f $script:shotClock.Elapsed.TotalSeconds, (GuestWord 0x182DA6), (GuestWord 0x182DAA), (GuestWord 0x14721C), (GuestWord 0x147218)
+        $script:shotHist.Add($s); while ($script:shotHist.Count -gt 24) { $script:shotHist.RemoveAt(0) }
+    }
     if ($null -ne $script:shotAmmo -and $am -lt $script:shotAmmo -and $script:shotSaid -lt 20) {
         $script:shotSaid++; $now = $script:shotClock.Elapsed.TotalSeconds
         $recent = @($script:shotHist | Where-Object { $now - [double]($_.Split(':')[0]) -le 0.6 } | ForEach-Object { $x = $_.Split(':'); '{0:+0.00;-0.00}s {1}' -f ([double]$x[0] - $now), $x[1] })
@@ -2804,13 +3482,20 @@ function Step-ShotWatch {
     $script:shotAmmo = $am
 }function Step-MemCore($o) {
     if ($NoMemCore -or -not $o -or -not $script:memAt) { return }
+    # ONE BLOCK READ, AND OUT AT ONCE WHILE NO MENU IS UP (2026-10-13 performance audit). The block and the words below come
+    # from the frame's guest snapshot (they are the same reads Guard-SaveList makes); with no list, no system menu, no save, no
+    # load, no slider drag and nothing of the visor's panels playing -- and the visor already told so last frame -- there is
+    # nothing to hand over, so the names, the state and the sound words are not worked out at all.
     try {
-        $blk = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Blk, 0xF8)
-        $sel = [BitConverter]::ToInt16([AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Sel, 2), 0)
-        $cur = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Cur, 4)
-        $sav = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Sav, 2)      # (the game is saving: 0x152B02, set by OK through its ~3 s save)
-        $lod = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Lod, 2)      # (the game is loading: 0x152B04, set by OK through the load)
-        $snd = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Snd, 8)      # (the system menu: SFX / music on, their levels -- 0x14693A..0x146941)
+        if ($script:snapOn) {
+            $blk = $hv.SnapBytes(0x1523D6, 0xF8)
+            $sav = $hv.SnapBytes(0x152B02, 2)      # (the game is saving: 0x152B02, set by OK through its ~3 s save)
+            $lod = $hv.SnapBytes(0x152B04, 2)      # (the game is loading: 0x152B04, set by OK through the load)
+        } else {
+            $blk = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Blk, 0xF8)
+            $sav = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Sav, 2)
+            $lod = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Lod, 2)
+        }
     } catch { return }
     if (-not $blk -or $blk.Length -lt 0xF8) { return }
     # word offsets in the block from 0x1523D6: EA +0x14, DC +0x06, DE +0x08, E0 +0x0A; names 0x152434 = +0x5E, 5 x 30
@@ -2818,14 +3503,30 @@ function Step-ShotWatch {
     $save = [BitConverter]::ToInt16($blk, 0x0A) -ne 0
     $open = $vis -and $list
     $sysUp = ([BitConverter]::ToInt16($blk, 0x00) -ne 0) -and -not $NoSysMenu      # (the fold-out logically up: 0x1523D6)
-    if (-not $NoSysMenu) { Set-SysMenuHot }
+    if (-not $NoSysMenu -and -not $script:sysHotDone) { Set-SysMenuHot }
     if (-not $script:visorMenu) {
         if (-not ($open -or $sysUp)) { return }
         [void](Get-VisorMenu $o)
     }
+    # NO MENU UP (no list, no system menu, no save or load, no visor panel playing): the five slot names are not decoded -- a
+    # script loop of up to 150 steps a frame for nothing; the visor is still told the rest, so its state is exactly as before
+    # (SetState keeps the names it had: they are only drawn while a list or the "writing log" panel is up, and the first
+    # frame of either decodes them again)
+    $idle = -not ($open -or $sysUp -or ($sav -and [BitConverter]::ToInt16($sav, 0) -ne 0) -or ($lod -and [BitConverter]::ToInt16($lod, 0) -ne 0) -or $script:visorMenu.AnyPlaying)
+    try {
+        if ($script:snapOn) {
+            $sel = [BitConverter]::ToInt16($hv.SnapBytes(0x146948, 2), 0)
+            $cur = $hv.SnapBytes(0x182D6C, 4)
+            $snd = $hv.SnapBytes(0x14693A, 8)      # (the system menu: SFX / music on, their levels -- 0x14693A..0x146941)
+        } else {
+            $sel = [BitConverter]::ToInt16([AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Sel, 2), 0)
+            $cur = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Cur, 4)
+            $snd = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Snd, 8)
+        }
+    } catch { return }
     if ($open -and -not $save -and $sel -ge 0 -and $sel -lt 5) { $script:lastLoadSel = [int]$sel }      # (the row a load will read: its name for the reading panel)
-    $names = New-Object string[] 5
-    for ($i = 0; $i -lt 5; $i++) { $b0 = 0x5E + 30 * $i; $n = 0; while ($n -lt 30 -and $blk[$b0 + $n] -ne 0) { $n++ }; $names[$i] = [Text.Encoding]::ASCII.GetString($blk, $b0, $n) }
+    $names = $null
+    if (-not $idle) { $names = New-Object string[] 5; for ($i = 0; $i -lt 5; $i++) { $b0 = 0x5E + 30 * $i; $n = 0; while ($n -lt 30 -and $blk[$b0 + $n] -ne 0) { $n++ }; $names[$i] = [Text.Encoding]::ASCII.GetString($blk, $b0, $n) } }
     $script:visorMenu.Palette = $script:tcPal32
     $script:visorMenu.Writing = [bool]($sav -and [BitConverter]::ToInt16($sav, 0) -ne 0)      # (Josh, 2026-10-09: "Writing log..." instead of the old screen while it saves)
     $script:loadBusy = [bool]($lod -and [BitConverter]::ToInt16($lod, 0) -ne 0)
@@ -2849,6 +3550,24 @@ function Step-ShotWatch {
     if ($snd -and $snd.Length -ge 8) {
         $script:visorMenu.SetSys($sysUp, ([BitConverter]::ToInt16($blk, 0xF4) -ne 0), $save, ([BitConverter]::ToInt16($blk, 0x08) -ne 0), ([BitConverter]::ToInt16($snd, 0) -ne 0), ([BitConverter]::ToInt16($snd, 2) -ne 0), [int][BitConverter]::ToInt16($snd, 4), [int][BitConverter]::ToInt16($snd, 6), ([BitConverter]::ToInt16($blk, 0x04) -ne 0), ([BitConverter]::ToInt16($blk, 0x02) -ne 0))
     }
+    # A SLIDER LETS GO ON RELEASE (Josh, 2026-10-13: "I click the volume slider and it sticks even if releasing the mouse
+    # button, and only sets if I click outside. It should set on mouse release"). The game starts a drag (0x1523D8 music,
+    # 0x1523DA effects; set at 0x2C99x by the slider's hot-spot command) and ends it ONLY in its left-release handler
+    # (event kind 2, 0x15C50). The hot-spot command is a separate queued event, so a click can have its release handled
+    # BEFORE the drag starts -- and the slider then follows the pointer until the next release. So: a drag still set while
+    # the button has been up for 120 ms (the slider has taken the pointer's place by then) is ended here, as the release
+    # handler would (a data write). Either physical button counts as held (left-handed mice swap them).
+    $dragNow = ([BitConverter]::ToInt16($blk, 0x02) -ne 0) -or ([BitConverter]::ToInt16($blk, 0x04) -ne 0)
+    if ($dragNow) {
+        $held = $false; try { $held = [AztTool.Keys]::DownInProcess(0x01, $g.ProcessId) -or [AztTool.Keys]::DownInProcess(0x02, $g.ProcessId) } catch { }
+        if ($held) { $script:dragUpAt = $null }
+        elseif (-not $script:dragUpAt) { $script:dragUpAt = [Diagnostics.Stopwatch]::StartNew() }
+        elseif ($script:dragUpAt.ElapsedMilliseconds -ge 120) {
+            try { Write-GuestSnap 0x1523D8 ([byte[]]@(0, 0, 0, 0)) } catch { }      # (memAt.Blk + 2)
+            if (-not $script:dragFixSaid) { $script:dragFixSaid = $true; Say 'system menu: a volume slider still dragging after the button was let go -- ended (it sets on release now)' DarkCyan }
+            $script:dragUpAt = $null
+        }
+    } else { $script:dragUpAt = $null }
     # (the cursor over the panel: why the game's image could not be read, when it changes -- 2026-10-09, it did not show in game)
     $cn = $script:visorMenu.CursorNote; if ($open -and $cn -ne $script:memCurNote) { $script:memCurNote = $cn; Say ("memory core cursor: {0} (game's image drawn {1}x, own pointer {2}x; cursor {3},{4})" -f $(if ($cn) { $cn } else { 'the game''s image reads fine' }), $script:visorMenu.CursorDrawn, $script:visorMenu.CursorFallback, [BitConverter]::ToInt16($cur, 0), [BitConverter]::ToInt16($cur, 2)) Yellow }
 }
@@ -2861,9 +3580,13 @@ function Step-ShotWatch {
 function Guard-SaveList {
     if (-not $script:memAt) { return }
     try {
-        $blk = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Blk, 0xF8)
-        $selB = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Sel, 2)
-        $mgr = RdU32 $script:memAt.Mgr
+        # (from the frame's guest snapshot -- the same block Step-MemCore reads; 2026-10-13 audit)
+        if ($script:snapOn) { $blk = $hv.SnapBytes(0x1523D6, 0xF8); $selB = $hv.SnapBytes(0x146948, 2); $mgr = $hv.SnapU32(0x182DB8) }
+        else {
+            $blk = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Blk, 0xF8)
+            $selB = [AztTool.ProcMem]::Read($g.ProcessId, $script:memAt.Sel, 2)
+            $mgr = RdU32 $script:memAt.Mgr
+        }
     } catch { return }
     if (-not $blk -or $blk.Length -lt 0xF8 -or -not $selB) { return }
     # THE FOLD-OUT STUCK SLIDING (Josh, 2026-10-10: "after loading a game I cannot open the system menu anymore"). A load closes
@@ -2874,13 +3597,13 @@ function Guard-SaveList {
     $e6 = [BitConverter]::ToInt16($blk, 0x10); $e8 = [BitConverter]::ToInt16($blk, 0x12)
     if ($e8 -ne 0 -and $e6 -ge 0 -and -not $script:loadBusy -and -not ($script:visorMenu -and $script:visorMenu.Writing)) {
         if ($script:slideSeen -and $script:slideSeen.Pos -eq $e6 -and $script:slideSeen.At.Elapsed.TotalSeconds -gt 1.0) {
-            try { [void][AztTool.ProcMem]::Write($g.ProcessId, ($script:memAt.Blk + 0x10), [byte[]]@(0, 0, 0, 0, 0, 0)); Say ("system menu: the fold-out's slide was stuck (direction {0}, position {1}, nothing moving) -- put back at rest, so ESC opens the menu" -f $e8, $e6) Yellow } catch { }
+            try { Write-GuestSnap 0x1523E6 ([byte[]]@(0, 0, 0, 0, 0, 0)); Say ("system menu: the fold-out's slide was stuck (direction {0}, position {1}, nothing moving) -- put back at rest, so ESC opens the menu" -f $e8, $e6) Yellow } catch { }
             $script:slideSeen = $null; return
         }
         if (-not $script:slideSeen -or $script:slideSeen.Pos -ne $e6) { $script:slideSeen = @{ Pos = $e6; At = [Diagnostics.Stopwatch]::StartNew() } }
     } else { $script:slideSeen = $null }
     if ($e6 -lt 0) {
-        try { [void][AztTool.ProcMem]::Write($g.ProcessId, ($script:memAt.Blk + 0x10), [byte[]]@(0, 0, 0, 0, 0, 0)); Say 'system menu: the fold-out''s slide had run below zero (a load from the title) -- put back at rest' Yellow } catch { }
+        try { Write-GuestSnap 0x1523E6 ([byte[]]@(0, 0, 0, 0, 0, 0)); Say 'system menu: the fold-out''s slide had run below zero (a load from the title) -- put back at rest' Yellow } catch { }
         return
     }
     $sel = [BitConverter]::ToInt16($selB, 0); $de = [BitConverter]::ToInt16($blk, 0x08); $cc = [BitConverter]::ToInt16($blk, 0xF6)
@@ -2889,8 +3612,8 @@ function Guard-SaveList {
     $prev = $script:slGuard
     if ($sel -eq 6 -and $de -eq 0 -and $prev -and $prev.Sel -ne 6) {
         try {
-            [void][AztTool.ProcMem]::Write($g.ProcessId, $script:memAt.Sel, [BitConverter]::GetBytes([int16]$prev.Sel))
-            [void][AztTool.ProcMem]::Write($g.ProcessId, ($script:memAt.Blk + 0xF6), [BitConverter]::GetBytes([int16]$prev.Cc))
+            Write-GuestSnap 0x146948 ([BitConverter]::GetBytes([int16]$prev.Sel))
+            Write-GuestSnap 0x1524CC ([BitConverter]::GetBytes([int16]$prev.Cc))      # (memAt.Blk + 0xF6)
             if ($scrAt -and $prev.Scr) { [void][AztTool.ProcMem]::Write($g.ProcessId, $scrAt, [BitConverter]::GetBytes([uint32]$prev.Scr)) }
             Say ("save/load: RESTART's hidden click spot was picked outside the load list -- put back (selection {0}, OK action {1})" -f $prev.Sel, $prev.Cc) Yellow
         } catch { }
@@ -2911,17 +3634,22 @@ function Step-TrueColour([byte[]]$color) {
         # panel draws the page itself from the bleed row (OwnFromRow) down -- black plus the page's own pixels (Panel.
         # ComposeBook) -- so the bleed rows stay out of the view's compose as ever, and the opened log box's hide area is
         # dropped: the panel does not draw the box over a page, so nothing of the page may be left out there.
-        $bvNow = $false; if ($script:bookViewAt) { try { $bvNow = ((RdU32 $script:bookViewAt) -band 0xFFFF) -ne 0 } catch { } }
+        $bvNow = $false; if ($script:bookViewAt) { try { $bvNow = ($(if ($script:snapOn) { $hv.SnapU32(0x15257C) } else { RdU32 $script:bookViewAt }) -band 0xFFFF) -ne 0 } catch { } }
         $hide = $(if ($script:panel -and -not $bvNow) { $script:panel.HideNow } else { $null })
         $hideFrom = $(if ($script:panel) { $script:panel.OwnFromRow - [int]$man.view.injY } else { [int]::MaxValue })
         # THE GAME'S RETICLE WAITS FOR THE LOCK: while the boot's vector initiation closes on the aim point,
         # the game's own reticle (and the ammo count beside it) is kept out of the picture -- the middle of the
         # view, in game px. The panel's own hide area is only ever the opened log, which is shut during the boot.
         if ($script:bootHd -and $script:bootHd.HideReticle -and -not $hide) { $hide = [int[]]@([int]($W / 2 - 90), [int]($H / 2 - 90), [int]($W / 2 + 90), [int]($H / 2 + 90)) }
-        $o.HideRect = $hide; $o.HideFromRow = $hideFrom; if ($script:gpu) { $script:gpu.HideRect = $hide; $script:gpu.HideFromRow = $hideFrom }
+        # (THE 3D MAP: the game's own map picture is left out -- ALL of it: its neighbour thumbnails sit where MAPS.DAT puts them,
+        # ORRERY's T_CHAM_C at y 17 above the view's top, and showed at the top of the screen -- Josh, 2026-10-14)
+        if (Step-Map) { $hide = [int[]]@(-100000, -100000, 100000, 100000) }
+        $o.HideRect = $hide; $o.HideFromRow = $hideFrom; if ($script:gpu) { $script:gpu.HideRect = $hide; $script:gpu.HideFromRow = $hideFrom; $script:gpu.KeyAlso = $o.KeyAlso }
+        if (-not $script:keyAlsoSaid -and $o.LastShare -ge 800) { $script:keyAlsoSaid = $true; if (($o.LastKey -band 0xFFFFFF) -ne $o.KeyAlso) { Say ("true colour: the key measured on screen #{0:X6} is not the palette's #{1:X6} -- the second key will not match (the map-close block can come back)" -f $o.LastKey, $o.KeyAlso) Yellow } }
         Step-MemCore $o
         # (the HUD's vector text: its state when it changes, with a line it read -- so a session's log shows it working)
-        if ($script:panel -and $script:panel.HostText) {
+        if ($script:panel -and $script:panel.HostText -and $script:panel.TextNote -ne $script:hudTextRaw) {      # (only when the note changes: a regex a frame otherwise)
+            $script:hudTextRaw = $script:panel.TextNote
             $hs = ($script:panel.TextNote -replace '\s*\(.*\)', '')
             if ($hs -and $hs -ne $script:hudTextState) { $script:hudTextState = $hs; Say ("hud text: {0} -- '{1}' ({2} lines read, {3} runs left to the game's pixels, {4} times it did not line up, {5} torn readings held steady)" -f $script:panel.TextNote, $script:panel.TextSample, $script:panel.TextLinesDecoded, $script:panel.TextRunsMissed, $script:panel.TextFallbacks, $script:panel.TextHolds) Cyan }
         }
@@ -2968,9 +3696,9 @@ function Step-TrueColour([byte[]]$color) {
                 $glp = $false
                 if (-not $CpuPresent) {
                     $gw = $o.GlWindow
-                    $gkey = '{0}|{1}' -f $gw, [Runtime.CompilerServices.RuntimeHelpers]::GetHashCode($gq)      # (a new window or a new card: attach again, once)
-                    if ($gw -ne [IntPtr]::Zero -and $script:glPresentWnd -ne $gkey) {
-                        $script:glPresentWnd = $gkey
+                    # (a new window or a new card: attach again, once -- compared as they are, not formatted into a key every frame)
+                    if ($gw -ne [IntPtr]::Zero -and ($script:glPresentWndH -ne $gw -or -not [object]::ReferenceEquals($script:glPresentGq, $gq))) {
+                        $script:glPresentWndH = $gw; $script:glPresentGq = $gq
                         if ($gq.AttachPresent($gw)) { Say 'picture: straight from the graphics card into its window (no read-back or processor stretch; -CpuPresent = the old way)' Cyan }
                         else { Say ("picture: the card cannot draw into its window ({0}) -- it comes back through the processor as before" -f $gq.PresentError) Yellow }
                     }
@@ -2995,6 +3723,25 @@ function Step-TrueColour([byte[]]$color) {
                     if (-not $script:scanTag) { $script:scanTag = New-Object AztTool.ScanTag($o) }
                     try { $script:scanTag.Step($gq) } catch { Say ("the scanning label failed: {0} -- off" -f $_.Exception.Message) Yellow; $script:scanTag.Enabled = $false; $gq.TagOn = $false }
                 } elseif ($gq.TagOn) { $gq.TagOn = $false }
+                # THE CONVERSATION CUE (ScanWire.cs ConvTag): the amber edge glow and the recording badge while a conversation
+                # is up ([0x152B1C]); its soundwave moves while a line is spoken ([0x152B28])
+                if ($glp -and -not $NoConvCue -and -not $script:convTagOff) {
+                    if (-not $script:convTag) { $script:convTag = New-Object AztTool.ConvTag($o) }
+                    $cvUp = $(if ($script:snapOn) { $hv.SnapWord(0x152B1C) } else { GuestWord 0x152B1C }) -gt 0; $cvSpk = $cvUp -and $(if ($script:snapOn) { $hv.SnapWord(0x152B28) } else { GuestWord 0x152B28 }) -gt 0      # (the frame's snapshot)
+                    if ($cvUp -and $script:bootHd -and $script:bootHd.Covering) { $cvUp = $false; $cvSpk = $false }
+                    try { $script:convTag.Step($gq, $cvUp, $cvSpk) } catch { Say ("the conversation cue failed: {0} -- off" -f $_.Exception.Message) Yellow; $script:convTagOff = $true; $gq.Tag2On = $false; $gq.ConvGlow = 0 }
+                    if ($cvUp -ne [bool]$script:convWas) { $script:convWas = $cvUp; if ($cvUp) { Say 'conversation: the visor records (amber edge, recording badge)' DarkCyan } }
+                } elseif ($gq.Tag2On -or $gq.ConvGlow -gt 0) { $gq.Tag2On = $false; $gq.ConvGlow = 0 }
+                # VISOR CONDENSATION (ScanWire.cs VisorFog; Josh, 2026-10-14): a room with steam mists the visor's edges, then it
+                # clears; a room's "visorFog": false = never, true = even without steam, a number = its strength (with steam)
+                if ($glp -and -not $NoVisorFog -and -not $script:visorFogOff) {
+                    if (-not $script:visorFog) { $script:visorFog = New-Object AztTool.VisorFog($o) }
+                    $vfr = $script:roomVisorFog
+                    $steamy = $(if ($vfr -is [bool]) { $vfr } else { [bool]($script:fx -and $script:fx.SteamRate -gt 0) })
+                    $script:visorFog.Strength = $(if ($vfr -is [ValueType] -and $vfr -isnot [bool]) { [single]$vfr } else { [single]1 })
+                    if (($script:bootHd -and $script:bootHd.Covering) -or $script:mapFreezeCam) { $steamy = $false }
+                    try { $script:visorFog.Step($gq, $steamy) } catch { Say ("visor condensation failed: {0} -- off" -f $_.Exception.Message) Yellow; $script:visorFogOff = $true; $gq.VisorFog = 0 }
+                } elseif ($gq.VisorFog -gt 0) { $gq.VisorFog = 0 }
                 $dyn = (-not $glp) -or $o.KeepCopy -or ($script:bootHd -and $script:bootHd.Covering) -or ($script:scanWire -and $script:scanWire.Playing) -or ($script:visorNote -and $script:visorNote.Playing) -or ($script:visorMenu -and $script:visorMenu.AnyPlaying)
                 if ($dyn) {
                     if ($gq.FinishRead($script:gpuShowBuf)) {
@@ -3008,21 +3755,10 @@ function Step-TrueColour([byte[]]$color) {
                         else { $script:gpuShowBuf = $o.ShowComposed($script:gpuShowBuf, $pw, $ph) }
                     }
                 } elseif ($gq.ReadPending) { $gq.DropRead() }
-                $sk = 0; $share = 0; $sst = 0
-                $scr = $o.TakeSurface($TcMinShare, [ref]$sk, [ref]$share, [ref]$sst)
-                if ($scr) {
-                    $mx1 = $null; $mx2 = $null; $mx3 = $null; $mx4 = $null; $my1 = $null; $my2 = $null; $mbt = 0; $mbb = 0; $mvis = $false
-                    $o.ComposeMap($pw, $ph, [ref]$mx1, [ref]$mx2, [ref]$mx3, [ref]$mx4, [ref]$my1, [ref]$my2, [ref]$mbt, [ref]$mbb, [ref]$mvis)
-                    $gq.SetComposeMap($mx1, $mx2, $mx3, $mx4, $my1, $my2)
-                    $gq.PostCompose([single]$(if ($postOn) { $Sharpen } else { 0 }), $scr, $sst, $W, $H, $sk, $mbt, $mbb, $mvis)
-                    if ($dyn) { $gq.StartRead() }
-                    else {
-                        # the visor's shading as VisorShade.Draw lays it (only while it is on: the game's own copy hidden)
-                        $vs = $script:visorShade
-                        if ($vs -and $vs.Enabled) { $cr = 0; $cov = $vs.CoverageFor($pw, $o.ViewRowsOf($ph), [ref]$cr); $gq.SetPresentShade($cov, $pw, $cr, $vs.Color) } else { $gq.SetPresentShade($null, 0, 0, 0) }
-                        if ($gq.PresentGpu()) { $o.NoteGlFrame() }
-                    }
-                }
+                # ONE C# CALL (FrameStep.ComposePresent, 2026-10-13 performance audit): the screen reading taken, composed over
+                # the picture on the card, then read back (dyn) or presented into the card's window with the visor's shading --
+                # the same calls in the same order the script made, without its twelve [ref]s
+                $share = [AztTool.FrameStep]::ComposePresent($o, $gq, $pw, $ph, $TcMinShare, [single]$(if ($postOn) { $Sharpen } else { 0 }), $W, $H, [bool]$dyn, $script:visorShade)
             } else {
                 if ($script:gpu) { $script:gpu.DropRead() }     # (a picture started on the card is not the one to show now)
                 $o.GlPresent = $false                            # (the processor's picture goes to the overlay's own window)
@@ -3102,7 +3838,7 @@ function ConvertTo-Rgb24([string]$hex, [int]$fallback) {
     try { return [Convert]::ToInt32($h, 16) } catch { return $fallback }
 }
 function Get-RoomAtmosphere([string[]]$names) {
-    $res = [pscustomobject]@{ Fog = $null; Dust = $null; Lights = @(); Source = @(); Mist = $null; Drips = $null; Steam = $null; Kickup = $null; Embers = $null; Volume = $null; Water = $null; Holograms = $null; Gi = $null; Visor = $null; WaterMist = $null; Holes = $null; NoCast = $null; ArtLight = $null; Ghost = $null; Materials = $null; Shine = $null; Wet = $null; Repair = 'default'; Parallax = 1.0; Name = '' }
+    $res = [pscustomobject]@{ Fog = $null; Dust = $null; Lights = @(); Source = @(); Mist = $null; Drips = $null; Steam = $null; Kickup = $null; Embers = $null; Volume = $null; Water = $null; Holograms = $null; Gi = $null; Visor = $null; WaterMist = $null; Holes = $null; NoCast = $null; ArtLight = $null; Ghost = $null; Materials = $null; Shine = $null; Wet = $null; Repair = 'default'; Parallax = 1.0; VisorFog = $null; ReactDust = $null; EyeShine = $null; Impacts = $null; Footsteps = $null; Name = '' }
     $first = $(if ($names.Count) { ([string]$names[0]).ToUpper() } else { '' }); $res.Name = $first
     try {
         $defPath = Join-Path $RoomsDir '_defaults.json'
@@ -3115,7 +3851,7 @@ function Get-RoomAtmosphere([string[]]$names) {
                     if ($cls.Value.fog)  { $res.Fog  = $cls.Value.fog }
                     if ($cls.Value.dust) { $res.Dust = $cls.Value.dust }
                     if ($cls.Value.lights) { $res.Lights = @($cls.Value.lights) }
-                    foreach ($k in 'mist', 'drips', 'steam', 'kickup', 'embers', 'volume', 'water', 'holograms', 'gi', 'visor', 'waterMist', 'holes', 'noCast', 'artLight', 'ghost', 'materials', 'shine', 'wet', 'repair', 'parallax') { if ($cls.Value.PSObject.Properties[$k]) { $res.$k = $cls.Value.$k } }
+                    foreach ($k in 'mist', 'drips', 'steam', 'kickup', 'embers', 'volume', 'water', 'holograms', 'gi', 'visor', 'waterMist', 'holes', 'noCast', 'artLight', 'ghost', 'materials', 'shine', 'wet', 'repair', 'parallax', 'visorFog', 'reactDust', 'eyeShine', 'impacts', 'footsteps') { if ($cls.Value.PSObject.Properties[$k]) { $res.$k = $cls.Value.$k } }
                     $res.Source += ('class ' + $cls.Name)
                 }
             }
@@ -3126,7 +3862,7 @@ function Get-RoomAtmosphere([string[]]$names) {
             if ($o.PSObject.Properties['fog'])    { $res.Fog  = $o.fog }
             if ($o.PSObject.Properties['dust'])   { $res.Dust = $o.dust }
             if ($o.PSObject.Properties['lights']) { $res.Lights = @($o.lights) }
-            foreach ($k in 'mist', 'drips', 'steam', 'kickup', 'embers', 'volume', 'water', 'holograms', 'gi', 'visor', 'waterMist', 'holes', 'noCast', 'artLight', 'ghost', 'materials', 'shine', 'wet', 'repair', 'parallax') { if ($o.PSObject.Properties[$k]) { $res.$k = $o.$k } }
+            foreach ($k in 'mist', 'drips', 'steam', 'kickup', 'embers', 'volume', 'water', 'holograms', 'gi', 'visor', 'waterMist', 'holes', 'noCast', 'artLight', 'ghost', 'materials', 'shine', 'wet', 'repair', 'parallax', 'visorFog', 'reactDust', 'eyeShine', 'impacts', 'footsteps') { if ($o.PSObject.Properties[$k]) { $res.$k = $o.$k } }
             $res.Source += ("{0}.json" -f $first)
         }
     } catch { Say ("atmosphere file problem: {0}" -f $_.Exception.Message) Yellow }
@@ -3157,10 +3893,23 @@ function Set-RoomAtmosphere($ras, $atm, $roomObj) {
         $script:motes = $m
     }
     # lights: kept as given; strength with flicker is worked out every frame
-    $script:roomLights = @()
+    $script:roomLights = @(); $script:roomWashes = @(); $script:roomVisorFog = $atm.VisorFog; $script:roomAtmNow = $atm
     if (-not $NoLights -and $ras.Rgb) {
         foreach ($l in @($atm.Lights)) {
             if ($null -eq $l.x) { continue }
+            # WALL WASHES (2026-10-14, Josh, CHAMBNEW: an uplight under each spotlight painted on the walls): "wash": true = a
+            # steady spotlight with no shadow, outside the eight placed lights (GpuRaster.SetWashes, up to 16): x y z, dir, cone,
+            # color, power, range, bounce. Graphics card only.
+            if ($l.wash) {
+                $wd = @($(if ($l.dir -and @($l.dir).Count -eq 3) { [double]$l.dir[0]; [double]$l.dir[1]; [double]$l.dir[2] } else { 0.0; 1.0; 0.0 }))
+                $wl = [Math]::Sqrt($wd[0] * $wd[0] + $wd[1] * $wd[1] + $wd[2] * $wd[2]); if ($wl -lt 1e-6) { $wd = @(0.0, 1.0, 0.0); $wl = 1.0 }
+                $wcol = ConvertTo-Rgb24 ([string]$l.color) 0xFFE8C8
+                $script:roomWashes += [pscustomobject]@{ X = [single]$l.x; Y = [single]$l.y; Z = [single]$l.z; R = (($wcol -shr 16) -band 255) / 255.0; G = (($wcol -shr 8) -band 255) / 255.0; B = ($wcol -band 255) / 255.0
+                    Power = [double]$(if ($null -ne $l.power) { $l.power } else { 1.0 }); Range = [single]$(if ($l.range) { $l.range } else { 250 })
+                    Dir = @(($wd[0] / $wl), ($wd[1] / $wl), ($wd[2] / $wl)); Cone = $(if ($l.cone -and @($l.cone).Count -eq 2) { @([double]$l.cone[0], [double]$l.cone[1]) } else { @(20.0, 35.0) })
+                    Bounce = [double]$(if ($null -ne $l.bounce) { $l.bounce } else { 1.0 }) }
+                continue
+            }
             $col = ConvertTo-Rgb24 ([string]$l.color) 0xFFB266
             # "dir": which way the light faces (a wall torch: the wall's normal, into the room). With
             # it, and unless "shadow": false, the light casts shadows the way the flashlight does.
@@ -3188,6 +3937,10 @@ function Set-RoomAtmosphere($ras, $atm, $roomObj) {
                 # shaft through a hole needs more to fill the room as the torches do). "dance": how far (units) a flickering
                 # light's point wanders round its flame, so its shadows sway with the flicker (default 7 x flicker; 0 = still)
                 Bounce = [double]$(if ($null -ne $l.bounce) { $l.bounce } else { 1.0 }); AirFirst = [bool]$l.airFirst      # ("airFirst": always one of the four lights the fog shows)
+                OneSided = [bool]$l.oneSided      # ("oneSided": lights only the side of a face the eye is on -- sun outside a window, 2026-10-14)
+                # ("gate": [x0, y0, z0, x1, y1, z1] = it reaches only what it sees through that box -- a window's opening, so a sun
+                # outside a room with no ceiling does not come in over the walls: BAPTIST, 2026-10-14)
+                Gate = $(if ($l.gate -and @($l.gate).Count -eq 6) { [single[]]@($l.gate) } else { $null })
                 Dance = [double]$(if ($null -ne $l.dance) { $l.dance } elseif ($null -ne $l.flicker) { 7 * [double]$l.flicker } else { 7 * 0.3 })
                 # (2026-10-09, Josh, ORRERY/3) "cycle": {colors: ["#RRGGBB", ...], seconds, offset 0..1} = its colour drifts
                 # round those colours in a slow loop (eased between each), on surfaces and in the air alike
@@ -3197,6 +3950,7 @@ function Set-RoomAtmosphere($ras, $atm, $roomObj) {
         }
     }
     if ($script:roomLights.Count -gt [AztTool.Raster]::MaxLights) { $script:roomLights = @($script:roomLights | Select-Object -First ([AztTool.Raster]::MaxLights)) }
+    if ($script:roomWashes.Count -gt 16) { $script:roomWashes = @($script:roomWashes | Select-Object -First 16) }
     # a small depth view per shadowing light: 512 square, 110 degrees, looking the way it faces
     $ras.ClearLightShadows(); $script:lightRs = @()
     foreach ($l in $script:roomLights) {
@@ -3204,8 +3958,8 @@ function Set-RoomAtmosphere($ras, $atm, $roomObj) {
         $lz = New-Object AztTool.Raster(512, 512); $lz.NearZ = [single]0.5; $lz.SetVerticalFov(110); $lz.Threads = [Math]::Max(2, [int]($ras.Threads / 2))
         $script:lightRs += $lz
     }
-    Say ("  atmosphere: fog {0}; dust {1}; lights {2}{3}" -f $(if ($ras.Fog32) { ('#{0:X6} {1:N0}-{2:N0}' -f $ras.FogColor32, $ras.Fog32Near, $ras.Fog32Far) } else { 'none' }), `
-        $(if ($script:motes) { $script:motes.Count } else { 'none' }), $script:roomLights.Count, $(if ($atm.Source.Count) { ' (' + ($atm.Source -join ', ') + ')' } else { '' })) Cyan
+    Say ("  atmosphere: fog {0}; dust {1}; lights {2}{3}{4}" -f $(if ($ras.Fog32) { ('#{0:X6} {1:N0}-{2:N0}' -f $ras.FogColor32, $ras.Fog32Near, $ras.Fog32Far) } else { 'none' }), `
+        $(if ($script:motes) { $script:motes.Count } else { 'none' }), $script:roomLights.Count, $(if ($script:roomWashes.Count) { ' + {0} wall washes' -f $script:roomWashes.Count } else { '' }), $(if ($atm.Source.Count) { ' (' + ($atm.Source -join ', ') + ')' } else { '' })) Cyan
 }
 # ---- THE CARD'S OWN ATMOSPHERE: ground mist and particles (graphics card only) ----------------
 # From the same room files: "mist" (density at the floor, how fast it thins with height, colour,
@@ -3224,7 +3978,7 @@ $script:giBake = $null; $script:giSync = $false
 function Set-GpuGi($gq, $atm, $roomObj) {
     if ($script:giBake) { $script:giBake.Cancel(); $script:giBake = $null }
     $gq.ClearGi()
-    if (-not $atm.Gi -or $NoGi -or -not $roomObj -or -not @($script:roomLights).Count) { return }
+    if (-not $atm.Gi -or $NoGi -or -not $roomObj -or -not (@($script:roomLights).Count + $(if ($script:roomWashes) { @($script:roomWashes).Count } else { 0 }))) { return }
     $gi = $atm.Gi
     $gq.GiStrength = [single]$(if ($null -ne $gi.strength) { $gi.strength } else { 1 }); $gq.GiAmbient = [single]$(if ($null -ne $gi.ambient) { $gi.ambient } else { 0.6 })
     $b = New-Object AztTool.GiBake
@@ -3233,7 +3987,15 @@ function Set-GpuGi($gq, $atm, $roomObj) {
         $bl = New-Object AztTool.GiBake+Light
         $bl.X = $l.X; $bl.Y = $l.Y; $bl.Z = $l.Z; $bl.R = [single]($l.R * $l.Power * $l.Bounce); $bl.G = [single]($l.G * $l.Power * $l.Bounce); $bl.B = [single]($l.B * $l.Power * $l.Bounce); $bl.Range = [single]$l.Range; $bl.Shadow = [bool]$l.Shadow
         if ($l.Dir) { $bl.DX = [single]$l.Dir[0]; $bl.DY = [single]$l.Dir[1]; $bl.DZ = [single]$l.Dir[2] }
+        if ($l.Gate) { $bl.Gate = $true; $bl.GX0 = [Math]::Min($l.Gate[0], $l.Gate[3]); $bl.GY0 = [Math]::Min($l.Gate[1], $l.Gate[4]); $bl.GZ0 = [Math]::Min($l.Gate[2], $l.Gate[5]); $bl.GX1 = [Math]::Max($l.Gate[0], $l.Gate[3]); $bl.GY1 = [Math]::Max($l.Gate[1], $l.Gate[4]); $bl.GZ1 = [Math]::Max($l.Gate[2], $l.Gate[5]) }
         if ($l.Cone -and $l.Cone[1] -gt 0.01) { $bl.CosIn = [single][Math]::Cos([Math]::Min($l.Cone[0], $l.Cone[1] - 0.01) * [Math]::PI / 180); $bl.CosOut = [single][Math]::Cos($l.Cone[1] * [Math]::PI / 180) }
+        $b.Lights.Add($bl)
+    }
+    foreach ($l in @($script:roomWashes | Where-Object { $_ })) {      # (the wall washes bounce like any light -- traced with shadows here)
+        $bl = New-Object AztTool.GiBake+Light
+        $bl.X = $l.X; $bl.Y = $l.Y; $bl.Z = $l.Z; $bl.R = [single]($l.R * $l.Power * $l.Bounce); $bl.G = [single]($l.G * $l.Power * $l.Bounce); $bl.B = [single]($l.B * $l.Power * $l.Bounce); $bl.Range = [single]$l.Range; $bl.Shadow = $true
+        $bl.DX = [single]$l.Dir[0]; $bl.DY = [single]$l.Dir[1]; $bl.DZ = [single]$l.Dir[2]
+        $bl.CosIn = [single][Math]::Cos([Math]::Min($l.Cone[0], $l.Cone[1] - 0.01) * [Math]::PI / 180); $bl.CosOut = [single][Math]::Cos($l.Cone[1] * [Math]::PI / 180)
         $b.Lights.Add($bl)
     }
     $b.SetRoom($roomObj.V, $roomObj.UV, $roomObj.T, $roomObj.TexIdx, $roomObj.Texes, $true)
@@ -3272,11 +4034,15 @@ function Set-RoomTextureRules($gq, $atm, $roomObj) {
         if (-not $tx) { continue }
         $lf = [string]$tx.Leaf
         if ($lf -and $holes.ContainsKey($lf)) {
-            $hr = $holes[$lf]; $box = $(if ($hr.box -and @($hr.box).Count -eq 4) { [int[]]@($hr.box) } else { $null })
+            # ("boxes": [[x0, y0, x1, y1], ...] = several areas, as "box" one)
+            $hr = $holes[$lf]; $box = $(if ($hr.boxes) { $bl = [int[]]@(foreach ($bx in @($hr.boxes)) { if (@($bx).Count -eq 4) { @($bx) } }); if ($bl.Length -ge 4) { ,$bl } else { $null } } elseif ($hr.box -and @($hr.box).Count -eq 4) { [int[]]@($hr.box) } else { $null })
             $cut = $tx.CutHoles($pal, [int]$(if ($null -ne $hr.minLum) { $hr.minLum } else { 120 }), $box)
             if ($gq) { [void]$gq.RefreshMask($tx) }
-            Say ("  holes: {0} texels of {1} cut where its art is bright" -f $cut, $lf) Cyan
-        } elseif ($tx.IdxOrig) { [void]$tx.RestoreHoles(); if ($gq) { [void]$gq.RefreshMask($tx) } }
+            # ("glass": 0..1 = the holes drawn as panes at that share of their own colour, light passing; "glassTint": the light
+            # behind them -- Josh, 2026-10-14, BAPTIST/1: the windows "transparent with 30% opacity")
+            $tx.Glass = [single]$(if ($null -ne $hr.glass) { $hr.glass } else { 0 }); $tx.GlassTint = $(if ($hr.glassTint) { ConvertTo-Rgb24 ([string]$hr.glassTint) 0xFFFFFF } else { 0xFFFFFF })
+            Say ("  holes: {0} texels of {1} cut where its art is bright{2}" -f $cut, $lf, $(if ($tx.Glass -gt 0) { " (glass at {0:P0})" -f $tx.Glass } else { "" })) Cyan
+        } else { $tx.Glass = 0; if ($tx.IdxOrig) { [void]$tx.RestoreHoles(); if ($gq) { [void]$gq.RefreshMask($tx) } } }
         $tx.NoCast = [bool]($lf -and $nc.ContainsKey($lf))
     }
 }
@@ -3467,11 +4233,45 @@ function Set-GpuAtmosphere($gq, $atm, $roomObj) {
         Say ("  light from the artwork: {0}; room tint #{1:X6}" -f $gq.ArtNote, $gq.RoomTint) Cyan
     }
     $gq.MistOn = $false
+    $gq.ClearScorches()      # (a new room: the last one's scorch marks are not here)
+    # EYE SHINE (Josh, 2026-10-14): creatures' eyes glint in the helmet lamp (Particles.cs EyeShine) -- a part holding both
+    # eyes per rig, and its head (which way it faces). Built in: CORICORI's creatures (EUGBLD: EUEYE, EUHEAD). A room's
+    # "eyeShine": false = none; { "strength", "size", "halo", "parts": { "<EYE PART>": { "head": "<HEAD PART>", "neck": "<NECK PART>", "color": "#RRGGBB" } } }
+    # (the eye part may be missing or misplaced -- CORICORI's EUEYE carries a stale transform in the engine: then the eyes go on
+    # the head, forward of its middle away from the neck; a rig with no eye part can name its head as the "eye part")
+    $script:eyeShine = $null
+    $es = $atm.EyeShine
+    if (-not ($es -is [bool] -and -not $es) -and -not $NoEyeShine -and $roomObj -and $roomObj.Parts) {
+        $eyeParts = @{ 'EUEYE' = @('EUHEAD', 0xB8F07A, 'EUNECK01') }
+        if ($es -and $es.parts) { foreach ($pp in $es.parts.PSObject.Properties) { $eyeParts[$pp.Name.ToUpperInvariant()] = @([string]$pp.Value.head, (ConvertTo-Rgb24 ([string]$pp.Value.color) 0xB8F07A), [string]$pp.Value.neck) } }
+        $byName = @{}; for ($i = 0; $i -lt $roomObj.Parts.Count; $i++) { $byName[([string]$roomObj.Parts[$i].Name).ToUpperInvariant()] = $roomObj.Parts[$i] }
+        $eye = New-Object AztTool.EyeShine
+        if ($es -and $null -ne $es.strength) { $eye.Strength = [single]$es.strength }; if ($es -and $es.size) { $eye.Size = [single]$es.size }; if ($es -and $es.halo) { $eye.Halo = [single]$es.halo }
+        foreach ($pt in $roomObj.Parts) {
+            if (-not $pt.IsCharacter) { continue }
+            $nm = ([string]$pt.Name).ToUpperInvariant(); $pre = $(if ($nm -match '^ZZ\d{4}') { $nm.Substring(0, 6) } else { '' }); $bare = $nm.Substring($pre.Length)
+            if (-not $eyeParts.ContainsKey($bare)) { continue }
+            $hd = $byName[$pre + ([string]$eyeParts[$bare][0]).ToUpperInvariant()]
+            $nk = $(if ($eyeParts[$bare][2]) { $byName[$pre + ([string]$eyeParts[$bare][2]).ToUpperInvariant()] } else { $null })
+            $eye.Add([int]$pt.VFirst, [int]$pt.VCount, $(if ($hd) { [int]$hd.VFirst } else { 0 }), $(if ($hd) { [int]$hd.VCount } else { 0 }), $(if ($nk) { [int]$nk.VFirst } else { 0 }), $(if ($nk) { [int]$nk.VCount } else { 0 }), [int]$eyeParts[$bare][1])
+        }
+        if ($eye.Count) { $script:eyeShine = $eye; Say ("  eye shine: {0} creature(s)" -f $eye.Count) Cyan }
+    }
+    # the wall washes (Set-RoomAtmosphere: lights with "wash": true)
+    $wn = $(if ($script:roomWashes) { @($script:roomWashes).Count } else { 0 }); $wa = New-Object 'single[]' ([Math]::Max(1, $wn) * 12)
+    for ($i = 0; $i -lt $wn; $i++) {
+        $l = $script:roomWashes[$i]; $o = $i * 12
+        $wa[$o] = $l.X; $wa[$o + 1] = $l.Y; $wa[$o + 2] = $l.Z; $wa[$o + 3] = $l.Range
+        $wa[$o + 4] = [single]($l.R * $l.Power); $wa[$o + 5] = [single]($l.G * $l.Power); $wa[$o + 6] = [single]($l.B * $l.Power)
+        $wa[$o + 7] = [single]$l.Dir[0]; $wa[$o + 8] = [single]$l.Dir[1]; $wa[$o + 9] = [single]$l.Dir[2]; $wa[$o + 10] = [single]$l.Cone[0]; $wa[$o + 11] = [single]$l.Cone[1]
+    }
+    $gq.SetWashes($wa, $wn)
     # each placed light's cone and its part in the air (spotlights, shafts with rays)
     $gq.ClearLightSpots()
     for ($li = 0; $li -lt @($script:roomLights).Count; $li++) {
         $l = $script:roomLights[$li]; $d = $(if ($l.Dir) { $l.Dir } else { @(0, -1, 0) })
-        $gq.SetLightSpot($li, [single]$d[0], [single]$d[1], [single]$d[2], [single]$(if ($l.Cone) { $l.Cone[0] } else { 0 }), [single]$(if ($l.Cone) { $l.Cone[1] } else { 0 }), [single]$l.Air, [single]$l.AirReach, [single]$l.Rays); $gq.SetAirFirst($li, [bool]$l.AirFirst)
+        $gq.SetLightSpot($li, [single]$d[0], [single]$d[1], [single]$d[2], [single]$(if ($l.Cone) { $l.Cone[0] } else { 0 }), [single]$(if ($l.Cone) { $l.Cone[1] } else { 0 }), [single]$l.Air, [single]$l.AirReach, [single]$l.Rays); $gq.SetAirFirst($li, [bool]$l.AirFirst); $gq.SetLightOneSided($li, [bool]$l.OneSided)
+        if ($l.Gate) { $g = $l.Gate; $gq.SetLightGate($li, $true, $g[0], $g[1], $g[2], $g[3], $g[4], $g[5]) }
         if ($null -ne $l.ColorFar) {
             # as a multiplier on its colour, channel by channel (so its strength and flicker carry over)
             $nc = $l.ColorRgb; $fc = $l.ColorFar
@@ -3491,6 +4291,17 @@ function Set-GpuAtmosphere($gq, $atm, $roomObj) {
         if ($null -ne $vo.anisotropy) { $gq.VolAniso = [single]$vo.anisotropy }; if ($vo.reach) { $gq.VolReach = [single]$vo.reach }
         if ($vo.far) { $gq.VolFar = [single]$vo.far }; if ($vo.steps) { $gq.VolSteps = [int]$vo.steps }; if ($null -ne $vo.cut) { $gq.VolCut = [single]$vo.cut }; $gq.VolLit = [single]$(if ($null -ne $vo.lightThrough) { $vo.lightThrough } else { 0.85 }); $gq.VolLitAir = [single]$(if ($null -ne $vo.lightThroughAir) { $vo.lightThroughAir } else { 0.7 }); $gq.LitReach = [single]$(if ($vo.lightReach) { $vo.lightReach } else { 110 })      # (2026-10-09: the placed lights cut through it as the flashlight does)
         $gq.VolColor = ConvertTo-Rgb24 ([string]$vo.color) 0x000000
+        # ("airInRoom": true = the lights light the air only inside the room's own bounds (its geometry's box) -- BAPTIST's sun outside its windows,
+        # 2026-10-14, lit the open sky above the walls)
+        $gq.AirBoxOn = $false
+        if ($vo.airInRoom -and @($vo.airInRoom).Count -eq 6) {      # (or the box itself: [x0, y0, z0, x1, y1, z1])
+            $ab = @($vo.airInRoom); for ($k = 0; $k -lt 3; $k++) { $gq.AirLo[$k] = [single]$ab[$k]; $gq.AirHi[$k] = [single]$ab[$k + 3] }; $gq.AirBoxOn = $true
+        } elseif ($vo.airInRoom -and $roomObj -and $roomObj.V) {
+            $v = $roomObj.V; $lo = @([single]::MaxValue) * 3; $hi = @([single]::MinValue) * 3
+            for ($i = 0; $i -lt $v.Length; $i += 3) { for ($k = 0; $k -lt 3; $k++) { $c = $v[$i + $k]; if ($c -lt $lo[$k]) { $lo[$k] = $c }; if ($c -gt $hi[$k]) { $hi[$k] = $c } } }
+            for ($k = 0; $k -lt 3; $k++) { $gq.AirLo[$k] = [single]$lo[$k]; $gq.AirHi[$k] = [single]$hi[$k] }
+            $gq.AirBoxOn = $true
+        }
         $script:volLevel = [double]$(if ($null -ne $vo.level) { $vo.level } else { $LampRoomOff })
         # THE PAINTED DARKNESS (Josh, 2026-10-08, CORICORI/5-6): "paint": {density, max, cell, smooth, gamma} -- the fog thicker
         # black where the room's texture art is painted dark (GpuRaster.BuildPaintField samples the room's own surfaces)
@@ -3557,6 +4368,7 @@ function Set-GpuAtmosphere($gq, $atm, $roomObj) {
         if ($null -ne $mi.wisps) { $gq.MistNoiseAmount = [single]$mi.wisps }; if ($mi.wispSize) { $gq.MistNoiseScale = [single](1.0 / [double]$mi.wispSize) }
         if ($null -ne $mi.drift) { $gq.MistNoiseSpeed = [single]$mi.drift }
     }
+    Set-RoomFootsteps $atm
     $script:fx = $null
     if ($NoParticles) { return }
     $fx = New-Object AztTool.Particles
@@ -3576,6 +4388,10 @@ function Set-GpuAtmosphere($gq, $atm, $roomObj) {
         foreach ($v in $vals) { $sh.Add([single]$v) }
     }
     $fx.SetShafts($sh.ToArray())
+    # DUST THAT REACTS (Josh, 2026-10-14): the shafts' specks and the room's motes pushed aside as the player walks through;
+    # a room's "reactDust": a number = how strongly (1 = as made), false = not at all
+    $rd = $atm.ReactDust; $rk = $(if ($rd -is [bool]) { [single]$(if ($rd) { 1 } else { 0 }) } elseif ($null -ne $rd) { [single]$rd } else { [single]1 })
+    $fx.ReactStrength = $rk; if ($script:motes) { $script:motes.ReactStrength = $rk }
     if ($atm.Drips) { $dr = $atm.Drips; $fx.DripRate = [single]$(if ($null -ne $dr.rate) { $dr.rate } else { 2 }); if ($dr.radius) { $fx.DripRadius = [single]$dr.radius }; if ($dr.size) { $fx.DripSize = [single]$dr.size }; $fx.DripColor = ConvertTo-Rgb24 ([string]$dr.color) 0xA8B4B8; if ($null -ne $dr.fromDark) { $fx.DripFromDark = [single]$dr.fromDark } }
     # (2026-10-09, SPAROOM/2) drips that land on water ring it: "drips.ripples" = how strongly (0 = none); "drips.fromDark" = units above the eye a drip starts where there is no ceiling
     $gq.DropRipple = [single]$(if ($atm.Drips -and $null -ne $atm.Drips.ripples) { $atm.Drips.ripples } else { 1 })
@@ -3607,14 +4423,33 @@ function Set-GpuAtmosphere($gq, $atm, $roomObj) {
     Say ("  the card's atmosphere: mist {0}; embers from {1} light(s); drips {2}; steam {3}; footstep dust {4}" -f $(if ($gq.MistOn) { ('{0} near the floor, thinning over {1:N0} units' -f $gq.MistDensity, $gq.MistHeight) } else { 'none' }), `
         ($exyz.Count / 3), $(if ($fx.DripRate -gt 0) { '{0}/s' -f $fx.DripRate } else { 'none' }), $(if ($fx.SteamRate -gt 0) { '{0}/s' -f $fx.SteamRate } else { 'none' }), $(if ($fx.KickRate -gt 0) { 'on' } else { 'none' })) Cyan
 }$script:motes = $null; $script:roomLights = @(); $script:atmClock = [Diagnostics.Stopwatch]::StartNew()
+$script:lightSet = $null; $script:lightSetFor = $null; $script:lightsNoWriteBack = $true      # (the watcher's own loop reads the dance from the C# set)
 function Update-RoomLights($ras) {
     $n = $script:roomLights.Count; $ras.LightCount = 0
     if (-not $n) { return }
     $t = $script:atmClock.Elapsed.TotalSeconds
+    # IN C# (AztTool.RoomLightSet, GpuRaster.cs): the identical maths, every frame, from a copy of the room's lights made
+    # when the room's list changes (2026-10-13 performance audit: 0.6-0.9 ms of script a frame). The script below stays as
+    # the fallback for a build without the type. The watcher reads the dance from the set (Jitter*); the offline tools that
+    # extract this function read $l.Jx, so it is copied back for them unless $script:lightsNoWriteBack.
+    if ('AztTool.RoomLightSet' -as [type]) {
+        if (-not $script:lightSet -or -not [object]::ReferenceEquals($script:lightSetFor, $script:roomLights)) {
+            $ls = New-Object AztTool.RoomLightSet
+            foreach ($l in $script:roomLights) {
+                $ls.Add([single]$l.X, [single]$l.Y, [single]$l.Z, [double]$l.R, [double]$l.G, [double]$l.B, [double]$l.Power, [single]$l.Range, [double]$l.Flicker, [double]$l.Phase, [double]$l.Dance, $(if ($l.Cycle) { [int[]]$l.Cycle } else { $null }), [double]$l.CycleSec, [double]$l.CycleOff, $(if ($l.Dir) { [double[]]$l.Dir } else { $null }))
+            }
+            $ls.Views = [AztTool.Raster[]]@($(if ($script:lightRs) { $script:lightRs } else { @() }))
+            $script:lightSet = $ls; $script:lightSetFor = $script:roomLights
+        }
+        $script:lightSet.Update($ras, $t, $script:gpu)
+        if (-not $script:lightsNoWriteBack) { for ($i = 0; $i -lt $n; $i++) { $l = $script:roomLights[$i]; $l.Jx = $script:lightSet.JitterX($i); $l.Jy = $script:lightSet.JitterY($i); $l.Jz = $script:lightSet.JitterZ($i) } }
+        return
+    }
     for ($i = 0; $i -lt $n; $i++) {
         $l = $script:roomLights[$i]
         # a torch: two slow sways and a little jitter, never below about half strength
-        $l.Noise = 0.7 * $l.Noise + 0.3 * ((Get-Random -Minimum 0.0 -Maximum 1.0) - 0.5)
+        if (-not $script:lightRnd) { $script:lightRnd = New-Object Random }
+        $l.Noise = 0.7 * $l.Noise + 0.3 * ($script:lightRnd.NextDouble() - 0.5)          # (not Get-Random: a cmdlet per light per frame -- 2026-10-13 audit)
         $f = 1.0 + $l.Flicker * (0.55 * [Math]::Sin($t * 7.9 + $l.Phase) + 0.3 * [Math]::Sin($t * 19.3 + $l.Phase * 2.1) + 1.2 * $l.Noise)
         if ($f -lt 0.45) { $f = 0.45 }
         $p = $l.Power * $f; $b = $i * 8
@@ -3720,7 +4555,7 @@ function Invoke-Session {
     if (-not $NoLamp -and -not $Light) {
         $r.SetLightTable([AztTool.Raster]::BuildLightTable($pal, 76, [single]2.4), 76, [single]2.4)
         $r.LampHalo = [single]$LampHalo; $r.LampHaloInnerDeg = [single]$LampHaloInner; $r.LampHaloDeg = [single][Math]::Max($LampHaloOuter, $LampHaloInner + 1)
-        $r.LampRoom = [single]$(if ($LampStartsOff) { $LampRoomOff } else { $LampRoom }); $r.LampPower = [single]$LampPower; $r.LampRange = [single]$LampRange
+        $r.LampRoom = [single]$(if (-not $LampStartsOn) { $LampRoomOff } else { $LampRoom }); $r.LampPower = [single]$LampPower; $r.LampRange = [single]$LampRange
         $r.LampInnerDeg = [single]$LampInner; $r.LampOuterDeg = [single][Math]::Max($LampOuter, $LampInner + 1)
         $r.ShadowDark = [single]$ShadowDark; $r.ShadowNear = [single]$ShadowNear; $r.ShadowFar = [single][Math]::Max($ShadowFar, $ShadowNear + 10)
         $r.ShadowSoft = [single]$ShadowSoft
@@ -3728,13 +4563,13 @@ function Invoke-Session {
         if (-not $NoShadows) {
             # the lamp's own view of the room: depth only matters, 64 degrees so it sees a
             # little more than the widest part of the beam
-            # The picture's own shape, and 58 degrees tall against the picture's 50: the same
+            # The picture's own shape, and 8 degrees taller than the picture (58 against the original 50): the same
             # margin sideways, so the lamp sees everything the eye does and a little more.
             # the PICTURE's shape, which in widescreen is wider than the game's 4:3
             $shadowW = [int]([Math]::Round($ShadowSize * $r.W / [double]$r.H / 4) * 4)
             $rs = New-Object AztTool.Raster($shadowW, $ShadowSize)
-            $rs.NearZ = [single]0.5; $rs.SetVerticalFov(58); $rs.Threads = [Math]::Max(2, [int]([Environment]::ProcessorCount / 2))
-            if ($LampPair) { $rs2 = New-Object AztTool.Raster($shadowW, $ShadowSize); $rs2.NearZ = [single]0.5; $rs2.SetVerticalFov(58); $rs2.Threads = $rs.Threads }
+            $rs.NearZ = [single]0.5; $rs.SetVerticalFov($Fov + 8); $rs.Threads = [Math]::Max(2, [int]([Environment]::ProcessorCount / 2))
+            if ($LampPair) { $rs2 = New-Object AztTool.Raster($shadowW, $ShadowSize); $rs2.NearZ = [single]0.5; $rs2.SetVerticalFov($Fov + 8); $rs2.Threads = $rs.Threads }
             Say ("lamp shadows on: {4} {0:N0} to the side of and {1:N0} above the eye (kept inside the walls), {2}x{3} shadow map each, every face casts" -f $LampOffsetX, $LampOffsetY, $shadowW, $ShadowSize, $(if ($LampPair) { 'a pair of lamps' } else { 'one lamp' })) Cyan
         }
         Say ("helmet lamp on: room level {0:N2} with the lamp on, {9:N2} with it off; lamp +{1:N2}, {5:P0} of it in a wide beam of {6:N0}-{7:N0} degrees, the rest in a hot spot of {2:N0}-{3:N0}; half strength at {4:N0} units; trails the view by {8:N2} s" -f $LampRoom, $LampPower, $LampInner, $LampOuter, $LampRange, $LampHalo, $LampHaloInner, $LampHaloOuter, $LampLag, $LampRoomOff) Cyan
@@ -3821,11 +4656,11 @@ function Invoke-Session {
     $spdPos = $null; $spdClock = [Diagnostics.Stopwatch]::StartNew(); $spdMax = 0.0; $spdSum = 0.0; $spdN = 0
     $refClock = [Diagnostics.Stopwatch]::StartNew(); $refStill = [Diagnostics.Stopwatch]::StartNew(); $refPrevCam = $null
     $walkTorn = 0; $walkRetried = 0
-    $smooth = New-Object AztTool.Smoother; $smooth.All = [bool]$SmoothAll
+    $smooth = New-Object AztTool.Smoother; $smooth.All = [bool]$SmoothAll; $smooth.Adaptive = (-not $NoSteadyPlay)
     $portals = $null; $portalPx = 0L; $portalFrames = 0
     $mirV = $null
     $lampDir = $null; $lampClock = [Diagnostics.Stopwatch]::StartNew()
-    $lampOnNow = (-not $LampStartsOff); $lampLevel = $(if ($lampOnNow) { 1.0 } else { 0.0 }); $lampKeyWas = $false; $lampFade = [Diagnostics.Stopwatch]::StartNew(); $lampM = New-Object single[] 16
+    $lampOnNow = [bool]$LampStartsOn; $lampLevel = $(if ($lampOnNow) { 1.0 } else { 0.0 }); $lampKeyWas = $false; $lampFade = [Diagnostics.Stopwatch]::StartNew(); $lampM = New-Object single[] 16
     # the shots: the ammo count (obj2 0x14694C: 0x15B42 `sub word [0x14694C], 1` right after the game plays shot.wav),
     # and the game's sound state beside it, logged on the first shots (the gun's sound went missing, 2026-10-07)
     $shotD2 = Get-GuestD2
@@ -3836,6 +4671,26 @@ function Invoke-Session {
     # the save/load list's state (docs\save-load-screen-RE.md): the fold-out block 0x1523D6..0x1524CD, the picked row 0x146948, the cursor
     $script:memAt = @{ Blk = (& $shotAt 0x1523D6); Sel = (& $shotAt 0x146948); Cur = (& $shotAt 0x182D6C); Mgr = (& $shotAt 0x182DB8); CurSurf = (& $shotAt 0x147588); Hot = (& $shotAt 0x14758E); Hidden = (& $shotAt 0x147586); Sav = (& $shotAt 0x152B02); Lod = (& $shotAt 0x152B04); Snd = (& $shotAt 0x14693A); D2 = [long]$shotD2 }; $script:sysHotDone = $false; $script:slGuard = $null; $script:quitDone = $false; $script:quitEndSaid = $false
     Start-SpaceGuard (& $shotAt 0x152B28)                # (the "a line is being spoken" word)
+    # ---- THE GUEST SNAPSHOT (2026-10-13 performance audit) -------------------------------------------------------------
+    # The obj2 blocks the frame's watchers read (the menus' and fold-out's words 0x152138.., the ammo / weapon / sound words
+    # 0x146900.., the cursor and the event record 0x182D6C.., the player pointer 0x1841C8) are read ONCE at the top of each
+    # frame and again beside the camera after the hand-shake wait (HostView.SnapTake); GuestWord and the menu steps read from
+    # that copy, writes go to the game at once and into the copy (Write-GuestSnap). Built obj2 addresses + this session's
+    # obj2 delta -- never a guest POINTER kept (the player object, the click screen are still read through, every time).
+    $script:snapOn = $false
+    try {
+        $hv.SnapInit([long]($g.MemBase + $shotD2), [uint32[]]@(0x146900, 0x152138, 0x182D6C, 0x1841C8), [int[]]@(0x920, 0x9F2, 0x50, 4))
+        $hv.SnapTake(); $script:snapOn = $true
+    } catch { Say ("guest snapshot: {0} -- the frame's watchers read the game word by word" -f $_.Exception.Message) Yellow }
+    # THE HOT OVERLAY ADDRESSES, ONCE PER ATTACH: HostLin is MemBase-relative, and MemBase is ASLR'd per attach -- this is
+    # Invoke-Session, which runs per attach, so they are worked out here and never outlive it.
+    $hlReady = HostLin $S_ready; $hlCamRec = HostLin $S_camRec; $hlSync = HostLin $S_sync
+    $hlFrameNo = $(if ($S_frameNo) { HostLin $S_frameNo } else { 0L }); $hlBoot = $(if ($S_bootState) { HostLin $S_bootState } else { 0L })
+    $script:hlRapHit = $(if ($S_rapHit) { HostLin $S_rapHit } else { 0L })
+    $script:hlReboot = $(if ($symMap.ContainsKey('aztReboot')) { HostLin (Sym 'aztReboot') } else { 0L })
+    $hv.PollUs = 400
+    $script:earlyReady = $false; $script:waitTimerSaid = $false
+    Say ("frame hand-shake: the waits poll every 0.4 ms; in true colour 'ready' is armed right after the camera read (the guest copies every frame with sync 0), 8-bit and calibration keep the end-of-frame order{0}" -f $(if ($NoEarlyReady) { ' -- early arming OFF (-NoEarlyReady)' } else { '' })) DarkGray
     $ammoAddr = & $shotAt 0x14694C; $ammoWas = -1; $shots = 0; $flashClock = New-Object Diagnostics.Stopwatch; $flashLive = $false
     # the player's health for the damage badge: dword [[0x1841C8] + 0x16], 16.16 (what the gauge code at 0x11DF6 reads)
     $hpPtrAt = & $shotAt 0x1841C8; $hpWas = $null; $hpObjWas = [uint32]0; $hpQuiet = [Diagnostics.Stopwatch]::StartNew(); $hits = 0; $hpMax = 1000 * 65536; $script:hpFrac = -1.0
@@ -3901,13 +4756,13 @@ function Invoke-Session {
             }
         }
         if ($S_frameNo) {
-            $fnNow =RdU32 (HostLin $S_frameNo)
+            $fnNow = $hv.ReadU32($hlFrameNo)
             if ($fnNow -ne $fnLast) { $fnLast = $fnNow; $sinceAlive.Restart(); $stallDumped = $false }
         }
         if ($Diag -and -not $stallDumped -and $sinceAlive.Elapsed.TotalSeconds -ge 3) {
             $stallDumped = $true; Write-StallStack
         }
-        $rec = $hv.ReadBytes((HostLin $S_camRec), 320)
+        $rec = $hv.ReadBytes($hlCamRec, 320)
         if (-not $rec) {
             # The process is gone; the ring is all that is left of its stack. Newest first.
             try {
@@ -3935,7 +4790,10 @@ function Invoke-Session {
             } else { Say 'the game exited (before any frame was pushed).' Yellow }
             return
         }
+        if ($script:snapOn) { $hv.SnapTake() }      # (the frame's guest snapshot: the watchers below read from it)
         Step-LoadGuard      # (after a load: the HUD and the materialize wait for the loading panel to go)
+        Step-Fov            # (the game's field follows the host's; F12 cycles it)
+        Step-NpcPace        # (a room's "npcs": a character's own pace and its pauses)
         if ([Text.Encoding]::ASCII.GetString($rec,0,4) -ne 'CAM1') {
             Step-NothingToDraw ([ref]$suppressed) 'no camera record' 200; continue
         }
@@ -4000,11 +4858,13 @@ function Invoke-Session {
                         if (([uint32]($fNow - $f0)) -ge 6) { break }
                     }
                     Say ("  new room: the engine drew {0} frames of it itself in {1:N0} ms before the host took over" -f ([uint32]($fNow - $f0)), $pw.ElapsedMilliseconds) Cyan
-                    if ($script:roomCover -and $script:roomCover.Stage -eq 'pulse') { $script:roomCover.Stage = 'waiting'; $script:roomCover.WaitFrom = $script:roomCover.Clock.Elapsed.TotalSeconds }
+                    if ($script:roomCover -and $script:roomCover.Loaded) { Stop-RoomCover 'ready' }      # (the room was in before the jump: it shows now)
+                    elseif ($script:roomCover -and $script:roomCover.Stage -eq 'pulse') { $script:roomCover.Stage = 'waiting'; $script:roomCover.WaitFrom = $script:roomCover.Clock.Elapsed.TotalSeconds }
                     $camPrevM = $null
                     continue
                 }
-                if ($script:roomCover -and $script:roomCover.Stage -eq 'pulse') { $script:roomCover.Stage = 'waiting'; $script:roomCover.WaitFrom = $script:roomCover.Clock.Elapsed.TotalSeconds }
+                if ($script:roomCover -and $script:roomCover.Loaded) { Stop-RoomCover 'ready' }
+                elseif ($script:roomCover -and $script:roomCover.Stage -eq 'pulse') { $script:roomCover.Stage = 'waiting'; $script:roomCover.WaitFrom = $script:roomCover.Clock.Elapsed.TotalSeconds }
             }
         }
         # ---- THE MOMENT THE FLOOR GIVES WAY --------------------------------------------------
@@ -4097,12 +4957,14 @@ function Invoke-Session {
                 if ($names -and $names.Count) {
                     $lastDetectErr = ''
                     $joined = ($names -join '+')
-                    if ($joined -eq $loadedNames -and $script:roomCover) { Stop-RoomCover 'the same room' }      # (a jump within the room: nothing to load)
+                    if ($joined -eq $loadedNames -and $script:roomCover) { Stop-RoomCover $(if ($script:roomCover.Loaded) { 'ready' } else { 'the same room' }) }      # (a jump within the room: nothing to load)
                     # (a load into the room already here: nothing to load -- once its re-boot has begun, i.e. the save is in, not
                     # the old scene being taken down)
                     if ($joined -eq $loadedNames -and $script:bootHd -and $script:bootHd.Covering -and (Test-LoadUi)) { Set-LoadProgress 1.0 }
                     if ($joined -ne $loadedNames) {
                         Say ("room -> {0}  ({1})" -f $joined, $why) Cyan
+                        $script:learnRoom = [string]$names[0]; $script:learnRoomAt = [Diagnostics.Stopwatch]::StartNew()      # (its MAPS.DAT number, learned a moment later: Step-Map)
+                        try { Add-MapVisited ([string]$names[0]) } catch { Say ("map: the rooms visited could not be noted ({0})" -f $_.Exception.Message) Yellow }      # (the whole-complex map: rooms visited)
                         # (no cover up -- it gave up waiting, or the scene changed before the jump: up now for the load, while the
                         # host still has the viewport; not the first room, not with the engine drawing for itself)
                         if (-not $script:roomCover -and $loadedNames -and $suppressed) { Start-RoomCover ('late: ' + $why) }
@@ -4148,7 +5010,12 @@ function Invoke-Session {
                                 try { Send-RoomTextures $room $onFrac } catch { Say ("  textures to the card failed: {0} -- the first frame takes them" -f $_.Exception.Message) Yellow }
                             }
                             if ($loadUi) { Set-LoadProgress 1.0; $script:rgbProgress = $null }
-                            Stop-RoomCover 'ready'
+                            # (recognised by its SCENE changing, before the camera's jump: the jump and its engine-draw pulse are still to come.
+                            # MEASURED, CHAMBNEW -> MINEMAZE 18:06:14: the cover ended 'ready', the jump came a moment later and the pulse put
+                            # the 8-bit picture up -- '256 version ... loading, then back'. The cover now waits for that jump, up to 1.5 s.)
+                            if ($script:roomCover -and $why -eq 'scene rebuilt' -and ([string]$script:roomCover.Why) -like 'late*') {      # (a cover the jump started has had its pulse)
+                                $script:roomCover.Loaded = $true; $script:roomCover.Stage = 'settle'; $script:roomCover.SettleFrom = $script:roomCover.Clock.Elapsed.TotalSeconds
+                            } else { Stop-RoomCover 'ready' }
                             # Pose state is per LOAD, not per room object: the room itself is
                             # cached and shared between visits, but the posed copy is not.
                             $pose = $(if ($room.Parts -and $room.Parts.Count) { New-PoseState $room } else { $null })
@@ -4197,6 +5064,7 @@ function Invoke-Session {
             $rc = $script:roomCover; $ct = $rc.Clock.Elapsed.TotalSeconds; $rc.NothingSince = $null      # (a scene again: the next gap gets its own 1.5 s)
             if ($ct -gt 12) { Stop-RoomCover 'gave up after 12 s' }
             elseif ($rc.Stage -eq 'waiting' -and ($ct - $rc.WaitFrom) -gt 1.0) { Stop-RoomCover 'no new room came' }
+            elseif ($rc.Stage -eq 'settle' -and ($ct - $rc.SettleFrom) -gt 1.5) { Stop-RoomCover 'ready' }      # (no jump came: the room is in -- show it)
             else {
                 if ($rc.Stage -eq 'waiting') { Set-RoomCoverTarget ([Math]::Min(0.135, 0.12 + 0.015 * ($ct - $rc.WaitFrom))) $null } else { Show-RoomCover }
                 [Threading.Thread]::Sleep(4); continue
@@ -4211,7 +5079,7 @@ function Invoke-Session {
         # the boot finishes the first host frame is ready -- but the buffer is not ours to
         # write until then.
         if ($S_bootState) {
-            $bs = $hv.ReadU32((HostLin $S_bootState))
+            $bs = $hv.ReadU32($hlBoot)
             if ($bs -eq 1) {
                 if (-not $bootNoted) { Say 'visor boot animation running -- it owns the staging buffer, waiting' Cyan; $bootNoted = $true }
                 Set-Engine3D ([ref]$suppressed) $false
@@ -4262,21 +5130,34 @@ function Invoke-Session {
         # Waiting first means the camera is sampled as late as possible before the one frame
         # the guest is about to take, which is the freshest it can be.
         $tmTop += $topClock.Elapsed.TotalMilliseconds
+        $earlyArmed = $false
         if ($suppressed) {
             $wait = [Diagnostics.Stopwatch]::StartNew()
-            $released = $true
             $syncLimit = $(if ($script:visorMenu -and ($script:visorMenu.Writing -or $script:visorMenu.ReadPlaying)) { 30 } else { $SyncTimeoutMs })     # (a save's / load's stall: repaint the panel often)
-            while ($hv.ReadU32((HostLin $S_ready)) -ne 0) {
-                if ($wait.ElapsedMilliseconds -gt $syncLimit) { $syncTimeouts++; $released = $false; break }
-                [Threading.Thread]::Sleep(1)   # NOT Start-Sleep: measured 15.3 ms here even at a 1 ms timer; this is ~2 ms
-            }
+            # (in C#: HostView.WaitClear polls with a 0.4 ms high-resolution timer -- a sleep, NEVER a spin: DOSBox emulates on
+            # one thread. The script loop slept 1 ms a poll, ~2 ms in practice: 2026-10-13 performance audit)
+            $released = $hv.WaitClear($hlReady, $syncLimit)
+            if (-not $released) { $syncTimeouts++ }
+            if (-not $script:waitTimerSaid -and $wait.ElapsedMilliseconds -gt 0) { $script:waitTimerSaid = $true; Say ("frame hand-shake: waits use {0}" -f $(if ($hv.FineTimer) { 'the high-resolution waitable timer (0.4 ms polls)' } else { '1 ms sleeps (no high-resolution timer on this Windows)' })) DarkGray }
             # NEVER write the buffer the guest is still reading -- see the handshake note below.
             $tmWait += $wait.Elapsed.TotalMilliseconds
             if (-not $released) { Repaint-HeldPicture; continue }
-            $fresh = $hv.ReadBytes((HostLin $S_camRec), 320)
+            $fresh = $hv.ReadBytes($hlCamRec, 320)
             if ($fresh) {
                 for ($i = 0; $i -lt 16; $i++) { $m[$i] = [BitConverter]::ToSingle($fresh, $REC_MOVWORLD + $i*4) }
                 if ($m[12] -eq 0 -and $m[13] -eq 0 -and $m[14] -eq 0 -and $m[0] -eq 1) { continue }
+            }
+            if ($script:snapOn) { $hv.SnapTake() }      # (the guest's words as fresh as the camera: ammo, health, menus, the cue)
+            # ---- THE EARLY HAND-SHAKE (2026-10-13 performance audit) ---------------------------------------------------------
+            # In steady true colour (aztInjSync 0: the game is handed the unchanging key frame) the guest copies the staging buffer
+            # EVERY frame whatever `ready` says, and clears it after each copy (AztInjBody, src\Build-AztMod.ps1) -- so `ready`
+            # is only the pacing baton there. Armed HERE, beside the camera read, instead of at the end of the frame, the guest
+            # clears it during the host's ~14 ms of work and the next wait is a single read. The pacing still holds: a host
+            # faster than the guest still waits for it. 8-bit pictures and the calibration patch (sync 1: a gated copy that
+            # must never see a half-written buffer) keep the end-of-frame order below, and a frame that turns out to need
+            # sync 1 waits for this early `ready` to be consumed before it writes anything.
+            if ($fresh -and $script:injSync -eq 0 -and $script:tcOn -and $script:tcState -eq 'run' -and -not $NoReady -and -not $NoEarlyReady -and -not $NoPush -and $PushEvery -le 1) {
+                [void]$hv.WriteU32($hlReady, 1); $earlyArmed = $true
             }
         }
 
@@ -4433,6 +5314,12 @@ function Invoke-Session {
         # (in true colour F7 compared relief looks while they were being chosen, 2026-10-07; Josh picked one and it is
         # now the only one, so F7 does nothing there)
         $t0 = [Diagnostics.Stopwatch]::StartNew()
+        # THE RAPTOR GETS UP (a new game's reveal, BootHd.TiltCamera): the view, the helmet lamp and its shadows turn as he
+        # stands -- this frame's copy of the game's camera, read fresh every loop; the game's own camera is untouched, and
+        # the position checks above have already used the untilted one
+        if ($script:bootHd) { try { if ($script:bootHd.TiltCamera($m) -and -not $script:standSaid) { $script:standSaid = $true; Say 'visor boot: the raptor gets up (the view tilts, dust falls off the visor), then the weapon systems come online' DarkCyan } } catch { } }
+        $script:lastCamM = $m
+        if ($script:mapFreezeCam) { [Array]::Copy([single[]]$script:mapFreezeCam, $m, 16) }      # (THE 3D MAP: the world behind it held still)
         $r.SetCameraWorld($m)
         # THE BEAM TRAILS THE VIEW. It is kept as a direction in the WORLD and eased toward
         # where the player is looking, so on a turn it lags behind for a moment and then
@@ -4442,9 +5329,9 @@ function Invoke-Session {
         # THE MUZZLE FLASH: up in ~12 ms, gone in ~0.2 s
         $flashLive = $false
         if (-not $NoMuzzleFlash -and $script:gpu) {
-            $am = (RdU32 $ammoAddr) -band 0xFFFF
+            $am = $(if ($script:snapOn) { $hv.SnapU32(0x14694C) } else { RdU32 $ammoAddr }) -band 0xFFFF      # (the frame's snapshot, taken beside the camera)
             if ($ammoWas -ge 0 -and $am -lt $ammoWas -and ($ammoWas - $am) -le 3) {
-                $flashClock.Restart(); $shots++
+                $flashClock.Restart(); $shots++; $script:shotPending = $true      # (its impact: found once the room is posed this frame -- below)
                 if ($shots -le 6 -or ($shots % 25) -eq 0) {
                     # what the game's sound player (0x100BC) looks at: it is silent while [0x1525A0] or [0x152B1C] is set,
                     # and plays at the volume word [0x14693E] (0..127); [0x14693C] is the effects on/off word beside it
@@ -4464,7 +5351,7 @@ function Invoke-Session {
         # a boot covers the view or the memory core is up, nor for 3 s after either or after the player object changes:
         # a load sets the health, it is not a hit.
         if ((-not $NoDamageBadge -or -not $NoVisorDamage) -and $script:ov) {
-            $hpObj = [uint32](RdU32 $hpPtrAt); $hp = $null
+            $hpObj = [uint32]$(if ($script:snapOn) { $hv.SnapU32(0x1841C8) } else { RdU32 $hpPtrAt }); $hp = $null      # (the pointer from the snapshot; the health behind it read through, every time)
             if ($hpObj -ge 0x1000 -and $hpObj -lt 0x10000000) { $hp = [BitConverter]::ToInt32([BitConverter]::GetBytes([uint32](RdU32 ([long]$g.MemBase + $hpObj + 0x16))), 0) }
             # (a sane reading only: full is 1,000 in 16.16 -- a read of a half-built player during a load once set the "full" mark
             # far above it, and a living player at 1,000 then read as nothing: the flat line, the glass at its worst)
@@ -4576,7 +5463,19 @@ function Invoke-Session {
             $tmShadow += $t0.Elapsed.TotalMilliseconds
         }
         # THE PLACED LIGHTS' VIEWS, for their shadows: depth from each light, looking the way it faces
-        if ($script:roomLights.Count -and $r.Rgb -and $script:lightRs) {
+        if ($script:roomLights.Count -and $r.Rgb -and $script:lightRs -and $script:lightSet) {
+            # (C#: AztTool.RoomLightSet, from where Update-RoomLights left each light this frame -- 2026-10-13 audit)
+            if ($gpuNow) { $script:lightSet.CardViews($script:gpu, $LightShadowFace) }      # (all round on the card: no edge where shadows stop)
+            else {
+                for ($li = 0; $li -lt $script:lightSet.Count; $li++) {
+                    $lx0 = [single]0; $ly0 = [single]0; $lz0 = [single]0
+                    $lz = $script:lightSet.AimView($li, [ref]$lx0, [ref]$ly0, [ref]$lz0); if (-not $lz) { continue }
+                    $lz.FastClear([byte]0)
+                    $lz.DrawTexturedFast($dv, $room.UV, $room.T, $dt, $room.Texes, $false, (-not $NoFlipV))
+                    $r.SetLightShadow($li, $lz.Depth, $lz.W, $lz.FocalPixels, $lz.LastBasis)
+                }
+            }
+        } elseif ($script:roomLights.Count -and $r.Rgb -and $script:lightRs) {
             for ($li = 0; $li -lt $script:roomLights.Count; $li++) {
                 $lz = $script:lightRs[$li]; if (-not $lz) { continue }
                 $l = $script:roomLights[$li]; $d = $l.Dir
@@ -4659,11 +5558,47 @@ function Invoke-Session {
                 if (-not $script:fxStep) { $script:fxStep = [Diagnostics.Stopwatch]::StartNew(); $script:fxClock = [Diagnostics.Stopwatch]::StartNew() }
                 $fxDt = [single]$script:fxStep.Elapsed.TotalSeconds; $script:fxStep.Restart(); if ($fxDt -gt 0.1) { $fxDt = [single]0.1 }
                 $script:gpu.Time = [single]$script:fxClock.Elapsed.TotalSeconds
+                if (-not $NoFootsteps -and -not $script:stepsOff) { try { Step-Footsteps $fxDt $m $dv $room $dt $room.Texes } catch { Say ("footsteps failed: {0} -- off" -f $_.Exception.Message) Yellow; $script:stepsOff = $true } }      # (the player's footsteps: BootHd.cs Footsteps)
                 if ($script:fx) {
                     $script:fx.Update($fxDt, $m[12], $m[13], $m[14], $dv, $room.T, $dt)
             if (-not $script:dropBuf) { $script:dropBuf = New-Object single[] 64 }; $script:gpu.SetDrops($script:dropBuf, $script:fx.GatherDrops($script:dropBuf))      # (rings where drips land on water)
                     if (-not $script:fxBuf -or $script:fxBuf.Length -lt $script:fx.MaxParticles * [AztTool.Particles]::Stride) { $script:fxBuf = New-Object single[] ($script:fx.MaxParticles * [AztTool.Particles]::Stride) }
-                    $script:gpu.SetParticles($script:fxBuf, $script:fx.Gather($r, $script:fxBuf))
+                    # SHOT IMPACTS (Josh, 2026-10-14): where this frame's shot landed -- the ray through the cursor (in combat the
+                    # pointer is the crosshair) against the room as drawn: sparks and a puff of dust off the surface, a brief warm
+                    # glow on it and a scorch mark that fades (GpuRaster.AddScorch); none on a creature (it moves; the game bleeds
+                    # it); a room's "impacts": false = none
+                    if ($script:shotPending) {
+                        $script:shotPending = $false
+                        if (-not $NoImpacts -and -not ($script:roomAtmNow -and $script:roomAtmNow.Impacts -is [bool] -and -not $script:roomAtmNow.Impacts)) {
+                            try {
+                                $cb = $(if ($script:snapOn) { $hv.SnapBytes(0x182D6C, 4) } else { Read-AztGuest $g 0x182D6C 4 -Obj2 })
+                                if ($cb) {
+                                    $ipx = [int][BitConverter]::ToInt16([byte[]]$cb, 0) - [int]$man.view.injX; $ipy = [int][BitConverter]::ToInt16([byte[]]$cb, 2) - [int]$man.view.injY
+                                    if ($ipx -ge 0 -and $ipy -ge 0 -and $ipx -lt $W -and $ipy -lt $H) {
+                                        # (the VIEW's rows, not the picture's: under the widescreen panel the picture runs on below the view -- Raster.ViewRows --
+                                        # so scaling by the whole height put the shot below the reticle; Josh, 2026-10-14: 'centered in the viewport but does not
+                                        # accommodate the UI ... needs to be perfectly in line with the reticule')
+                                        $vrI = [double]$(if ($r.ViewRows -gt 0) { $r.ViewRows } else { $r.H })
+                                        $gwI = $vrI * $W / [double]$H; $gxI = ($r.W - $gwI) / 2
+                                        $hx = 0.0; $hy = 0.0; $hz = 0.0; $nx = 0.0; $ny = 0.0; $nz = 0.0
+                                        $ht = $r.PickHit($dv, [int[]]$room.T, $dt, [single]($gxI + ($ipx + 0.5) * $gwI / $W), [single](($ipy + 0.5) * $vrI / $H), [single]3000, [ref]$hx, [ref]$hy, [ref]$hz, [ref]$nx, [ref]$ny, [ref]$nz)
+                                        $onChar = $false; if ($ht -ge 0 -and $room.TriPart) { $hpI = $room.TriPart[$ht]; if ($hpI -ge 0 -and $room.Parts[$hpI].IsCharacter) { $onChar = $true } }
+                                        if ($ht -ge 0 -and -not $onChar) {
+                                            $script:fx.Impact([single]$hx, [single]$hy, [single]$hz, [single]$nx, [single]$ny, [single]$nz, [single]1)
+                                            $script:gpu.AddScorch([single]$hx, [single]$hy, [single]$hz, [single]$nx, [single]$ny, [single]$nz, [single]4.5)
+                                            $script:impactClock = [Diagnostics.Stopwatch]::StartNew()
+                                            if ($shots -le 3) { Say ("  impact: {0:N0} {1:N0} {2:N0} on {3}" -f $hx, $hy, $hz, $(if ($room.TriPart -and $room.TriPart[$ht] -ge 0) { $room.Parts[$room.TriPart[$ht]].Name } else { '?' })) DarkYellow }
+                                        }
+                                    }
+                                }
+                            } catch { Say ("shot impact failed: {0}" -f $_.Exception.Message) Yellow }
+                        }
+                    }
+                    if (-not $script:echoOff) { try { Step-Echo $script:gpu $room $dv $dt } catch { Say ("echo scan failed: {0} -- off" -f $_.Exception.Message) Yellow; $script:echoOff = $true; $script:gpu.EchoT = -1 } }      # (the visor's echo scan: V)
+                    if ($script:impactClock) { $it = $script:impactClock.Elapsed.TotalSeconds; if ($it -gt 0.35) { $script:impactClock = $null; $script:gpu.ImpactK = 0 } else { $script:gpu.ImpactK = [single]([Math]::Min(1.0, $it / 0.01) * [Math]::Exp(-[Math]::Max(0.0, $it - 0.01) / 0.07)) } }
+                    $nPart = $script:fx.Gather($r, $script:fxBuf)
+                    if ($script:eyeShine) { try { $nPart = $script:eyeShine.Append($dv, $r, [single]$(if ($r.Lamp) { [Math]::Min(1.0, $r.LampPower / [Math]::Max(0.01, $LampPower)) } else { 0 }), $script:fxBuf, $nPart) } catch { Say ("eye shine failed: {0} -- off" -f $_.Exception.Message) Yellow; $script:eyeShine = $null } }      # (eye shine: glints after the particles)
+                    $script:gpu.SetParticles($script:fxBuf, $nPart)
                     $script:gpu.MistFloorY = [single]$script:fx.FloorY
                 } elseif ($script:gpu.MistOn) {
                     $fdn = [AztTool.Raster]::RayDistance($dv, $room.T, $dt, $m[12], $m[13], $m[14], 0, -1, 0, 400)
@@ -4673,7 +5608,14 @@ function Invoke-Session {
                 $script:gpu.CopyLighting($r)          # the lamp's fade and aim, the torch's flicker, the room's fog: as set on the processor's renderer
                 # THE VISOR MATERIALIZES THE ROOM: the boot handing the view over (a new game's boot animation done, or a loaded
                 # game straight to play) asks for it too; the room cover's 'ready' already did
-                if ($script:bootHd) { $bm = $script:bootHd.Mode; if ($bm -eq 'done' -and $script:bootModeWas -eq 'reveal' -and -not $script:loadGuard) { $script:matPending = 'the new game''s boot animation is done' }; $script:bootModeWas = $bm }
+                if ($script:bootHd) {
+                    $bm = $script:bootHd.Mode
+                    if ($bm -eq 'done' -and $script:bootModeWas -eq 'reveal' -and -not $script:loadGuard) { $script:matPending = 'the new game''s boot animation is done' }
+                    # a NEW game boots with the flashlight off (-LampStartsOn: as it was)
+                    if ($bm -eq 'live' -and $script:bootModeWas -ne 'live' -and -not $script:bootHd.IsReboot -and -not $LampStartsOn -and $lampOnNow) { $lampOnNow = $false; Say 'flashlight off for the new game (F turns it on)' Cyan }
+                    if ($bm -eq 'live' -and $script:bootModeWas -ne 'live' -and -not $script:bootHd.IsReboot) { Clear-MapVisited }      # (a new game: nothing visited yet)
+                    $script:bootModeWas = $bm
+                }
                 if ($script:matPending -and -not $script:loadGuard) { if (-not $NoMaterialize) { $script:gpu.StartMaterialize(); Say ("visor: materializing the room ({0})" -f $script:matPending) DarkCyan }; $script:matPending = $null }
                 $script:gpu.Draw($dv, $room.UV, $room.T, $dt, $texNow, (-not $NoCull), (-not $NoFlipV))
                 if ($script:gpu.GhostError -and $script:gpu.GhostError -ne $script:ghostErrSaid) { $script:ghostErrSaid = $script:gpu.GhostError; Say ("ghost: the card could not draw her as smoke ({0}) -- solid again" -f $script:gpu.GhostError) Yellow }
@@ -4783,13 +5725,11 @@ function Invoke-Session {
         # the tear the build's own handshake comment exists to prevent ("the host can never be
         # writing the buffer we are reading"). At a 1600-wide stride that reads as thick
         # horizontal bands -- one live run produced 50 of them in 93 frames.
+        # (armed early this frame -- THE EARLY HAND-SHAKE above -- there is nothing to wait for here: with sync 0 the guest
+        # copies the key frame whether or not it has taken this `ready` yet)
         $wait = [Diagnostics.Stopwatch]::StartNew()
-        $released = $true
-        while ($hv.ReadU32((HostLin $S_ready)) -ne 0) {
-            if ($wait.ElapsedMilliseconds -gt $SyncTimeoutMs) { $syncTimeouts++; $released = $false; break }
-            [Threading.Thread]::Sleep(1)   # NOT Start-Sleep: measured 15.3 ms here even at a 1 ms timer; this is ~2 ms
-        }
-        if (-not $released) { continue }
+        $released = $(if ($earlyArmed) { $true } else { $hv.WaitClear($hlReady, $SyncTimeoutMs) })
+        if (-not $released) { $syncTimeouts++; continue }
         if ($NoPush) { $frames++; $totalFrames++; Start-Sleep -Milliseconds 20; continue }
         # Skip this frame's hand-over entirely: no push, no ready, so the guest copies nothing
         # and simply redraws its own 3D. Counting in $loopSeq rather than $frames so the skipped
@@ -4816,7 +5756,15 @@ function Invoke-Session {
         # aztInjReady after each copy, so the hand-shake keeps pacing. Gated again for the
         # calibration patch and for 8-bit pictures, which must never be copied half-written.
         $syncWant = $(if ($script:tcOn -and $script:tcState -eq 'run' -and [object]::ReferenceEquals($pushBuf, $script:tcKeyFrame)) { 0 } else { 1 })
-        if ($syncWant -ne $script:injSync) { [void]$hv.WriteU32((HostLin $S_sync), $syncWant); $script:injSync = $syncWant; Say ("game copies the key frame {0}" -f $(if ($syncWant) { 'only when handed a new one (gated)' } else { 'on every frame of its own (no black frames)' })) DarkGray }
+        if ($syncWant -ne $script:injSync) { [void]$hv.WriteU32($hlSync, $syncWant); $script:injSync = $syncWant; Say ("game copies the key frame {0}" -f $(if ($syncWant) { 'only when handed a new one (gated)' } else { 'on every frame of its own (no black frames)' })) DarkGray }
+        # ARMED EARLY, BUT THIS FRAME IS GATED AFTER ALL (the calibration patch or an 8-bit picture from here on): the guest may
+        # copy now on the early `ready` -- the buffer still holds the whole key frame, so that copy is clean -- and nothing is
+        # written into the buffer until it has cleared it. Then this frame is handed over the old way.
+        if ($earlyArmed -and $syncWant -ne 0) {
+            $released = $hv.WaitClear($hlReady, $SyncTimeoutMs)
+            if (-not $released) { $syncTimeouts++; continue }
+            $earlyArmed = $false
+        }
         # THE KEY FRAME IS ALREADY THERE. In true colour the game is handed the same flat frame
         # every time, and nothing else writes the staging buffer once the visor boot is over --
         # so writing 1.48 MB into DOSBox per frame only to say "the same again" is skipped. The
@@ -4845,7 +5793,7 @@ function Invoke-Session {
         # ("while ready != 0") fell through instantly every iteration and the host hammered
         # 1.48 MB writes into a single-threaded emulator as fast as it could issue them,
         # until the game died. The handshake is the throttle as much as it is the signal.
-        if (-not $NoReady) { [void]$hv.WriteU32((HostLin $S_ready), 1) }
+        if (-not $NoReady -and -not $earlyArmed) { [void]$hv.WriteU32($hlReady, 1) }      # (already armed beside the camera read: THE EARLY HAND-SHAKE)
         $tmPush += $handClock.Elapsed.TotalMilliseconds; $tmFrames++
         # ---- IS THE INJECTION DESTINATION STABLE? -------------------------------
         # AztInjBody copies 1.48 MB into [0x163A34]. That is a SHARED surface pool -- four
@@ -4857,7 +5805,7 @@ function Invoke-Session {
         #
         # Read-only. If this value never changes while we inject, the theory is dead and I
         # stop suspecting it; if it moves, that is the fault.
-        $dstB = Read-AztGuest $g 0x163A34 4 -Obj2
+        $dstB = $null; if (($totalFrames % 30) -eq 0) { $dstB = Read-AztGuest $g 0x163A34 4 -Obj2 }     # (every 30th frame: a diagnostic, and an advanced function's binding costs ~0.25 ms -- 2026-10-13 audit)
         if ($dstB) {
             $dst = [BitConverter]::ToUInt32($dstB, 0)
             if (-not $dstSeen.ContainsKey($dst)) {
@@ -5017,7 +5965,8 @@ function Invoke-Session {
 # running process had no logging in it. Comparing this line against the file on disk
 # settles "is the thing I am debugging the thing I just changed" in one glance.
 Say ("Watch-HostRender built {0:yyyy-MM-dd HH:mm:ss}" -f (Get-Item $PSCommandPath).LastWriteTime) DarkGray
-Say ("watching for the game. Fov {0}, lighting {1}. Ctrl-C to stop." -f $Fov, $(if ($Light) { 'on' } else { 'off' })) Green
+Say ("watching for the game. Field of view {0} degrees{2}, lighting {1}. Ctrl-C to stop." -f $Fov, $(if ($Light) { 'on' } else { 'off' }), $(if ($script:fovGame) { " (the game's own field set to match; F12 cycles 50/60/65/70)" } else { " (the game's own)" })) Green
+if ($script:fovNote) { Say ("field of view: {0}" -f $script:fovNote) Yellow }
 $sawGame = $false; $attachClock = $null; $attachSaid = $false; $attachErr = ''
 # ---- -Launch: the game was started at the top of this script; finish what can be done before it plays
 if ($Launch) {
@@ -5083,7 +6032,7 @@ try {
                 # the boot's first frame -- art only until the game's screen is found after the boot
                 if ($script:bootHd -and -not $HudAfterBoot -and $script:ov) {
                     Start-WidePanel $script:ov
-                    # held off until the readout's "INITIATING MS-2 HELMET H.U.D.", then it slides in, its keys
+                    # held off until the readout's first line ("DEPLOYING MS-2 HELMET INTERFACE..."), then it slides in, its keys
                     # flicker on, and the health bar fills on "HEALTH SYSTEM INITIATED" (BootHd drives it)
                     if ($script:panel) { $script:panel.Blind = $true; $script:panel.HoldOff = $true; $script:bootHd.Hud = $script:panel }
                 }
@@ -5123,6 +6072,7 @@ try {
         try { [AztTool.SceneGraph]::Release() } catch { }
         try { $hv.Close() } catch { }
         $hv = $null; $g = $null
+        $script:snapOn = $false; $script:hlRapHit = 0L; $script:hlReboot = 0L      # (this attach's snapshot and host addresses end with it)
         if ($Once) { break }
         Say 'waiting for the next game' Green
     }

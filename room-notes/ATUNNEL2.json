@@ -1,0 +1,350 @@
+{
+    "schema":  2,
+    "room":  "ATUNNEL2",
+    "rev":  14,
+    "nextId":  5,
+    "notes":  [
+
+              ],
+    "completed":  [
+                      {
+                          "id":  1,
+                          "ref":  "ATUNNEL2/1",
+                          "status":  "complete",
+                          "created":  "2026-10-14T05:17:56.8656945Z",
+                          "updated":  "2026-10-14T05:53:16.0880417Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -33.18,
+                                        -63.73,
+                                        -56.37
+                                    ],
+                          "normal":  [
+                                         0.557,
+                                         0.822,
+                                         0.117
+                                     ],
+                          "part":  "top07",
+                          "material":  "FLOOR1",
+                          "texture":  "10-ecrflr01.png",
+                          "uv":  [
+                                     0.64,
+                                     0.508
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -5.61,
+                                                     -21.17,
+                                                     174.04
+                                                 ],
+                                         "fwd":  [
+                                                     -0.03,
+                                                     -0.05,
+                                                     -1
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -5.61,
+                                                         "Y":  -21.17,
+                                                         "Z":  174.04,
+                                                         "Yaw":  -178.21,
+                                                         "Pitch":  -2.79
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -16.46,
+                                                        "y":  -39.07,
+                                                        "z":  -52.87,
+                                                        "dir":  [
+                                                                    0.979,
+                                                                    0,
+                                                                    0.205
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:37.0349382Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "This entire room will essentially need the same treatment as the coricori room, but no drips, just with the mood y bounce lighting",
+                                          "at":  "2026-10-14T05:17:56.8656945Z",
+                                          "shot":  "ATUNNEL2-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done, CORICORI\u0027s treatment without the drips: the black air and the painted darkness (the dark the original art paints, made real in the fog), and the art\u0027s own light and shade lighting the walls (as MINEHEAD and WELLROOM). One thing to know: CORICORI\u0027s moody bounce comes from its torches and the ceiling shaft, and this tunnel has no lights of its own -- so there is nothing yet to bounce. The bounced light is set up and starts the moment a light is placed: drop a note where you want one (a torch, a faint glow at the far end) and it will fill the tunnel the way CORICORI\u0027s torches do. At CORICORI\u0027s fog strength this tunnel went black, so the fog here is about a third of that -- gloom you can still read.",
+                                          "at":  "2026-10-14T05:53:16.0880417Z",
+                                          "changes":  [
+                                                          "rooms\\ATUNNEL2.json (new): volume + paint (lighter than CORICORI), artLight, gi (waits for a light), drips off, fog off"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "ATUNNEL2-1-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:42:36.3006995Z"
+                      },
+                      {
+                          "id":  3,
+                          "ref":  "ATUNNEL2/3",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:27:35.0278093Z",
+                          "updated":  "2026-10-14T21:00:58.2133400Z",
+                          "kind":  "other",
+                          "point":  [
+                                        53.17,
+                                        -9.04,
+                                        -633.19
+                                    ],
+                          "normal":  [
+                                         -0.981,
+                                         -0.121,
+                                         0.154
+                                     ],
+                          "part":  "tun_06",
+                          "material":  "1T_TUNNEL_WALL01",
+                          "texture":  "14-at_wall.png",
+                          "uv":  [
+                                     0.491,
+                                     0.733
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -175.12,
+                                                     138.97,
+                                                     -408.98
+                                                 ],
+                                         "fwd":  [
+                                                     0.73,
+                                                     -0.64,
+                                                     -0.24
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -175.12,
+                                                         "Y":  138.97,
+                                                         "Z":  -408.98,
+                                                         "Yaw":  108.29,
+                                                         "Pitch":  -39.84
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  23.75,
+                                                        "y":  -12.66,
+                                                        "z":  -628.57,
+                                                        "dir":  [
+                                                                    -0.988,
+                                                                    0,
+                                                                    0.155
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:37.0349382Z",
+                                       "roomFileMtime":  "2026-10-14T05:45:11.1541825Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Place torch here with same animation, glow, flicker, and bounce lighting as other torches. Torches in this room need to be at the same height.",
+                                          "at":  "2026-10-14T20:27:35.0278093Z",
+                                          "shot":  "ATUNNEL2-3-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. A torch here, the same as the other rooms\u0027 torches: the iron sconce with its flame, the warm flickering light 15 out from the wall, with shadows, and its bounce through the room\u0027s bounced light (the gi block was waiting for a light). Both torches in this room are at the same height, y -9.2.",
+                                          "at":  "2026-10-14T21:00:58.2133400Z",
+                                          "changes":  [
+                                                          "rooms\\ATUNNEL2.json lights[0]: torch at 38.35, -9.2, -630.86 facing -0.988, 0, 0.155"
+                                                      ],
+                                          "round":  27,
+                                          "render":  "ATUNNEL2-3-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.3302358Z"
+                      },
+                      {
+                          "id":  4,
+                          "ref":  "ATUNNEL2/4",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:42:21.8930827Z",
+                          "updated":  "2026-10-14T21:01:11.0729504Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -58,
+                                        -9.34,
+                                        -57.46
+                                    ],
+                          "normal":  [
+                                         0.989,
+                                         -0.068,
+                                         0.129
+                                     ],
+                          "part":  "tun_803",
+                          "material":  "1T_TUNNEL_WALL01",
+                          "texture":  "14-at_wall.png",
+                          "uv":  [
+                                     0.502,
+                                     0.731
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     352.13,
+                                                     216.04,
+                                                     -41.31
+                                                 ],
+                                         "fwd":  [
+                                                     -0.8,
+                                                     -0.6,
+                                                     -0.03
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  352.13,
+                                                         "Y":  216.04,
+                                                         "Z":  -41.31,
+                                                         "Yaw":  -91.99,
+                                                         "Pitch":  -36.76
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -28.32,
+                                                        "y":  -11.4,
+                                                        "z":  -53.59,
+                                                        "dir":  [
+                                                                    0.992,
+                                                                    0,
+                                                                    0.129
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:37.0349382Z",
+                                       "roomFileMtime":  "2026-10-14T05:45:11.1541825Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Place torch here with same animation, glow, flicker, and bounce lighting as other torches. All torches in this room at same height",
+                                          "at":  "2026-10-14T20:42:21.8930827Z",
+                                          "shot":  "ATUNNEL2-4-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. The second torch, the same recipe and the same height (y -9.2) as the one on tun_06.",
+                                          "at":  "2026-10-14T21:01:11.0729504Z",
+                                          "changes":  [
+                                                          "rooms\\ATUNNEL2.json lights[1]: torch at -43.12, -9.2, -55.52 facing 0.992, 0, 0.129"
+                                                      ],
+                                          "round":  27,
+                                          "render":  "ATUNNEL2-4-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.3462837Z"
+                      }
+                  ],
+    "deleted":  [
+                    {
+                        "id":  2,
+                        "ref":  "ATUNNEL2/2",
+                        "status":  "new",
+                        "created":  "2026-10-14T20:26:59.3144624Z",
+                        "updated":  "2026-10-14T20:26:59.3144624Z",
+                        "kind":  "light",
+                        "point":  [
+                                      51.87,
+                                      0.49,
+                                      225.52
+                                  ],
+                        "normal":  [
+                                       -0.981,
+                                       -0.121,
+                                       0.154
+                                   ],
+                        "part":  "tun_802",
+                        "material":  "1T_TUNNEL_WALL01",
+                        "texture":  "14-at_wall.png",
+                        "uv":  [
+                                   0.488,
+                                   0.799
+                               ],
+                        "target":  null,
+                        "camera":  {
+                                       "pos":  [
+                                                   -191.98,
+                                                   67.32,
+                                                   366.58
+                                               ],
+                                       "fwd":  [
+                                                   0.82,
+                                                   -0.42,
+                                                   -0.39
+                                               ],
+                                       "up":  [
+                                                  0,
+                                                  1,
+                                                  0
+                                              ],
+                                       "fov":  60,
+                                       "mirror":  true,
+                                       "gpuLook":  {
+                                                       "X":  -191.98,
+                                                       "Y":  67.32,
+                                                       "Z":  366.58,
+                                                       "Yaw":  115.84,
+                                                       "Pitch":  -25.02
+                                                   }
+                                   },
+                        "suggest":  {
+                                        "light":  {
+                                                      "x":  22.45,
+                                                      "y":  -3.13,
+                                                      "z":  230.13,
+                                                      "dir":  [
+                                                                  -0.988,
+                                                                  0,
+                                                                  0.155
+                                                              ]
+                                                  }
+                                    },
+                        "seen":  {
+                                     "objMtime":  "2026-10-05T03:20:37.0349382Z",
+                                     "roomFileMtime":  "2026-10-14T05:45:11.1541825Z"
+                                 },
+                        "log":  [
+                                    {
+                                        "who":  "josh",
+                                        "text":  "Place torch here with same animation, glow, flicker, and bounce lighting as other torches.",
+                                        "at":  "2026-10-14T20:26:59.3144624Z",
+                                        "shot":  "ATUNNEL2-2-0.png"
+                                    }
+                                ]
+                    }
+                ]
+}

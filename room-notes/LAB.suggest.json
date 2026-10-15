@@ -1,0 +1,51 @@
+{
+    "schema":  1,
+    "room":  "LAB",
+    "made":  "2026-10-14T13:55:30.6758350Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.6,
+                            "point":  [
+                                          30.4,
+                                          -10.9,
+                                          -55.03
+                                      ],
+                            "normal":  [
+                                           0.698,
+                                           0.272,
+                                           -0.663
+                                       ],
+                            "part":  "flask02",
+                            "material":  "EARTH",
+                            "texture":  "15-lb_earth.png",
+                            "uv":  [
+                                       0.645,
+                                       0.369
+                                   ],
+                            "crop":  [
+                                         64,
+                                         145,
+                                         93,
+                                         177,
+                                         128,
+                                         256
+                                     ],
+                            "faces":  4,
+                            "why":  "a round painted glow (3.4x the art\u0027s level)",
+                            "light":  {
+                                          "x":  40.87,
+                                          "y":  -6.83,
+                                          "z":  -64.97,
+                                          "color":  "#FDFFE2",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

@@ -28,9 +28,9 @@
 - [Story log scrollback](azrael-story-log-scrollback.md) - negative draw Y = source offset; Patch-Imm32 -Lin is the INSTRUCTION.
 - [HUD reskin pipeline](azrael-hud-reskin.md) - Build-HudSkin/HudButtons; the artwork's layout drives engine coords.
 - [Texture cache reserve](azrael-texture-cache-reserve.md) - big-room crash: cache takes largest block - 4.5 MB; capturing the OOM printout.
-- [Conversation UI](azrael-conversation-ui.md) - option Y table at +0x59; ESC skips; log fonts palette 1..56 only.
+- [Conversation UI](azrael-conversation-ui.md) - option Y table at +0x59; ESC skips; log fonts palette 1..56 only; red lock brackets removed (0x155DC); box opens once options print (aztConvBox); amber recording cue (ConvTag, -NoConvCue); option clicks need hot-spot screen 5's quad = exactly the open recess (was 14 rows low: first option dead).
 - [AztNow wraps](azrael-aztnow-wraps.md) - BIOS midnight tick wraps ~71.6 min; compare elapsed, never store now+duration.
-- [Music](azrael-music.md) - all MIDI; MDI.INI DRIVER picks the score; level-match soundfonts before judging.
+- [Music](azrael-music.md) - all MIDI; MDI.INI DRIVER picks the score; level-match soundfonts before judging; under the CD soundtrack the MIDI is held at 0 at all six of the game's volume calls (midi-quiet-*), only F4 brings it back; music default 30%.
 - [Resolution asserts](azrael-resolution-asserts.md) - classify regions by aspect, not pixel size; HudArt before HudSkin.
 - [Geometry export](azrael-geometry-export.md) - working OBJ of a live room; PS comma-precedence traps.
 - [Animation format](azrael-animation-format.md) - three head/tail key lists (+0x2C/+0x34/+0x3C); a list ends at its TAIL.
@@ -69,7 +69,7 @@
 - [1600x1200](azrael-1600x1200.md) - VESA 0x120; ceiling was stride-1024 in overlay asm; BIOS-query a mode offline.
 - [Tier A host render](azrael-tier-a-host-render.md) - host renders, 8-bit injection; aztSup3D = host's 3D kill switch.
 - [3D block anatomy + A/B](azrael-3d-block-anatomy.md) - 0x3F0D0 CLEAR, 0x3F1B0 scene pass; tagged-FPS A/B harness.
-- [Host FOV calibration](azrael-host-fov-calibration.md) - FOV is 50 (measured); check alignment before tone.
+- [Host FOV calibration](azrael-host-fov-calibration.md) - the ORIGINAL FOV is 50 (measured); check alignment before tone. Now 60: [[azrael-fov]].
 - [Render scale + cache allocator](azrael-render-scale.md) - divisor 0x10FEC; cache is a fragmenting first-fit list.
 - [Characters in host render](azrael-characters-host-render.md) - ZZ%04d+bone = rig instance; .ANI FILE picks the .xaf.
 - [Room unit cache](azrael-room-unit-cache.md) - room changes 4-24 ms via cached .unit files; -CaptureRef.
@@ -77,7 +77,7 @@
 - [Doorway portals + smoothing](azrael-doorway-portals.md) - smoothing ON; live doorways OFF (-Portals), joins never line up.
 - [Floors + stale scene root](azrael-floor-needs-engine-draw.md) - AztFallGate on the 18 Hz tick; never cache guest pointers across loads.
 - [Render audit](azrael-render-audit.md) - live -Audit + offline Test-RoomHoles.
-- [Helmet lamp](azrael-helmet-lamp.md) - room level + eye spotlight via light table.
+- [Helmet lamp](azrael-helmet-lamp.md) - room level + eye spotlight via light table; STARTS OFF (session start + new game boot), F on; -LampStartsOn.
 - [Texture filtering](azrael-texture-filter.md) - dithered blend close + palette mips far; F7 A/B.
 - [Water reflections](azrael-water-reflections.md) - planar mirrors in WATER/LIQUID parts via the portal mask.
 - [True colour](azrael-true-colour.md) - host's click-through window over the viewport; game gets a key colour.
@@ -92,15 +92,15 @@
 - [New HUD](azrael-hud-new.md) - HUD_NEW/GLOW, now v3 art via Build-HudV3.ps1 (16:10 mapping).
 - [Host pointer](azrael-host-pointer.md) - full-width mouse with no game code; broke hover/pickup -> off (-HostPointer).
 - [GPU default + boot](azrael-gpu-default-boot.md) - true colour default (-Retro = 8-bit); boot via the overlay.
-- [GPU boot](azrael-gpu-boot.md) - host's own boot (BootHd.cs), synced to aztBootEl; watcher -Launch.
-- [Scanner wireframe](azrael-scan-wire.md) - scans as rigs/item sets; texts from DESCRIPT.ZAP / OBJECTS.DAT.
+- [GPU boot](azrael-gpu-boot.md) - host's own boot (BootHd.cs), synced to aztBootEl; watcher -Launch. New game: the raptor gets up (host-only tilt + visor dust) before WEAPON SYSTEMS ONLINE; -NoStandUp. 2026-10-14: raptor SELF SCAN (RAPTOR.XAF via ScanWire.RigEdges) replaces the right-hand grail during the readout; grail = faint burn-in at the old afterimage pose MIRRORED (lower right, GrailX/Y/Size) from the briefing, same place through the reveal, shatters as before; raptor -75 / readout -60 game px left (round 3 lean + centred pair REVERTED); round 4: briefing grail grows 0.5->0.75 then LOSES SIGNAL (break-up + GrailStatic), afterimage back from nothing 100 px higher; flare mirrored, reveal degauss x1.5.
+- [Scanner wireframe](azrael-scan-wire.md) - scans as rigs/item sets; texts from DESCRIPT.ZAP / OBJECTS.DAT; Spin 1.25 / AnimHz 14 (slowed 2026-10-13); a set's SNIFF plays after its walk (SetExtra).
 - [Silent SB + muzzle flash](azrael-gun-sound.md) - NEVER suspend DOSBox (killed SB audio); muzzle flash = uFlash; stale title clicks fired the gun -> ClearGameInput.
 - [Loading voice + track](azrael-loading-voice.md) - voice over Josh's track; MCI MP3 fails here, ship WAV.
 - [HUD slide-in sound](azrael-hud-gears-sound.md) - ratchet.mp3 on slide-in; boot mixer is stereo.
 - [Player shadow](azrael-player-shadow.md) - raptor body from placed lights (cube maps), fixed size, floor-following.
 - [Book view black](azrael-book-view-black.md) - close-ups = [0x15257C]; world behind black; page drawn over the panel.
 - [Volumetric fog](azrael-volumetric-fog.md) - black absorbing fog + light scatter; 'volume' block; room level held.
-- [Room Review](azrael-room-review.md) - viewer + notes in ROUNDS: Start-RoomRound -> edit rooms\*.json -> Reply-RoomNote. GAME LOOK (G): live frames from RoomLookWorker.ps1, the game's renderer + switches 5/6/7/8/L.
+- [Room Review](azrael-room-review.md) - viewer + notes in ROUNDS: Start-RoomRound -> edit rooms\*.json -> Reply-RoomNote. GAME LOOK (G): live frames from RoomLookWorker.ps1, the game's renderer + switches 5/6/7/8/L. Wireframe = MAP LOOK (Export-MapView.ps1, /mapview).
 - [Modern water](azrael-modern-water.md) - Fresnel ripples, glints, under-water glow, caustics; per-room 'water' block.
 - [Josh's hi-res textures](azrael-josh-hires-textures.md) - decals\<ROOM>\updated (or 4k-2k) -> hires via Fit-RoomTextures at 4096; keyed (_key) art via Fill-KeyedTexture; check with Test-TextureCoverage; CORICORI + MINEMAZE + the opening rooms (10-12) done at 4K and 2K; Normal (2K) / Ultra (4K); install ONE leaf per picture: twins on the old upscale follow (loader alias).
 - [Optimisation pass](azrael-optimisation-pass.md) - card presents into its own window, half-size fog, 5.5 M picture.
@@ -113,12 +113,12 @@
 - [Light from the artwork](azrael-art-light.md) - original art's painted light/shade shades room level + bounce per texel (artLight); paint has its own colour. MINEHEAD r20.
 - [ORRERY room](azrael-orrery-room.md) - golden cone + colour-cycling blobs (light key 'cycle'); parked parts broke the GI grid (fixed); puzzle full-screen is a separate task.
 - [HUD vector text](azrael-hud-vector-text.md) - log decoded from the game's surface; host lays it out in the ART's recess (LogOwn), own scrolling; -NoHostText/-NoLogLayout.
-- [System menu + keys](azrael-system-menu.md) - visor system menu over the fold-out (hot spots moved in guest memory at run time, retro untouched); ESC = menu, E = log box (in-place key patch); wheel scroll; the confirm key waits with a revolving amber sheen (VisorMenu.Sheen).
+- [System menu + keys](azrael-system-menu.md) - visor system menu over the fold-out (hot spots moved in guest memory at run time, retro untouched); ESC = menu, E = log box (in-place key patch); wheel scroll; the confirm key waits with a revolving amber sheen (VisorMenu.Sheen); a stale q quit request (0x15259A) cleared so ESC never opens into quit; sliders end their drag on release.
 - [WELLROOM](azrael-wellroom.md) - well water is part 'death' -> water.parts; paint fog weak in small rooms, artLight does it.
 - [Ghost (Niamh)](azrael-ghost.md) - room 'ghost' block: card draws a rig as glowing smoke + wisps + dim light; sizes = shares of her height; -NoGhost.
 - [Damaged visor](azrael-visor-damage.md) - health-driven cracks/broken corner/hit static/vitals ECG in the card's PRESENT pass; -NoVisorDamage.
-- [Title menu](azrael-title-menu.md) - 4K title + Continue/Load via title-loop hold + cmd 16 on frame 1; movie player ignores the skip flag (load bit 2); COPY overlay.sym.
-- [RaptorMod repo](raptormod-repo.md) - git repo papertelevision/raptormod; work on dev; NEVER commit/push until Josh says; asset pack + Setup-Machine; junctions; docs/notes.
+- [Title menu](azrael-title-menu.md) - 4K title + Continue/Load via title-loop hold + cmd 16 on frame 1; grail gold flakes (GrailFx, GrailSpeed 0.7, own repaint rect, -NoGrailDust) + flickering light on his face + helmet (GrailGlow, multiplied not screened, GlowPace 0.5, -NoGrailGlow); foreground bokeh lower left (ForeDust: 34 blurred discs composited by hand into a layer at 40 fps -- GDI+ alpha/scaled sprites cost 8-22 ms a pass); movie player ignores the skip flag (load bit 2); COPY overlay.sym.
+- [RaptorMod repo](raptormod-repo.md) - git repo papertelevision/raptormod; work on dev-next (dev squash-merged as #1); never name Claude in commits/PRs; NEVER commit/push until Josh says; asset pack + Setup-Machine; junctions; docs/notes.
 - [Vector cursors](azrael-vector-cursors.md) - the game's 30 cursors as animated vectors (CursorIcons.cs); bitmaps blanked; EVERY blit raises 'pointer hidden' (debounce); tell the panel via Overlay.GameCursorBlank; all loop (play, 1.5 s, play); SPACE = weapon out = no pick-up cursor; host Space guard (Keys.cs) 1 s after spoken lines (-NoSpaceGuard); -NoIconCursor.
 - [Leaving DOSBox](azrael-leaving-dosbox.md) - 3 tiers assessed 2026-10-11; Tier 1 (emulator core in our app) CHOSEN for 2.0; story layer unreversed blocks Unity.
 - [RaptorMod roadmap](raptormod-roadmap.md) - 1.0 = Steam DOSBox patch (fixes + 2K/4K texture tiers); 2.0 = no DOSBox + effects/polish; Unity later. No deep DOSBox-only fixes in 1.0.
@@ -128,4 +128,16 @@
 - [Materials + shine](azrael-materials.md) - texture plan phases 1-4 (Josh reviews each); phase 1: rooms\_materials.json tags, lamp/light highlights, companion maps _rough/_height/_glow (Fit-RoomTextures carries them); F6 / -NoShine. Phase 2 wet: rooms' "wet", SetGround floor map, F5 / -NoWet / -WetDebug.
 - [Texture repair (phase 3)](azrael-texture-repair.md) - Test-TextureTiling audit; GpuRaster.SetRelay folds smeared/stretched faces off an intact neighbour, evens stretched runs, mixes clean repeats; fold only round a corner, never beside a flush intact face; F11 / -NoRepair / room "repair". SHARED ART fixed: TexTwins.cs alias, an old-upscale (exactly 4x) leaf loads a twin's new art (342 leaves, index texture-twins-hires.tsv, 5 ms a load).
 - [Parallax depth (phase 4a)](azrael-parallax-depth.md) - POM from per-texture height maps (companion _height, else the art's GROOVES by closing; brightness-as-height failed); F7 with the relief; ONLY stone/floor/rock walls+floors (material "parallax", SetParallaxShell area test, plank grain check; "parallax" on/off lists by hand); -NoParallax / room "parallax". 4b (painted-view depth) REMOVED: never re-propose.
-- [Visor materializes the room](azrael-materialize.md) - room cover 100% / loaded game / new game boot: teal wire front (also THROUGH WALLS: DrawXray, hidden edges only) + texture front + trail + specks, water too, "Scanning..." label (ScanTag, present pass). LOADS: HUD (BootHd.HudWait) + dark glass (MatHold) held until the view is STEADY, then the panel goes; -NoMaterialize.
+- [Visor materializes the room](azrael-materialize.md) - room cover 100% / loaded game / new game boot: teal wire front (also THROUGH WALLS: DrawXray, hidden edges only) + texture front + trail + specks, water too, "Mapping environment..." label (ScanTag, present pass, CENTRED above the panel; also the map's and the echo's badges). LOADS: HUD (BootHd.HudWait) + dark glass (MatHold) held until the view is STEADY, then the panel goes; -NoMaterialize.
+- [Field of view 60](azrael-fov.md) - the GAME's field set every frame from the host's tan (AztFovTick/aztFovTan): clicks stay lined up; F12 50/60/65/70 (Josh: 65 in his settings); -Retro 50; RL field = half-extent of the LONGER side.
+- [NPC pace](azrael-npc-pace.md) - all characters 100% (stock; 95 before 2026-10-13) (AztActorGate + AztNpcStride, one rate); room "npcs" (speed share, pauses, pauseAnim) -> aztNpcTab; the overlay pauses AND restarts (no WANDER on EUGENE: v1 froze them); CORICORI creatures 0.6 (sniff 0.8) with SNIFF pauses; characters drawn by STEADY PLAYBACK of their poses (Smoother.Adaptive, -NoSteadyPlay); scripted moves skip the per-char AI share (EUGBLD 11-52, .ANI line added at install); aztPeriod 101-200 = 50% trap.
+- [Git Bash sed strips CRLF](git-bash-sed-crlf.md) - never sed -i repo files; check git ls-files --eol.
+- [Installer -First trap](installer-select-first-trap.md) - Select-Object -First halts Apply-AztMod mid-install; verify the installed overlay.
+- [Performance audit](azrael-perf-audit.md) - 2026-10-13: CPU/PowerShell-bound (loop start 4.8 ms; card never timed); 16 look-identical fixes + 2nd pass: early handshake (-NoEarlyReady) + C# WaitClear, guest snapshot (HostView.Snap*), C# lights (RoomLightSet), FrameStep.ComposePresent; next: pose spans, GL timers.
+- [3D map](azrael-map-3d.md) - map button -> room as scan wireframe over the dimmed frozen view (GpuRaster.DrawMap, cut-away), doors from portals.json, drag (RawMouse) to turn; screen 6 click region moved onto the MAP button at run time; map flag 0x1525F2 + MAPS.DAT RE; ALL rooms; doorway pictures / black* occluders / stray (parked) parts / characters left out (Get-AztMapSkip, MapStrayParts); visor lights: one ribbed teal pulse per corner horn runs out in a widening fan off the screen, then faint flickering spotlights; "Accessing Map Data..." badge (MapBeam*, -NoMapLights).
+- [Light kinds](azrael-light-kinds.md) - wall washes ("wash": true, 16 past the 8-light cap, no shadow), glass in holes, oneSided, gate (window band; BAPTIST has no ceiling), volume.airInRoom. Round 25.
+- [Phase 1 life effects](azrael-phase1-life.md) - reactive dust (Particles/Motes push, reactDust), eye shine (EyeShine, EUEYE stale -> head fallback), shot impacts (PickHit, sparks, AddScorch, ImpactK wash), visor condensation (VisorFog, FS_PRESENT condense). 2026-10-14.
+- [Phase 2: echo scan + complex map](azrael-phase2-echo-complex.md) - V = sonar ping, amber shell (uEcho) + doors/items/creatures outlined through walls (FS_ECHO); map zoom-out shows visited rooms placed by portals.json m (Get-AztComplex, visited-rooms.json). 2026-10-14.
+- [Wireframe "7" reference](wireframe-7-style.md) - Josh: "keep for later": orange extruded 7, solid visible edges, DASHED hidden edges, on black; copy in docs\reference.
+- [DrawImageUnscaled DPI trap](gdi-drawimageunscaled-dpi-trap.md) - it scales by the bitmap's stored DPI (96/144 by launch): the loading screen drew at 2/3 off-centre. Use Blit (pixel rect).
+- [Footsteps](azrael-footsteps.md) - host-made steps by floor (stone/tile/wood/metal/water): BootHd.cs Footsteps, rooms\_footsteps.json names the tile/wood painted floors (materials untouched), room "footsteps"; game SFX setting obeyed; -NoFootsteps/-FootstepVolume. NEW room keys go in Get-RoomAtmosphere's first object too (pscustomobject throws).

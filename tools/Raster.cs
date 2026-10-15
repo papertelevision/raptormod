@@ -602,6 +602,11 @@ namespace AztTool
             /// <summary>Casts no shadow (the graphics card's shadow views leave it out): a torch sconce's iron and coals --
             /// Josh, Room Review MINEMAZE/4: its round parts made a 'blobby' shadow; only the wooden stake casts.</summary>
             public bool NoCast;
+            /// <summary>GLASS IN ITS HOLES (2026-10-14, Josh, Room Review BAPTIST/1: the windows' pale panes "transparent with 30%
+            /// opacity"): above 0, the graphics card draws the texels CutHoles opened as a pane at this share of their own colour
+            /// (times GlassTint, the light behind it), unlit -- while the shadow views and the bounce still take them as holes, so
+            /// light passes. 0 = holes are holes.</summary>
+            public float Glass; public int GlassTint = 0xFFFFFF;
             /// <summary>Worn by a GHOST (a room's "ghost" block names the character): the graphics card leaves it out of the
             /// picture, the shadow views and the reflections and draws it as glowing smoke instead (GpuRaster.GhostOn).
             /// The processor's picture draws it as it always did.</summary>
@@ -691,13 +696,19 @@ namespace AztTool
             {
                 if (IdxOrig == null) IdxOrig = (byte[])Idx.Clone();
                 var idx = (byte[])IdxOrig.Clone(); int n = 0;
-                int x0 = box != null ? Math.Max(0, box[0]) : 0, y0 = box != null ? Math.Max(0, box[1]) : 0, x1 = box != null ? Math.Min(W - 1, box[2]) : W - 1, y1 = box != null ? Math.Min(H - 1, box[3]) : H - 1;
-                for (int y = y0; y <= y1; y++)
-                    for (int x = x0; x <= x1; x++)
-                    {
-                        int i = y * W + x, k = idx[i] * 3; if (idx[i] == 0) continue;
-                        if (0.30 * pal[k] + 0.59 * pal[k + 1] + 0.11 * pal[k + 2] >= minLum) { idx[i] = 0; n++; }
-                    }
+                // (box: one x0 y0 x1 y1, or several one after another -- BAPTIST's three windows, 2026-10-14)
+                int nb = box != null && box.Length >= 4 ? box.Length / 4 : 1;
+                for (int bi = 0; bi < nb; bi++)
+                {
+                    int o = bi * 4;
+                    int x0 = box != null ? Math.Max(0, box[o]) : 0, y0 = box != null ? Math.Max(0, box[o + 1]) : 0, x1 = box != null ? Math.Min(W - 1, box[o + 2]) : W - 1, y1 = box != null ? Math.Min(H - 1, box[o + 3]) : H - 1;
+                    for (int y = y0; y <= y1; y++)
+                        for (int x = x0; x <= x1; x++)
+                        {
+                            int i = y * W + x, k = idx[i] * 3; if (idx[i] == 0) continue;
+                            if (0.30 * pal[k] + 0.59 * pal[k + 1] + 0.11 * pal[k + 2] >= minLum) { idx[i] = 0; n++; }
+                        }
+                }
                 Idx = idx; return n;
             }
             /// <summary>The holes CutHoles made, undone (the room no longer asks for them).</summary>
@@ -1618,6 +1629,45 @@ namespace AztTool
         // now set. -1 if none. For asking "what does the HOST have under the cursor" when the
         // game's own pick disagrees with the picture. One pixel, so no need to be clever;
         // a triangle that crosses the near plane is simply skipped.
+        /// <summary>WHERE A SHOT LANDS (2026-10-14, Josh: "sparks, a brief glow and scorch marks that fade where your shots hit
+        /// stone"): the ray from the eye through picture pixel (sx, sy), as this camera draws it, against the room as posed --
+        /// the nearest hit within limit: its point, its face's normal turned toward the eye, and the triangle (-1 = none).</summary>
+        public int PickHit(float[] vx, int[] idx, int[] triTex, float sx, float sy, float limit, out float hx, out float hy, out float hz, out float nx, out float ny, out float nz)
+        {
+            hx = hy = hz = nx = ny = nz = 0f;
+            float fpx = _focal * VHf * 0.5f, xv = (sx - W * 0.5f) / fpx, yv = (VHf * 0.5f - sy) / fpx;
+            float rx = _view[0], ry = _view[4], rz = _view[8], ux = _view[1], uy = _view[5], uz = _view[9], fx = _view[2], fy = _view[6], fz = _view[10];
+            float ex = -(_view[12] * rx + _view[13] * ux + _view[14] * fx), ey = -(_view[12] * ry + _view[13] * uy + _view[14] * fy), ez = -(_view[12] * rz + _view[13] * uz + _view[14] * fz);
+            float dx = rx * xv + ux * yv + fx, dy = ry * xv + uy * yv + fy, dz = rz * xv + uz * yv + fz, dl = (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            dx /= dl; dy /= dl; dz /= dl;
+            float best = limit; int bt = -1; int nTri = idx.Length / 3;
+            for (int t = 0; t < nTri; t++)
+            {
+                if (triTex[t] < 0) continue;
+                int a = idx[t * 3] * 3, b = idx[t * 3 + 1] * 3, c = idx[t * 3 + 2] * 3;
+                float e1x = vx[b] - vx[a], e1y = vx[b + 1] - vx[a + 1], e1z = vx[b + 2] - vx[a + 2];
+                float e2x = vx[c] - vx[a], e2y = vx[c + 1] - vx[a + 1], e2z = vx[c + 2] - vx[a + 2];
+                float qhx = dy * e2z - dz * e2y, qhy = dz * e2x - dx * e2z, qhz = dx * e2y - dy * e2x;
+                float det = e1x * qhx + e1y * qhy + e1z * qhz;
+                if (det > -1e-7f && det < 1e-7f) continue;
+                float inv = 1f / det;
+                float px = ex - vx[a], py = ey - vx[a + 1], pz = ez - vx[a + 2];
+                float u = (px * qhx + py * qhy + pz * qhz) * inv; if (u < 0f || u > 1f) continue;
+                float qx = py * e1z - pz * e1y, qy = pz * e1x - px * e1z, qz = px * e1y - py * e1x;
+                float v = (dx * qx + dy * qy + dz * qz) * inv; if (v < 0f || u + v > 1f) continue;
+                float d = (e2x * qx + e2y * qy + e2z * qz) * inv;
+                if (d > NearZ && d < best)
+                {
+                    best = d; bt = t;
+                    nx = e1y * e2z - e1z * e2y; ny = e1z * e2x - e1x * e2z; nz = e1x * e2y - e1y * e2x;
+                }
+            }
+            if (bt < 0) return -1;
+            float nl = (float)Math.Sqrt(nx * nx + ny * ny + nz * nz); if (nl < 1e-9f) { nx = -dx; ny = -dy; nz = -dz; nl = 1f; }
+            nx /= nl; ny /= nl; nz /= nl; if (nx * dx + ny * dy + nz * dz > 0f) { nx = -nx; ny = -ny; nz = -nz; }
+            hx = ex + dx * best; hy = ey + dy * best; hz = ez + dz * best;
+            return bt;
+        }
         public int TriAt(float[] vx, int[] idx, int[] triTex, int px, int py)
         {
             int best = -1; float bestIz = 0f;

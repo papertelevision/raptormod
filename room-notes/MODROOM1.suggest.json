@@ -1,0 +1,135 @@
+{
+    "schema":  1,
+    "room":  "MODROOM1",
+    "made":  "2026-10-14T13:55:34.2875648Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          15.39,
+                                          -99.63,
+                                          -25.24
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "cheese07",
+                            "material":  "AQUADOOR",
+                            "texture":  "28-aqudoor.png",
+                            "uv":  [
+                                       0.512,
+                                       0.518
+                                   ],
+                            "crop":  [
+                                         50,
+                                         114,
+                                         82,
+                                         133,
+                                         128,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (2.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  30.39,
+                                          "y":  -99.63,
+                                          "z":  -25.24,
+                                          "color":  "#FFC196",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "glow",
+                            "confidence":  0.62,
+                            "point":  [
+                                          -96.49,
+                                          -9.55,
+                                          50.63
+                                      ],
+                            "normal":  [
+                                           0.707,
+                                           0,
+                                           -0.707
+                                       ],
+                            "part":  "wall02",
+                            "material":  "MOD_CHIMWALL01",
+                            "texture":  "50-mod_pois.png",
+                            "uv":  [
+                                       0.588,
+                                       0.392
+                                   ],
+                            "crop":  [
+                                         132,
+                                         294,
+                                         173,
+                                         331,
+                                         256,
+                                         512
+                                     ],
+                            "faces":  3,
+                            "why":  "a round painted glow (3.2x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -85.88,
+                                          "y":  -9.55,
+                                          "z":  40.02,
+                                          "color":  "#FFEFA7",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "glow",
+                            "confidence":  0.55,
+                            "point":  [
+                                          -81.99,
+                                          -3.33,
+                                          -116.64
+                                      ],
+                            "normal":  [
+                                           0.707,
+                                           0,
+                                           0.707
+                                       ],
+                            "part":  "wall04",
+                            "material":  "MOD_VESTWALL01",
+                            "texture":  "49-mod_vest.png",
+                            "uv":  [
+                                       0.58,
+                                       0.415
+                                   ],
+                            "crop":  [
+                                         133,
+                                         277,
+                                         174,
+                                         325,
+                                         256,
+                                         512
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.4x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -71.38,
+                                          "y":  -3.33,
+                                          "z":  -106.04,
+                                          "color":  "#FFF6B4",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

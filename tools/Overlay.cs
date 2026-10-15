@@ -187,6 +187,8 @@ namespace AztTool
         /// covers with its own picture: the save's ~3 s of file writing, Josh 2026-10-09 -- hidden, the game's 8-bit screen showed).</summary>
         public long HoldFreshUntil;
         public int LastKey;                     // the key colour measured on the last frame (0xRRGGBB)
+        /// <summary>The key the host hands the game (0xRRGGBB; -1 = none): see-through too, whatever the commonest colour is (as GpuRaster.KeyAlso).</summary>
+        public int KeyAlso = -1;
         /// <summary>FLICKER WATCH. Screen readings rejected because part of the view had turned
         /// pure black where the reading before held the key (a reading caught while DOSBox was
         /// redrawing: laid over the picture it would flash that part black); and how often the
@@ -577,6 +579,7 @@ namespace AztTool
             return best;
         }
 
+        readonly Dictionary<int, int> _hist = new Dictionary<int, int>(64); bool[] _spareKeySamp;
         bool ReadOnce()
         {
             int[] buf = _surfRead; long addr = _vpAddr; int st = _stridePx;
@@ -585,7 +588,7 @@ namespace AztTool
             if (!ReadProcessMemory(_proc, new IntPtr(addr), buf, new IntPtr(bytes), out got) || got.ToInt64() != bytes) { _consecFails++; return false; }
             ReadMs = sw.Elapsed.TotalMilliseconds;
             // the key: the commonest colour among a grid of samples
-            var hist = new Dictionary<int, int>(64); int samples = 0, key = 0, keyN = 0;
+            var hist = _hist; hist.Clear(); int samples = 0, key = 0, keyN = 0;          // (one dictionary, kept: ~128 readings a second -- 2026-10-13 audit)
             for (int y = 4; y < _h; y += 8)
             {
                 int r = y * st;
@@ -599,7 +602,7 @@ namespace AztTool
             // the new key): DOSBox was caught part-way through drawing its screen. Keep the last
             // good reading instead -- the black would be laid over the picture as the game's own.
             int nS = samples, si = 0, wentBlack = 0;
-            bool[] prevK = _prevKeySamp, curK = new bool[nS];
+            bool[] prevK = _prevKeySamp, curK = _spareKeySamp != null && _spareKeySamp.Length == nS ? _spareKeySamp : new bool[nS];     // (two arrays in turn, not a new one each reading)
             for (int y = 4; y < _h; y += 8)
             {
                 int r = y * st;
@@ -610,7 +613,7 @@ namespace AztTool
                 }
             }
             if (wentBlack >= Math.Max(8, nS / 100) && _tornRun < TornHoldMax) { _tornRun++; TornReads++; return true; }
-            _tornRun = 0; _prevKeySamp = curK;
+            _tornRun = 0; _spareKeySamp = _prevKeySamp; _prevKeySamp = curK;
             lock (_surfLock)
             {
                 if (buf != _surfRead) return false;             // the surface was changed under us
@@ -895,7 +898,7 @@ namespace AztTool
                 if (!_haveSurf) { _want = false; return 0; }     // no reading of the screen yet
                 if (_surfFresh) { var t = _surf; _surf = _surfLatest; _surfLatest = t; _key = _latestKey; _share = _latestShare; _surfFresh = false; }
             }
-            int key = _key, share = _share;
+            int key = _key, share = _share, key2 = KeyAlso >= 0 ? KeyAlso & 0xFFFFFF : key;
             LastKey = key;
             if (share < minShare) { _want = false; return share; }
 
@@ -933,8 +936,9 @@ namespace AztTool
                         if (hideRow && ix + 1 >= hr[0] && ix < hr[2]) { back[o + x] = pic; continue; }   // the host's panel draws here
                         if (hideRow2 && ix + 1 >= hr2[0] && ix < hr2[2]) { back[o + x] = pic; continue; }
                         int a = surf[r0 + ix] & 0xFFFFFF, b = surf[r0 + ix + 1] & 0xFFFFFF, c = surf[r1 + ix] & 0xFFFFFF, d = surf[r1 + ix + 1] & 0xFFFFFF;
-                        if (a == key && b == key && c == key && d == key) { back[o + x] = pic; continue; }
-                        back[o + x] = Mix4(a == key ? pic : a, b == key ? pic : b, c == key ? pic : c, d == key ? pic : d, (uint)xf[x], wy);
+                        bool ka = a == key || a == key2, kb = b == key || b == key2, kc = c == key || c == key2, kd = d == key || d == key2;
+                        if (ka && kb && kc && kd) { back[o + x] = pic; continue; }
+                        back[o + x] = Mix4(ka ? pic : a, kb ? pic : b, kc ? pic : c, kd ? pic : d, (uint)xf[x], wy);
                     }
                 });
             }
@@ -946,13 +950,13 @@ namespace AztTool
                     for (int x = 0; x < w; x++)
                     {
                         int s = surf[r + x] & 0xFFFFFF;
-                        back[o + x] = (s == key) ? rgb[o + x] : s;
+                        back[o + x] = (s == key || s == key2) ? rgb[o + x] : s;
                     }
                 else
                     for (int x = 0; x < w; x++)
                     {
                         int s = surf[r + x] & 0xFFFFFF;
-                        back[o + x] = (s == key) ? pal32[color8[o + x]] : s;
+                        back[o + x] = (s == key || s == key2) ? pal32[color8[o + x]] : s;
                     }
             });
             Decorated(back, pw, ph);

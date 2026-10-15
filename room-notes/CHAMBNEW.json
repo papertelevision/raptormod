@@ -1,0 +1,1400 @@
+{
+    "schema":  2,
+    "room":  "CHAMBNEW",
+    "rev":  60,
+    "nextId":  17,
+    "notes":  [
+
+              ],
+    "completed":  [
+                      {
+                          "id":  1,
+                          "ref":  "CHAMBNEW/1",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:51:35.7498885Z",
+                          "updated":  "2026-10-14T05:53:50.8150355Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -381.18,
+                                        -44.55,
+                                        143.21
+                                    ],
+                          "normal":  [
+                                         0.519,
+                                         0,
+                                         -0.855
+                                     ],
+                          "part":  "bckwall04",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.501,
+                                     0.332
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -265.88,
+                                                     15.08,
+                                                     95.82
+                                                 ],
+                                         "fwd":  [
+                                                     -0.94,
+                                                     -0.33,
+                                                     -0.04
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -265.88,
+                                                         "Y":  15.08,
+                                                         "Z":  95.82,
+                                                         "Yaw":  -92.73,
+                                                         "Pitch":  -19.19
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -365.62,
+                                                        "y":  -44.55,
+                                                        "z":  117.57,
+                                                        "dir":  [
+                                                                    0.519,
+                                                                    0,
+                                                                    -0.855
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Add a light source that faces upward on this wall just like the artwork on the wall, which is a fake light.",
+                                          "at":  "2026-10-14T04:51:35.7498885Z",
+                                          "shot":  "CHAMBNEW-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: an uplight at the foot of each painted spotlight -- all twelve you marked (notes 1-12). Each sits 8 units out from the wall, 5 above the floor (one height so all twelve match), aimed up and slightly into the wall, so it pools at the base and climbs the wall like the painted light, in its warm cream. Twelve is more than the eight lights a room could have, so I added a new kind of light for exactly this: a \"wall wash\" (a steady uplight with no shadow, up to 16 a room, on top of the usual eight). They light the room by bounce too.",
+                                          "at":  "2026-10-14T05:53:50.8150355Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json (new): 12 wall-wash uplights (notes 1-12)"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "CHAMBNEW-1-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:12.9259829Z"
+                      },
+                      {
+                          "id":  4,
+                          "ref":  "CHAMBNEW/4",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:52:55.5927262Z",
+                          "updated":  "2026-10-14T05:54:26.0023889Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -118.5,
+                                        -55.47,
+                                        159.85
+                                    ],
+                          "normal":  [
+                                         -0.605,
+                                         0,
+                                         -0.796
+                                     ],
+                          "part":  "bckwall03",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.294,
+                                     0.281
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -195.98,
+                                                     -19.61,
+                                                     58.28
+                                                 ],
+                                         "fwd":  [
+                                                     0.76,
+                                                     -0.21,
+                                                     0.62
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -195.98,
+                                                         "Y":  -19.61,
+                                                         "Z":  58.28,
+                                                         "Yaw":  50.77,
+                                                         "Pitch":  -11.92
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -136.66,
+                                                        "y":  -55.47,
+                                                        "z":  135.97,
+                                                        "dir":  [
+                                                                    -0.605,
+                                                                    0,
+                                                                    -0.796
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here",
+                                          "at":  "2026-10-14T04:52:55.5927262Z",
+                                          "shot":  "CHAMBNEW-4-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 4; notes 4-6 share this view -- see note 1).",
+                                          "at":  "2026-10-14T05:54:26.0023889Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 4"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "CHAMBNEW-4-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:15.7743922Z"
+                      },
+                      {
+                          "id":  5,
+                          "ref":  "CHAMBNEW/5",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:53:03.0204079Z",
+                          "updated":  "2026-10-14T05:54:26.0146923Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -82.84,
+                                        -54.65,
+                                        130.63
+                                    ],
+                          "normal":  [
+                                         -0.855,
+                                         0,
+                                         -0.519
+                                     ],
+                          "part":  "bckwall03",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.506,
+                                     0.284
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -195.98,
+                                                     -19.61,
+                                                     58.28
+                                                 ],
+                                         "fwd":  [
+                                                     0.76,
+                                                     -0.21,
+                                                     0.62
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -195.98,
+                                                         "Y":  -19.61,
+                                                         "Z":  58.28,
+                                                         "Yaw":  50.77,
+                                                         "Pitch":  -11.92
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -108.49,
+                                                        "y":  -54.65,
+                                                        "z":  115.07,
+                                                        "dir":  [
+                                                                    -0.855,
+                                                                    0,
+                                                                    -0.519
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here",
+                                          "at":  "2026-10-14T04:53:03.0204079Z",
+                                          "shot":  "CHAMBNEW-5-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 5; the render is on note 4).",
+                                          "at":  "2026-10-14T05:54:26.0146923Z",
+                                          "round":  25,
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 5"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:17.9524771Z"
+                      },
+                      {
+                          "id":  6,
+                          "ref":  "CHAMBNEW/6",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:53:08.4990083Z",
+                          "updated":  "2026-10-14T05:54:26.0248048Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -59.99,
+                                        -53.97,
+                                        90.56
+                                    ],
+                          "normal":  [
+                                         -0.973,
+                                         0,
+                                         -0.229
+                                     ],
+                          "part":  "bckwall03",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.724,
+                                     0.288
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -195.98,
+                                                     -19.61,
+                                                     58.28
+                                                 ],
+                                         "fwd":  [
+                                                     0.76,
+                                                     -0.21,
+                                                     0.62
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -195.98,
+                                                         "Y":  -19.61,
+                                                         "Z":  58.28,
+                                                         "Yaw":  50.77,
+                                                         "Pitch":  -11.92
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -89.19,
+                                                        "y":  -53.97,
+                                                        "z":  83.69,
+                                                        "dir":  [
+                                                                    -0.973,
+                                                                    0,
+                                                                    -0.229
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here",
+                                          "at":  "2026-10-14T04:53:08.4990083Z",
+                                          "shot":  "CHAMBNEW-6-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 6; the render is on note 4).",
+                                          "at":  "2026-10-14T05:54:26.0248048Z",
+                                          "round":  25,
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 6"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:19.9410503Z"
+                      },
+                      {
+                          "id":  3,
+                          "ref":  "CHAMBNEW/3",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:52:44.5095404Z",
+                          "updated":  "2026-10-14T05:54:14.2256718Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -340.43,
+                                        -45.83,
+                                        166.56
+                                    ],
+                          "normal":  [
+                                         0.229,
+                                         0,
+                                         -0.973
+                                     ],
+                          "part":  "bckwall04",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.723,
+                                     0.327
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -310.26,
+                                                     46.82,
+                                                     7.22
+                                                 ],
+                                         "fwd":  [
+                                                     -0.43,
+                                                     -0.55,
+                                                     0.71
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -310.26,
+                                                         "Y":  46.82,
+                                                         "Z":  7.22,
+                                                         "Yaw":  -31.19,
+                                                         "Pitch":  -33.45
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -333.55,
+                                                        "y":  -45.83,
+                                                        "z":  137.36,
+                                                        "dir":  [
+                                                                    0.229,
+                                                                    0,
+                                                                    -0.973
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here (I\u0027ll note \"here\" for all the walls where I want an upward facing light source.",
+                                          "at":  "2026-10-14T04:52:44.5095404Z",
+                                          "shot":  "CHAMBNEW-3-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 3; see note 1).",
+                                          "at":  "2026-10-14T05:54:14.2256718Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 3"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "CHAMBNEW-3-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:22.4385671Z"
+                      },
+                      {
+                          "id":  7,
+                          "ref":  "CHAMBNEW/7",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:53:18.7422359Z",
+                          "updated":  "2026-10-14T05:54:37.7976125Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -66.46,
+                                        -57.07,
+                                        -130.82
+                                    ],
+                          "normal":  [
+                                         -0.796,
+                                         0,
+                                         0.605
+                                     ],
+                          "part":  "bckwall02",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.291,
+                                     0.274
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -178.61,
+                                                     55.18,
+                                                     -49.29
+                                                 ],
+                                         "fwd":  [
+                                                     0.69,
+                                                     -0.32,
+                                                     -0.65
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -178.61,
+                                                         "Y":  55.18,
+                                                         "Z":  -49.29,
+                                                         "Yaw":  133.29,
+                                                         "Pitch":  -18.91
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -90.34,
+                                                        "y":  -57.07,
+                                                        "z":  -112.66,
+                                                        "dir":  [
+                                                                    -0.796,
+                                                                    0,
+                                                                    0.605
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here",
+                                          "at":  "2026-10-14T04:53:18.7422359Z",
+                                          "shot":  "CHAMBNEW-7-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 7; notes 7-9 share this view).",
+                                          "at":  "2026-10-14T05:54:37.7976125Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 7"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "CHAMBNEW-7-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:26.0009304Z"
+                      },
+                      {
+                          "id":  8,
+                          "ref":  "CHAMBNEW/8",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:53:23.3907166Z",
+                          "updated":  "2026-10-14T05:54:37.8126156Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -94.1,
+                                        -52.7,
+                                        -165.79
+                                    ],
+                          "normal":  [
+                                         -0.519,
+                                         0,
+                                         0.855
+                                     ],
+                          "part":  "bckwall02",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.495,
+                                     0.293
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -178.61,
+                                                     55.18,
+                                                     -49.29
+                                                 ],
+                                         "fwd":  [
+                                                     0.69,
+                                                     -0.32,
+                                                     -0.65
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -178.61,
+                                                         "Y":  55.18,
+                                                         "Z":  -49.29,
+                                                         "Yaw":  133.29,
+                                                         "Pitch":  -18.91
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -109.66,
+                                                        "y":  -52.7,
+                                                        "z":  -140.15,
+                                                        "dir":  [
+                                                                    -0.519,
+                                                                    0,
+                                                                    0.855
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here",
+                                          "at":  "2026-10-14T04:53:23.3907166Z",
+                                          "shot":  "CHAMBNEW-8-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 8; the render is on note 7).",
+                                          "at":  "2026-10-14T05:54:37.8126156Z",
+                                          "round":  25,
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 8"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:28.5318030Z"
+                      },
+                      {
+                          "id":  9,
+                          "ref":  "CHAMBNEW/9",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:53:27.9107158Z",
+                          "updated":  "2026-10-14T05:54:37.8246179Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -135.24,
+                                        -49.44,
+                                        -189.61
+                                    ],
+                          "normal":  [
+                                         -0.229,
+                                         0,
+                                         0.973
+                                     ],
+                          "part":  "bckwall02",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.72,
+                                     0.309
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -178.61,
+                                                     55.18,
+                                                     -49.29
+                                                 ],
+                                         "fwd":  [
+                                                     0.69,
+                                                     -0.32,
+                                                     -0.65
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -178.61,
+                                                         "Y":  55.18,
+                                                         "Z":  -49.29,
+                                                         "Yaw":  133.29,
+                                                         "Pitch":  -18.91
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -142.12,
+                                                        "y":  -49.44,
+                                                        "z":  -160.41,
+                                                        "dir":  [
+                                                                    -0.229,
+                                                                    0,
+                                                                    0.973
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here",
+                                          "at":  "2026-10-14T04:53:27.9107158Z",
+                                          "shot":  "CHAMBNEW-9-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 9; the render is on note 7).",
+                                          "at":  "2026-10-14T05:54:37.8246179Z",
+                                          "round":  25,
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 9"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:31.1020338Z"
+                      },
+                      {
+                          "id":  10,
+                          "ref":  "CHAMBNEW/10",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:53:38.8761827Z",
+                          "updated":  "2026-10-14T05:54:49.4334479Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -357.69,
+                                        -57.27,
+                                        -183.11
+                                    ],
+                          "normal":  [
+                                         0.605,
+                                         0,
+                                         0.796
+                                     ],
+                          "part":  "bckwall01",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.293,
+                                     0.273
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -287.66,
+                                                     83.29,
+                                                     -31.96
+                                                 ],
+                                         "fwd":  [
+                                                     -0.61,
+                                                     -0.52,
+                                                     -0.6
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -287.66,
+                                                         "Y":  83.29,
+                                                         "Z":  -31.96,
+                                                         "Yaw":  -134.13,
+                                                         "Pitch":  -31.22
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -339.53,
+                                                        "y":  -57.27,
+                                                        "z":  -159.23,
+                                                        "dir":  [
+                                                                    0.605,
+                                                                    0,
+                                                                    0.796
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here",
+                                          "at":  "2026-10-14T04:53:38.8761827Z",
+                                          "shot":  "CHAMBNEW-10-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 10; notes 10-12 share this view).",
+                                          "at":  "2026-10-14T05:54:49.4334479Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 10"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "CHAMBNEW-10-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:33.8044885Z"
+                      },
+                      {
+                          "id":  11,
+                          "ref":  "CHAMBNEW/11",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:53:44.5985395Z",
+                          "updated":  "2026-10-14T05:54:49.4455300Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -392.76,
+                                        -45.74,
+                                        -154.96
+                                    ],
+                          "normal":  [
+                                         0.855,
+                                         0,
+                                         0.519
+                                     ],
+                          "part":  "bckwall01",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.5,
+                                     0.327
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -287.31,
+                                                     83.29,
+                                                     -32.32
+                                                 ],
+                                         "fwd":  [
+                                                     -0.62,
+                                                     -0.52,
+                                                     -0.59
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -287.31,
+                                                         "Y":  83.29,
+                                                         "Z":  -32.32,
+                                                         "Yaw":  -133.85,
+                                                         "Pitch":  -31.22
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -367.11,
+                                                        "y":  -45.74,
+                                                        "z":  -139.4,
+                                                        "dir":  [
+                                                                    0.855,
+                                                                    0,
+                                                                    0.519
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here",
+                                          "at":  "2026-10-14T04:53:44.5985395Z",
+                                          "shot":  "CHAMBNEW-11-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 11; the render is on note 10).",
+                                          "at":  "2026-10-14T05:54:49.4455300Z",
+                                          "round":  25,
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 11"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:36.8169928Z"
+                      },
+                      {
+                          "id":  12,
+                          "ref":  "CHAMBNEW/12",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:53:50.8446381Z",
+                          "updated":  "2026-10-14T05:54:49.4577999Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -416.53,
+                                        -54.85,
+                                        -112.76
+                                    ],
+                          "normal":  [
+                                         0.973,
+                                         0,
+                                         0.229
+                                     ],
+                          "part":  "bckwall01",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.729,
+                                     0.284
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -287.31,
+                                                     83.29,
+                                                     -32.32
+                                                 ],
+                                         "fwd":  [
+                                                     -0.62,
+                                                     -0.52,
+                                                     -0.59
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -287.31,
+                                                         "Y":  83.29,
+                                                         "Z":  -32.32,
+                                                         "Yaw":  -133.85,
+                                                         "Pitch":  -31.22
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -387.33,
+                                                        "y":  -54.85,
+                                                        "z":  -105.88,
+                                                        "dir":  [
+                                                                    0.973,
+                                                                    0,
+                                                                    0.229
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "here",
+                                          "at":  "2026-10-14T04:53:50.8446381Z",
+                                          "shot":  "CHAMBNEW-12-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: uplight here (uplight 12; the render is on note 10).",
+                                          "at":  "2026-10-14T05:54:49.4577999Z",
+                                          "round":  25,
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights: uplight 12"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:43:39.7253826Z"
+                      },
+                      {
+                          "id":  2,
+                          "ref":  "CHAMBNEW/2",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:52:05.4881987Z",
+                          "updated":  "2026-10-14T05:54:02.5071371Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -410.01,
+                                        -48.91,
+                                        107.4
+                                    ],
+                          "normal":  [
+                                         0.796,
+                                         0,
+                                         -0.605
+                                     ],
+                          "part":  "bckwall04",
+                          "material":  "CHAMBERWALL",
+                          "texture":  "08-chwall.png",
+                          "uv":  [
+                                     0.289,
+                                     0.312
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -250.04,
+                                                     20.6,
+                                                     96.58
+                                                 ],
+                                         "fwd":  [
+                                                     -0.94,
+                                                     -0.33,
+                                                     -0.04
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -250.04,
+                                                         "Y":  20.6,
+                                                         "Z":  96.58,
+                                                         "Yaw":  -92.73,
+                                                         "Pitch":  -19.19
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -386.13,
+                                                        "y":  -48.91,
+                                                        "z":  89.24,
+                                                        "dir":  [
+                                                                    0.796,
+                                                                    0,
+                                                                    -0.605
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Scan this room and add a light source for all of these textures that have the spotlight like wall lighting",
+                                          "at":  "2026-10-14T04:52:05.4881987Z",
+                                          "shot":  "CHAMBNEW-2-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: I checked the wall texture -- it paints three spotlights per wall, and you marked all twelve (four walls x three), so every painted spot now has its real uplight. See note 1 for how they are set.",
+                                          "at":  "2026-10-14T05:54:02.5071371Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights (12 uplights)"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "CHAMBNEW-2-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4035776Z"
+                      },
+                      {
+                          "id":  13,
+                          "ref":  "CHAMBNEW/13",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:54:50.2223657Z",
+                          "updated":  "2026-10-14T05:55:01.1519789Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -240.65,
+                                        -65.24,
+                                        -165.49
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "floor01",
+                          "material":  "CHAMBERFLOOR",
+                          "texture":  "14-chfl.png",
+                          "uv":  [
+                                     0.239,
+                                     0.444
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -442.48,
+                                                     105.83,
+                                                     -93.3
+                                                 ],
+                                         "fwd":  [
+                                                     0.7,
+                                                     -0.71,
+                                                     -0.07
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -442.48,
+                                                         "Y":  105.83,
+                                                         "Z":  -93.3,
+                                                         "Yaw":  96.08,
+                                                         "Pitch":  -45.2
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -240.65,
+                                                        "y":  -35.24,
+                                                        "z":  -165.49,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  null
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "I\u0027d like to add mood lighting here by matching the darkness of the textures with dark mist like we\u0027ve done in th cori cori room but fit the overall tone and lighting of this room.",
+                                          "at":  "2026-10-14T04:54:50.2223657Z",
+                                          "shot":  "CHAMBNEW-13-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: CORICORI\u0027s dark mist, matched to this paler room -- black air at about half CORICORI\u0027s thickness, thicker where the original art is painted dark (above the painted spots, the corners), and the art\u0027s own light and shade lighting the walls and pillars. The twelve uplights cut through it and bounce round the room. Darker or lighter is one number (volume density / paint density in rooms\\CHAMBNEW.json).",
+                                          "at":  "2026-10-14T05:55:01.1519789Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json volume + paint, artLight, gi, fog off"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "CHAMBNEW-13-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4045806Z"
+                      },
+                      {
+                          "id":  14,
+                          "ref":  "CHAMBNEW/14",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:44:28.4082842Z",
+                          "updated":  "2026-10-14T21:01:24.1782235Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -170.62,
+                                        24.3,
+                                        -12.66
+                                    ],
+                          "normal":  [
+                                         -1,
+                                         -0.003,
+                                         0.005
+                                     ],
+                          "part":  "theopillar",
+                          "material":  "TRANPLIIAR1",
+                          "texture":  "13-chpi2.png",
+                          "uv":  [
+                                     0.497,
+                                     0.572
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -295.35,
+                                                     64.65,
+                                                     31.05
+                                                 ],
+                                         "fwd":  [
+                                                     0.91,
+                                                     -0.22,
+                                                     -0.36
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -295.35,
+                                                         "Y":  64.65,
+                                                         "Z":  31.05,
+                                                         "Yaw":  111.75,
+                                                         "Pitch":  -12.76
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -200.62,
+                                                        "y":  24.23,
+                                                        "z":  -12.52,
+                                                        "dir":  [
+                                                                    -1,
+                                                                    0,
+                                                                    0.005
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  "2026-10-14T05:43:15.0633081Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Subtle light source here, no torch, just a blob light with bounce lighting.",
+                                          "at":  "2026-10-14T20:44:28.4082842Z",
+                                          "shot":  "CHAMBNEW-14-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. A subtle all-round glow 15 out from the pillar here: no torch, power 0.5, reach 90, in the uplights\u0027 warm pale colour. The room\u0027s bounced light carries it onto the pillars and floor nearby.",
+                                          "at":  "2026-10-14T21:01:24.1782235Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights[12]: glow at -185.62, 24.3, -12.66"
+                                                      ],
+                                          "round":  27,
+                                          "render":  "CHAMBNEW-14-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4045806Z"
+                      },
+                      {
+                          "id":  15,
+                          "ref":  "CHAMBNEW/15",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:44:48.4604290Z",
+                          "updated":  "2026-10-14T21:01:37.2322491Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -305.79,
+                                        25.99,
+                                        -10.13
+                                    ],
+                          "normal":  [
+                                         1,
+                                         -0.003,
+                                         -0.005
+                                     ],
+                          "part":  "theopillar",
+                          "material":  "TRANPLIIAR1",
+                          "texture":  "13-chpi2.png",
+                          "uv":  [
+                                     0.496,
+                                     0.58
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -177.22,
+                                                     72.49,
+                                                     -92.59
+                                                 ],
+                                         "fwd":  [
+                                                     -0.7,
+                                                     -0.41,
+                                                     0.59
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -177.22,
+                                                         "Y":  72.49,
+                                                         "Z":  -92.59,
+                                                         "Yaw":  -49.93,
+                                                         "Pitch":  -24.5
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -275.79,
+                                                        "y":  25.92,
+                                                        "z":  -10.27,
+                                                        "dir":  [
+                                                                    1,
+                                                                    0,
+                                                                    -0.005
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  "2026-10-14T05:43:15.0633081Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "simialr blob light here also",
+                                          "at":  "2026-10-14T20:44:48.4604290Z",
+                                          "shot":  "CHAMBNEW-15-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. The same glow on this side of the pillar, 15 out from your mark.",
+                                          "at":  "2026-10-14T21:01:37.2322491Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights[13]: glow at -290.79, 25.99, -10.13"
+                                                      ],
+                                          "round":  27,
+                                          "render":  "CHAMBNEW-15-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4055812Z"
+                      },
+                      {
+                          "id":  16,
+                          "ref":  "CHAMBNEW/16",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:45:31.8380466Z",
+                          "updated":  "2026-10-14T21:01:50.4842525Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -244.49,
+                                        -65.24,
+                                        10.38
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "floor04",
+                          "material":  "CHAMBERFLOOR",
+                          "texture":  "14-chfl.png",
+                          "uv":  [
+                                     0.56,
+                                     0.359
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -155.98,
+                                                     186.78,
+                                                     -151.73
+                                                 ],
+                                         "fwd":  [
+                                                     -0.44,
+                                                     -0.66,
+                                                     0.61
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -155.98,
+                                                         "Y":  186.78,
+                                                         "Z":  -151.73,
+                                                         "Yaw":  -36.22,
+                                                         "Pitch":  -41.29
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -244.49,
+                                                        "y":  -35.24,
+                                                        "z":  10.38,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T03:20:48.8268452Z",
+                                       "roomFileMtime":  "2026-10-14T05:43:15.0633081Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "I want to make sure the creature here is subtly illuminated. Not from his body, but just ensure there is a subtle column of light in this area, fading as it rises higher",
+                                          "at":  "2026-10-14T20:45:31.8380466Z",
+                                          "shot":  "CHAMBNEW-16-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. A narrow light (cone 10-26 degrees) rising straight up from just above the floor at your mark. It lights the creature subtly from beneath, not from his body, and shows as a soft column in the room\u0027s dark air, fading over about 200 units as it rises. Its air glow is turned up a little (4) because this room\u0027s air is thin; say if it should be fainter or brighter.",
+                                          "at":  "2026-10-14T21:01:50.4842525Z",
+                                          "changes":  [
+                                                          "rooms\\CHAMBNEW.json lights[14]: uplight column at -244.49, -62, 10.38, dir 0,1,0, cone 10-26, power 0.55, range 200, air 4"
+                                                      ],
+                                          "round":  27,
+                                          "render":  "CHAMBNEW-16-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4055812Z"
+                      }
+                  ],
+    "deleted":  [
+
+                ]
+}

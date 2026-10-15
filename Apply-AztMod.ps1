@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     AztMod -- quality-of-life patches for Azrael's Tear (1996, Mindscape).
 
@@ -469,6 +469,30 @@ if (Test-Path $artDir) {
         $n++
     }
     if ($n) { Ok "replaced $n HUD art file(s)" }
+}
+
+# CHARACTER ANIMATION LINES the game's own models already have keys for (Josh, 2026-10-13: the CORICORI creatures should
+# pause "every once in a while ... explore that sniffing animation too as that would be perfect to include in the pause").
+# EUGBLD.XAF carries frames 11-52 that no .ANI uses: a stand, a sniff at the ground, a look round with the jaw open, back
+# to the stand -- the game's SNIFF state (keyword 10 at 0x147300) just never had a range. The line is ADDED HERE, in the
+# installed copy, rather than shipping edited .ANI files (game data stays out of the repo). Each file keeps an .aztbak,
+# so the stock-restore sweep above and -Revert both put the original back -- and this re-adds the line every install.
+# The watcher pauses them into it (a room's "npcs": "pauseAnim": "SNIFF"). See docs\notes\azrael-npc-pace.md.
+foreach ($ad in @(
+    @{ File = 'EUGENE.ANI'; Line = 'SNIFF 11-52' },
+    @{ File = 'EUGENB.ANI'; Line = 'SNIFF 11-52' }
+)) {
+    $ap = Join-Path $target ('GAME\AZRAEL\' + $ad.File)
+    if (-not (Test-Path $ap)) { Say ("         ani             {0}: not in this game -- skipped" -f $ad.File); continue }
+    $txt = [IO.File]::ReadAllText($ap)
+    $kw = ($ad.Line -split '\s+')[0]
+    if ($txt -match ('(?m)^\s*' + [regex]::Escape($kw) + '\s')) { continue }      # (there already)
+    if (-not (Test-Path "$ap.aztbak")) { Copy-Item $ap "$ap.aztbak" -Force }
+    $nl = $(if ($txt.Contains("`r`n")) { "`r`n" } else { "`n" })
+    $mRest = [regex]::Match($txt, '(?m)^\s*REST\s[^\r\n]*')
+    $txt = $(if ($mRest.Success) { $txt.Insert($mRest.Index + $mRest.Length, $nl + $ad.Line) } else { $txt.TrimEnd() + $nl + $ad.Line + $nl })
+    [IO.File]::WriteAllText($ap, $txt, (New-Object Text.ASCIIEncoding))
+    Ok ("{0}: added '{1}'" -f $ad.File, $ad.Line)
 }
 
 # The BSS overlay. Not art and not a patch: it is code that has no file offset to

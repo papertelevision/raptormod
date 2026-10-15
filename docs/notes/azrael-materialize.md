@@ -54,3 +54,8 @@ Josh (2026-10-13): "The visor 'materializes' the room. This ties into the new lo
 ## Checked offline (v2)
 Test-GpuLook -MaterializeAt 0.25 / 0.6 / 1.0 / 1.6 / 2.4 / 3.4 in CORICORI: outlines grow out from the eye; the whole room is wired by 1.0 s; textures roll in by 1.6 s with the outlines trailing and specks; faint lines at 2.4; clean at 3.4. SPAROOM 0.9 / 1.7 / done: the pool fades in with the front (its near part first); the finished frame matches the normal one.
 Related: [[azrael-room-cover]] (the readout it follows), [[azrael-gpu-boot]] / [[azrael-gpu-default-boot]] (BootHd modes), [[azrael-scan-wire]] (the teal).
+
+**Scanning label moved to the lower LEFT (Josh, 2026-10-13: "on the left side of the visor, not the right"):** ScanTag.Render x = W*0.055 - em*0.8 (the damage badge's and the conversation badge's corner; none of them shows while a room materializes).
+
+**...and then to the MIDDLE, just above the panel (Josh, 2026-10-14: "move the 'accessing map data' badge to the middle, just above the UI by about 20px padding, same goes for the 'Mapping Environment' badge"):** x = W/2 - w/2, its plate `AbovePanel` 20 px (scaled from a 1238-row view) above the view's last row (PanelTop). The same badge also serves the 3D map ("Accessing Map Data...") and the echo scan (amber "Gathering Environmental Data..."); the strongest of the three shows.
+**Its words are now "Mapping environment..." (Josh, 2026-10-13; ScanTag.Text, was "Scanning").**

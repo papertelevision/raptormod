@@ -1,6 +1,6 @@
 ---
 name: raptormod-repo
-description: "AztMod is a git repo (github.com/papertelevision/raptormod, private, branch main) since 2026-10-10. Layout, what is out of git, the asset pack, the rooms junction, and docs/notes as the shared knowledge base."
+description: "AztMod is a git repo (github.com/papertelevision/raptormod, private; work on dev-next, main = approved) since 2026-10-10. Layout, what is out of git, the asset pack, the rooms junction, and docs/notes as the shared knowledge base."
 metadata:
   node_type: memory
   type: project
@@ -55,6 +55,8 @@ Fixes made along the way:
 - Build-HudV3/New/Wide/Overlay/Repalette default the stock game path in the body from $PSCommandPath ([[azrael-powershell-silent-traps]]).
 - Apply-AztMod's fresh copy skips AztMod and .claude.
 
-**Branches (2026-10-10, Josh: "adhere to the new github workflow"):** work happens on `dev`, which tracks origin/dev. `main` is the approved state: merge only when Josh says so. NO commits or pushes, and no asking to push, until Josh says so (2026-10-10). CLAUDE.md says the same.
+**Branches (2026-10-10, Josh: "adhere to the new github workflow"):** work happened on `dev` (tracking origin/dev) until 2026-10-13; since then on `dev-next` (below). `main` is the approved state: merge only when Josh says so. NO commits or pushes, and no asking to push, until Josh says so (2026-10-10). CLAUDE.md says the same.
 
 **Private for good (Josh, 2026-10-13):** "This repo will never go public, I'm going to have a separate distributable git for that later." RaptorMod is a free community patch/mod (never sold). So publisher material Josh approves may live here -- the in-game manual's text (`raptordocs\`) does; the classified scans still do not. Game files (R.EXE, AZT.BIN, movies) never do. A public distribution repo is a separate, later job: decide there what it may carry.
+
+**Branches since 2026-10-13:** PR #1 (dev -> main) was SQUASH-merged by Josh's say (main = 24e96e2). Work now continues on **`dev-next`**, cut from that main (same tree as the old dev). The old `dev` was deleted (GitHub and local) the same day at Josh's request; branches now: `main` + `dev-next`. Commit / push / PR only when Josh says; no mention of Claude / Claude Code in commit messages, PR titles or descriptions (Josh, 2026-10-13), and no attribution lines.

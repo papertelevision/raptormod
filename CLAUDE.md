@@ -31,7 +31,7 @@ Other docs:
 - **Room lights are placed by Josh.**
 - **GPU (true colour) mode is the product.** `-Retro` (8-bit) must keep working but gets no new features.
 - **Do not re-propose:**
-  - AI/ESRGAN model changes, 8x upscales, "Detail/Clarity" passes or FOV changes;
+  - AI/ESRGAN model changes, 8x upscales or "Detail/Clarity" passes (FOV is now Josh's: 60 by default, F12 50/60/70 -- `docs\notes\azrael-fov.md`);
   - frame interpolation, smoother models or subdivision;
   - a pale ground mist in MINEMAZE;
   - the LURKA push-pull black fill.
@@ -64,7 +64,7 @@ Other docs:
 
 ## Git
 
-- **Branches:** work happens on `dev` (or a feature branch cut from it). `main` is the last state Josh has played and approved: merge `dev` into it only when he says so.
+- **Branches:** work happens on `dev-next` (cut from `main` after PR #1 was squash-merged, 2026-10-13; the old `dev` is deleted). `main` is the last state Josh has played and approved: merge into it only when he says so. No mention of Claude / Claude Code in commit messages or PRs, and no attribution lines (Josh, 2026-10-13).
 - **Do not commit or push, and do not ask to (Josh, 2026-10-10: "please dont commit or ask me to push as we make changes. I'll tell you when I want to commit").** Leave changes in the working tree; when he says commit, commit what is there with a message saying what changed and why.
 
 - Byte-exact (`.gitattributes`: `* -text`).

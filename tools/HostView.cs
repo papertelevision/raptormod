@@ -81,7 +81,7 @@ namespace AztTool
 
         public int MarkCol { get { return _markCol; } }
 
-        public void Close() { if (_h != IntPtr.Zero) CloseHandle(_h); }
+        public void Close() { if (_h != IntPtr.Zero) CloseHandle(_h); if (_timer != IntPtr.Zero) { CloseHandle(_timer); _timer = IntPtr.Zero; } }
 
         public uint ReadU32(long hostAddr)
         {
@@ -103,6 +103,115 @@ namespace AztTool
         {
             IntPtr put;
             return WriteProcessMemory(_h, (IntPtr)hostAddr, BitConverter.GetBytes(v), 4, out put);
+        }
+
+        // ---- THE HANDSHAKE WAIT, IN ONE CALL (2026-10-13 performance audit) ----------------------
+        // The watcher polled aztInjReady from script: a function call, a handle read and a
+        // Thread.Sleep(1) that overshoots to ~2 ms at a 1 ms timer period. Here the poll is a
+        // high-resolution waitable timer at PollUs (Windows 10 1803+; Sleep(1) where it is not
+        // offered). STILL A SLEEP, NEVER A SPIN: DOSBox emulates on one thread, and a tight
+        // ReadProcessMemory loop starves it -- the game stops answering input.
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        static extern IntPtr CreateWaitableTimerExW(IntPtr attrs, string name, uint flags, uint access);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool SetWaitableTimer(IntPtr h, ref long due, int period, IntPtr fn, IntPtr arg, bool resume);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern uint WaitForSingleObject(IntPtr h, uint ms);
+        const uint CREATE_WAITABLE_TIMER_HIGH_RESOLUTION = 0x2, TIMER_ALL_ACCESS = 0x1F0003;
+        IntPtr _timer; bool _timerTried;
+        /// <summary>How long one poll of the wait sleeps, in microseconds (250-500 is the audit's range).</summary>
+        public int PollUs = 400;
+        /// <summary>True when the waits use the high-resolution timer (false: Thread.Sleep(1)).</summary>
+        public bool FineTimer { get { return _timer != IntPtr.Zero; } }
+        void Nap()
+        {
+            if (!_timerTried) { _timerTried = true; try { _timer = CreateWaitableTimerExW(IntPtr.Zero, null, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS); } catch { _timer = IntPtr.Zero; } }
+            if (_timer != IntPtr.Zero)
+            {
+                long due = -10L * Math.Max(100, PollUs);          // relative, in 100 ns units
+                if (SetWaitableTimer(_timer, ref due, 0, IntPtr.Zero, IntPtr.Zero, false)) { WaitForSingleObject(_timer, 50); return; }
+            }
+            Thread.Sleep(1);
+        }
+        /// <summary>Wait for the dword at readyHostAddr to read 0, polling with a sleep; false when
+        /// timeoutMs passed first (the caller skips the frame -- it never writes over a copy).</summary>
+        public bool WaitClear(long readyHostAddr, int timeoutMs)
+        {
+            if (ReadU32(readyHostAddr) == 0) return true;
+            long t0 = Stopwatch.GetTimestamp(), lim = (long)(timeoutMs * (double)Stopwatch.Frequency / 1000.0);
+            while (true)
+            {
+                if (Stopwatch.GetTimestamp() - t0 > lim) return false;
+                Nap();
+                if (ReadU32(readyHostAddr) == 0) return true;
+            }
+        }
+
+        // ---- ONE SNAPSHOT OF THE GUEST'S HOT WORDS PER FRAME (2026-10-13 performance audit) ----
+        // The frame loop read ~15-25 single words (menus, the fold-out block, conversation, ammo,
+        // weapon, cursor), each a script call and a process read. The blocks they sit in are read
+        // here once (Take), and served from the copy. Addresses are BUILT obj2 linear; host =
+        // base + lin, with base = MemBase + the obj2 delta for this attach. Anything outside the
+        // blocks, or in a block whose read failed, is read live. Writes go to the game at once
+        // (WriteSnap) and into the copy, so a later read in the same frame sees them.
+        long _snapBase; uint[] _snapLin; byte[][] _snapBuf; bool[] _snapOk;
+        public void SnapInit(long baseHost, uint[] lins, int[] lens)
+        {
+            _snapBase = baseHost; _snapLin = (uint[])lins.Clone();
+            _snapBuf = new byte[lins.Length][]; _snapOk = new bool[lins.Length];
+            for (int i = 0; i < lins.Length; i++) _snapBuf[i] = new byte[lens[i]];
+        }
+        /// <summary>Read every block once. Call at the top of the frame, and again where the
+        /// freshest values matter (after the handshake wait, beside the camera read).</summary>
+        public void SnapTake()
+        {
+            if (_snapLin == null) return;
+            for (int i = 0; i < _snapLin.Length; i++)
+            {
+                IntPtr got; byte[] b = _snapBuf[i];
+                _snapOk[i] = ReadProcessMemory(_h, (IntPtr)(_snapBase + _snapLin[i]), b, b.Length, out got) && (long)got == b.Length;
+            }
+        }
+        int SnapAt(uint lin, int len, out int off)
+        {
+            off = 0; if (_snapLin == null) return -1;
+            for (int i = 0; i < _snapLin.Length; i++)
+            {
+                long o = (long)lin - _snapLin[i];
+                if (o >= 0 && o + len <= _snapBuf[i].Length) { if (!_snapOk[i]) return -1; off = (int)o; return i; }
+            }
+            return -1;
+        }
+        /// <summary>A signed word at a built obj2 address: from the snapshot, else live; null when unreadable.</summary>
+        public short? SnapWord(uint lin)
+        {
+            int off; int i = SnapAt(lin, 2, out off);
+            if (i >= 0) return BitConverter.ToInt16(_snapBuf[i], off);
+            byte[] b = ReadBytes(_snapBase + lin, 2); if (b == null) return null;
+            return BitConverter.ToInt16(b, 0);
+        }
+        /// <summary>A dword at a built obj2 address: from the snapshot, else live (0 when unreadable, as ReadU32).</summary>
+        public uint SnapU32(uint lin)
+        {
+            int off; int i = SnapAt(lin, 4, out off);
+            if (i >= 0) return BitConverter.ToUInt32(_snapBuf[i], off);
+            return ReadU32(_snapBase + lin);
+        }
+        /// <summary>A copy of len bytes at a built obj2 address: from the snapshot, else live; null when unreadable.</summary>
+        public byte[] SnapBytes(uint lin, int len)
+        {
+            int off; int i = SnapAt(lin, len, out off);
+            if (i >= 0) { var r = new byte[len]; Buffer.BlockCopy(_snapBuf[i], off, r, 0, len); return r; }
+            return ReadBytes(_snapBase + lin, len);
+        }
+        /// <summary>Write to the game now (a data write) and into the snapshot's copy.</summary>
+        public bool WriteSnap(uint lin, byte[] data)
+        {
+            IntPtr put;
+            bool ok = WriteProcessMemory(_h, (IntPtr)(_snapBase + lin), data, data.Length, out put) && (long)put == data.Length;
+            int off; int i = SnapAt(lin, data.Length, out off);
+            if (ok && i >= 0) Buffer.BlockCopy(data, 0, _snapBuf[i], off, data.Length);
+            return ok;
         }
 
         // Fill the frame for a given phase (0..1 of the sweep) and sequence number.

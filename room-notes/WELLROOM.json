@@ -1,95 +1,10 @@
 {
     "schema":  2,
     "room":  "WELLROOM",
-    "rev":  27,
+    "rev":  28,
     "nextId":  8,
     "notes":  [
-                  {
-                      "id":  7,
-                      "ref":  "WELLROOM/7",
-                      "status":  "review",
-                      "created":  "2026-10-10T01:12:28.4095942Z",
-                      "updated":  "2026-10-13T03:59:03.2892062Z",
-                      "kind":  "other",
-                      "point":  [
-                                    -47.35,
-                                    -41.45,
-                                    -26.59
-                                ],
-                      "normal":  [
-                                     0,
-                                     1,
-                                     0
-                                 ],
-                      "part":  "well_floor",
-                      "material":  "WELL_FLOOR",
-                      "texture":  "17-wel_flor.png",
-                      "uv":  [
-                                 0.612,
-                                 0.445
-                             ],
-                      "target":  null,
-                      "camera":  {
-                                     "pos":  [
-                                                 19.52,
-                                                 60.01,
-                                                 84.63
-                                             ],
-                                     "fwd":  [
-                                                 -0.37,
-                                                 -0.4,
-                                                 -0.84
-                                             ],
-                                     "up":  [
-                                                0,
-                                                1,
-                                                0
-                                            ],
-                                     "fov":  50,
-                                     "mirror":  true,
-                                     "gpuLook":  {
-                                                     "X":  19.52,
-                                                     "Y":  60.01,
-                                                     "Z":  84.63,
-                                                     "Yaw":  -156.47,
-                                                     "Pitch":  -23.7
-                                                 }
-                                 },
-                      "suggest":  {
-                                      "light":  {
-                                                    "x":  -47.35,
-                                                    "y":  -11.45,
-                                                    "z":  -26.59,
-                                                    "dir":  [
-                                                                0,
-                                                                -1,
-                                                                0
-                                                            ]
-                                                }
-                                  },
-                      "seen":  {
-                                   "objMtime":  "2026-10-05T02:29:26.2802228Z",
-                                   "roomFileMtime":  "2026-10-10T00:32:50.1378698Z"
-                               },
-                      "log":  [
-                                  {
-                                      "who":  "josh",
-                                      "text":  "Dust particles in this room as well.",
-                                      "at":  "2026-10-10T01:12:28.4095942Z",
-                                      "shot":  "WELLROOM-7-0.png"
-                                  },
-                                  {
-                                      "who":  "claude",
-                                      "text":  "Added: floating dust like the specks in CORICORI\u0027s light shaft -- 240 lit specks drifting in a wide cone from under the ceiling down over your mark, about 170 units across at the floor. It adds no light of its own.",
-                                      "at":  "2026-10-13T03:59:03.2892062Z",
-                                      "changes":  [
-                                                      "rooms\\WELLROOM.json lights[3] added: \"dust in the air\" (a spotlight with no light, only its dust)"
-                                                  ],
-                                      "round":  24,
-                                      "render":  "WELLROOM-7-1-render.png"
-                                  }
-                              ]
-                  }
+
               ],
     "completed":  [
                       {
@@ -622,6 +537,93 @@
                                       }
                                   ],
                           "completedAt":  "2026-10-10T01:12:04.0944182Z"
+                      },
+                      {
+                          "id":  7,
+                          "ref":  "WELLROOM/7",
+                          "status":  "complete",
+                          "created":  "2026-10-10T01:12:28.4095942Z",
+                          "updated":  "2026-10-13T03:59:03.2892062Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -47.35,
+                                        -41.45,
+                                        -26.59
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "well_floor",
+                          "material":  "WELL_FLOOR",
+                          "texture":  "17-wel_flor.png",
+                          "uv":  [
+                                     0.612,
+                                     0.445
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     19.52,
+                                                     60.01,
+                                                     84.63
+                                                 ],
+                                         "fwd":  [
+                                                     -0.37,
+                                                     -0.4,
+                                                     -0.84
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  19.52,
+                                                         "Y":  60.01,
+                                                         "Z":  84.63,
+                                                         "Yaw":  -156.47,
+                                                         "Pitch":  -23.7
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -47.35,
+                                                        "y":  -11.45,
+                                                        "z":  -26.59,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:26.2802228Z",
+                                       "roomFileMtime":  "2026-10-10T00:32:50.1378698Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Dust particles in this room as well.",
+                                          "at":  "2026-10-10T01:12:28.4095942Z",
+                                          "shot":  "WELLROOM-7-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added: floating dust like the specks in CORICORI\u0027s light shaft -- 240 lit specks drifting in a wide cone from under the ceiling down over your mark, about 170 units across at the floor. It adds no light of its own.",
+                                          "at":  "2026-10-13T03:59:03.2892062Z",
+                                          "changes":  [
+                                                          "rooms\\WELLROOM.json lights[3] added: \"dust in the air\" (a spotlight with no light, only its dust)"
+                                                      ],
+                                          "round":  24,
+                                          "render":  "WELLROOM-7-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:24:52.4493125Z"
                       }
                   ],
     "deleted":  [

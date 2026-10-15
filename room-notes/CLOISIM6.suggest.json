@@ -1,0 +1,93 @@
+{
+    "schema":  1,
+    "room":  "CLOISIM6",
+    "made":  "2026-10-14T13:55:21.5692432Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.73,
+                            "point":  [
+                                          -73.43,
+                                          -121.7,
+                                          6.25
+                                      ],
+                            "normal":  [
+                                           0.503,
+                                           -0.089,
+                                           0.86
+                                       ],
+                            "part":  "well",
+                            "material":  "CLMAINWALL",
+                            "texture":  "12-wal1.png",
+                            "uv":  [
+                                       0.49,
+                                       0.611
+                                   ],
+                            "crop":  [
+                                         105,
+                                         84,
+                                         149,
+                                         113,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (3.4x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -65.89,
+                                          "y":  -123.03,
+                                          "z":  19.15,
+                                          "color":  "#FFD36B",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "glow",
+                            "confidence":  0.73,
+                            "point":  [
+                                          -73.43,
+                                          -121.7,
+                                          44.5
+                                      ],
+                            "normal":  [
+                                           0.493,
+                                           -0.089,
+                                           -0.865
+                                       ],
+                            "part":  "well",
+                            "material":  "CLMAINWALL",
+                            "texture":  "12-wal1.png",
+                            "uv":  [
+                                       0.49,
+                                       0.611
+                                   ],
+                            "crop":  [
+                                         105,
+                                         84,
+                                         149,
+                                         113,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (3.4x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -66.03,
+                                          "y":  -123.03,
+                                          "z":  31.52,
+                                          "color":  "#FFD36B",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

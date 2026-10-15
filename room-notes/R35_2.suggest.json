@@ -1,0 +1,102 @@
+{
+    "schema":  1,
+    "room":  "R35_2",
+    "made":  "2026-10-14T13:55:40.7757893Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "sidelight",
+                            "confidence":  0.57,
+                            "point":  [
+                                          -336.62,
+                                          -338.81,
+                                          -503.22
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "stuff",
+                            "material":  "5CRYPT",
+                            "texture":  "05-r35cryp5.png",
+                            "uv":  [
+                                       0.65,
+                                       0.381
+                                   ],
+                            "crop":  [
+                                         114,
+                                         121,
+                                         202,
+                                         185,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan running along the wall (3.7x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -328.62,
+                                          "y":  -338.81,
+                                          "z":  -503.22,
+                                          "dir":  [
+                                                      -0.342,
+                                                      0,
+                                                      -0.94
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFEACC",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "glow",
+                            "confidence":  0.67,
+                            "point":  [
+                                          488.08,
+                                          -50.35,
+                                          -310.54
+                                      ],
+                            "normal":  [
+                                           -1,
+                                           -0.006,
+                                           0
+                                       ],
+                            "part":  "stuff",
+                            "material":  "1ENDOFAREA",
+                            "texture":  "37-r35inend.png",
+                            "uv":  [
+                                       0.48,
+                                       0.092
+                                   ],
+                            "crop":  [
+                                         41,
+                                         198,
+                                         79,
+                                         256,
+                                         128,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.1x the art\u0027s level)",
+                            "light":  {
+                                          "x":  473.08,
+                                          "y":  -50.44,
+                                          "z":  -310.54,
+                                          "color":  "#FFEF44",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

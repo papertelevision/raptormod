@@ -1,0 +1,277 @@
+{
+    "schema":  2,
+    "room":  "BAPTIST",
+    "rev":  11,
+    "nextId":  4,
+    "notes":  [
+
+              ],
+    "completed":  [
+                      {
+                          "id":  1,
+                          "ref":  "BAPTIST/1",
+                          "status":  "complete",
+                          "created":  "2026-10-14T04:49:59.0239232Z",
+                          "updated":  "2026-10-14T05:53:39.2012760Z",
+                          "kind":  "other",
+                          "point":  [
+                                        79.76,
+                                        184.35,
+                                        182.06
+                                    ],
+                          "normal":  [
+                                         -1,
+                                         0,
+                                         0
+                                     ],
+                          "part":  "leftwall",
+                          "material":  "BAPLEFT",
+                          "texture":  "25-bapleft1.png",
+                          "uv":  [
+                                     0.851,
+                                     0.813
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -181.11,
+                                                     230.35,
+                                                     220.16
+                                                 ],
+                                         "fwd":  [
+                                                     0.96,
+                                                     -0.26,
+                                                     -0.08
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -181.11,
+                                                         "Y":  230.35,
+                                                         "Z":  220.16,
+                                                         "Yaw":  94.81,
+                                                         "Pitch":  -15.27
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  49.76,
+                                                        "y":  184.35,
+                                                        "z":  182.06,
+                                                        "dir":  [
+                                                                    -1,
+                                                                    0,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:33.3569349Z",
+                                       "roomFileMtime":  "2026-10-12T22:42:35.5443936Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Similar to how you cut out the grid in the mindhead room, I want these windows to be cut out in a similar way, but they should be transparent with 30# opacity of the current pale porrtion of the glass. Then, I want warm light to flood though the grid at an angle that comes in and descends toward the ground for all windows on this side.",
+                                          "at":  "2026-10-14T04:49:59.0239232Z",
+                                          "shot":  "BAPTIST-1-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done, all six windows on that wall (three on each side of the mirror wall). The panes are cut out like the MINEHEAD grid and drawn back as glass at 30% of their pale colour, warmed by the sun behind them; the bars stay solid. Two warm suns outside (one per half of the room) shine in 50 degrees below level, so the window grids fall through the air and across the floor. They light the room only through the glass -- never the wall\u0027s inside, and never over the top of the walls (this room has no ceiling, so without that the sun poured in over them). A thin haze lets the beams show. New for this: glass in cut-out holes, one-sided lights and lights that come in only through a window. Brighter, warmer or a different angle is one number each.",
+                                          "at":  "2026-10-14T05:53:39.2012760Z",
+                                          "changes":  [
+                                                          "rooms\\BAPTIST.json holes (25-bapleft1, 3 windows, glass 0.3)",
+                                                          "rooms\\BAPTIST.json lights: 2 suns (oneSided, gate to the window band, shadowed, air 6)",
+                                                          "rooms\\BAPTIST.json volume (thin haze, airInRoom) + gi"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "BAPTIST-1-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:23:40.1019278Z"
+                      },
+                      {
+                          "id":  2,
+                          "ref":  "BAPTIST/2",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:15:28.9608487Z",
+                          "updated":  "2026-10-14T20:36:23.1900239Z",
+                          "kind":  "map",
+                          "point":  [
+                                        487.79,
+                                        98.87,
+                                        119.06
+                                    ],
+                          "normal":  [
+                                         0,
+                                         0,
+                                         -1
+                                     ],
+                          "part":  "tapestry1",
+                          "material":  "BAPTAP",
+                          "texture":  "18-baptap.png",
+                          "uv":  [
+                                     0.219,
+                                     0.555
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     676.32,
+                                                     -127.67,
+                                                     -210.63
+                                                 ],
+                                         "fwd":  [
+                                                     -0.5,
+                                                     0.37,
+                                                     0.78
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  676.32,
+                                                         "Y":  -127.67,
+                                                         "Z":  -210.63,
+                                                         "Yaw":  -32.74,
+                                                         "Pitch":  21.65
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  487.79,
+                                                        "y":  98.87,
+                                                        "z":  89.06,
+                                                        "dir":  [
+                                                                    0,
+                                                                    0,
+                                                                    -1
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:33.3569349Z",
+                                       "roomFileMtime":  "2026-10-14T12:46:47.3932980Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "omit from map view",
+                                          "at":  "2026-10-14T20:15:28.9608487Z",
+                                          "shot":  "BAPTIST-2-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. This floating tapestry set (tapestry1, tapestry3, tapestry4, tapframe2 -- a parked copy outside the room, x 386..516) was already left off the map, because the map drops parts that are not joined to the room. I have named them in the room\u0027s map settings too, so they stay off whatever happens to that rule.",
+                                          "at":  "2026-10-14T20:36:23.1900239Z",
+                                          "round":  26,
+                                          "changes":  [
+                                                          "rooms\\BAPTIST.json map.hide: tapestry1, tapestry3, tapestry4, tapframe2"
+                                                      ]
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.3965682Z"
+                      },
+                      {
+                          "id":  3,
+                          "ref":  "BAPTIST/3",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:16:35.1961514Z",
+                          "updated":  "2026-10-14T20:36:23.2839465Z",
+                          "kind":  "light",
+                          "point":  [
+                                        -59.78,
+                                        -30.64,
+                                        289.92
+                                    ],
+                          "normal":  [
+                                         0,
+                                         1,
+                                         0
+                                     ],
+                          "part":  "font02",
+                          "material":  "BAPFLOOR",
+                          "texture":  "29-bapflor_key.png",
+                          "uv":  [
+                                     0.48,
+                                     1.402
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -39.42,
+                                                     57.78,
+                                                     158.68
+                                                 ],
+                                         "fwd":  [
+                                                     -0.25,
+                                                     -0.45,
+                                                     0.86
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -39.42,
+                                                         "Y":  57.78,
+                                                         "Z":  158.68,
+                                                         "Yaw":  -16.24,
+                                                         "Pitch":  -26.74
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -59.78,
+                                                        "y":  -0.64,
+                                                        "z":  289.92,
+                                                        "dir":  [
+                                                                    0,
+                                                                    -1,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:33.3569349Z",
+                                       "roomFileMtime":  "2026-10-14T12:46:47.3932980Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Angle the light from the window so it encompasses this shape, so its shadow extends in the light that spans beyond it",
+                                          "at":  "2026-10-14T20:16:35.1961514Z",
+                                          "shot":  "BAPTIST-3-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. The sun for this half of the room (windows at z 198, 297, 396) now comes in steeper: 58 degrees below level instead of 50. The middle window\u0027s patch now lands at x -54 to -99, which covers the font (x -77 to -56), and its shadow runs out across the lit floor behind it. The three dust beams follow the new angle. The other half\u0027s sun is unchanged at 50 degrees; say if you want them to match.",
+                                          "at":  "2026-10-14T20:36:23.2839465Z",
+                                          "changes":  [
+                                                          "rooms\\BAPTIST.json lights[1] (second sun): position 238.1, 443, 297; dir -0.527, -0.85, 0",
+                                                          "rooms\\BAPTIST.json lights[6..8] (its three speck beams) re-aimed through their windows"
+                                                      ],
+                                          "round":  26,
+                                          "render":  "BAPTIST-3-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.3965682Z"
+                      }
+                  ],
+    "deleted":  [
+
+                ]
+}

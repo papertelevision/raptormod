@@ -1,0 +1,93 @@
+{
+    "schema":  1,
+    "room":  "GRAIL_S",
+    "made":  "2026-10-14T13:55:28.1882154Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.61,
+                            "point":  [
+                                          -20.42,
+                                          132.23,
+                                          -920.3
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           0
+                                       ],
+                            "part":  "roof",
+                            "material":  "1ZIGGYALCOVE",
+                            "texture":  "02-zg_towrt.png",
+                            "uv":  [
+                                       0.74,
+                                       0.679
+                                   ],
+                            "crop":  [
+                                         147,
+                                         143,
+                                         232,
+                                         187,
+                                         256,
+                                         512
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.6x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -5.42,
+                                          "y":  132.23,
+                                          "z":  -920.3,
+                                          "color":  "#E2EDFF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "glow",
+                            "confidence":  0.61,
+                            "point":  [
+                                          3.37,
+                                          132.41,
+                                          -908.58
+                                      ],
+                            "normal":  [
+                                           0,
+                                           0,
+                                           -1
+                                       ],
+                            "part":  "roof",
+                            "material":  "1ZIGGYALCOVE",
+                            "texture":  "02-zg_towrt.png",
+                            "uv":  [
+                                       0.74,
+                                       0.679
+                                   ],
+                            "crop":  [
+                                         147,
+                                         143,
+                                         232,
+                                         187,
+                                         256,
+                                         512
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (3.6x the art\u0027s level)",
+                            "light":  {
+                                          "x":  3.37,
+                                          "y":  132.41,
+                                          "z":  -923.58,
+                                          "color":  "#E2EDFF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

@@ -325,3 +325,5 @@ the host draws from the MOVEMENT frame (aztCamRec +172), the camera's cached wor
 Modded cursor->viewport is (x-0, y-49), bounds 1600x927. Unproven suspect: the pick camera is
 stale/different under host render. The watcher now logs `PICK` lines (game hovered object vs
 host part under the cursor, camera disagreement, render level) -- read those before theorising.
+
+**2026-10-13, a trap in AztActorTime:** it adds 100 per tick and ZEROES the accumulator on a step, so any aztPeriod from 101 to 200 steps every 2nd tick (50%). The NPC pace therefore lives in the overlay instead (AztActorGate, a true percentage) -- [[azrael-npc-pace]].

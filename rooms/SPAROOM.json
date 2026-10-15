@@ -30,5 +30,6 @@
     "caustics": { "strength": 2.05, "size": 38, "speed": 0.45, "height": 140, "fill": 0.24 },
     "noLight": [ [ -319, -254, -202, -153 ], [ 144, -228, 258, -115 ], [ 72, 82, 171, 185 ] ],
     "_noLight": "Round 5 (Josh): the light off the water stays out of the three hallways (tunnel01/09-11 south-west, tunnel02-05 east, tunnel06-08/12 north; their floor plans plus 4 units)"
-  }
+  },
+  "map": { "_about": "Room Review round 26, SPAROOM/10+11: all the strings (schains, 120 triangles from y -542 up to 920, under the map too).", "hide": [ "schains" ] }
 }

@@ -21,8 +21,11 @@ param(
     [switch]$NoShine, [double]$Shine = 1.0, [switch]$NoWet,     # (-NoWet: a wet room drawn dry, to compare)
     [double]$WetStrength = -1, [double]$WetWalls = -1, [double]$WetPuddles = -1,      # (trying a wet room's numbers before they go in the room files)
     [switch]$WetDebug,      # (the picture shows how wet (red), puddles (green), height over the floor (blue))
-    [switch]$NoRepair, [switch]$NoMix, [switch]$RepairDebug, [switch]$NoParallax, [double]$ParallaxDepth = 1.0, [double]$MaterializeAt = -1, [double]$XrayMargin = [double]::NaN,      # (-MaterializeAt s: the visor's materialize sweep, s seconds in; -XrayMargin: its lines through walls, how far behind -- -1 = every line)     # TEXTURE REPAIR (GpuRaster.SetRelay): off, or only the mix against repeats off
+    [double]$ShotAgo = -1, [string[]]$MapVisited, [double]$EchoAt = -1, [switch]$NoRepair, [switch]$NoMix, [switch]$RepairDebug, [switch]$NoParallax, [double]$ParallaxDepth = 1.0, [double]$MaterializeAt = -1, [double]$XrayMargin = [double]::NaN, [double]$Fov = 60, [double]$StandAt = -1,      # (-MaterializeAt s: the visor's materialize sweep, s seconds in; -XrayMargin: its lines through walls, how far behind -- -1 = every line)     # TEXTURE REPAIR (GpuRaster.SetRelay): off, or only the mix against repeats off
     [double]$WaterSheen = -1,      # (the modern water's sheen, to compare; -1 = the room's)
+    # THE MAP (GpuRaster.DrawMap): the room's wireframe map over the dimmed picture, turned -MapYaw / -MapPitch degrees;
+    # -MapFlip: the cut-away the other way round (if the ceiling shows instead of the floor)
+    [switch]$Map, [double]$MapYaw = 30, [double]$MapPitch = 52, [double]$MapZoom = 1, [switch]$MapFlip, [double]$MapIntroAt = -1,     # (-MapIntroAt s: the map's pulse-in, s seconds in)
     [string]$RoomsDir = 'C:\Games\azrael-render\rooms',      # (the room files: a scratch copy to try settings)
     # the replacement art's folder (as the watcher's -TexOverrideDir)
     [string]$TexOverrideDir = 'C:\Games\azrael-textures\hires'
@@ -55,7 +58,7 @@ if ($Character) {
     "  {0}: {1} parts, {2:N0} units tall (x{3:N3}), foot at {4}" -f $Character, $cp.Count, (($hi[1] - $lo[1]) * $sc), $sc, ($at -join ', ')
 } else { $theRoom = Get-Room @($Room) }      # (not $room: that IS $Room, the [string] parameter)
 
-$r = New-Object AztTool.Raster($Width, $Height); $r.NearZ = [single]0.5; $r.SetVerticalFov(50); $r.EnableRgb()
+$r = New-Object AztTool.Raster($Width, $Height); $r.NearZ = [single]0.5; $r.SetVerticalFov($Fov); $r.EnableRgb()      # (-Fov: the view's vertical angle, as the game is played -- 60 since 2026-10-13; 50 = the original)
 $r.SetLightTable([AztTool.Raster]::BuildLightTable($pal, 76, [single]2.4), 76, [single]2.4)
 $r.LampHalo = [single]0.495; $r.LampHaloInnerDeg = [single]10; $r.LampHaloDeg = [single]24; $r.LampRange = [single]550; $r.LampInnerDeg = [single]8.64; $r.LampOuterDeg = [single]21
 $r.ShadowDark = [single]0.38; $r.ShadowNear = [single]140; $r.ShadowFar = [single]900; $r.ShadowSoft = [single]1.0; $r.Lamp = $true
@@ -63,7 +66,7 @@ if ($LampOff) { $r.LampRoom = [single]0.82; $r.LampPower = [single]0 } else { $r
 $script:motes = $null; $script:roomLights = @(); $script:atmClock = [Diagnostics.Stopwatch]::StartNew()
 $e = $null; $gpu = [AztTool.GpuRaster]::Create($Width, $Height, [ref]$e); if (-not $gpu) { throw $e }; if ($VolFull) { $gpu.VolHalf = $false }
 $gpu.ShineOn = -not $NoShine; $gpu.ShineGain = [single]$Shine; $gpu.ParallaxOn = -not $NoParallax
-$gpu.NearZ = [single]0.5; $gpu.SetVerticalFov(50); $gpu.BlackView = [bool]$BlackView; $gpu.LightSoft = [single]$LightSoft; $gpu.LampSoft = [single]$LampSoft; $gpu.LightShadowDeep = [single]$LightShadowDeep
+$gpu.NearZ = [single]0.5; $gpu.SetVerticalFov($Fov); $gpu.BlackView = [bool]$BlackView; $gpu.LightSoft = [single]$LightSoft; $gpu.LampSoft = [single]$LampSoft; $gpu.LightShadowDeep = [single]$LightShadowDeep
 $gpu.ReliefSharpBuild = [bool]$ReliefSharp; $gpu.ReliefSharp = [bool]$ReliefSharp; if ($ReliefSharpK -ge 0) { $gpu.ReliefSharpK = [single]$ReliefSharpK }; if ($ReliefMid -ge 0) { $gpu.ReliefMid = [single]$ReliefMid }; if ($ReliefTile -gt 0) { $gpu.ReliefTile = [single]$ReliefTile }
 $gpu.PixelMip = -not $NoPixelMip; $gpu.PixelMipBias = [single]$GpuMipBias; $gpu.Anisotropy = [single]$Anisotropy; if ($NormMipBias -gt -9) { $gpu.NormMipBias = [single]$NormMipBias }; if ($ReliefGain -gt 0) { $gpu.ReliefGain = [single]$ReliefGain }; $gpu.Detail = [single]$Detail; if ($DetailScale -gt 0) { $gpu.DetailScale = [single]$DetailScale }; if ($DetailAO -ge 0) { $gpu.DetailAO = [single]$DetailAO }; if ($DetailRough -ge 0) { $gpu.DetailRough = [single]$DetailRough }; if ($ReliefTint -ge 0) { $gpu.ReliefTint = [single]$ReliefTint }; if ($ReliefOpacity -ge 0) { $gpu.ReliefOpacity = [single]$ReliefOpacity }
 $atm = Get-RoomAtmosphere @($Room); Set-RoomAtmosphere $r $atm $theRoom; if ($Steady) { foreach ($l in $script:roomLights) { $l.Flicker = 0 } }      # (-Steady: no torch flicker, so two renders compare)
@@ -104,7 +107,7 @@ $o = New-Object AztTool.Overlay($PID, 1600, 928, 1600, 1200, 0, 49); $o.Wide = $
 $cxi = $null; $cxf = $null; $cxiR = $null; $cxfR = $null; $riy = $null; $rwy = $null; $bt = 0; $bb = 0; $vis = $false
 $o.ComposeMap($Width, $Height, [ref]$cxi, [ref]$cxf, [ref]$cxiR, [ref]$cxfR, [ref]$riy, [ref]$rwy, [ref]$bt, [ref]$bb, [ref]$vis)
 $shadowW = [int]([Math]::Round(512 * $Width / [double]$Height / 4) * 4)
-$rs = New-Object AztTool.Raster($shadowW, 512); $rs.NearZ = [single]0.5; $rs.SetVerticalFov(58)
+$rs = New-Object AztTool.Raster($shadowW, 512); $rs.NearZ = [single]0.5; $rs.SetVerticalFov($Fov + 8)
 $lampM = New-Object single[] 16; $moteBuf = New-Object single[] 6000; $partBuf = New-Object single[] 20000
 $fin = New-Object int[] ($Width * $Height); $times = @(); $gpuOnly = @()
 try {
@@ -113,8 +116,33 @@ try {
     for ($f = 0; $f -lt $frames; $f++) {
         $back = ($frames - 1 - $f) * $Walk / 30.0
         $cam = Cam ($X - [Math]::Sin($a) * $back) $Y ($Z - [Math]::Cos($a) * $back)
+        # -StandAt s: the new game's stand-up tilt (BootHd.TiltAt), s seconds after the shutter has opened
+        if ($StandAt -ge 0) {
+            if (-not $script:standBoot) { $script:standBoot = [AztTool.BootHd]::Load((Join-Path $toolDir '..\art\boot-hd.json'), (New-Object int[] 256)) }
+            $sb = $script:standBoot; $us = $sb.GetType().GetField('U_openSpan', [Reflection.BindingFlags]'Public,NonPublic,Instance').GetValue($sb)
+            $rl = 0.0; $pt = 0.0; $sb.TiltAt([double]$us + $StandAt * 1e6, [ref]$rl, [ref]$pt); [AztTool.BootHd]::TiltMatrix($cam, $rl, $pt)
+            if ($f -eq $frames - 1) { "  stand-up at {0:N2} s: roll {1:N1}, pitch {2:N1} degrees" -f $StandAt, $rl, $pt }
+        }
         $r.SetCameraWorld($cam); Update-RoomLights $r
         $gpu.Time = [single]($f / 30.0)
+        # -ShotAgo s: a shot at the picture's middle s seconds before the last frame -- its sparks, glow and scorch (as the watcher)
+        if ($ShotAgo -ge 0 -and $f -eq [Math]::Max(0, $frames - 1 - [int]($ShotAgo * 30))) {
+            $hx = 0.0; $hy = 0.0; $hz = 0.0; $nx = 0.0; $ny = 0.0; $nz = 0.0
+            $ht = $r.PickHit($theRoom.V, $theRoom.T, $theRoom.TexIdx, [single]($r.W / 2), [single]$r.CentreY, [single]3000, [ref]$hx, [ref]$hy, [ref]$hz, [ref]$nx, [ref]$ny, [ref]$nz)
+            if ($ht -ge 0) { if ($script:fx) { $script:fx.Impact([single]$hx, [single]$hy, [single]$hz, [single]$nx, [single]$ny, [single]$nz, [single]1) }; $gpu.AddScorch([single]$hx, [single]$hy, [single]$hz, [single]$nx, [single]$ny, [single]$nz, [single]4.5); $script:shotF = $f; "  shot: hit {0:N0} {1:N0} {2:N0}, facing {3:N2} {4:N2} {5:N2}" -f $hx, $hy, $hz, $nx, $ny, $nz }
+        }
+        # -EchoAt s: the echo scan s seconds after its ping (its targets as the watcher finds them: doors, items, creatures)
+        if ($EchoAt -ge 0 -and $f -eq $frames - 1) {
+            $eo = New-Object AztTool.ScanWire; $op = Join-Path (Join-Path (Split-Path $TexDir -Parent) 'AZRAEL') 'OBJECTS.DAT'; if (Test-Path $op) { [void]$eo.LoadObjects($op) }
+            $ek = @{}; for ($i = 0; $i -lt $theRoom.Parts.Count; $i++) { $pt = $theRoom.Parts[$i]; $nm = [string]$pt.Name; if ($pt.IsCharacter) { $ek[$i] = 2 } elseif ($nm -match '(?i)(door|gate)' -and $nm -notmatch '(?i)wall') { $ek[$i] = 0 } elseif ($eo.IsObjectPart($nm) -and $nm -notmatch '^(?i)z[xy]') { $sv = $theRoom.V; $lo = @(1e9, 1e9, 1e9); $hi = @(-1e9, -1e9, -1e9); for ($j = [int]$pt.VFirst; $j -lt [int]$pt.VFirst + [int]$pt.VCount; $j++) { for ($k = 0; $k -lt 3; $k++) { $q = $sv[$j * 3 + $k]; if ($q -lt $lo[$k]) { $lo[$k] = $q }; if ($q -gt $hi[$k]) { $hi[$k] = $q } } }; if ([Math]::Max($hi[0] - $lo[0], [Math]::Max($hi[1] - $lo[1], $hi[2] - $lo[2])) -le 160) { $ek[$i] = 1 } } }
+            $el = @((New-Object 'System.Collections.Generic.List[int]'), (New-Object 'System.Collections.Generic.List[int]'), (New-Object 'System.Collections.Generic.List[int]'))
+            for ($t = 0; $t -lt $theRoom.TriPart.Length; $t++) { $pi = [int]$theRoom.TriPart[$t]; if ($pi -ge 0 -and $ek.ContainsKey($pi) -and $theRoom.TexIdx[$t] -ge 0) { $el[$ek[$pi]].Add($t) } }
+            [void](Get-AztMapDoors -Files @($Room)); $segs = New-Object 'System.Collections.Generic.List[single]'
+            foreach ($e in @($script:AztPortalMap.$($Room.ToUpper()))) { $q = @($e.farQuad); if ($q.Count -lt 12) { continue }; for ($c = 0; $c -lt 4; $c++) { $n = ($c + 1) % 4; foreach ($k in 0..2) { $segs.Add([single]$q[$c * 3 + $k]) }; foreach ($k in 0..2) { $segs.Add([single]$q[$n * 3 + $k]) } } }
+            $gpu.SetEchoTargets(0, $el[0].ToArray(), $segs.ToArray()); $gpu.SetEchoTargets(1, $el[1].ToArray(), $null); $gpu.SetEchoTargets(2, $el[2].ToArray(), $null); $gpu.EchoT = [single]$EchoAt
+            "  echo at {0:N2} s: doors {1} tris + {2} doorways, items {3} tris ({4}), creatures {5} tris" -f $EchoAt, $el[0].Count, [int]($segs.Count / 24), $el[1].Count, ((@($ek.Keys | Where-Object { $ek[$_] -eq 1 } | ForEach-Object { $theRoom.Parts[$_].Name }) | Select-Object -Unique) -join ','), $el[2].Count
+        }
+        if ($null -ne $script:shotF) { $it = ($f - $script:shotF) / 30.0; $gpu.ImpactK = [single]$(if ($it -gt 0.35) { 0 } else { [Math]::Min(1.0, ($it + 0.005) / 0.01) * [Math]::Exp(-[Math]::Max(0.0, $it - 0.01) / 0.07) }) }
         if ($script:fx) { $script:fx.Update([single](1 / 30.0), $cam[12], $cam[13], $cam[14], $theRoom.V, $theRoom.T, $theRoom.TexIdx); $gpu.MistFloorY = [single]$script:fx.FloorY; if (-not $dropBuf) { $dropBuf = New-Object single[] 64 }; $gpu.SetDrops($dropBuf, $script:fx.GatherDrops($dropBuf)) }
         if ($script:motes) { $script:motes.Update([single](1 / 30.0), $cam[12], $cam[13], $cam[14]); $script:motes.LampLevel = [single]$(if ($LampOff) { 0 } else { 1 }) }
         if ($f -lt $frames - 12) { continue }
@@ -148,9 +176,25 @@ try {
         }
         foreach ($grp in @($theRoom.WaterGroups)) { if (-not $grp) { continue }; $tl = New-Object 'System.Collections.Generic.List[int]'; $ys = 0.0; $yn = 0; foreach ($wt in $grp.Parts) { $wy = $theRoom.V[$wt.VFirst * 3 + 1]; if ($cam[13] -le $wy + 1) { continue }; $tl.AddRange([int[]]$wt.TriVerts); $ys += $wy; $yn++ }; if ($yn) { $gpu.AddWater($tl.ToArray(), [single]($ys / $yn)) } }
         if ($script:motes) { $nm = $script:motes.Gather($r, $moteBuf); $gpu.SetMotes($moteBuf, $nm, $script:motes.Color, $script:motes.ColorDark) }
-        if ($script:fx -and -not $Off -and -not $NoParts) { $np = $script:fx.Gather($r, $partBuf); $gpu.SetParticles($partBuf, $np) }
+        if ($script:fx -and -not $Off -and -not $NoParts) { $np = $script:fx.Gather($r, $partBuf); if ($script:eyeShine) { $np = $script:eyeShine.Append($(if ($pose) { $pose.PoseV } else { $theRoom.V }), $r, [single]$(if ($r.Lamp -and $r.LampPower -gt 0) { 1 } else { 0 }), $partBuf, $np); if ($f -eq $frames - 1) { "  eye shine: {0} glints ({1} placed on the head; last eye at {2:N0} {3:N0} {4:N0}: beam {5:N2}, facing {6:N2})" -f $script:eyeShine.LastShown, $script:eyeShine.LastFromHead, $script:eyeShine.LastX, $script:eyeShine.LastY, $script:eyeShine.LastZ, $script:eyeShine.LastBeam, $script:eyeShine.LastFace } }; $gpu.SetParticles($partBuf, $np) }
         if ($MaterializeAt -ge 0 -and $f -eq $frames - 1) { $gpu.StartMaterializeAt($MaterializeAt); if (-not [double]::IsNaN($XrayMargin)) { $gpu.MatXrayMargin = [single]$XrayMargin } }
         $gpu.SetCameraWorld($cam); $gpu.CopyLighting($r)
+        if ($Map) {
+            if (-not $script:mapDoors) {
+                $script:mapDoors = Get-AztMapDoors -Files @($Room)
+                $mskip = Get-AztMapSkip -Room $theRoom -Files @($Room); $gpu.SetMapSkip($mskip); $mcut = Get-AztMapCut -Room $theRoom -Files @($Room); if ($mcut) { $gpu.SetMapCut([single]$mcut.Y, [bool[]]$mcut.Tris); "  map: cut at y {0} under the floor" -f $mcut.Y }; "  map: {0} triangles left out (doorway pictures, characters)" -f $mskip.Length
+                # -MapVisited A,B: the whole complex round it (as the watcher lays it out), shown as -MapZoom goes below 0.62
+                if ($MapVisited) { $cxw = [Diagnostics.Stopwatch]::StartNew(); $cx = Get-AztComplex -Root $Room -Visited $MapVisited; if ($cx -and $cx.T.Length) { $gpu.SetMapComplex([single[]]$cx.V, [int[]]$cx.T, [int[]]$cx.G) }; "  map: the complex -- {0} ({1:N0} ms) {2}" -f ($cx.Rooms -join ', '), $cxw.Elapsed.TotalMilliseconds, $(if ($script:AztComplexError) { '(' + $script:AztComplexError + ')' } else { '' }) }
+                $zc = [Math]::Max(0.0, [Math]::Min(1.0, (0.62 - $MapZoom) / 0.25)); $gpu.MapComplexK = [single]($zc * $zc * (3 - 2 * $zc))
+                "  map: {0} door(s) -- {1}" -f $script:mapDoors.Doors.Count, (($script:mapDoors.Doors | ForEach-Object { '{0} at {1:N0},{2:N0}' -f $_.To, $_.X, $_.Z }) -join '; ')
+            }
+            $mk = New-Object 'System.Collections.Generic.List[single]'; $mk.AddRange([single[]]$script:mapDoors.Marks)
+            # the player: where the camera stands, a little above the floor, facing the way it looks
+            $mapFx = $cam[8]; $mapFz = $cam[10]      # (not $fx: in a script that IS $script:fx, the particles)
+            foreach ($v in @([single]$cam[12], [single]($cam[13] - 40), [single]$cam[14], [single]$mapFx, [single]$mapFz, [single]1, [single]0, [single]0)) { $mk.Add($v) }
+            $gpu.SetMapMarks($mk.ToArray(), [int]($mk.Count / 8))
+            $gpu.MapK = 1; $gpu.MapOn = $true; $gpu.MapYaw = [single]$MapYaw; $gpu.MapPitch = [single]$MapPitch; $gpu.MapZoom = [single]$MapZoom; $gpu.MapCullFlip = [bool]$MapFlip; $gpu.MapIntro = [single]$MapIntroAt; $gpu.MapBeamT = [single]$MapIntroAt
+        }
         $gpu.Draw($theRoom.V, $theRoom.UV, $theRoom.T, $theRoom.TexIdx, $theRoom.Texes, $true, $true)
         $gpu.SetComposeMap($cxi, $cxf, $cxiR, $cxfR, $riy, $rwy)
         $gpu.PostCompose([single]0, $screen, 1600, 1600, 928, 0x101010, $bt, $bb, $vis)

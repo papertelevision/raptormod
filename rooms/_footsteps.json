@@ -1,0 +1,23 @@
+{
+  "_about": "FOOTSTEPS (Watch-HostRender Set-RoomFootsteps, BootHd.cs Footsteps; 2026-10-14). What each FLOOR texture sounds like underfoot: stone, tile, wood, metal or water. Most floors are the generic 'floor' material in _materials.json (stone by default), so the painted floors that are really tile or wood are named here by texture name (without its number), judged by eye from the art. A texture not named here goes by its material: wood -> wood, polished/glass -> tile, iron/copper/brass/gold -> metal, water/slime -> water, anything else -> stone. A room's own \"footsteps\" block (rooms\\<ROOM>.json) adds to or overrides this: { \"default\": \"wood\", \"<texture>\": \"tile\" }, or false for no footsteps in that room. Changing this file does not change how anything looks.",
+  "surfaces": {
+    "2flor": "tile",
+    "2tapfl": "wood",
+    "aquflor1": "wood",
+    "bapbalfl": "wood",
+    "bapflor_key": "tile",
+    "clo_flor": "wood",
+    "edfloor2": "tile",
+    "gra_fl01": "tile",
+    "lib_flor": "tile",
+    "lr_floor": "tile",
+    "or_flor": "tile",
+    "poi_flor": "tile",
+    "r35floor": "tile",
+    "red_flor": "tile",
+    "intflr01": "tile",
+    "tre_bflo": "wood",
+    "tre_cflo": "wood",
+    "cob_cflo": "wood"
+  }
+}

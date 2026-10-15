@@ -19,7 +19,7 @@ New-Item -ItemType Directory -Force $NotesDir | Out-Null
 
 # the work: every note whose turn is Claude's
 $work = @()
-foreach ($nf in @(Get-ChildItem $NotesDir -Filter '*.json' | Where-Object { $_.BaseName -notin 'rounds', 'submit' } | Sort-Object Name)) {
+foreach ($nf in @(Get-ChildItem $NotesDir -Filter '*.json' | Where-Object { $_.BaseName -notin 'rounds', 'submit' -and $_.Name -notlike '*.suggest.json' } | Sort-Object Name)) {      # (not the painted-light finder's pins)
     $doc = Read-RoomNotes $NotesDir $nf.BaseName
     foreach ($n in @($doc.notes | Where-Object { $_.status -eq 'new' })) { $work += [pscustomobject]@{ Room = $doc.room; Note = $n } }
 }

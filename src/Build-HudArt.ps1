@@ -283,22 +283,11 @@ if ($panelTop -lt $PANEL_TOP - 40) {
 $black = $map.Pixels[0]      # top-left corner: the image's own black
 $map.FillRect(0, $panelTop, $map.Width, $map.Height - $panelTop, $black)
 
-# The map backdrop is a FULL-SCREEN image, so at hi-res it has to be resized to
-# the new screen rather than left at 640x480 in the corner. Its palette is shared
-# with every individual map image on the disc (verified: 0 of 768 bytes differ
-# from AQUADUCT.PCX), so the resize must keep that palette exactly -- which
-# BlitScaledSmooth does, since it only ever picks indices already present.
-if ($ScreenW -ne $map.Width -or $ScreenH -ne $map.Height) {
-    $big = New-Object LeTool.Pcx
-    $big.Width = $ScreenW; $big.Height = $ScreenH
-    $big.Pixels = New-Object byte[] ($ScreenW * $ScreenH)
-    $big.Palette = $map.Palette
-    $big.FillRect(0, 0, $ScreenW, $ScreenH, $black)
-    $big.BlitScaledSmooth($map, 0, 0, $map.Width, $map.Height, 0, 0, $ScreenW, $ScreenH, $black)
-    Write-Host ("  MAPBKGRD  resized {0}x{1} -> {2}x{3}" -f $map.Width, $map.Height, $ScreenW, $ScreenH)
-    $map = $big
-}
-
+# The map backdrop STAYS 640x480 at every resolution (Josh, 2026-10-14: the old maps showed "corrupted" since the
+# move to 1600x1200). The map screen composes into a 640x480 surface (0x12954 creates 0x1525E0 at 0x280 x 0x1E0) and
+# MAPS.DAT places every piece in 640x480 coordinates, so a backdrop resized to the screen no longer fit its surface:
+# its rows ran at the wrong pitch. The composed map is now drawn at its own size, centred in the view (Build-AztMod
+# AztMapBlit), or not at all when the host draws the 3D map.
 $out = Join-Path $OutDir 'MAPBKGRD.PCX'
 $map.SavePcx($out)
 Write-Host ("  MAPBKGRD  from disc, wiped baked HUD rows {0}..{1} -> index {2}  ({3:N0} bytes)" -f `

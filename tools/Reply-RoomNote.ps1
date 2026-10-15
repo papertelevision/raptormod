@@ -10,6 +10,7 @@ param(
     [Parameter(Mandatory)][string]$Text,
     [string[]]$Changes = @(),
     [switch]$NoRender,
+    [string]$RenderFile = '',     # (an image made elsewhere -- e.g. a map note's before | after of the 3D map -- attached instead of the view render)
     [int]$Width = 960, [int]$Height = 540,
     [string]$RenderDir = 'C:\Games\azrael-render',
     [string]$NotesDir = ''
@@ -25,7 +26,10 @@ if (-not $n) { throw "no open note $Room/$Id" }
 $k = @($n.log).Count          # (the index this reply will have)
 
 $render = $null
-if (-not $NoRender -and $n.camera -and $n.camera.gpuLook) {
+if ($RenderFile) {
+    if (-not (Test-Path $RenderFile)) { throw "no such image: $RenderFile" }
+    $render = '{0}-{1}-{2}-render.png' -f $Room, $Id, $k; Copy-Item $RenderFile (Join-Path $NotesDir $render) -Force
+} elseif (-not $NoRender -and $n.camera -and $n.camera.gpuLook) {
     # the note's view through the renderer (tools\Render-RoomView.ps1: flashlight off | on)
     $g = $n.camera.gpuLook; $render = '{0}-{1}-{2}-render.png' -f $Room, $Id, $k
     & (Join-Path $toolDir 'Render-RoomView.ps1') -Room $Room -X $g.X -Y $g.Y -Z $g.Z -Yaw $g.Yaw -Pitch $g.Pitch -Out (Join-Path $NotesDir $render) -Width $Width -Height $Height

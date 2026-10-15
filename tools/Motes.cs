@@ -30,6 +30,10 @@ namespace AztTool
         public float LampLevel = 1f;
         public float Floor = -1e9f, Ceiling = 1e9f, MinX = -1e9f, MaxX = 1e9f, MinZ = -1e9f, MaxZ = 1e9f;
         Random _rnd = new Random(7); float _t;
+        /// <summary>DUST THAT REACTS (Josh, 2026-10-14): motes near the player's body are pushed aside as he walks through
+        /// them (as Particles.ReactStrength: outward, along his way, a wake behind), the push dying away; 0 = none.</summary>
+        public float ReactStrength = 1f, ReactRadius = 42f, ReactSettle = 1.6f;
+        float[] _dv; float _lx, _lz; bool _have;
 
         public Motes(int count) { Count = count; P = new float[count * 3]; Vel = new float[count * 3]; Phase = new float[count]; _sz = new float[count]; for (int i = 0; i < count; i++) Phase[i] = (float)(_rnd.NextDouble() * 6.2832); }
 
@@ -59,10 +63,30 @@ namespace AztTool
         public void Update(float dt, float cx, float cy, float cz)
         {
             _t += dt; float r2 = Radius * Radius * 1.3f;
+            if (_dv == null || _dv.Length != Count * 3) _dv = new float[Count * 3];
+            float pvx = 0f, pvz = 0f, psp = 0f;
+            if (_have && dt > 0f) { float mx = cx - _lx, mz = cz - _lz, mm = (float)Math.Sqrt(mx * mx + mz * mz); if (mm < 30f) { pvx = mx / dt; pvz = mz / dt; psp = mm / dt; } }
+            _lx = cx; _lz = cz; _have = true;
+            bool react = ReactStrength > 0f && psp > 4f; float rr = ReactRadius, decay = (float)Math.Exp(-dt * 3f / Math.Max(0.2f, ReactSettle));
             for (int i = 0; i < Count; i++)
             {
                 int o = i * 3;
-                if (float.IsNaN(P[o + 1])) { Spawn(i, cx, cy, cz); continue; }
+                if (float.IsNaN(P[o + 1])) { Spawn(i, cx, cy, cz); _dv[o] = _dv[o + 1] = _dv[o + 2] = 0f; continue; }
+                if (react)
+                {
+                    float qx = P[o] - cx, qz = P[o + 2] - cz, qd = (float)Math.Sqrt(qx * qx + qz * qz);
+                    if (qd < rr && P[o + 1] < cy + 6f && P[o + 1] > cy - 60f)
+                    {
+                        float w = 1f - qd / rr; w *= w;
+                        float ox = qd > 1e-3f ? qx / qd : pvx / psp, oz = qd > 1e-3f ? qz / qd : pvz / psp, hx = pvx / psp, hz = pvz / psp, side = ox * hz - oz * hx;
+                        float k = ReactStrength * w * dt * 9f;
+                        _dv[o] += k * (ox * psp * 0.9f + pvx * 0.45f - hz * side * psp * 0.5f);
+                        _dv[o + 2] += k * (oz * psp * 0.9f + pvz * 0.45f + hx * side * psp * 0.5f);
+                        _dv[o + 1] += k * psp * (0.25f + 0.3f * ((Phase[i] / 6.2832f) - 0.5f));
+                    }
+                }
+                P[o] += _dv[o] * dt; P[o + 1] += _dv[o + 1] * dt; P[o + 2] += _dv[o + 2] * dt;
+                _dv[o] *= decay; _dv[o + 1] *= decay; _dv[o + 2] *= decay;
                 // a slow wander on top of the drift
                 float ph = Phase[i] + _t * 0.7f;
                 P[o] += (Vel[o] + (float)Math.Sin(ph) * Drift * 0.4f) * dt;

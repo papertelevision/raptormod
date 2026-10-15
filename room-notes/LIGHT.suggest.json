@@ -1,0 +1,933 @@
+{
+    "schema":  1,
+    "room":  "LIGHT",
+    "made":  "2026-10-14T13:55:31.6923508Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -307.91,
+                                          -240.02,
+                                          -258.07
+                                      ],
+                            "normal":  [
+                                           0.004,
+                                           0,
+                                           1
+                                       ],
+                            "part":  "tunnside05",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -307.85,
+                                          "y":  -240.02,
+                                          "z":  -243.07,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -194.64,
+                                          -204.62,
+                                          -185.84
+                                      ],
+                            "normal":  [
+                                           -0.704,
+                                           0,
+                                           0.71
+                                       ],
+                            "part":  "tunnside04",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -205.2,
+                                          "y":  -204.62,
+                                          "z":  -175.19,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -331.03,
+                                          -193.21,
+                                          -193.89
+                                      ],
+                            "normal":  [
+                                           -0.004,
+                                           0,
+                                           -1
+                                       ],
+                            "part":  "tunn09",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -331.09,
+                                          "y":  -193.21,
+                                          "z":  -208.89,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  4,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -331.97,
+                                          -176.53,
+                                          -257.97
+                                      ],
+                            "normal":  [
+                                           0.004,
+                                           0,
+                                           1
+                                       ],
+                            "part":  "tunnside05",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -331.9,
+                                          "y":  -176.53,
+                                          "z":  -242.97,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  5,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -268.28,
+                                          -172.4,
+                                          -247.2
+                                      ],
+                            "normal":  [
+                                           -0.374,
+                                           0,
+                                           0.927
+                                       ],
+                            "part":  "tunn08",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -273.89,
+                                          "y":  -172.4,
+                                          "z":  -233.29,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  6,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -165.4,
+                                          -169.43,
+                                          -54.82
+                                      ],
+                            "normal":  [
+                                           -1,
+                                           0,
+                                           0.004
+                                       ],
+                            "part":  "tunnside03",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -180.4,
+                                          "y":  -169.43,
+                                          "z":  -54.76,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  7,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -256.38,
+                                          -157.81,
+                                          -156.8
+                                      ],
+                            "normal":  [
+                                           0.704,
+                                           0,
+                                           -0.71
+                                       ],
+                            "part":  "tunn07",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -245.82,
+                                          "y":  -157.81,
+                                          "z":  -167.45,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  8,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -211.73,
+                                          -141.13,
+                                          -202.77
+                                      ],
+                            "normal":  [
+                                           -0.704,
+                                           0,
+                                           0.71
+                                       ],
+                            "part":  "tunnside04",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -222.29,
+                                          "y":  -141.13,
+                                          "z":  -192.12,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  9,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -174.08,
+                                          -137.2,
+                                          -150.28
+                                      ],
+                            "normal":  [
+                                           -0.92,
+                                           0,
+                                           0.391
+                                       ],
+                            "part":  "tunn06",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -187.89,
+                                          "y":  -137.2,
+                                          "z":  -144.41,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  10,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -164.97,
+                                          -134.14,
+                                          105.46
+                                      ],
+                            "normal":  [
+                                           -1,
+                                           0,
+                                           0.004
+                                       ],
+                            "part":  "tunnside02",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -179.97,
+                                          "y":  -134.14,
+                                          "z":  105.52,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  11,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -229.59,
+                                          -122.62,
+                                          -77.95
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           -0.004
+                                       ],
+                            "part":  "tunn05",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -214.59,
+                                          "y":  -122.62,
+                                          "z":  -78.01,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  12,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -165.51,
+                                          -105.93,
+                                          -78.88
+                                      ],
+                            "normal":  [
+                                           -1,
+                                           0,
+                                           0.004
+                                       ],
+                            "part":  "tunnside03",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -180.51,
+                                          "y":  -105.93,
+                                          "z":  -78.81,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  13,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -237.2,
+                                          -98.74,
+                                          218.72
+                                      ],
+                            "normal":  [
+                                           -0.71,
+                                           0,
+                                           -0.704
+                                       ],
+                            "part":  "tunnside01",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -247.85,
+                                          "y":  -98.74,
+                                          "z":  208.16,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  14,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -229.15,
+                                          -87.33,
+                                          82.33
+                                      ],
+                            "normal":  [
+                                           1,
+                                           0,
+                                           -0.004
+                                       ],
+                            "part":  "tunn04",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -214.15,
+                                          "y":  -87.33,
+                                          "z":  82.27,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  15,
+                            "kind":  "glow",
+                            "confidence":  0.57,
+                            "point":  [
+                                          -165.06,
+                                          -80.69,
+                                          84.09
+                                      ],
+                            "normal":  [
+                                           -1,
+                                           0,
+                                           0.004
+                                       ],
+                            "part":  "tunnside02",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.432,
+                                       0.506
+                                   ],
+                            "crop":  [
+                                         81,
+                                         108,
+                                         131,
+                                         147,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (4.6x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -180.06,
+                                          "y":  -80.69,
+                                          "z":  84.16,
+                                          "color":  "#C7DEFF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  16,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -175.84,
+                                          -66.52,
+                                          145.09
+                                      ],
+                            "normal":  [
+                                           -0.927,
+                                           0,
+                                           -0.374
+                                       ],
+                            "part":  "tunn03",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -189.75,
+                                          "y":  -66.52,
+                                          "z":  139.47,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  17,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -368.21,
+                                          -63.55,
+                                          247.95
+                                      ],
+                            "normal":  [
+                                           -0.004,
+                                           0,
+                                           -1
+                                       ],
+                            "part":  "tunnside",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -368.27,
+                                          "y":  -63.55,
+                                          "z":  232.95,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  18,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -266.23,
+                                          -51.93,
+                                          156.98
+                                      ],
+                            "normal":  [
+                                           0.71,
+                                           0,
+                                           0.704
+                                       ],
+                            "part":  "tunn02",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -255.58,
+                                          "y":  -51.93,
+                                          "z":  167.54,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  19,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -220.26,
+                                          -35.25,
+                                          201.64
+                                      ],
+                            "normal":  [
+                                           -0.71,
+                                           0,
+                                           -0.704
+                                       ],
+                            "part":  "tunnside01",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -230.92,
+                                          "y":  -35.25,
+                                          "z":  191.08,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  20,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -266.09,
+                                          -31.33,
+                                          236.45
+                                      ],
+                            "normal":  [
+                                           -0.391,
+                                           0,
+                                           -0.92
+                                       ],
+                            "part":  "tunn01",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -271.96,
+                                          "y":  -31.33,
+                                          "z":  222.65,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  21,
+                            "kind":  "glow",
+                            "confidence":  0.7,
+                            "point":  [
+                                          -345.09,
+                                          -16.74,
+                                          183.78
+                                      ],
+                            "normal":  [
+                                           0.004,
+                                           0,
+                                           1
+                                       ],
+                            "part":  "tunn",
+                            "material":  "ROCKS",
+                            "texture":  "16-lr_rocks.png",
+                            "uv":  [
+                                       0.572,
+                                       0.482
+                                   ],
+                            "crop":  [
+                                         115,
+                                         108,
+                                         194,
+                                         155,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (5.3x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -345.03,
+                                          "y":  -16.74,
+                                          "z":  198.78,
+                                          "color":  "#E1F4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  22,
+                            "kind":  "glow",
+                            "confidence":  0.59,
+                            "point":  [
+                                          -344.16,
+                                          -0.06,
+                                          247.85
+                                      ],
+                            "normal":  [
+                                           -0.004,
+                                           0,
+                                           -1
+                                       ],
+                            "part":  "tunnside",
+                            "material":  "ROCKS2",
+                            "texture":  "15-lr_rock2.png",
+                            "uv":  [
+                                       0.42,
+                                       0.354
+                                   ],
+                            "crop":  [
+                                         85,
+                                         147,
+                                         123,
+                                         191,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (4.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -344.22,
+                                          "y":  -0.06,
+                                          "z":  232.85,
+                                          "color":  "#BED4FF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

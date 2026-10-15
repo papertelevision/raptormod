@@ -1,0 +1,121 @@
+{
+    "schema":  1,
+    "room":  "COB_LAIR",
+    "made":  "2026-10-14T13:55:22.0732135Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "window",
+                            "confidence":  0.61,
+                            "point":  [
+                                          -36.57,
+                                          351.5,
+                                          15.16
+                                      ],
+                            "normal":  [
+                                           0.043,
+                                           0.999,
+                                           0
+                                       ],
+                            "part":  "cla_wall01",
+                            "material":  "1COB_FLOOR",
+                            "texture":  "00-cob_wal3.png",
+                            "uv":  [
+                                       0.432,
+                                       0.549
+                                   ],
+                            "crop":  [
+                                         96,
+                                         88,
+                                         124,
+                                         143,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted window: bright panes behind a bar grid (about 8 bars across; 2.2x the art\u0027s level)",
+                            "light":  null,
+                            "rect":  [
+                                         [
+                                             -63.52,
+                                             352.65,
+                                             -35.95
+                                         ],
+                                         [
+                                             -11.48,
+                                             350.43,
+                                             -35.95
+                                         ],
+                                         [
+                                             -11.48,
+                                             350.43,
+                                             66.26
+                                         ],
+                                         [
+                                             -63.52,
+                                             352.65,
+                                             66.26
+                                         ]
+                                     ],
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "window",
+                            "confidence":  0.61,
+                            "point":  [
+                                          -36.57,
+                                          615.12,
+                                          15.16
+                                      ],
+                            "normal":  [
+                                           0.384,
+                                           -0.923,
+                                           0
+                                       ],
+                            "part":  "cob_wall08",
+                            "material":  "1COB_FLOOR",
+                            "texture":  "00-cob_wal3.png",
+                            "uv":  [
+                                       0.432,
+                                       0.549
+                                   ],
+                            "crop":  [
+                                         96,
+                                         88,
+                                         124,
+                                         143,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted window: bright panes behind a bar grid (about 8 bars across; 2.2x the art\u0027s level)",
+                            "light":  null,
+                            "rect":  [
+                                         [
+                                             -63.51,
+                                             603.92,
+                                             -35.95
+                                         ],
+                                         [
+                                             -11.48,
+                                             625.55,
+                                             -35.95
+                                         ],
+                                         [
+                                             -11.48,
+                                             625.55,
+                                             66.26
+                                         ],
+                                         [
+                                             -63.51,
+                                             603.92,
+                                             66.26
+                                         ]
+                                     ],
+                            "status":  "pending"
+                        }
+                    ]
+}

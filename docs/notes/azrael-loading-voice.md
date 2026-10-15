@@ -88,3 +88,19 @@ Josh: 'I do want to see it every time so at the minimum we hear it say Loading R
 - A Ready() that arrives while not held just sets _releaseReq and keeps the screen (no Dispose).
 - The game is held at the first gameplay frame whatever the renderer's state. If it is already ready, it's released when the voice is done (~6.2 s); otherwise when the renderer is ready AND the voice is done.
 - The 'renderer ready before the game was found / reached play' early returns are skipped when AlwaysShow is set.
+## One size every launch (2026-10-14)
+Josh: "The raptor mod loading screen is sometimes full screen and sometimes smaller. It needs to be consistently the correct size." The cause could not be seen in the logs. The panel used to be scaled by GetDpiForWindow/96, read once, with the window sized once from the monitor rect.
+- Now (LoadingScreen.Loop), every 250 ms:
+  - the window is fitted to the primary monitor again (GetWindowRect vs rcMonitor -> SetWindowPos);
+  - the panel is scaled by the window's OWN client height: sc = max(1, height / 1067), which is 1.5 at 1600 rows, the size it was designed at on Josh's 150% screen. So it is the same share of the screen whether or not the thread's DPI awareness took, or the display changed under it (DOSBox going full screen).
+- It re-centres (black cleared) when the size changes. Compiles with the gate's own options (/define:TITLE_GATE + RaptorDocs.cs + CursorShapes.cs).
+- **Movies:** Josh asked for full-screen movies, then chose to leave them for his own re-render (2026-10-14). Don't re-propose a host player or a re-encode.
+- **Still too small (Josh, 2026-10-14, the next launch):** "it's about sometimes not being full screen, regardless of resolution", same machine and same window size every time. The cause is still unknown: every host window uses the same DPI call, and the log had nothing on this screen. So it now REPORTS ITSELF:
+  - `LoadingScreen.Log` (GameGate.Start -> its notes -> watch.log "loading gate: ... loading screen: ...") gives, each time its size changes: window rect, client size, monitor size, DPI and whether the per-monitor DPI context was accepted, panel size and scale.
+  - `ShotPath` (watcher: <CacheDir>\loading-screen.png) saves a third-size picture of the whole screen ~1.5 s after it shows.
+  - Next time it is wrong: read those two before changing anything.
+- **FOUND (2026-10-14, the next launch -- the log + picture did their job):**
+  - The window was right (2560x1600, dpi 144, per-monitor) and the panel's numbers were right (479x311 at 1040,644, scale 1.5). The PICTURE showed it drawn at 2/3 from its top-left corner: the bar 220 wide instead of 330, the centre ~80 px left.
+  - **Cause:** `DrawImageUnscaled` scales by the bitmap's STORED DPI over the target's. A new Bitmap takes its DPI from the display context of the moment: 96 one launch, 144 the next.
+  - **Fix:** `Blit()` = DrawImage at the image's own pixel size (destination rect + GraphicsUnit.Pixel), in LoadingScreen (the panel; the title's preview background) and Panel.cs (the HUD log lines and inventory, 3 sites).
+  - The logging and the 1.5 s picture are kept.

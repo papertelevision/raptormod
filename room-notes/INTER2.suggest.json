@@ -1,0 +1,381 @@
+{
+    "schema":  1,
+    "room":  "INTER2",
+    "made":  "2026-10-14T13:55:29.0399330Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.69,
+                            "point":  [
+                                          -254.43,
+                                          -41.97,
+                                          12.58
+                                      ],
+                            "normal":  [
+                                           0.326,
+                                           0,
+                                           -0.946
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "10-intbch03.png",
+                            "uv":  [
+                                       0.277,
+                                       0.512
+                                   ],
+                            "crop":  [
+                                         29,
+                                         50,
+                                         45,
+                                         76,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -249.55,
+                                          "y":  -41.97,
+                                          "z":  -1.61,
+                                          "color":  "#FFCA6A",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "glow",
+                            "confidence":  0.69,
+                            "point":  [
+                                          -214.3,
+                                          -41.97,
+                                          -103.98
+                                      ],
+                            "normal":  [
+                                           -0.326,
+                                           0,
+                                           0.946
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "10-intbch03.png",
+                            "uv":  [
+                                       0.277,
+                                       0.512
+                                   ],
+                            "crop":  [
+                                         29,
+                                         50,
+                                         45,
+                                         76,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -219.18,
+                                          "y":  -41.97,
+                                          "z":  -89.8,
+                                          "color":  "#FFCA6A",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "glow",
+                            "confidence":  0.69,
+                            "point":  [
+                                          -70.4,
+                                          -41.87,
+                                          -9.41
+                                      ],
+                            "normal":  [
+                                           0.326,
+                                           0,
+                                           -0.946
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "10-intbch03.png",
+                            "uv":  [
+                                       0.277,
+                                       0.512
+                                   ],
+                            "crop":  [
+                                         29,
+                                         50,
+                                         45,
+                                         76,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (2.9x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -65.51,
+                                          "y":  -41.87,
+                                          "z":  -23.59,
+                                          "color":  "#FFCA6A",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  4,
+                            "kind":  "downlight",
+                            "confidence":  0.85,
+                            "point":  [
+                                          -212.8,
+                                          -36.85,
+                                          37.66
+                                      ],
+                            "normal":  [
+                                           0.946,
+                                           0,
+                                           0.326
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "10-intbch03.png",
+                            "uv":  [
+                                       0.41,
+                                       0.699
+                                   ],
+                            "crop":  [
+                                         46,
+                                         28,
+                                         59,
+                                         52,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  3,
+                            "why":  "a painted light fan falling down the wall (2.7x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -205.24,
+                                          "y":  -31.85,
+                                          "z":  40.26,
+                                          "dir":  [
+                                                      -0.323,
+                                                      -0.94,
+                                                      -0.111
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC76B",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  5,
+                            "kind":  "downlight",
+                            "confidence":  0.85,
+                            "point":  [
+                                          -166.05,
+                                          -36.85,
+                                          -98.12
+                                      ],
+                            "normal":  [
+                                           0.946,
+                                           0,
+                                           0.326
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "10-intbch03.png",
+                            "uv":  [
+                                       0.41,
+                                       0.699
+                                   ],
+                            "crop":  [
+                                         46,
+                                         28,
+                                         59,
+                                         52,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  3,
+                            "why":  "a painted light fan falling down the wall (2.7x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -158.49,
+                                          "y":  -31.85,
+                                          "z":  -95.51,
+                                          "dir":  [
+                                                      -0.323,
+                                                      -0.94,
+                                                      -0.111
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC76B",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  6,
+                            "kind":  "downlight",
+                            "confidence":  1,
+                            "point":  [
+                                          -88.89,
+                                          -33.74,
+                                          8.58
+                                      ],
+                            "normal":  [
+                                           0.946,
+                                           0,
+                                           0.326
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "10-intbch03.png",
+                            "uv":  [
+                                       0.41,
+                                       0.699
+                                   ],
+                            "crop":  [
+                                         46,
+                                         28,
+                                         59,
+                                         52,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  4,
+                            "why":  "a painted light fan falling down the wall (2.7x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -81.32,
+                                          "y":  -38.05,
+                                          "z":  11.18,
+                                          "dir":  [
+                                                      -0.323,
+                                                      -0.94,
+                                                      -0.111
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC76B",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  7,
+                            "kind":  "downlight",
+                            "confidence":  0.85,
+                            "point":  [
+                                          -40.46,
+                                          -33.74,
+                                          16.75
+                                      ],
+                            "normal":  [
+                                           0.946,
+                                           0,
+                                           0.326
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "10-intbch03.png",
+                            "uv":  [
+                                       0.41,
+                                       0.699
+                                   ],
+                            "crop":  [
+                                         46,
+                                         28,
+                                         59,
+                                         52,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  2,
+                            "why":  "a painted light fan falling down the wall (2.7x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -32.9,
+                                          "y":  -28.74,
+                                          "z":  19.36,
+                                          "dir":  [
+                                                      -0.323,
+                                                      -0.94,
+                                                      -0.111
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC76B",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  8,
+                            "kind":  "glow",
+                            "confidence":  0.8,
+                            "point":  [
+                                          -73.17,
+                                          -33.05,
+                                          21.64
+                                      ],
+                            "normal":  [
+                                           0,
+                                           -1,
+                                           0
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "10-intbch03.png",
+                            "uv":  [
+                                       0.41,
+                                       0.699
+                                   ],
+                            "crop":  [
+                                         46,
+                                         28,
+                                         59,
+                                         52,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  2,
+                            "why":  "a round painted glow (2.7x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -73.17,
+                                          "y":  -48.05,
+                                          "z":  21.64,
+                                          "color":  "#FFC76B",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

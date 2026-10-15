@@ -93,3 +93,84 @@ Josh (2026-10-07): the GPU version must load before the game and show its own bo
   - Ghost alpha follows GlareLeft^0.7 so the flying pieces are seen. The credit lost its period: 'Developed by Josh Sears'.
 - **Sides full width:** CurveX 0.030 -> 0 (Josh: 'the curve at the top is perfect, but the sides can be full width'). CurveY 0.045 kept; the viewfinder follows.
 - **The status column's signal bar** is now just the background darker: black at alpha 24 for the track, 58 for the fill.
+
+## The raptor gets up (Josh, 2026-10-13)
+"animate the player character standing up when the game first loads a new game (after the bootup visor animation). I dont want the camera to move from low to current position, I want an effect where it tilts a bit as he stands, like getting up from the ground. Dirt and dust would fall from the top of his visor as he finally stands, and the 'weapon systems online' animation would then display." **Built 2026-10-13; tilt + dust checked offline; NOT yet seen in game.**
+- **BootHd reveal, a NEW game only** (`StandUs` = 0 for a load's re-boot / Covering4Load):
+  - The shutter opens on the room seen from the ground: roll `StandRollDeg` 15, pitch `StandPitchDeg` 24 down.
+  - Over `StandSeconds` 2.8 he pushes up (a lurch the other way), rises with a small unsteady sway, and nods past level as he finds his feet.
+  - `LockFromUs` = shutter + StandUs, so the reticle lock, the amber -> colour, WEAPON SYSTEMS ONLINE and the viewfinder all come after. The room stays in the visor's amber while he gets up.
+  - The reveal ends ~2.8 s later than before; the materialize sweep follows it as before.
+- **The tilt is the HOST's camera only.** `BootHd.TiltCamera` / static `TiltMatrix` turn this frame's copy of the game's camera (Watch-HostRender, just before `$r.SetCameraWorld($m)`, after the position checks). The view, the helmet lamp and its shadows turn together; the game's camera, its 2D drawings and its pick are untouched. The height never changes. The player is not input-locked during the reveal, so the angles stay modest.
+- **Dirt and dust** (`DrawDust`, in DecorateOver on the reveal's CPU path) from 74% of the stand-up for `DustSeconds` 2.3:
+  - a dusty haze sliding down from the top edge;
+  - 300 seeded specks and clumps (earth / dirt / pale dust, lit) falling down the glass under gravity, a little smeared.
+- **Switches and tests:** `-NoStandUp`. `Test-GpuLook -StandAt s` renders the tilt s seconds after the shutter has opened.
+**THE 7 LOGO (Josh, 2026-10-14) replaces the banner of ASCII 7s.** The banner is still in boot-hd.json and still times the readout; its rows are just not drawn.
+- `BootHd.DrawLogo7` (called from DrawReadout) draws the reference numeral (docs\reference\wireframe-7-style.png, outline in `L7Out`) as a TRUE 3D solid:
+  - the outline is extruded by `Logo7Depth` 0.17 of its height and turned by `Logo7Yaw` -26 / `Logo7Pitch` -14;
+  - perspective `Logo7Cam` 3.4;
+  - centred in the banner's box at `Logo7Height` 0.70 of its height, raised by `Logo7Lift` 0.10 of it (room for the logotype).
+- **Hidden lines, per frame:** each of the 27 edges is sampled 49 times, and each sample is tested against the solid's own 26 faces (4 convex cap pieces x2 + 9 sides). A sample is hidden when a face lies between it and the eye: the ray from the eye meets the face's plane at t < 0.995 and the point is inside the face's projected outline.
+- **Strokes:** seen = solid round-capped lines (`Logo7Line` 1.6 px x scale); hidden = DASHED (3.2/2.6, 0.85 width, alpha 205). Both use the boot's ink, so it fades with the decay.
+- **Pulse-in** (as the maps' MAP_WAVE): over `Logo7Intro` 1.5 s from U_banner, a left-to-right wave scales each edge about its middle: 0 -> 1 + `Logo7Pulse` 0.35 -> 1. It flares to C_flare with a halo at the front.
+- **Afterwards:** a slow yaw sway of +/-`Logo7Sway` 14 deg over `Logo7SwayPeriod` 9 s, so the hidden lines move and it reads as a solid.
+- The banner's per-line ticks still sound. `Logo7On = false` brings back the old 7s.
+- Offline: scratchpad `boot-l7.ps1` (sheet-l7.png).
+
+**THE LOGOTYPE "MODEL 7 H.U.D.(R)" (Josh, 2026-10-14)** sits under the 7 and appears before the first readout line, the one the HUD slides in on.
+- `BootHd.DrawLogoType`, built once per size by `LogoTypeItem`:
+  - face Bahnschrift SemiBold (falls back to Segoe UI Semibold), laid out per character with tracking `LogoTypeTrack` 0.24 em;
+  - the circled R: a ring half the cap height, top level with the capitals, `LogoTypeGap` 0.06 em after the last full stop.
+- Size `LogoTypeEm` 0.105 of the 7's box height; centred on the 7, 0.05 of the box below it.
+- Wiped on from the left at `LogoTypeAt` 2.1 s after U_banner, over `LogoTypeWipe` 0.55 s, with a thin C_flare edge while it runs. It uses the boot's ink, so it decays with the rest.
+- **First readout line** (boot-hd.json lines[0]) now reads "DEPLOYING MS-2 HELMET INTERFACE..." (was "INITIATING MS-2 HELMET H.U.D."), in capitals like the other lines.
+- **Preview trap:** the phosphor afterglow (`Persist`, AfterglowMs 55) fades by the `dtMs` passed to RenderAt. A preview that jumps seconds between frames but passes a fixed dtMs leaves the wipe's last edge as a stuck bar. In game dt is real and the edge is gone in ~0.1 s. Render check frames in a fresh instance, or pass the real gap.
+
+## Self scan, grail watermark, centred afterimage (Josh, 2026-10-14)
+Josh: the raptor replaces the grail on the right while the 7 and readout load; the grail moves behind the briefing as a watermark; in the fade it grows from there to the centre, then shatters on the old timing. Checked offline (scratchpad boot-raptor.ps1, rb-*/rv-* frames); **not yet seen in game**.
+- **READOUT LEFT:** `ReadoutShift` -60 game px (`TxtX`), applied to the lines, the 7 and its logotype, the bar and the closing line. The heart trace rides its line. The briefing does NOT move.
+- **SELF SCAN** (`DrawRaptor`, called from `DrawStatus` when `RaptorScan`). It shows for new games AND reloads, from U_dump until U_mission.
+  - **The rig:** RAPTOR.XAF through `ScanWire.AddBody`, loaded off-thread by `BootHd.LoadRaptor`. The watcher's Start-BootHd passes `$TexDir\RAPTOR.XAF` and the KURT.ANI ranges.
+  - **New ScanWire API:** `RigEdges` gives posed, turned edges in height units, 7 floats each: x, y up, z away, plus the bone index. Also `RigBones` and `RigReach`.
+  - **Drawing:**
+    - pose: the idle cycle over `RaptorBreath` 3.5 s;
+    - turn: `RaptorSpin` 0.32 rad/s, starting face-on;
+    - lean: `RaptorTilt` 0.16;
+    - height: `RaptorH` 265 game px, the enlarged grail's;
+    - placement: centred on the view's height (vr/2), right bracket where the grail's was.
+  - **Edges** are sorted into 5 strength buckets (far..near, plus lit by the scan): one pen per bucket, two passes.
+  - **The scan line** runs top to bottom and back over `RaptorScanCycle` 6.4 s (cosine eased) and lights the edges within 0.03 H of it.
+  - **Broken** while the visor's damage runs (`DisruptUs`), and it flickers out with the readout's decay.
+  - **Callouts** start from the "FALL DETECTED, INITIATING SELF SCAN" line (U_text + 2 lines).
+    - Spots: `MarkBone` SVISOR / SSHOULDER / STOPBODY / SLOWLEGL, each at its bone's edge-midpoint centroid. A spot pings (ring plus a soft `Sound.Line` chirp, live only) as the scan line crosses it.
+    - Each keeps a bracket and a leader to a typed label at cx - 0.56 H: VISOR SEAL OK, PLATE ABRASION 2%, TORSO NOMINAL, KNEE SERVO STRESS 4%. The two faults are in the flare colour.
+  - **Heading and readings:** heading "MS-2 SELF SCAN"; readings "SUIT INTEGRITY nn%" (rising to 97 by the SUIT DAMAGE MINIMAL line) and "SCAN PASS nn".
+  - **Cost:** readout frames average ~18 ms offline at 2562x1238 (were ~14 ms).
+- **WATERMARK** (`DrawWatermark` in RenderAt, before the briefing's lines; not on reloads).
+  - **Placement:** the chalice is centred on the briefing block (icon .. MisRight, icon top .. objective bottom). Size S = `WmScale` 1.2 x the block's width.
+  - **How it's drawn:** BURNED in by `BurnChalice`, the afterimage's mask + amber screen made a shared function that only touches the rows it can reach. Strength `WmAlpha` 0.22, fading in over `WmFadeIn` 0.6 s, broken -> whole with `ChaliceBroken`.
+  - **The shutter's held frame** is drawn without it (`_noCup`). The HOLD frames do draw it live.
+- **AFTERIMAGE** (`ChaliceOver`, when `GrailWatermark`):
+  - It starts at the watermark's pose and strength.
+  - Over `GhostGrow` 1.3 s (smoother-step) it moves to the view's centre and grows to S = `GhostCentre` 0.74 x vr; at 0.88 the tilted rim ran off the top, because the drawn height is ~1.22 S. Its strength rises to `GhostAlpha` 0.5 at the same time.
+  - The flare (now eased in over GhostRise), the break-up (`GhostBreak`) and the fade (`GlareLeft`^0.7) are unchanged.
+  - The old lower-left pose (GhostX/GhostY/GhostSize) is still used with `GrailWatermark` false.
+- **Offline:** `WallOverride` (seconds) drives the turning, the scan and the chalice spin, so continuous offline sequences can be rendered. `LoadRaptorNow` loads the rig synchronously.
+- **Note:** the crisp chalice draws its scan line (DrawChalice skips it only for ghostPx > 0), as the old afterimage did. It shows faintly on the watermark and the afterimage.
+- **Round 2 (Josh, same day: "move the entire raptor scanning animation to the left by about 100px. Move the new grail down by about 50px, and make it much larger in the lower right in the mirror position of where it was during the previous version. It will remain there at the same size during the fade to gameplay, and break apart exactly as it did originally"):**
+  - **Raptor:** `RaptorShift` -75 game px (~100 px on a 1238-row view). It moves the whole column: figure, callouts, heading and readings.
+  - **Grail: ONE pose** for the briefing and the reveal, `WatermarkPose(pw, vr)`. It is the old afterimage's pose MIRRORED: `GrailX` 1 - 0.114, `GrailY` 0.78 + 50/1238, `GrailSize` 1.15 (drawn S = 0.8 of that x vr). It runs off the right and bottom edges and no longer sits behind the text.
+  - **In the reveal it does NOT move or grow.** Its strength goes WmAlpha -> GhostAlpha over the original GhostRise; the flare, GhostBreak and GlareLeft fade are as originally. GhostCentre/GhostGrow and WmScale are gone.
+- **Round 3 (2026-10-14) REVERTED at Josh's request:** a brighter grail 200 px higher, leaning 5 degrees right; the flare mirrored to the lower right; a 1.5x reveal degauss; the 7 sequence + self scan centred as a pair. He liked none of it. Do not redo these without asking.
+- **Round 4 (Josh, same day):**
+  - **Restored from round 3 (he asked for these two back):**
+    - the mirrored flare, `FlareX` 1 - 0.09;
+    - the stronger reveal degauss: `OpenDegaussLook` 1.5 / `OpenDegaussWobble` 1.25.
+  - **The briefing's grail is smaller and grows slowly.** It goes linearly from `WmFrom` 0.5 to `WmTo` 0.75 of the afterimage's size over U_mission..U_open, about its lower-right middle.
+  - **It loses the signal at the end.** Over the last `SignalLoss` 0.9 s:
+    - It breaks up: broken = lost x 1.4, using the trace's own slices and dropouts.
+    - Its alpha drops out at random, and it fades only after lost > 0.55.
+    - Static rises: `GrailStatic` lays snow over an oval patch, screened, new 30 times a second, at `StaticDensity` 0.6 / `StaticBright` 1.6, with occasional bright torn rows.
+    - The shutter HOLD keeps it in the lost state (el frozen at U_open-1), so the static runs on until the reveal.
+  - **The reveal's afterimage comes back from nothing** (GhostAlpha x rise, with its flare). It is at full size and `GhostLift` 100/1238 of the view higher. The break-up and fade are unchanged.

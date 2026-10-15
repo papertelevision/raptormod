@@ -1,0 +1,51 @@
+{
+    "schema":  1,
+    "room":  "WWCA",
+    "made":  "2026-10-14T13:55:47.2492584Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.58,
+                            "point":  [
+                                          45.45,
+                                          -30.47,
+                                          64.86
+                                      ],
+                            "normal":  [
+                                           0,
+                                           1,
+                                           0
+                                       ],
+                            "part":  "ch_floor",
+                            "material":  "1T_FLOOR",
+                            "texture":  "38-t_floor.png",
+                            "uv":  [
+                                       0.488,
+                                       0.34
+                                   ],
+                            "crop":  [
+                                         53,
+                                         75,
+                                         70,
+                                         92,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (8.0x the art\u0027s level)",
+                            "light":  {
+                                          "x":  45.45,
+                                          "y":  -15.47,
+                                          "z":  64.86,
+                                          "color":  "#FFE3B6",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

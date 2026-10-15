@@ -79,3 +79,16 @@ Related: [[azrael-memory-core]], [[azrael-hud-vector-text]], [[azrael-panel-butt
 - The one confirm in the menus is the fold-out's OK key (`SysConfirm`: quit asking, or a slot / RESTART picked in the memory core's lists -- CONFIRM / COMMIT / RESTORE / RESTART). The title menu acts on a pick at once (no confirm step).
 - `VisorMenu.Button(..., active)`: lit faintly (amber 0.14, 0.32 hovered) with no frame of its own -- its outline is the sheen's track.
 - `VisorMenu.Sheen`: an amber rim (0.5, 1.2 px) and a head running round the outline once every `SheenSeconds` (3.0 s) -- a 38%-of-perimeter tail fading (power 1.8), a soft glow (5.5 px, 0.2) under a fine line (1.7 px), the head's first pieces in `AmberHi`; pieces split at the corners so it hugs the outline.
+
+## Volume sliders let go on release (Josh, 2026-10-13)
+"If I adjust the volume on either setting ... I click the volume slider and it sticks even if releasing the mouse button, and only sets if I click outside the volume area. It should set on mouse release." **Built 2026-10-13, NOT yet seen in game.**
+- The drag words: `0x1523D8` (music) / `0x1523DA` (effects), block `0x1523D6` +0x02 / +0x04. Set ONLY by the slider's hot-spot command (`0x2C99x`, in the screen's command callback `0x2C8E6`). Cleared ONLY by the main loop's left-RELEASE handler: event kind 2, `0x15C50`, case 2 of the mouse switch `0x15E63` on `[ebp+0x1B]` through the table at `0x1382C` (kinds: 0 left press `0x15A5C`, 1 right press, 2 left release, 3 right release -> mouselook `0x1166C`). Each frame `0x14D12` / `0x14DA8` set the level from the cursor while a drag word is set.
+- The hot-spot command reaches the game as a separate queued event from the screen manager (`0x3668E` -> queue `0x35E28`), so on a click its RELEASE can be handled before the drag starts -> the slider follows the pointer until the next release.
+- Fix (host, `Watch-HostRender.ps1` Step-ShotWatch, data write only): while a drag word is set and neither physical mouse button has been down for 120 ms (the slider has taken the pointer's place by then; either button, for swapped mice), both words are cleared, as the release handler would. Logged once a session. A held drag is untouched.
+
+## ESC never opens into the quit confirmation (Josh, 2026-10-13)
+"If I hit escape key, it should not automatically initiate the quit confirmation. That only occurs when I click 'q' for quit." **Built 2026-10-13, NOT yet seen in game.**
+- The auto-quit request `0x15259A`: set only by the `q` key (`0x130F3`: cmd 5 + the word = 1); turned into cmd 13 and cleared only at `0x1496C` / `0x14989`, when the fold-out finishes sliding OPEN. A `q` while the fold-out is open (cmd 5 closes it) or while it cannot open (help, map, conversation, animating) leaves it set, so the next open by any means -- ESC -- lands in the quit confirmation (the stock quirk in docs\system-menu-RE.md s4).
+- Fix (host, `Step-EscWatch`, data write): the request lives 2 s after a physical `q` (VK 0x51) -- its own slide-in consumes it -- and is cleared after that. Logged (up to 3 times a session).
+
+- **DEFAULT MUSIC 30% (Josh, 2026-10-13):** `$VOL_MUSIC_DEFAULT` 38 (was 64 = 50%); sound stays 127. Volume changes no longer bring the original MIDI back under the soundtrack: see [[azrael-music]] (midi-quiet-*).

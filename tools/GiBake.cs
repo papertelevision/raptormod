@@ -24,7 +24,23 @@ namespace AztTool
     public class GiBake
     {
         // ---- inputs ------------------------------------------------------------------------------------------
-        public class Light { public float X, Y, Z, R, G, B, Range = 250f, DX, DY = -1f, DZ, CosIn = 2f, CosOut = -2f; public bool Shadow = true; }
+        public class Light { public float X, Y, Z, R, G, B, Range = 250f, DX, DY = -1f, DZ, CosIn = 2f, CosOut = -2f; public bool Shadow = true;
+            /// <summary>A GATE (2026-10-14, BAPTIST's windows in a room with no ceiling): the light reaches only what it sees through
+            /// this world box (lo xyz, hi xyz) -- a window's opening.</summary>
+            public bool Gate; public float GX0, GY0, GZ0, GX1, GY1, GZ1; }
+        /// <summary>Does the segment a -> b pass through the box?</summary>
+        public static bool SegThrough(float ax, float ay, float az, float bx, float by, float bz, float x0, float y0, float z0, float x1, float y1, float z1)
+        {
+            float tn = 0f, tf = 1f;
+            float[] a = { ax, ay, az }, d = { bx - ax, by - ay, bz - az }, lo = { x0, y0, z0 }, hi = { x1, y1, z1 };
+            for (int k = 0; k < 3; k++)
+            {
+                if (Math.Abs(d[k]) < 1e-9f) { if (a[k] < lo[k] || a[k] > hi[k]) return false; continue; }
+                float t0 = (lo[k] - a[k]) / d[k], t1 = (hi[k] - a[k]) / d[k]; if (t0 > t1) { float t = t0; t0 = t1; t1 = t; }
+                tn = Math.Max(tn, t0); tf = Math.Min(tf, t1); if (tn > tf) return false;
+            }
+            return true;
+        }
         public readonly List<Light> Lights = new List<Light>();
         public float Spacing = 20f;          // world units between probes
         public int Rays = 64;                // rays per probe per bounce
@@ -97,7 +113,7 @@ namespace AztTool
                     var lv = tx.Rgb[tx.Rgb.Length - 1]; Mix((ulong)tx.Rgb[0].W); Mix((ulong)(uint)lv.Px[0]);
                     if (tx.Rgb.Length > 3) { var l3 = tx.Rgb[tx.Rgb.Length - 4]; for (int i = 0; i < l3.Px.Length; i += 3) Mix((ulong)(uint)l3.Px[i]); }
                 }
-            foreach (var l in Lights) foreach (float f in new[] { l.X, l.Y, l.Z, l.R, l.G, l.B, l.Range, l.DX, l.DY, l.DZ, l.CosIn, l.CosOut, l.Shadow ? 1f : 0f }) Mix((ulong)BitConverter.ToUInt32(BitConverter.GetBytes(f), 0));
+            foreach (var l in Lights) foreach (float f in (l.Gate ? new[] { l.X, l.Y, l.Z, l.R, l.G, l.B, l.Range, l.DX, l.DY, l.DZ, l.CosIn, l.CosOut, l.Shadow ? 1f : 0f, 7f, l.GX0, l.GY0, l.GZ0, l.GX1, l.GY1, l.GZ1 } : new[] { l.X, l.Y, l.Z, l.R, l.G, l.B, l.Range, l.DX, l.DY, l.DZ, l.CosIn, l.CosOut, l.Shadow ? 1f : 0f })) Mix((ulong)BitConverter.ToUInt32(BitConverter.GetBytes(f), 0));
             foreach (float f in new[] { Spacing, (float)Rays, (float)Bounces, SkyR, SkyG, SkyB, Albedo, (float)MaxEscape, MaxAlbedo, 6f /* format */ }) Mix((ulong)BitConverter.ToUInt32(BitConverter.GetBytes(f), 0));
             Signature = h.ToString("x16"); return Signature;
         }
@@ -223,6 +239,7 @@ namespace AztTool
                     att *= tt * tt * (3 - 2 * tt);
                 }
                 if (att <= 1e-5f) continue;
+                if (l.Gate && !SegThrough(l.X, l.Y, l.Z, px, py, pz, l.GX0, l.GY0, l.GZ0, l.GX1, l.GY1, l.GZ1)) continue;
                 if (l.Shadow && Occluded(px + nx * 0.5f, py + ny * 0.5f, pz + nz * 0.5f, dx, dy, dz, d - 1f, stack)) continue;
                 r += l.R * att; g += l.G * att; b += l.B * att;
             }

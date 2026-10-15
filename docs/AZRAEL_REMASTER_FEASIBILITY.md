@@ -276,9 +276,9 @@ symmetrically at ±40.89°.
 | `+0x2C` | owning device | STRONG |
 | `+0x34/+0x38` | x, y on device | STRONG |
 | `+0x3C/+0x40` | **width, height** | CONFIRMED |
-| `+0xC4` | `100.0` — front/near clip | LIKELY |
-| `+0xF4` | `1.0` | LIKELY (projection scale) |
-| `+0xF8/+0xFC/+0x100/+0x104` | `±0.5` — NDC→screen terms | LIKELY |
+| `+0xC4` | `100.0` — BACK clip (30000.0 after SetBack) | CONFIRMED 2026-10-13 |
+| `+0xF4` | `1.0` — FRONT clip | CONFIRMED 2026-10-13 |
+| `+0xF8/+0xFC/+0x100/+0x104` | ±field (±0.5 until SetField; 0.8 after) — see docs/notes/azrael-fov.md | CONFIRMED 2026-10-13 |
 
 **Projection constants are single floats set by ordinary calls** — FOV `0.8` via
 `0x3A8A0`, far clip `30000.0` via `0x3A840`. Widescreen FOV is therefore a

@@ -11,5 +11,7 @@
                   "size":  34,
                   "alpha":  0.3,
                   "color":  "#C4C2BA"
-              }
+              },
+  "map": { "_about": "Room Review round 26. WASHCORI/5: the square shape outside the main wall (washwall4, x 148) -- the shield r2s1 and its box. WASHCORI/6: the alcove shape out there -- alcove3 and its inside panel.", "hide": [ "r2s1", "box", "alcove3", "inside" ] },
+  "visorFog": false, "_visorFog": "Josh, 2026-10-14: no condensation in this room at all (the steam stays). Before: 0.45, then 0.3 -- less than SPAROOM's 1."
 }

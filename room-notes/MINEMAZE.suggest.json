@@ -1,0 +1,224 @@
+{
+    "schema":  1,
+    "room":  "MINEMAZE",
+    "made":  "2026-10-14T13:55:33.1001147Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.61,
+                            "point":  [
+                                          310.57,
+                                          -61.57,
+                                          665.38
+                                      ],
+                            "normal":  [
+                                           0,
+                                           1,
+                                           0
+                                       ],
+                            "part":  "corr09",
+                            "material":  "1WALL2",
+                            "texture":  "21-mmzw2.png",
+                            "uv":  [
+                                       0.518,
+                                       0.229
+                                   ],
+                            "crop":  [
+                                         117,
+                                         181,
+                                         149,
+                                         213,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.0x the art\u0027s level)",
+                            "light":  {
+                                          "x":  310.58,
+                                          "y":  -46.57,
+                                          "z":  665.39,
+                                          "color":  "#FFF0EF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "approved",
+                            "note":  13
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "glow",
+                            "confidence":  0.61,
+                            "point":  [
+                                          175.07,
+                                          -61.55,
+                                          407.82
+                                      ],
+                            "normal":  [
+                                           0,
+                                           1,
+                                           -0.001
+                                       ],
+                            "part":  "corr03",
+                            "material":  "1WALL2",
+                            "texture":  "21-mmzw2.png",
+                            "uv":  [
+                                       0.518,
+                                       0.229
+                                   ],
+                            "crop":  [
+                                         117,
+                                         181,
+                                         149,
+                                         213,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.0x the art\u0027s level)",
+                            "light":  {
+                                          "x":  175.06,
+                                          "y":  -46.55,
+                                          "z":  407.81,
+                                          "color":  "#FFF0EF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "approved",
+                            "note":  13
+                        },
+                        {
+                            "id":  3,
+                            "kind":  "glow",
+                            "confidence":  0.61,
+                            "point":  [
+                                          755.69,
+                                          -61.55,
+                                          122.17
+                                      ],
+                            "normal":  [
+                                           -0.001,
+                                           1,
+                                           0
+                                       ],
+                            "part":  "cutter",
+                            "material":  "1WALL2",
+                            "texture":  "21-mmzw2.png",
+                            "uv":  [
+                                       0.518,
+                                       0.229
+                                   ],
+                            "crop":  [
+                                         117,
+                                         181,
+                                         149,
+                                         213,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.0x the art\u0027s level)",
+                            "light":  {
+                                          "x":  755.68,
+                                          "y":  -46.55,
+                                          "z":  122.17,
+                                          "color":  "#FFF0EF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "approved",
+                            "note":  13
+                        },
+                        {
+                            "id":  4,
+                            "kind":  "glow",
+                            "confidence":  0.61,
+                            "point":  [
+                                          191.85,
+                                          -61.54,
+                                          479.3
+                                      ],
+                            "normal":  [
+                                           0,
+                                           1,
+                                           0
+                                       ],
+                            "part":  "corr04",
+                            "material":  "1WALL2",
+                            "texture":  "21-mmzw2.png",
+                            "uv":  [
+                                       0.518,
+                                       0.229
+                                   ],
+                            "crop":  [
+                                         117,
+                                         181,
+                                         149,
+                                         213,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.0x the art\u0027s level)",
+                            "light":  {
+                                          "x":  191.85,
+                                          "y":  -46.54,
+                                          "z":  479.3,
+                                          "color":  "#FFF0EF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "approved",
+                            "note":  13
+                        },
+                        {
+                            "id":  5,
+                            "kind":  "glow",
+                            "confidence":  0.61,
+                            "point":  [
+                                          824.77,
+                                          -55.41,
+                                          218.7
+                                      ],
+                            "normal":  [
+                                           -0.06,
+                                           0.996,
+                                           -0.063
+                                       ],
+                            "part":  "lurkacorri",
+                            "material":  "1WALL2",
+                            "texture":  "21-mmzw2.png",
+                            "uv":  [
+                                       0.518,
+                                       0.229
+                                   ],
+                            "crop":  [
+                                         117,
+                                         181,
+                                         149,
+                                         213,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.0x the art\u0027s level)",
+                            "light":  {
+                                          "x":  823.86,
+                                          "y":  -40.46,
+                                          "z":  217.76,
+                                          "color":  "#FFF0EF",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "approved",
+                            "note":  13
+                        }
+                    ]
+}

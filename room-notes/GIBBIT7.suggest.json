@@ -1,0 +1,60 @@
+{
+    "schema":  1,
+    "room":  "GIBBIT7",
+    "made":  "2026-10-14T13:55:27.8431366Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "downlight",
+                            "confidence":  0.57,
+                            "point":  [
+                                          -158.82,
+                                          -6.52,
+                                          7.06
+                                      ],
+                            "normal":  [
+                                           -0.993,
+                                           -0.049,
+                                           -0.105
+                                       ],
+                            "part":  "DEADRAPTOR",
+                            "material":  "ACAMSIDE",
+                            "texture":  "17-d_cam2.png",
+                            "uv":  [
+                                       0.707,
+                                       0.621
+                                   ],
+                            "crop":  [
+                                         86,
+                                         44,
+                                         96,
+                                         55,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan falling down the wall (3.4x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -166.77,
+                                          "y":  -6.06,
+                                          "z":  6.22,
+                                          "dir":  [
+                                                      0.34,
+                                                      -0.94,
+                                                      0.036
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFEDC4",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

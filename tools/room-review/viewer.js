@@ -20,7 +20,10 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDraw
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0b0d);
-const camera = new THREE.PerspectiveCamera(50, 1, 1, 20000);       // 50 degrees vertical, as the renderer
+// THE GAME'S FIELD OF VIEW (vertical degrees): 60 since 2026-10-13 (Watch-HostRender -Fov; the game's own field is set to
+// match), 50 before. The Game look frames are drawn at it too (sent with each request), so the pins sit on them.
+const GAME_FOV = 60;
+const camera = new THREE.PerspectiveCamera(GAME_FOV, 1, 1, 20000);
 const root = new THREE.Group(); scene.add(root);                    // the room, in its own coordinates (mirrored for display)
 const room = new THREE.Group(); root.add(room);                     // its meshes
 const marks = new THREE.Group(); root.add(marks);                   // notes' pins, lights, doors
@@ -49,7 +52,7 @@ function camPose() {
   const ul = toRoom(camera.position.clone().add(camera.up)).sub(p).normalize();
   const yaw = Math.atan2(fl.x, fl.z) * 180 / Math.PI, pitch = Math.atan2(fl.y, Math.hypot(fl.x, fl.z)) * 180 / Math.PI;
   const r = n => Math.round(n * 100) / 100;
-  return { pos: [r(p.x), r(p.y), r(p.z)], fwd: [r(fl.x), r(fl.y), r(fl.z)], up: [r(ul.x), r(ul.y), r(ul.z)], fov: 50, mirror,
+  return { pos: [r(p.x), r(p.y), r(p.z)], fwd: [r(fl.x), r(fl.y), r(fl.z)], up: [r(ul.x), r(ul.y), r(ul.z)], fov: GAME_FOV, mirror,
            gpuLook: { X: r(p.x), Y: r(p.y), Z: r(p.z), Yaw: r(yaw), Pitch: r(pitch) } };
 }
 // put the camera at a room-space pose (x, y, z, yaw, pitch in degrees: forward = (sin yaw, tan pitch, cos yaw))
@@ -73,6 +76,7 @@ function disposeRoom() {
   room.traverse(o => { if (o.geometry) o.geometry.dispose(); });
   for (const m of S.mats) { if (m.map) m.map.dispose(); if (m.alphaMap) m.alphaMap.dispose(); m.dispose(); }
   S.mats = []; room.clear(); marks.clear();
+  clearMapLook(); MAPLOOK.data = null; MAPLOOK.loading = null;
 }
 function makeMaterials(man) {
   const lo = $('lo').checked, byName = new Map();
@@ -105,7 +109,102 @@ function makeMaterials(man) {
 }
 // one-sided like the game (a wall seen from behind is not there -- the first room's start is behind one), unless "Back faces"
 const sideNow = () => $('back').checked ? THREE.DoubleSide : THREE.FrontSide;
-function applyWire() { const w = $('wire').checked, sd = sideNow(); for (const m of S.mats) if (m !== S.triggerMat) { m.wireframe = w; m.side = sd; m.needsUpdate = true; } requestRender(); }
+// ---- THE MAP LOOK (Josh, 2026-10-14: "for wireframe view, ideally it would look exactly like the map view with the teal colors and
+// planes in place just like the maps"): the Wireframe switch draws the room as the game's 3D map does (GpuRaster.DrawMap) -- flat
+// teal faces, one-sided (the map's cut-away), the room's shape edges bright where seen and dim where hidden -- and leaves out what
+// the map leaves out: the server runs the game's own rules (tools\Export-MapView.ps1: doorway pictures, characters, black
+// occluders, strays, the room's "map" settings) and sends the hidden triangles' middles and the cut under the floor.
+const MAP_INK = 0x5FD8C0, MAP_LINE = 0x9FF4E4;
+const MAPLOOK = { on: false, data: null, group: null, hidden: null, keep: null, cut: null, loading: null };
+window.__rr.maplook = MAPLOOK;
+renderer.localClippingEnabled = true;
+const fx1 = v => { const s = (Math.round(v * 10) / 10).toFixed(1); return s === '-0.0' ? '0.0' : s; };
+const triKey = (p, i) => fx1((p.getX(i) + p.getX(i + 1) + p.getX(i + 2)) / 3) + ',' + fx1((p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3) + ',' + fx1((p.getZ(i) + p.getZ(i + 1) + p.getZ(i + 2)) / 3);
+function clearMapLook() {
+  if (MAPLOOK.group) { MAPLOOK.group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); root.remove(MAPLOOK.group); MAPLOOK.group = null; }
+}
+async function fetchMapView(name) {
+  for (let i = 0; i < 90; i++) {
+    const r = await fetch(`/api/rooms/${name}/mapview`);
+    if (S.name !== name) return null;
+    if (r.status === 503) { status(`map look: reading the game's map rules for ${name}… ${i} s`); await new Promise(f => setTimeout(f, 1000)); continue; }
+    const j = await r.json().catch(() => null);
+    if (!r.ok) throw new Error((j && j.error) || ('map look ' + r.status));
+    return j;
+  }
+  throw new Error('map look: the server took too long');
+}
+function buildMapLook() {
+  clearMapLook();
+  const d = MAPLOOK.data; if (!d) return;
+  const hidden = MAPLOOK.hidden, cut = MAPLOOK.cut, keep = MAPLOOK.keep;
+  const pos = { cut: [], whole: [] };
+  room.traverse(o => {
+    if (!o.isMesh) return;
+    const p = o.geometry.attributes.position, mats = Array.isArray(o.material) ? o.material : null;
+    const groups = o.geometry.groups.length ? o.geometry.groups : [{ start: 0, count: p.count, materialIndex: 0 }];
+    const into = cut && !keep.has(o.userData.part) ? pos.cut : pos.whole;
+    for (const gr of groups) {
+      const m = mats ? mats[gr.materialIndex] : o.material; if (!m || m.userData.skip) continue;
+      for (let i = gr.start; i + 2 < gr.start + gr.count; i += 3) {
+        if (hidden.has(triKey(p, i))) continue;
+        for (let j = 0; j < 3; j++) into.push(p.getX(i + j), p.getY(i + j), p.getZ(i + j));
+      }
+    }
+  });
+  const grp = new THREE.Group(); const ink = new THREE.Color(MAP_INK), L = new THREE.Vector3(0.35, 1, 0.55).normalize();
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3();
+  for (const kind of ['whole', 'cut']) {
+    const arr = pos[kind]; if (!arr.length) continue;
+    const clip = kind === 'cut' ? [new THREE.Plane(new THREE.Vector3(0, 1, 0), -cut.y)] : [];
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+    // flat teal by the face's slant, as the map shades its faces
+    const col = new Float32Array(arr.length);
+    for (let i = 0; i < arr.length; i += 9) {
+      a.fromArray(arr, i); b.fromArray(arr, i + 3); c.fromArray(arr, i + 6); n.subVectors(c, b).cross(a.clone().sub(b)).normalize();
+      const s = 0.45 + 0.55 * Math.abs(n.dot(L));
+      for (let j = 0; j < 3; j++) { col[i + j * 3] = ink.r * s; col[i + j * 3 + 1] = ink.g * s; col[i + j * 3 + 2] = ink.b * s; }
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const faces = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.3, side: sideNow(), depthWrite: true,
+      polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, clippingPlanes: clip }));
+    faces.userData.mapFaces = true; faces.renderOrder = 1;
+    // the room's shape (edges between faces that do not lie flat together, and its open borders): bright where seen, dim behind
+    const eg = new THREE.EdgesGeometry(geo, 1);
+    const seen = new THREE.LineSegments(eg, new THREE.LineBasicMaterial({ color: MAP_LINE, transparent: true, opacity: 0.95, clippingPlanes: clip }));
+    const behind = new THREE.LineSegments(eg, new THREE.LineBasicMaterial({ color: MAP_INK, transparent: true, opacity: 0.28, depthFunc: THREE.GreaterDepth, depthWrite: false, clippingPlanes: clip }));
+    seen.renderOrder = 2; behind.renderOrder = 3;
+    grp.add(faces, seen, behind);
+  }
+  MAPLOOK.group = grp; root.add(grp);
+}
+// a pick on what the map leaves out does not count while the map look is on (the room's own meshes still answer the clicks)
+function mapHides(h) {
+  if (!MAPLOOK.on || !MAPLOOK.data) return false;
+  const p = h.object.geometry.attributes.position;
+  if (MAPLOOK.hidden.has(triKey(p, h.face.a - (h.face.a % 3)))) return true;
+  if (MAPLOOK.cut && !MAPLOOK.keep.has(h.object.userData.part) && h.object.worldToLocal(h.point.clone()).y < MAPLOOK.cut.y) return true;
+  return false;
+}
+async function applyWire() {
+  const w = $('wire').checked, sd = sideNow(); MAPLOOK.on = w;
+  // the room's textured meshes: hidden (still there for clicks) while the map look draws it
+  for (const m of S.mats) if (m !== S.triggerMat) { m.wireframe = false; m.side = sd; m.colorWrite = !(LOOK.on || w); m.depthWrite = !w; m.needsUpdate = true; }
+  if (!w) { clearMapLook(); requestRender(); return; }
+  if (MAPLOOK.group) { MAPLOOK.group.traverse(o => { if (o.userData.mapFaces) { o.material.side = sd; o.material.needsUpdate = true; } }); requestRender(); return; }
+  const name = S.name; if (!name) return;
+  try {
+    if (!MAPLOOK.data || MAPLOOK.data.room !== name) {
+      const d = await (MAPLOOK.loading || (MAPLOOK.loading = fetchMapView(name))); MAPLOOK.loading = null;
+      if (!d || S.name !== name) return;
+      MAPLOOK.data = d; MAPLOOK.hidden = new Set(d.hidden || []); MAPLOOK.cut = d.cut || null; MAPLOOK.keep = new Set((d.cut && d.cut.keep) || []);
+    }
+    if (!$('wire').checked || S.name !== name) return;
+    buildMapLook();
+    status(`map look: ${name} as the game's 3D map draws it -- ${MAPLOOK.hidden.size} triangles left out${MAPLOOK.cut ? `, cut under the floor at y ${MAPLOOK.cut.y}` : ''}`);
+  } catch (e) { MAPLOOK.loading = null; status('map look failed: ' + e.message); }
+  requestRender();
+}
 function applyFog() {
   scene.fog = null;
   if ($('fogPrev').checked && S.atm) {
@@ -161,7 +260,7 @@ async function loadRoom(name, pose) {
     orbit.target.copy(c); camera.position.copy(c.clone().add(new THREE.Vector3(S.size * 0.55, S.size * 0.45, S.size * 0.55))); camera.lookAt(c); orbit.update();
   }
   await refreshNotes(true);
-  drawLightsAndDoors(); renderAtm();
+  drawLightsAndDoors(); renderAtm(); loadPaint();
   status(`${man.refreshed ? "(re-exported: the game's " + man.refreshed + ' changed) ' : ''}${name}: ${obj.children.length} parts, ${man.materials.length} materials (${man.materials.filter(m => m.hires).length} hi-res) · ${Math.round(performance.now() - t0)} ms`);
   requestRender();
 }
@@ -194,6 +293,8 @@ function drawLightsAndDoors() {
 }
 // a note's state: NEW = Josh has written, Claude's turn; REVIEW = Claude has answered, Josh's turn; COMPLETE = done
 const STATUS_COL = { new: '#e0a040', review: '#6aa8ff', complete: '#4caf7a' };
+// note kinds as shown (the select's values are short: 'map' = a change to the 3D map -- Josh, 2026-10-14: geometry to leave off it)
+const KIND_LABEL = { map: 'map update', geometry: 'geometry', fog: 'fog', mist: 'mist' };
 const STATUS_LABEL = { new: 'New · with Claude', review: 'Needs review · your turn', complete: 'Complete' };
 // the pins: one per note in the current list; the open note's pin larger and ringed
 function drawPins() {
@@ -242,7 +343,7 @@ function renderNotes() {
   if (!list.length) { box.innerHTML = `<div class="small">${open.length || (S.doc && S.doc.completed && S.doc.completed.length) ? 'Nothing in this view.' : 'No notes yet. Click anywhere on the room to leave one.'}</div>`; return; }
   box.innerHTML = list.map(n => `
     <div class="nrow ${esc(n.status)}" data-id="${n.id}" title="Open note #${n.id}">
-      <span class="dot"></span><b>#${n.id}</b><span class="chip">${esc(n.kind)}</span>
+      <span class="dot"></span><b>#${n.id}</b><span class="chip k-${esc(n.kind)}">${esc(KIND_LABEL[n.kind] || n.kind)}</span>
       <span class="ntext">${esc(firstText(n))}</span>
       <span class="nstate">${n.status === 'review' ? 'your turn' : n.status === 'new' ? 'with Claude' : 'done'}</span>
     </div>`).join('');
@@ -252,7 +353,7 @@ function noteDetail(n) {
   return `
     <div class="ndetail ${esc(n.status)}" data-id="${n.id}">
       <div class="nback"><button data-a="back">← All notes</button></div>
-      <div class="head"><b>#${n.id}</b><span class="chip">${esc(n.kind)}</span><span class="chip st">${esc(STATUS_LABEL[n.status] || n.status)}</span>
+      <div class="head"><b>#${n.id}</b><span class="chip k-${esc(n.kind)}">${esc(KIND_LABEL[n.kind] || n.kind)}</span><span class="chip st">${esc(STATUS_LABEL[n.status] || n.status)}</span>
         <span class="where">${esc(n.part || (n.target ? n.target.name : 'whole room'))}</span></div>
       <div class="log">${(n.log || []).map(m => `
         <div class="msg ${m.who === 'claude' ? 'claude' : 'josh'}">
@@ -308,6 +409,7 @@ function pick(ev) {
   for (const h of hits) {
     const m = Array.isArray(h.object.material) ? h.object.material[h.face.materialIndex] : h.object.material;
     if (m.userData.skip) continue;                                  // invisible triggers would swallow every click
+    if (mapHides(h)) continue;                                       // (the map look: what the map leaves out is not there)
     if (mk && mk.distance < h.distance) return { marker: mk.object.userData };
     return { hit: h, mat: m };
   }
@@ -329,7 +431,9 @@ function openDialog(ctx) {
   const ed = ctx.edit, fu = ctx.follow, last = ed ? ed.log[ed.log.length - 1] : null;
   $('dlgTitle').textContent = ed ? `Edit your note #${ed.id}` : fu ? `Follow up on #${fu.id}` : 'New note';
   $('dlgKindRow').style.display = fu ? 'none' : '';
-  $('dlgKind').value = ed ? ed.kind : (ctx.target ? 'light' : 'other');
+  // (a new note while the map look is on is about the map -- Josh, 2026-10-14: "if I'm in wireframe view, make every note type default
+  // to the map note type"; it can still be changed)
+  $('dlgKind').value = ed ? ed.kind : (MAPLOOK.on ? 'map' : ctx.target ? 'light' : 'other');
   $('dlgText').value = ed ? (last && last.who === 'josh' ? last.text : '') : '';
   $('dlgText').placeholder = fu ? 'What should change next? (or what is still not right)' : 'What should change here?';
   $('dlgShot').checked = !ed; $('dlgShot').disabled = !!ed;
@@ -381,6 +485,7 @@ canvas.addEventListener('pointerup', e => {
   if (p.marker) {
     if (p.marker.kind === 'door') { loadRoom(p.marker.to); return; }
     if (p.marker.kind === 'pin') { selectNote(p.marker.id); return; }
+    if (p.marker.kind === 'paint') { openPaint(p.marker.id); return; }
     if (p.marker.kind === 'light') { openDialog({ target: { type: 'light', index: p.marker.index, name: p.marker.name } }); return; }
   }
   if (p.hit) openDialog({ info: hitInfo(p) });
@@ -390,7 +495,7 @@ canvas.addEventListener('pointermove', e => {
   if (performance.now() - hoverT < 60 || !S.man) return; hoverT = performance.now();
   const p = pick(e);
   if (p && p.hit) { const i = hitInfo(p); $('hover').textContent = `${i.part}  ·  ${i.material || ''}${i.texture ? ' (' + i.texture + ')' : ''}  ·  ${i.point.join(', ')}`; }
-  else if (p && p.marker) $('hover').textContent = p.marker.kind === 'door' ? `door to ${p.marker.to} (click to go)` : p.marker.kind === 'light' ? `${p.marker.name} (click to note on this light)` : `note #${p.marker.id}`;
+  else if (p && p.marker) $('hover').textContent = p.marker.kind === 'door' ? `door to ${p.marker.to} (click to go)` : p.marker.kind === 'light' ? `${p.marker.name} (click to note on this light)` : p.marker.kind === 'paint' ? `painted light ${p.marker.id} (click to approve or dismiss)` : `note #${p.marker.id}`;
   else $('hover').textContent = '';
 });
 $('roomNote').addEventListener('click', () => openDialog({}));
@@ -435,7 +540,7 @@ const LOOK_NAMES = { wet: 'Wet', shine: 'Shine', relief: 'Relief + depth', repai
 window.__rr.look = LOOK;
 function lookStatus(t) { $('lookMsg').textContent = t || ''; }
 function applyLook() {
-  for (const m of S.mats) if (m !== S.triggerMat) { m.colorWrite = !LOOK.on; m.needsUpdate = true; }
+  for (const m of S.mats) if (m !== S.triggerMat) { m.colorWrite = !(LOOK.on || MAPLOOK.on); m.needsUpdate = true; }
   scene.background = LOOK.on && LOOK.tex ? LOOK.tex : new THREE.Color(0x0b0b0d);
   $('lookBtn').classList.toggle('on', LOOK.on); $('lookBar').hidden = !LOOK.on;
   for (const k of Object.keys(LOOK_NAMES)) $('lk_' + k).checked = !!LOOK.opts[k];
@@ -463,7 +568,7 @@ function lookSize() {
 async function lookTick() {
   if (!LOOK.on || !S.name || LOOK.busy || performance.now() < LOOK.retry) return;
   const g = camPose().gpuLook, sz = lookSize();
-  const req = { X: g.X, Y: g.Y, Z: g.Z, Yaw: g.Yaw, Pitch: g.Pitch, w: sz.w, h: sz.h, ...LOOK.opts };
+  const req = { X: g.X, Y: g.Y, Z: g.Z, Yaw: g.Yaw, Pitch: g.Pitch, w: sz.w, h: sz.h, fov: GAME_FOV, ...LOOK.opts };
   const key = S.name + JSON.stringify(req) + (mirror ? 'm' : '');
   if (key === LOOK.sent) return;
   LOOK.busy = true; const room = S.name, t0 = performance.now();
@@ -487,6 +592,147 @@ async function lookTick() {
 }
 $('lookBtn').addEventListener('click', () => setLook(!LOOK.on));
 for (const k of Object.keys(LOOK_NAMES)) $('lk_' + k).addEventListener('change', e => { LOOK.opts[k] = e.target.checked; store.set('lookOpts', LOOK.opts); requestRender(); });
+
+// ---- PAINTED LIGHTS (Josh, 2026-10-14: "search every room's art for painted light like CHAMBNEW's spotlights and drop
+// suggested pins. You'd approve each one, so you still place every light"). tools\Suggest-PaintedLights.ps1 finds the light
+// the 1996 art paints -- fans rising or falling on walls, glows, barred windows -- and writes room-notes\<ROOM>.suggest.json.
+// Here its PENDING finds are amber diamonds (key P or the header button); a diamond opens a small card: what it is, how
+// sure, the painted spot in the original art, and Approve (a new 'light' note for the next round, with the suggested
+// light) / Dismiss. The proposed light shows as a ghost while its card is open. Nothing here places a light.
+const PAINT = { on: !!store.get('paint', true), doc: null, sel: null, err: null, imgs: new Map() };
+const PAINT_KIND = { uplight: 'uplight', downlight: 'downlight', sidelight: 'side light', glow: 'glow', window: 'window' };
+window.__rr.paint = PAINT; window.__rr.openPaint = id => openPaint(id);      // (checks: a hidden pane has no size to click in)
+const paintPending = () => PAINT.doc ? (PAINT.doc.suggestions || []).filter(s => s.status === 'pending') : [];
+async function loadPaint() {
+  PAINT.doc = null; PAINT.err = null; PAINT.sel = null; $('paintBox').hidden = true;
+  if (!S.name) return;
+  const room = S.name;
+  try { const d = await api(`/api/rooms/${room}/suggest`); if (room !== S.name) return; PAINT.doc = d; }
+  catch (e) { PAINT.err = /no such api|404/.test(e.message) ? 'restart Room Review for painted lights' : e.message; }
+  drawPaint(); paintCount(); requestRender();
+}
+function paintCount() {
+  const n = paintPending().length, b = $('paintBtn');
+  b.classList.toggle('on', PAINT.on);
+  $('paintCount').textContent = PAINT.err ? '!' : String(n); $('paintCount').hidden = !PAINT.err && !n;
+  b.title = PAINT.err ? `Painted lights: ${PAINT.err}` : `Painted lights: ${n} light${n === 1 ? '' : 's'} the original art paints here, waiting for you to approve or dismiss (key P)` + (PAINT.doc && PAINT.doc.made ? ` · searched ${when(PAINT.doc.made)}` : '');
+}
+// an amber diamond with the kind beside it (distinct from the notes' round-cornered #numbers)
+function diamondSprite(text, sel) {
+  const px = sel ? 30 : 24, cv = document.createElement('canvas'), g = cv.getContext('2d'); g.font = `bold ${px}px system-ui`;
+  const d = px + 6, w = Math.ceil(d + 10 + g.measureText(text).width + 14), h = d + 8; cv.width = w; cv.height = h;
+  g.fillStyle = 'rgba(0,0,0,0.6)'; g.beginPath(); g.roundRect(d / 2, 4, w - d / 2, h - 8, 6); g.fill();
+  g.beginPath(); g.moveTo(d / 2 + 2, 4); g.lineTo(d + 2, h / 2); g.lineTo(d / 2 + 2, h - 4); g.lineTo(2, h / 2); g.closePath();
+  g.fillStyle = sel ? '#ffffff' : '#ffb21e'; g.fill(); g.lineWidth = 3; g.strokeStyle = sel ? '#ffb21e' : '#3a2600'; g.stroke();
+  g.font = `bold ${px}px system-ui`; g.fillStyle = sel ? '#ffffff' : '#ffc95a'; g.textBaseline = 'middle'; g.fillText(text, d + 10, h / 2 + 1);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, sizeAttenuation: false }));
+  s.scale.set(0.045 * w / h, 0.045, 1); s.center.set((d / 2 + 2) / w, 0.5); s.renderOrder = 11; return s;
+}
+function drawPaint() {
+  for (const o of [...marks.children]) if (o.userData.kind === 'paint' || o.userData.kind === 'paintGhost') { marks.remove(o); o.traverse(x => { if (x.material) { if (x.material.map) x.material.map.dispose(); x.material.dispose(); } if (x.geometry) x.geometry.dispose(); }); }
+  if (!PAINT.on || !PAINT.doc) return;
+  for (const s of paintPending()) {
+    const sel = s.id === PAINT.sel, sp = diamondSprite(PAINT_KIND[s.kind] || s.kind, sel);
+    sp.position.set(s.point[0], s.point[1], s.point[2]); sp.userData = { kind: 'paint', id: s.id }; marks.add(sp);
+  }
+  // the open one's proposed light, as a ghost: a ring-lit ball where the light would go and its aim, or the window's outline
+  const s = PAINT.sel ? (PAINT.doc.suggestions || []).find(x => x.id === PAINT.sel) : null;
+  if (!s) return;
+  const ghost = new THREE.Group(); ghost.userData = { kind: 'paintGhost' };
+  const amber = new THREE.Color('#ffb21e');
+  if (s.light) {
+    const p = new THREE.Vector3(+s.light.x, +s.light.y, +s.light.z), col = new THREE.Color(s.light.color || '#FFE6C0');
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(4, 14, 8), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85, depthTest: false }));
+    ball.position.copy(p); ball.renderOrder = 12; ghost.add(ball);
+    const ring = new THREE.Mesh(new THREE.SphereGeometry(6.5, 14, 8), new THREE.MeshBasicMaterial({ color: amber, wireframe: true, transparent: true, opacity: 0.6, depthTest: false }));
+    ring.position.copy(p); ring.renderOrder = 12; ghost.add(ring);
+    if (s.light.dir) { const a = new THREE.ArrowHelper(new THREE.Vector3(+s.light.dir[0], +s.light.dir[1], +s.light.dir[2]).normalize(), p, 45, amber.getHex(), 10, 6); a.traverse(x => { if (x.material) { x.material.depthTest = false; x.renderOrder = 12; } }); ghost.add(a); }
+    const lk = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...s.point), p]);
+    const ln = new THREE.Line(lk, new THREE.LineDashedMaterial({ color: amber, dashSize: 2, gapSize: 2, depthTest: false })); ln.computeLineDistances(); ln.renderOrder = 12; ghost.add(ln);
+  }
+  if (s.rect) {
+    const pts = s.rect.map(c => new THREE.Vector3(c[0], c[1], c[2])); pts.push(pts[0].clone());
+    const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: amber, depthTest: false })); ln.renderOrder = 12; ghost.add(ln);
+  }
+  marks.add(ghost);
+}
+// a view of the find: in front of it along its normal, a little above, looking at it (room coordinates, as setPose)
+function paintCamera(s) {
+  const P = new THREE.Vector3(...s.point), n = new THREE.Vector3(...s.normal), wall = Math.abs(n.y) < 0.7;
+  const E = P.clone().addScaledVector(n, 130).add(new THREE.Vector3(0, wall ? 25 : 0, 0)); if (!wall) E.add(new THREE.Vector3(70, 0, 0));
+  const d = P.clone().sub(E), r = v => Math.round(v * 100) / 100;
+  const yaw = Math.atan2(d.x, d.z) * 180 / Math.PI, pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)) * 180 / Math.PI;
+  return { X: r(E.x), Y: r(E.y), Z: r(E.z), Yaw: r(yaw), Pitch: r(pitch) };
+}
+function openPaint(id) {
+  PAINT.sel = id; drawPaint(); requestRender();
+  const s = PAINT.doc && (PAINT.doc.suggestions || []).find(x => x.id === id), box = $('paintBox');
+  if (!s) { box.hidden = true; return; }
+  const list = paintPending(), k = list.findIndex(x => x.id === id), L = s.light;
+  box.innerHTML = `
+    <div class="pb-head"><span class="pd">&#9670;</span><b>${esc(PAINT_KIND[s.kind] || s.kind)}</b><span class="chip">${Math.round((s.confidence || 0) * 100)}% sure</span>
+      <span class="pb-nav"><button data-a="prev" title="Previous painted light" ${list.length < 2 ? 'disabled' : ''}>&#9664;</button><span class="small">${k >= 0 ? k + 1 : '-'} / ${list.length}</span><button data-a="next" title="Next painted light" ${list.length < 2 ? 'disabled' : ''}>&#9654;</button></span>
+      <button data-a="close" class="pb-x" title="Close">&times;</button></div>
+    <div class="pb-body">
+      <canvas id="paintThumb" width="132" height="132" title="Where the original art paints it (${esc(s.texture)})"></canvas>
+      <div class="pb-text">
+        <div>${esc(s.why || '')}</div>
+        <div class="small">${esc(s.texture)} · ${esc(s.part || '')}${s.faces > 1 ? ` · seen on ${s.faces} faces` : ''}</div>
+        ${L ? `<div class="small">light: ${L.x}, ${L.y}, ${L.z}${L.dir ? ` · aim ${L.dir.join(', ')}` : ''}${L.cone ? ` · cone ${L.cone.join('/')}` : ''} · <span class="sw" style="background:${esc(L.color)}"></span>${esc(L.color)} · power ${L.power} · range ${L.range}${L.wash ? ' · wash' : ''}</div>`
+            : `<div class="small">a window: a light outside shining in (placed in the round)</div>`}
+      </div>
+    </div>
+    <div class="acts"><button data-a="go" title="Look at it">View</button><button data-a="approve" class="ok" title="Yes: a new light note for the next round, with this light suggested">Approve</button><button data-a="dismiss" class="quiet" title="No: hide this pin (kept in the file as dismissed)">Dismiss</button></div>`;
+  box.hidden = false;
+  paintThumb(s);
+}
+// the painted spot in the original texture: its box (dashed) with some of the art round it, and the source point
+function paintThumb(s) {
+  const cv = $('paintThumb'); if (!cv || !s.crop) return;
+  const [x0, y0, x1, y1, W, H] = s.crop, leaf = s.texture, key = S.name + '|' + leaf;
+  const draw = img => {
+    if (!$('paintThumb') || PAINT.sel !== s.id) return;
+    const g = cv.getContext('2d'), m = Math.max(x1 - x0, y1 - y0) * 0.45, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, half = Math.max(x1 - x0, y1 - y0) / 2 + m;
+    const sx = cx - half, sy = cy - half, k = cv.width / (2 * half);
+    g.fillStyle = '#000'; g.fillRect(0, 0, cv.width, cv.height); g.imageSmoothingEnabled = false;
+    g.drawImage(img, sx, sy, 2 * half, 2 * half, 0, 0, cv.width, cv.height);
+    g.setLineDash([4, 3]); g.strokeStyle = '#ffb21e'; g.lineWidth = 1.5; g.strokeRect((x0 - sx) * k, (y0 - sy) * k, (x1 - x0) * k, (y1 - y0) * k);
+    g.setLineDash([]); g.fillStyle = '#ff4030'; g.beginPath(); g.arc((s.uv[0] * W - sx) * k, ((1 - s.uv[1]) * H - sy) * k, 3.5, 0, Math.PI * 2); g.fill();
+  };
+  const have = PAINT.imgs.get(key); if (have) { if (have.complete) draw(have); else have.addEventListener('load', () => draw(have), { once: true }); return; }
+  const img = new Image(); img.addEventListener('load', () => draw(img), { once: true }); img.src = `/rooms/${S.name}/tex-orig/${encodeURIComponent(leaf)}`; PAINT.imgs.set(key, img);
+}
+function closePaint() { PAINT.sel = null; $('paintBox').hidden = true; drawPaint(); requestRender(); }
+function setPaint(on) { PAINT.on = on; store.set('paint', on); if (!on) closePaint(); drawPaint(); paintCount(); requestRender(); status(on ? `painted lights: ${paintPending().length} here${PAINT.err ? ' (' + PAINT.err + ')' : ''}` : 'painted lights hidden'); }
+$('paintBtn').addEventListener('click', () => setPaint(!PAINT.on));
+$('paintBox').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const a = b.dataset.a, s = PAINT.sel && PAINT.doc ? (PAINT.doc.suggestions || []).find(x => x.id === PAINT.sel) : null;
+  if (a === 'close') { closePaint(); return; }
+  const list = paintPending();
+  if ((a === 'prev' || a === 'next') && list.length) {
+    let k = list.findIndex(x => x.id === PAINT.sel); k = k < 0 ? 0 : (k + (a === 'next' ? 1 : -1) + list.length) % list.length;
+    const g = paintCamera(list[k]); setMode('orbit'); setPose(g.X, g.Y, g.Z, g.Yaw, g.Pitch); openPaint(list[k].id); return;
+  }
+  if (!s) return;
+  if (a === 'go') { const g = paintCamera(s); setMode('orbit'); setPose(g.X, g.Y, g.Z, g.Yaw, g.Pitch); requestRender(); return; }
+  if (a === 'approve' || a === 'dismiss') {
+    const room = S.name; b.disabled = true;
+    try {
+      // (the note's view: the same look at it, so the round's render shows the spot)
+      const g = paintCamera(s), cam = { pos: [g.X, g.Y, g.Z], fov: GAME_FOV, mirror, gpuLook: g };
+      const r = await api(`/api/rooms/${room}/suggest/${s.id}`, { method: 'POST', headers: { ...HDR, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: a, camera: cam }) });
+      if (room !== S.name) return;
+      Object.assign(s, r.suggestion);
+      const next = paintPending()[0];
+      closePaint(); paintCount();
+      status(a === 'approve' ? `approved: note #${r.note.id} made for the next round (${paintPending().length} painted lights left)` : `dismissed (${paintPending().length} painted lights left)`);
+      if (a === 'approve') await refreshNotes(true);
+      if (next) openPaint(next.id);
+    } catch (err) { b.disabled = false; alert('Could not save: ' + err.message); }
+  }
+});
 
 // ---- "Submit update" (lower right): tells Claude the notes are ready -- no need to switch to the chat. Shows where it
 // stands: notes waiting to be sent; sent and waiting for Claude; Claude working on round N; Claude replied (your turn).
@@ -518,8 +764,8 @@ setInterval(() => { if (document.visibilityState === 'visible') refreshSubmit();
 const keys = new Set(); let look = null, yaw = 0, pitch = 0, speedK = 1, eyeY = null;
 const MODE_NAME = { orbit: 'Fly', walk: 'Walk' };
 const HELP = {
-  orbit: 'Fly: WASD / arrows move &middot; Q/E or Space/C down/up &middot; Shift faster &middot; drag turn, right-drag pan, wheel zoom &middot; F: walk &middot; G: game look &middot; click to leave a note',
-  walk: 'Walk: WASD / arrows &middot; drag to look &middot; Shift run &middot; wheel speed &middot; F or Esc: fly &middot; G: game look &middot; click to leave a note'
+  orbit: 'Fly: WASD / arrows move &middot; Q/E or Space/C down/up &middot; Shift faster &middot; drag turn, right-drag pan, wheel zoom &middot; F: walk &middot; G: game look &middot; P: painted lights &middot; click to leave a note',
+  walk: 'Walk: WASD / arrows &middot; drag to look &middot; Shift run &middot; wheel speed &middot; F or Esc: fly &middot; G: game look &middot; P: painted lights &middot; click to leave a note'
 };
 function syncLook() { const f = new THREE.Vector3(); camera.getWorldDirection(f); yaw = Math.atan2(f.x, f.z); pitch = Math.asin(Math.max(-1, Math.min(1, f.y))); }
 function setMode(m) {
@@ -548,6 +794,7 @@ window.addEventListener('keydown', e => {
   if (k === 'escape') { setMode('orbit'); return; }
   if (k === 'r' && !e.ctrlKey && !e.metaKey) { renderView(); return; }
   if (k === 'g' && !e.ctrlKey && !e.metaKey) { setLook(!LOOK.on); return; }
+  if (k === 'p' && !e.ctrlKey && !e.metaKey && !e.altKey) { setPaint(!PAINT.on); return; }
   if (LOOK.on && LOOK_KEYS[k] && !e.ctrlKey && !e.metaKey && !e.altKey) { flipLook(LOOK_KEYS[k]); return; }
   if (k.startsWith('arrow') || k === ' ') e.preventDefault();
   keys.add(k === ' ' ? 'space' : k); if (e.key === 'Shift') keys.add('shift'); requestRender();
@@ -667,7 +914,7 @@ const OTHER_MODELS = { CAM: 'camera', CAMERA01: 'camera', CAMWALK1: 'camera path
     const g3 = document.createElement('optgroup'); g3.label = 'Dev copies';
     const chars = [];
     for (const r of S.rooms) {
-      const notes = (r.review ? `  · ${r.review} to review` : '') + (r.new ? `  · ${r.new} with Claude` : '');
+      const notes = (r.review ? `  · ${r.review} to review` : '') + (r.new ? `  · ${r.new} with Claude` : '') + (r.painted ? `  · ◆${r.painted}` : '');
       const who = ANI_RIGS[r.name] || CHAR_COPIES[r.name];
       if (r.batch >= 0) g1.appendChild(mk(r, `${r.batch + 1}. ${r.name}${notes}`));
       else if (who) chars.push({ r, who, main: !!ANI_RIGS[r.name], notes });

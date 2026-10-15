@@ -721,6 +721,32 @@ namespace AztTool
         }
 
         // Climb to the root from any frame (the camera's is the one we always have).
+        /// <summary>THE CHEAP ROOM-CHANGE TEST, in C# (2026-10-13 performance audit: the watcher's Get-SceneFingerprint did up
+        /// to 220 frames x 3 reads as PowerShell calls, ~660 of them, a 10-30 ms hitch twice a second). Exactly the same walk:
+        /// up to 16 parents to the top, then depth first (child, then sibling, as a stack) over at most `cap` frames, folding
+        /// each frame's NAME POINTER into acc = (acc x 31 + ptr) mod 2^48. Returns "n:acc", as the script did.</summary>
+        public static string Fingerprint(int pid, long memBase, uint camObj, int cap)
+        {
+            IntPtr h = Handle(pid);
+            var buf4 = new byte[4];
+            Func<uint, uint> word = a => { IntPtr got; return ReadProcessMemory(h, (IntPtr)(memBase + a), buf4, 4, out got) && got.ToInt64() == 4 ? BitConverter.ToUInt32(buf4, 0) : 0u; };
+            uint p = camObj;
+            for (int i = 0; i < 16; i++) { uint par = word(p + 0x30); if (par < 0x1000) break; p = par; }
+            ulong acc = p; int n = 0;
+            var stack = new Stack<uint>(); stack.Push(p);
+            var seen = new HashSet<uint>();
+            while (stack.Count > 0 && n < cap)
+            {
+                uint f = stack.Pop();
+                if (f < 0x1000 || !seen.Add(f)) continue;
+                n++;
+                acc = (acc * 31 + word(f + 0x24)) & 0xFFFFFFFFFFFFUL;
+                uint c = word(f + 0x3C); if (c >= 0x1000) stack.Push(c);
+                uint sib = word(f + 0x34); if (sib >= 0x1000) stack.Push(sib);
+            }
+            return n.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + acc.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         public static uint RootOf(int pid, long memBase, uint frame)
         {
             IntPtr h = Handle(pid);
@@ -780,6 +806,10 @@ namespace AztTool
         {
             public Pose From, To;
             public double T0, Dur, LastChange;
+            public double Avg = -1;           // a rig joint's own step interval (ms), a running average of its gaps
+            public List<Pose> Q;              // a rig joint's poses still to be played (Q[0] = the one it is leaving)
+            public double P, LastEval;        // where in Q it is drawn (0..Count-1), and when it was last drawn
+            public double Rate = 1;           // its playback speed (x its own beat), eased so the motion stays even
         }
 
         readonly Dictionary<uint, St> _st = new Dictionary<uint, St>();
@@ -788,6 +818,20 @@ namespace AztTool
         public double TickMs = 1000.0 / 18.2065;
         public bool All = false;
         public long Blended, Snapped;         // steps eased / steps passed straight through
+        /// <summary>SILKY CHARACTERS (Josh, 2026-10-13: the CORICORI creatures' "animation is very jarring as if at a slow frame
+        /// rate. Regardless of speed, I want their animation to be silky smooth"). A character's pace is a share of the 18.2 Hz
+        /// tick (the NPC pace, a room's "npcs"), so its poses arrive on an UNEVEN beat -- at 70%, gaps of 55, 55, 110 ms -- and
+        /// one fixed tick of easing arrived early and then stood still: a stutter at every long gap, worse the slower the
+        /// creature. So a RIG joint (Adaptive) eases over its own measured step interval (a running average of its gaps, x
+        /// AdaptiveLead) instead: a short gap flows into the next step from wherever the joint is drawn, a long one no longer
+        /// leaves it standing. Room objects keep the one-tick rule. A creature is shown about one of its own steps late.</summary>
+        public bool Adaptive = true;
+        public double AdaptiveLead = 1.25;
+        /// <summary>STEADY PLAYBACK (Adaptive): each rig joint's poses are queued as they come and played back at the joint's
+        /// own average step rate, interpolated, kept about PlayBehind steps behind the newest (a gentle PlayGain on how far
+        /// behind it is) -- so an uneven beat is drawn as even motion. Every pose is still shown, in order; only the spacing
+        /// changes. Measured on the 70% beat (55/55/110 ms): see docs\notes\azrael-npc-pace.md.</summary>
+        public double PlayBehind = 1.5, PlayGain = 0.35, PlayEaseMs = 400;      // (1.5: no frame standing still on any beat measured; 1.0 left one every long gap)
 
         public void Reset() { _st.Clear(); _tree = null; }
         public bool HasTree { get { return _tree != null && _tree.Count > 0; } }
@@ -861,13 +905,34 @@ namespace AztTool
             return m;
         }
 
-        static float[] Current(St s, double nowMs)
+        float[] Current(St s, double nowMs)
         {
+            if (s.Q != null) return Play(s, nowMs);
             if (s.Dur <= 0) return s.To.M;
             double t = (nowMs - s.T0) / s.Dur;
             if (t >= 1) return s.To.M;
             if (t <= 0) return s.From.M;
             return Blend(s.From, s.To, t);
+        }
+
+        // a rig joint's steady playback (see PlayBehind)
+        float[] Play(St s, double nowMs)
+        {
+            double dt = nowMs - s.LastEval; s.LastEval = nowMs;
+            if (dt < 0) dt = 0; if (dt > 250) dt = 250;
+            int last = s.Q.Count - 1;
+            double behind = last - s.P;
+            // the speed follows how far behind it is only SLOWLY (over PlayEaseMs): between two arrivals that distance is a
+            // sawtooth, and following it closely would make the motion surge and sag with every step
+            double want = Math.Max(0.5, Math.Min(2.0, 1 + PlayGain * (behind - PlayBehind)));
+            if (behind > 3) want = 3;                                     // (far behind after a stall: catch up)
+            s.Rate += (want - s.Rate) * Math.Min(1.0, dt / PlayEaseMs);
+            if (behind <= 1e-6) return s.Q[last].M;                       // (caught up: it waits for the next pose)
+            s.P = Math.Min(last, s.P + dt / Math.Max(20.0, s.Avg) * s.Rate);
+            while (s.P >= 1 && s.Q.Count > 1) { s.Q.RemoveAt(0); s.P -= 1; }
+            int i0 = (int)Math.Floor(s.P);
+            if (i0 >= s.Q.Count - 1) return s.Q[s.Q.Count - 1].M;
+            return Blend(s.Q[i0], s.Q[i0 + 1], s.P - i0);
         }
 
         // A new, confirmed walk of the scene. Call whenever one is available.
@@ -907,7 +972,18 @@ namespace AztTool
                         if (dot < 0.5) ease = false;          // more than 120 degrees in one step
                     }
                 }
-                if (!ease) { s.From = s.To = np; s.Dur = 0; Snapped++; continue; }
+                if (!ease) { s.From = s.To = np; s.Dur = 0; s.Q = null; Snapped++; continue; }
+                if (Adaptive && t.InChar[i])
+                {
+                    // a character's joint: queue it for steady playback at its own beat (gaps over 400 ms are a rest)
+                    if (s.Avg < 0) s.Avg = TickMs;
+                    if (since >= 30.0 && since <= 400.0) s.Avg = s.Avg * 0.8 + since * 0.2;
+                    if (s.Q == null) { s.Q = new List<Pose> { s.To }; s.P = 0; s.LastEval = nowMs; }
+                    s.Q.Add(np); s.To = np;
+                    while (s.Q.Count > 6) { s.Q.RemoveAt(0); s.P = Math.Max(0, s.P - 1); }     // (never more than a few steps behind)
+                    Blended++;
+                    continue;
+                }
 
                 // FROM WHERE IT IS DRAWN NOW, not from the previous pose: if the last step had
                 // not finished arriving, starting from its end would be a jump of its own.
@@ -918,6 +994,7 @@ namespace AztTool
                 // One tick, or the measured gap when the game is stepping steadily at some
                 // other rate. A first step after a rest has no gap to measure: one tick.
                 s.Dur = (since > 40.0 && since < 80.0) ? since : TickMs;
+
                 Blended++;
             }
             _tree = t;

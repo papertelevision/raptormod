@@ -92,3 +92,5 @@ Correction same round: Josh WANTS the room at 0.62 (darker, deliberately, to str
 2026-10-05 11:45: TWO ROOM LEVELS (Josh's idea, "Perfect" on the F key). Lamp OFF -> `-LampRoomOff` 0.78 (not too dark to play); lamp ON -> `-LampRoom` 0.54 (darker surround), blended by the same 0.14 s fade. Power 1.60 -> 1.68 and halo 0.47 -> 0.495 so lit areas are unchanged (centre 2.22, wide beam ~1.44 either way). Not yet seen.
 
 2026-10-05: Josh: flashlight-ON view "is perfect" (room 0.54, power 1.68, halo 0.495, spot 8.64-21, pair +/-24/8, ShadowDark 0.30, fade 140-900) -- DO NOT retune it. Flashlight-OFF room level set to 0.82.
+
+**2026-10-13 (Josh): the flashlight STARTS OFF** -- "start the game with the flashlight off. Later I will add more 'visibility low' flashlight suggestions." Off when the watcher starts, and switched off again when a NEW game boots (BootHd.Mode -> live, not `IsReboot`: a load keeps the player's choice). F turns it on. `-LampStartsOn` = the old way. The room 'visor' readouts (MINEMAZE: Press F for Headlamp) are how the player learns the key.

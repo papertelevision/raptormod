@@ -178,6 +178,11 @@ namespace AztTool
         int Px(double g) { return Math.Max(1, (int)Math.Round(g * _s)); }
         /// <summary>Extra size for the TYPE and its blocks, about the middle of the view (1 = the 8-bit boot's own size).</summary>
         public double Zoom = 1.0;
+        /// <summary>THE 7 AND THE READOUT A LITTLE TO THE LEFT (Josh, 2026-10-14: "the entire 7 animation and text to be slightly
+        /// moved to the left"), game px: its lines, the 7 and its logotype, the bar and the closing line (the heart trace rides
+        /// its line). The briefing stays where it was.</summary>
+        public double ReadoutShift = -60;
+        double TxtX { get { return P_txtX + ReadoutShift; } }
         double Xt(double gx) { return _cx + (gx - InjW / 2.0) * _s * Zoom; }
         double Yt(double gy) { return _lvr / 2.0 + (gy - InjH / 2.0) * _s * Zoom; }
         int Pt(double g) { return Math.Max(1, (int)Math.Round(g * _s * Zoom)); }
@@ -192,9 +197,9 @@ namespace AztTool
             {
                 string t = i < _banner.Length ? _banner[i] : _lines[i - _banner.Length];
                 double gy = P_txtY + i * P_lineH + (i >= _banner.Length ? P_banGap : 0);
-                _lineItems[i] = TextItem(t, P_font, Xt(P_txtX), Yt(gy), P_lineH);
+                _lineItems[i] = TextItem(t, P_font, Xt(TxtX), Yt(gy), P_lineH);
             }
-            _finalItem = TextItem(_final, P_font, Xt(P_txtX), Yt(P_finalY), P_finalH);
+            _finalItem = TextItem(_final, P_font, Xt(TxtX), Yt(P_finalY), P_finalH);
             _misSmallItems = new Item[_misSmall.Length];
             for (int i = 0; i < _misSmall.Length; i++) _misSmallItems[i] = TextItem(_misSmall[i], P_misSmall, Xt(P_misX), Yt(P_misY + P_misTextTop + i * P_misSmH), P_misSmH);
             _misItem = TextItem(_mission, P_misBig, Xt(P_misX), Yt(P_misY + P_misObjRow), P_misBigH);
@@ -476,6 +481,7 @@ namespace AztTool
             else
             {
                 DrawDump(pic, el);
+                DrawWatermark(pic, pw, vr, el);      // (the grail behind the briefing: 2026-10-14)
                 if (!reboot)
                 {
                     // line by line: the icon with the first MISSION line, then the second, then the OBJECTIVE
@@ -754,6 +760,216 @@ namespace AztTool
             for (int y = y0; y < y1; y++) { int o = y * pw; for (int x = x0; x < x1; x++) pic[o + x] = Lerp256(pic[o + x], col, a256); }
         }
 
+        // ---- THE 7 (Josh, 2026-10-14: "build a full vector version of that image ... it will replace the 7s that appear in the
+        // boot up sequence. It will be smaller than that series of 7s ... display this as an actual logo ... animate in, with the
+        // pulsing effect as some portions become larger then settle ... the tight line vector weight similar to the image along
+        // with its different line strikes, but make sure its truly 3d like our maps"; docs\reference\wireframe-7-style.png).
+        // The numeral's outline from the reference, extruded into a solid and drawn in perspective: every edge tested against
+        // the solid's own faces each frame -- solid where seen, DASHED where the solid hides it (the reference's two strikes).
+        // It pulses in as the maps do (a wave across it: each edge grows from nothing past its size and settles, flaring as the
+        // wave passes) over Logo7Intro seconds from the banner's start, then turns slowly side to side so it reads as solid.
+        public bool Logo7On = true;
+        public double Logo7Lift = 0.10;      // (the 7 sits this share of the banner's box above its middle, the logotype under it)
+        public double Logo7Height = 0.70, Logo7Intro = 1.5, Logo7Wave = 0.35, Logo7Pulse = 0.35, Logo7Depth = 0.17, Logo7Yaw = -26, Logo7Pitch = -14,
+            Logo7Sway = 14, Logo7SwayPeriod = 9, Logo7Line = 1.6, Logo7Dash = 0.85, Logo7Cam = 3.4;
+        // the reference's front outline (its pixels; y down), and that face cut into convex pieces
+        double _logoCx, _logoBottom, _logoBoxH; Item _logoType; double _logoTypeFor;
+        // ---- THE LOGOTYPE under it (Josh, 2026-10-14: "MODEL 7 H.U.D." as a logotype with a small "r" circle to the right, like a
+        // TM symbol; it appears between the 7 and the first readout line, the one the HUD slides in on): a technical face, widely
+        // tracked, with a circled R at its cap height; wiped on from the left, the wiping edge flaring, at LogoTypeAt seconds.
+        public string LogoTypeText = "MODEL 7 H.U.D.";
+        public double LogoTypeAt = 2.1, LogoTypeWipe = 0.55, LogoTypeEm = 0.105, LogoTypeTrack = 0.24, LogoTypeGap = 0.06;
+        Item LogoTypeItem(double emPx)
+        {
+            string fam = "Bahnschrift SemiBold";
+            try { using (var ff = new FontFamily(fam)) { } } catch { fam = "Segoe UI Semibold"; }
+            float em = (float)Math.Max(8, emPx), track = (float)(em * LogoTypeTrack);
+            using (var family = new FontFamily(fam))
+            using (var fmt = (StringFormat)StringFormat.GenericTypographic.Clone())
+            using (var path = new GraphicsPath())
+            {
+                float x = 0; var cap = RectangleF.Empty;
+                foreach (char ch in LogoTypeText)
+                {
+                    if (ch == ' ') { x += em * 0.30f + track; continue; }
+                    using (var one = new GraphicsPath())
+                    {
+                        one.AddString(ch.ToString(), family, (int)FontStyle.Regular, em, new PointF(x, 0), fmt);
+                        var b = one.GetBounds(); if (b.Width <= 0) { x += em * 0.3f + track; continue; }
+                        if (char.IsLetterOrDigit(ch)) cap = cap.IsEmpty ? b : RectangleF.Union(cap, b);
+                        path.AddPath(one, false);
+                        x = b.Right + track;
+                    }
+                }
+                float textR = x - track;
+                // the circled R: its ring as tall as about half the capitals, its top level with theirs
+                float d = cap.Height * 0.50f, rx = textR + em * (float)LogoTypeGap, ry = cap.Top;
+                int pad = (int)Math.Ceiling(em * 0.15f) + 2;
+                int w = (int)Math.Ceiling(rx + d) + 2 * pad, h = (int)Math.Ceiling(cap.Bottom - Math.Min(cap.Top, ry)) + 2 * pad;
+                var it = new Item { W = w, H = h };
+                using (var bm = new Bitmap(w, h, PixelFormat.Format32bppArgb))
+                {
+                    using (var g = Graphics.FromImage(bm))
+                    {
+                        g.Clear(Color.Black); g.SmoothingMode = SmoothingMode.AntiAlias;
+                        g.TranslateTransform(pad - cap.Left, pad - cap.Top);
+                        g.FillPath(Brushes.White, path);
+                        using (var ring = new Pen(Color.White, Math.Max(1f, d * 0.09f))) g.DrawEllipse(ring, rx, ry, d, d);
+                        using (var rp = new GraphicsPath())
+                        {
+                            rp.AddString("R", family, (int)FontStyle.Regular, d * 0.70f, PointF.Empty, fmt);
+                            var rb = rp.GetBounds(); var m = new Matrix(); m.Translate(rx + d / 2 - (rb.Left + rb.Width / 2), ry + d / 2 - (rb.Top + rb.Height / 2)); rp.Transform(m);
+                            g.FillPath(Brushes.White, rp);
+                        }
+                    }
+                    it.Cov = Coverage(bm);
+                }
+                MakeGlow(it);
+                return it;
+            }
+        }
+        void DrawLogoType(int[] pic, long el, int ink)
+        {
+            if (!Logo7On || string.IsNullOrEmpty(LogoTypeText)) return;
+            double t = (el - U_banner) / 1e6 - LogoTypeAt; if (t < 0 || _logoBoxH <= 0) return;
+            double em = _logoBoxH * LogoTypeEm;
+            if (_logoType == null || Math.Abs(_logoTypeFor - em) > 0.5) { _logoType = LogoTypeItem(em); _logoTypeFor = em; }
+            var it = _logoType;
+            it.X = (int)Math.Round(_logoCx - it.W / 2.0); it.Y = (int)Math.Round(_logoBottom + _logoBoxH * 0.05);
+            double u = Math.Min(1, t / Math.Max(0.05, LogoTypeWipe)), e = Smooth(u);
+            int clip = it.X + (int)Math.Round(it.W * e);
+            DrawItem(pic, it, u < 1 ? Mix(ink, C_flare, 0.55 * (1 - e)) : ink, clip, true);
+            // (the wiping edge: a thin bright line down the letters for as long as it runs)
+            if (u < 1) FillRect(pic, clip - Math.Max(1, (int)(_s * Zoom)), it.Y, clip + 1, it.Y + it.H, C_flare);
+        }
+        static readonly double[] L7Out = { 98, 143, 541, 143, 541, 258, 327, 700, 327, 773, 180, 773, 180, 703, 418, 250, 98, 250 };
+        static readonly int[][] L7Cap = { new[] { 0, 1, 2, 7 }, new[] { 0, 7, 8 }, new[] { 7, 2, 3, 6 }, new[] { 6, 3, 4, 5 } };
+        public int Logo7Edges;
+        void DrawLogo7(int[] pic, long el, int ink)
+        {
+            if (!Logo7On || el < U_banner) return;
+            int nb = _banner.Length; if (nb == 0) return;
+            double t = (el - U_banner) / 1e6;
+            // where: the banner's box (its rows, from its first character to its widest line), the 7 a share of its height, centred
+            double bTop = Yt(P_txtY), bH = nb * P_lineH * _s * Zoom;
+            double bW = 0; for (int i = 0; i < nb && i < _lineItems.Length; i++) bW = Math.Max(bW, _lineItems[i].W);
+            double cxS = Xt(TxtX) + bW / 2, cyS = bTop + bH * (0.5 - Logo7Lift), size = bH * Logo7Height;
+            _logoCx = cxS; _logoBottom = cyS + size * 0.5; _logoBoxH = bH;
+            int n = L7Out.Length / 2; double ox = (98 + 541) / 2.0, oy = (143 + 773) / 2.0, H = 773 - 143;
+            // the solid in view space: x right, y up, z toward the eye; turned by yaw (with its slow sway) and pitch
+            double yaw = (Logo7Yaw + Logo7Sway * Math.Sin(2 * Math.PI * t / Math.Max(1, Logo7SwayPeriod))) * Math.PI / 180, pit = Logo7Pitch * Math.PI / 180;
+            double cyw = Math.Cos(yaw), syw = Math.Sin(yaw), cp = Math.Cos(pit), sp = Math.Sin(pit), half = Logo7Depth / 2;
+            var V = new double[2 * n * 3];
+            for (int k = 0; k < 2 * n; k++)
+            {
+                int i = k % n; double x = (L7Out[i * 2] - ox) / H, y = -(L7Out[i * 2 + 1] - oy) / H, z = k < n ? half : -half;
+                double x1 = x * cyw + z * syw, z1 = -x * syw + z * cyw;          // yaw about y
+                double y2 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;             // pitch about x
+                V[k * 3] = x1; V[k * 3 + 1] = y2; V[k * 3 + 2] = z2;
+            }
+            double cam = Logo7Cam;
+            Func<double, double, double, PointF> Sc = (x, y, z) => { double k = cam / Math.Max(0.05, cam - z); return new PointF((float)(cxS + x * k * size), (float)(cyS - y * k * size)); };
+            var S = new PointF[2 * n]; for (int k = 0; k < 2 * n; k++) S[k] = Sc(V[k * 3], V[k * 3 + 1], V[k * 3 + 2]);
+            // the faces (vertex lists): the front and back pieces, and a side per outline edge
+            var faces = new List<int[]>();
+            foreach (var c in L7Cap) { faces.Add(c); var b = new int[c.Length]; for (int q = 0; q < c.Length; q++) b[q] = c[c.Length - 1 - q] + n; faces.Add(b); }
+            for (int i = 0; i < n; i++) faces.Add(new[] { i, (i + 1) % n, (i + 1) % n + n, i + n });
+            // planes (view space) for the depth along a line of sight
+            var fN = new double[faces.Count * 4];
+            for (int f = 0; f < faces.Count; f++)
+            {
+                int a = faces[f][0] * 3, b = faces[f][1] * 3, c = faces[f][2] * 3;
+                double ux = V[b] - V[a], uy = V[b + 1] - V[a + 1], uz = V[b + 2] - V[a + 2], wx = V[c] - V[a], wy = V[c + 1] - V[a + 1], wz = V[c + 2] - V[a + 2];
+                double nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+                fN[f * 4] = nx; fN[f * 4 + 1] = ny; fN[f * 4 + 2] = nz; fN[f * 4 + 3] = nx * V[a] + ny * V[a + 1] + nz * V[a + 2];
+            }
+            Func<int, float, float, bool> Inside = (f, px, py) =>
+            {
+                var fv = faces[f]; int m = fv.Length; float sgn = 0;
+                for (int q = 0; q < m; q++)
+                {
+                    PointF p0 = S[fv[q]], p1 = S[fv[(q + 1) % m]];
+                    float cr = (p1.X - p0.X) * (py - p0.Y) - (p1.Y - p0.Y) * (px - p0.X);
+                    if (Math.Abs(cr) < 1e-4f) continue;
+                    if (sgn == 0) sgn = Math.Sign(cr); else if (Math.Sign(cr) != sgn) return false;
+                }
+                return true;
+            };
+            // the edges: front outline, back outline, the joins
+            var edges = new List<int[]>();
+            for (int i = 0; i < n; i++) { edges.Add(new[] { i, (i + 1) % n }); edges.Add(new[] { i + n, (i + 1) % n + n }); edges.Add(new[] { i, i + n }); }
+            Logo7Edges = edges.Count;
+            // the pulse: a wave across the logo, left to right on the screen
+            float minX = float.MaxValue, maxX = float.MinValue; foreach (var p in S) { minX = Math.Min(minX, p.X); maxX = Math.Max(maxX, p.X); }
+            double wp = t / Math.Max(0.1, Logo7Intro); bool waveOn = wp < 1;
+            const int NS = 48;
+            var hm = GCHandle.Alloc(pic, GCHandleType.Pinned);
+            try
+            {
+                using (var bm = new Bitmap(_lw, _lvr, _lw * 4, PixelFormat.Format32bppPArgb, hm.AddrOfPinnedObject()))
+                using (var g = Graphics.FromImage(bm))
+                using (var solid = new Pen(Color.Black, (float)Math.Max(1.0, Logo7Line * _s * Zoom)))
+                using (var dash = new Pen(Color.Black, (float)Math.Max(0.8, Logo7Line * Logo7Dash * _s * Zoom)))
+                using (var halo = new Pen(Color.Black, (float)Math.Max(2.0, Logo7Line * 4 * _s * Zoom)))
+                {
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    solid.StartCap = LineCap.Round; solid.EndCap = LineCap.Round;
+                    dash.DashPattern = new float[] { 3.2f, 2.6f };
+                    halo.StartCap = LineCap.Round; halo.EndCap = LineCap.Round;
+                    var vis = new bool[NS + 1];
+                    foreach (var e in edges)
+                    {
+                        int a = e[0], b = e[1];
+                        PointF A = S[a], B = S[b];
+                        // the wave at this edge's middle
+                        float mx = (A.X + B.X) / 2, my = (A.Y + B.Y) / 2;
+                        double sc = 1, glow = 0;
+                        if (waveOn)
+                        {
+                            double u = (mx - minX) / Math.Max(1, maxX - minX), ph = Math.Max(0, Math.Min(1, (wp * (1 + Logo7Wave) - u) / Logo7Wave));
+                            double grow = Smooth(ph / 0.55) * (1 + Logo7Pulse); sc = grow + (1 - grow) * Smooth((ph - 0.55) / 0.45);
+                            glow = Smooth(ph / 0.25) * (1 - Smooth((ph - 0.45) / 0.55));
+                            if (sc < 0.002) continue;
+                        }
+                        // seen or hidden, sample by sample along it: hidden where a face of the solid lies between it and the eye
+                        for (int q = 0; q <= NS; q++)
+                        {
+                            double f = (q + 0.5) / (NS + 1);
+                            double Px = V[a * 3] + (V[b * 3] - V[a * 3]) * f, Py = V[a * 3 + 1] + (V[b * 3 + 1] - V[a * 3 + 1]) * f, Pz = V[a * 3 + 2] + (V[b * 3 + 2] - V[a * 3 + 2]) * f;
+                            PointF sp2 = Sc(Px, Py, Pz); bool hid = false;
+                            for (int fi = 0; fi < faces.Count && !hid; fi++)
+                            {
+                                double nx = fN[fi * 4], ny = fN[fi * 4 + 1], nz = fN[fi * 4 + 2], c0 = fN[fi * 4 + 3];
+                                double dx = Px, dy = Py, dz = Pz - cam, den = nx * dx + ny * dy + nz * dz; if (Math.Abs(den) < 1e-9) continue;
+                                double tt = (c0 - nz * cam) / den;                  // the ray from the eye (0, 0, cam) through the point: t = 1 at it
+                                if (tt <= 0.0005 || tt >= 0.995) continue;
+                                if (Inside(fi, sp2.X, sp2.Y)) hid = true;
+                            }
+                            vis[q] = !hid;
+                        }
+                        // its runs, drawn scaled about the edge's middle by the wave
+                        Func<double, PointF> At = f2 => { float x = A.X + (B.X - A.X) * (float)f2, y = A.Y + (B.Y - A.Y) * (float)f2; return new PointF(mx + (x - mx) * (float)sc, my + (y - my) * (float)sc); };
+                        int col = Mix(ink, C_flare, Math.Min(1, glow * 1.4));
+                        int r0 = 0;
+                        for (int q = 1; q <= NS + 1; q++)
+                        {
+                            if (q <= NS && vis[q] == vis[r0]) continue;
+                            double f0 = r0 / (double)(NS + 1), f1 = q / (double)(NS + 1);
+                            PointF p0 = At(f0), p1 = At(f1);
+                            if (vis[r0])
+                            {
+                                if (glow > 0.02) { halo.Color = Argb((int)(70 * glow), C_flare); g.DrawLine(halo, p0, p1); }
+                                solid.Color = Argb(255, col); g.DrawLine(solid, p0, p1);
+                            }
+                            else { dash.Color = Argb(205, col); g.DrawLine(dash, p0, p1); }
+                            r0 = q;
+                        }
+                    }
+                }
+            }
+            finally { hm.Free(); }
+        }
+
         // The banner draws in a line at a time, then the readout under it; the newest line
         // flares for a moment. Returns how many lines are up.
         int DrawReadout(int[] pic, long el, int ink, int teal)
@@ -763,8 +979,10 @@ namespace AztTool
             int n;
             if (el < U_text) { long k = (el - U_banner) / U_banStep; n = (int)k + 1; age = (el - U_banner) % U_banStep; if (n >= nb) { n = nb; age = long.MaxValue; } }
             else { long k = (el - U_text) / U_line; n = nb + (int)k + 1; age = (el - U_text) % U_line; if (n >= nAll) { n = nAll; age = long.MaxValue; } }
+            if (Logo7On) { DrawLogo7(pic, el, ink); DrawLogoType(pic, el, ink); }      // (THE 7 and its logotype: in place of the banner's rows of 7s)
             for (int i = 0; i < n; i++)
             {
+                if (Logo7On && i < nb) continue;
                 bool hot = i == n - 1 && age < U_flare, seven = i < nb;      // the 7s keep the 8-bit boot's teal
                 DrawItem(pic, _lineItems[i], seven ? (hot ? C_tealFlare : teal) : (hot ? C_flare : ink), int.MaxValue, true);
             }
@@ -776,7 +994,7 @@ namespace AztTool
         {
             if (el < U_text) return;
             double f = Math.Min(1.0, (el - U_text) / (double)U_barSpan);
-            int x0 = (int)Math.Round(Xt(P_barX)), y0 = (int)Math.Round(Yt(P_barY)), w = Pt(P_barW), h = Pt(P_barH);
+            int x0 = (int)Math.Round(Xt(P_barX + ReadoutShift)), y0 = (int)Math.Round(Yt(P_barY)), w = Pt(P_barW), h = Pt(P_barH);
             int fx = x0 + (int)Math.Round(w * f);
             FillRect(pic, x0, y0, fx, y0 + h, ink);
             FillRect(pic, fx, y0, x0 + w, y0 + h, C_track);
@@ -979,7 +1197,7 @@ namespace AztTool
                     if (top >= lip) FillRect(pic, 0, top - lip, pw, top, C_lip);
                     if (bot + lip <= vr) FillRect(pic, 0, bot, pw, bot + lip, C_lip);
                 }
-                if (t >= U_openSpan && t < LockUs + LockFlashUs) DrawLock(pic, pw, ph, vr, t);
+                if (t >= LockFromUs && t < LockUs + LockFlashUs) DrawLock(pic, pw, ph, vr, t);
                 if (t >= WeaponFromUs && t < WeaponFromUs + (WeaponType + WeaponHold + WeaponFade) * 1e6) DrawWeapons(pic, pw, ph, vr, t - WeaponFromUs);
             }
             return true;
@@ -996,7 +1214,105 @@ namespace AztTool
         public string ReloadText = "ALL SYSTEMS OPERATIONAL.";
         public double WeaponType = 0.6, WeaponHold = 1.7, WeaponFade = 0.6, WeaponPx = 17, WeaponBelow = 70;
         const double LockFlashUs = 350000;
-        double LockUs { get { return U_openSpan + CalibSeconds * 1e6; } }
+        double LockUs { get { return LockFromUs + CalibSeconds * 1e6; } }
+        /// <summary>Where the reticle's initiation starts: as the shutter opens -- or, on a new game, once the raptor has got
+        /// up (StandUs), so the lock, the colour, WEAPON SYSTEMS ONLINE and the viewfinder all follow the stand-up.</summary>
+        double LockFromUs { get { return U_openSpan + StandUs; } }
+
+        // ---- THE RAPTOR GETS UP (Josh, 2026-10-13: "animate the player character standing up when the game first loads a new
+        // game (after the bootup visor animation). I dont want the camera to move from low to current position, I want an
+        // effect where it tilts a bit as he stands, like getting up from the ground. Dirt and dust would fall from the top of
+        // his visor as he finally stands, and the 'weapon systems online' animation would then display, as he's finally
+        // ready"). A new game's reveal only (not a load's re-boot): the shutter opens on the room seen from the ground --
+        // the view rolled StandRollDeg and pitched StandPitchDeg down -- held while it opens; then over StandSeconds he
+        // pushes up (the head lolls the other way), rises, and finds his feet with a small overshoot. The HEIGHT never
+        // changes: only the view's turn (TiltCamera, which the watcher applies to the camera it renders from -- the
+        // view, the helmet lamp and its shadows turn together; the game's own camera is untouched). As he finally stands,
+        // dirt and dust slide off the top of the visor (DrawDust); then the reticle locks and WEAPON SYSTEMS ONLINE types.
+        public bool StandUp = true;
+        public double StandSeconds = 2.8, StandRollDeg = 15, StandPitchDeg = 24, DustFrom = 0.74, DustSeconds = 2.3;
+        public int DustCount = 300;
+        double StandUs { get { return StandUp && !_reboot && !Covering4Load ? StandSeconds * 1e6 : 0; } }
+        static double Clamp01(double x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+        static double Smoother(double x) { x = Clamp01(x); return x * x * x * (x * (x * 6 - 15) + 10); }
+        /// <summary>The view's roll and pitch (degrees; pitch below 0 = looking down) `t` microseconds into the reveal.</summary>
+        public void TiltAt(double t, out double roll, out double pitch)
+        {
+            roll = 0; pitch = 0;
+            if (StandUs <= 0) return;
+            double u = (t - U_openSpan) / StandUs;                 // (below 0 while the shutter opens: still on the ground)
+            if (u >= 1) return;
+            u = Math.Max(0, u);
+            double down = 1 - Smoother((u - 0.06) / 0.80);          // 1 on the ground .. 0 standing
+            double lurch = Math.Sin(Math.PI * Clamp01(u / 0.45)) * (1 - u);          // the push up onto one arm
+            double sway = Math.Sin(u * Math.PI * 5.0) * (1 - u) * (1 - u);           // unsteady as he rises
+            double settle = Math.Sin(Math.PI * Clamp01((u - 0.72) / 0.28));          // finding his feet: a nod past level and back
+            roll = -StandRollDeg * down + StandRollDeg * 0.55 * lurch + StandRollDeg * 0.10 * sway;
+            pitch = -StandPitchDeg * down + StandPitchDeg * 0.10 * settle + StandPitchDeg * 0.05 * sway;
+        }
+        /// <summary>The stand-up's tilt applied to a camera world matrix (rows right, up, forward, position) in place:
+        /// pitched about its right axis, then rolled about its forward one; the position is left alone. False = no tilt
+        /// now (not a new game's reveal, or he is up).</summary>
+        public bool TiltCamera(float[] m)
+        {
+            if (m == null || m.Length < 16 || _mode != M_REVEAL || StandUs <= 0) return false;
+            double roll, pitch; TiltAt(_revealClock.Elapsed.TotalMilliseconds * 1000.0, out roll, out pitch);
+            if (roll == 0 && pitch == 0) return false;
+            TiltMatrix(m, roll, pitch);
+            return true;
+        }
+        /// <summary>A camera world matrix (rows right, up, forward, position) turned in place: pitched about its right axis
+        /// (degrees; below 0 = down), then rolled about its forward one. (Also the offline test's way in.)</summary>
+        public static void TiltMatrix(float[] m, double roll, double pitch)
+        {
+            double p = pitch * Math.PI / 180, q = roll * Math.PI / 180, cp = Math.Cos(p), sp = Math.Sin(p), cq = Math.Cos(q), sq = Math.Sin(q);
+            var rgt = new double[3]; var upv = new double[3]; var fwd = new double[3];
+            for (int k = 0; k < 3; k++)
+            {
+                double r0 = m[k], u0 = m[4 + k], f0 = m[8 + k];
+                double f1 = f0 * cp + u0 * sp, u1 = u0 * cp - f0 * sp;                // pitch: forward toward up (below 0: down)
+                rgt[k] = r0 * cq + u1 * sq; upv[k] = u1 * cq - r0 * sq; fwd[k] = f1;  // roll about the new forward
+            }
+            for (int k = 0; k < 3; k++) { m[k] = (float)rgt[k]; m[4 + k] = (float)upv[k]; m[8 + k] = (float)fwd[k]; }
+        }
+        /// <summary>DIRT AND DUST off the top of the visor as he finally stands: a haze sliding down from the top edge, and
+        /// grit -- fine specks and a few clumps, dark earth to pale dust -- falling down the glass under gravity, smeared a
+        /// little by their speed, thinning as they go. Fixed by a seed: the same fall every time.</summary>
+        void DrawDust(int[] pic, int pw, int ph, int vr, double t)
+        {
+            if (StandUs <= 0) return;
+            double s = (t - (U_openSpan + StandUs * DustFrom)) / 1e6;
+            if (s < 0 || s > DustSeconds) return;
+            float sc = (float)Math.Max(1, _s);
+            Paint(pic, pw, ph, g =>
+            {
+                g.SetClip(new Rectangle(0, 0, pw, vr));
+                // the haze: a dusty band at the top, sliding down and thinning
+                double hz = Clamp01(s / 0.18) * Clamp01(1 - s / (DustSeconds * 0.75));
+                if (hz > 0.01)
+                {
+                    float hh = (float)(vr * (0.10 + 0.16 * Clamp01(s / 1.2)));
+                    using (var lg = new LinearGradientBrush(new RectangleF(0, -1, pw, hh + 2), Argb((int)(150 * hz), 0x7A6850), Argb(0, 0x7A6850), 90f))
+                        g.FillRectangle(lg, 0, 0, pw, hh);
+                }
+                var rnd = new Random(20261013);
+                for (int k = 0; k < DustCount; k++)
+                {
+                    double x = rnd.NextDouble() * pw, delay = 0.55 * Math.Pow(rnd.NextDouble(), 1.6);
+                    double big = Math.Pow(rnd.NextDouble(), 3);                                         // most fine, some clumps
+                    double size = (0.9 + 4.6 * big) * sc, acc = vr * (0.9 + 1.5 * rnd.NextDouble() + 0.8 * big), v0 = vr * 0.05 * rnd.NextDouble();
+                    double drift = (rnd.NextDouble() - 0.5) * 0.03 * pw, tone = rnd.NextDouble(), life = 0.9 + 0.9 * rnd.NextDouble();
+                    double ts = s - delay; if (ts <= 0 || ts > life + 0.6) continue;
+                    double y = -size + v0 * ts + 0.5 * acc * ts * ts, xx = x + drift * ts;
+                    if (y > vr + 8) continue;
+                    double a = Clamp01(ts / 0.06) * Clamp01((life + 0.6 - ts) / 0.6) * (0.55 + 0.45 * big);
+                    int col = tone < 0.45 ? 0x6A5640 : tone < 0.8 ? 0x8C785C : 0xB9A98C;              // earth, dirt, pale dust (lit by the lamp on the glass)
+                    float vy = (float)(v0 + acc * ts), streak = (float)Math.Min(size * 2.5, vy * 0.006);  // smeared a little by its fall
+                    using (var b = new SolidBrush(Argb((int)(235 * a), col)))
+                        g.FillEllipse(b, (float)(xx - size / 2), (float)(y - size / 2 - streak), (float)size, (float)size + streak);
+                }
+            });
+        }
         double WeaponFromUs { get { return LockUs + 150000; } }
         /// <summary>True while the game's own reticle should be kept out of the picture (before the lock).</summary>
         public bool HideReticle { get { return _mode == M_REVEAL && _revealClock.Elapsed.TotalMilliseconds * 1000 < LockUs; } }
@@ -1012,7 +1328,7 @@ namespace AztTool
         static double EaseOut(double x) { x = Math.Max(0, Math.Min(1, x)); return 1 - Math.Pow(1 - x, 3); }
         void DrawLock(int[] pic, int pw, int ph, int vr, double t)
         {
-            double p = EaseOut((t - U_openSpan) / (CalibSeconds * 1e6));
+            double p = EaseOut((t - LockFromUs) / (CalibSeconds * 1e6));
             double flash = t > LockUs ? (t - LockUs) / LockFlashUs : 0;      // 0..1 after the lock: flash, then fade
             float cx = (float)_cx, cy = (float)(vr / 2.0);
             float rad = (float)((CalibR[0] - (CalibR[0] - CalibR[1]) * p) * _s), arm = (float)Math.Min(rad, CalibR[0] * _s * p);
@@ -1152,6 +1468,7 @@ namespace AztTool
             if (!_reboot) RevealFlare(pic, pw, ph, t);       // (behind the afterimage: drawn first)
             ChaliceOver(pic, pw, ph, t);
             if (Viewfinder && t >= FrameFromUs && t < FrameEndUs) DrawFrame(pic, pw, ph, vr, t);
+            DrawDust(pic, pw, ph, vr, t);
         }
         void DrawFrame(int[] pic, int pw, int ph, int vr, double t)
         {
@@ -1350,7 +1667,7 @@ namespace AztTool
         }
 
         // ---- 11. THE HUD POWERS UP WITH THE READOUT ---------------------------------------------
-        /// <summary>The lower HUD (Panel.cs): held off until "INITIATING MS-2 HELMET H.U.D.", then it
+        /// <summary>The lower HUD (Panel.cs): held off until the first readout line ("DEPLOYING MS-2 HELMET INTERFACE..."), then it
         /// slides in and its keys flicker on; its health bar fills on "HEALTH SYSTEM INITIATED".</summary>
         public Panel Hud;
         bool _hudOut, _hudHealth;
@@ -1448,12 +1765,15 @@ namespace AztTool
         }
         /// <summary>The third degauss, as the shutter opens on the game: this strong against the power-on's (0 = none).</summary>
         public double OpenDegauss = 0.9;
+        /// <summary>The reveal's red/blue split and ripple against the sound's strength (Josh, 2026-10-14: "the red/blue degauss
+        /// enhanced a bit on that phase"): 1.5x the swing, 1.25x the ripple.</summary>
+        public double OpenDegaussLook = 1.5, OpenDegaussWobble = 1.25;
         // the red and blue beams pulled apart and swinging back, and the rows rippling, on the whole picture (boot and game)
         void RevealDegauss(int[] pic, int pw, int vr, double tUs)
         {
             if (OpenDegauss <= 0 || !Degauss) return;
             double env = 0, s = OneDegauss(tUs / 1e6, OpenDegauss, ref env);
-            double conv = DegaussConv * _s * s, wob = DegaussWobble * _s * env, ph = tUs / 1e6 * 9.0;
+            double conv = DegaussConv * _s * s * OpenDegaussLook, wob = DegaussWobble * _s * env * OpenDegaussWobble, ph = tUs / 1e6 * 9.0;
             if (Math.Abs(conv) < 0.5 && wob < 0.5) return;
             int ci = (int)Math.Round(conv);
             System.Threading.Tasks.Parallel.For(0, vr, () => new int[pw], (y, st, row) =>
@@ -1684,7 +2004,7 @@ namespace AztTool
         void DrawChalice(Graphics g, float cx, float cy, float S, float cupTop, float cupH, double alpha, double broken, float ghostPx)
         {
             if (alpha <= 0.01) return;
-            double wt = _wall.Elapsed.TotalSeconds; long gt = (long)(wt * ChaliceGlitchHz);
+            double wt = Wall; long gt = (long)(wt * ChaliceGlitchHz);
             float s1 = (float)Math.Max(1, _s);
             // broken, the turn stutters (it jumps between held angles) and the whole trace flickers
             double spinT = broken > 0 ? Math.Floor(wt / 0.14) * 0.14 + (new Rng(gt, 41).Below(100) < 12 * broken ? 0.4 : 0) : wt;
@@ -1793,6 +2113,7 @@ namespace AztTool
         void DrawStatus(Graphics g, int pw, long el)
         {
             if (!StatusColumn || el < U_dump) return;
+            if (RaptorScan) { DrawRaptor(g, pw, _lvr, el); return; }      // (2026-10-14: the raptor's self scan in its place)
             double age = (el - U_dump) / 1e6, t = el / 1e6;
             if (age < 0.2 && (((int)(age * 40)) & 1) == 1) return;                       // flickering on with the hex column
             float sc = (float)(_s * Zoom), s1 = (float)Math.Max(1, _s);
@@ -1836,6 +2157,315 @@ namespace AztTool
                     using (var lockB = new SolidBrush(Argb(255, C_flare))) g.DrawString("POTENTIAL LOCATION", font, lockB, colL, by + 14 * sc, fmt);
             }
         }
+        // ---- THE SELF SCAN (Josh, 2026-10-14: "Instead of the grail animation on the right, I want a wireframe of the raptor,
+        // slowly revolving as a scan line slowly moves up and down the body, detecting damage and such ... more vertically
+        // centered ... the size of the zoomed in grail animation when it enlarges, but this animation will only be while the 7
+        // and readout text loads"). The player's own suit (RAPTOR.XAF, standing, breathing) as a teal wireframe in the right
+        // column, centred on the view's height, turning slowly; a scan line sweeps up and down it and lights the edges it
+        // passes. From the readout's SELF SCAN line on, the marked spots ping as the line crosses them and keep a callout
+        // (the readout says the damage is minimal, and so do they). It flickers on with the hex column, is broken while the
+        // visor's damage runs, and goes with the readout's decay before the briefing. [[azrael-gpu-boot]]
+        public bool RaptorScan = true;
+        /// <summary>How far it sits left of the grail's old place (game px; -75 ~ 100 px on a 1238-row view: Josh, 2026-10-14), its height (game px: the enlarged grail's), how fast it turns (rad/s), how far it leans toward the eye (rad),
+        /// the scan line's round trip up and down (s), and one breath of its idle (s).</summary>
+        public double RaptorShift = -75, RaptorH = 265, RaptorSpin = 0.32, RaptorTilt = 0.16, RaptorScanCycle = 6.4, RaptorBreath = 3.5;
+        ScanWire _rig; double[] _rigRange; string[] _rigBones; float[] _rigBuf; int[] _markBone; volatile bool _rigLoading;
+        /// <summary>What loading the rig found (for the log): empty until it is done.</summary>
+        public volatile string RigNote = "";
+        /// <summary>Load the raptor's rig for the self scan, off the caller's thread (its walk and idle ranges from KURT.ANI).</summary>
+        public void LoadRaptor(string xaf, int walkFrom, int walkTo, int restFrom, int restTo)
+        {
+            if (_rigLoading || _rig != null || string.IsNullOrEmpty(xaf) || !File.Exists(xaf)) { if (string.IsNullOrEmpty(xaf) || !File.Exists(xaf)) RigNote = "no self scan: no " + xaf; return; }
+            _rigLoading = true;
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    var sw = new ScanWire();
+                    if (sw.AddBody("RAPTOR", xaf, walkFrom, walkTo, restFrom, restTo))
+                    {
+                        _rigRange = sw.BodyRanges("RAPTOR"); _rigBones = sw.RigBones("RAPTOR");
+                        var mb = new int[MarkBone.Length];
+                        for (int i = 0; i < mb.Length; i++) mb[i] = Array.FindIndex(_rigBones, b => string.Equals(b, MarkBone[i], StringComparison.OrdinalIgnoreCase));
+                        _markBone = mb; _rig = sw;
+                        RigNote = string.Format("the raptor's self scan: {0} bones, idle {1}-{2}", _rigBones.Length, _rigRange[2], _rigRange[3]);
+                    }
+                    else RigNote = "no self scan: " + sw.LastError;
+                }
+                catch (Exception e) { RigNote = "no self scan: " + e.Message; }
+                finally { _rigLoading = false; Note("visor boot: " + RigNote); }
+            });
+        }
+        /// <summary>Offline: load the rig on this thread.</summary>
+        public void LoadRaptorNow(string xaf, int walkFrom, int walkTo, int restFrom, int restTo)
+        {
+            LoadRaptor(xaf, walkFrom, walkTo, restFrom, restTo);
+            var w = Stopwatch.StartNew(); while (_rigLoading && w.ElapsedMilliseconds < 20000) Thread.Sleep(5);
+        }
+        // the spots the scan reports on: the bone, its callout, and whether it is a (minor) fault
+        static readonly string[] MarkBone = { "SVISOR", "SSHOULDER", "STOPBODY", "SLOWLEGL" };
+        static readonly string[] MarkText = { "VISOR SEAL  OK", "PLATE ABRASION  2%", "TORSO  NOMINAL", "KNEE SERVO  STRESS 4%" };
+        static readonly bool[] MarkHurt = { false, true, false, true };
+        double[] _markHit; double _scanPrev = double.NaN;
+        long SelfScanUs { get { return U_text + 2 * U_line; } }      // (the readout's "FALL DETECTED, INITIATING SELF SCAN..." line)
+        long DamageUs { get { return U_text + 4 * U_line; } }        // ("SUIT DAMAGE MINIMAL...")
+        void DrawRaptor(Graphics g, int pw, int vr, long el)
+        {
+            var rig = _rig; if (rig == null || el < U_dump || el >= U_mission) return;
+            double age = (el - U_dump) / 1e6;
+            if (age < 0.2 && (((int)(age * 40)) & 1) == 1) return;                       // flickering on with the hex column
+            double alpha = 1;
+            if (el >= DecayFrom)
+            {   // going with the readout: fading, flickering out
+                double d = (el - DecayFrom) / (double)Math.Max(1, U_mission - DecayFrom);
+                alpha = 1 - d; if (((int)(d * 14)) % 3 == 1) alpha *= 0.35;
+            }
+            if (alpha <= 0.01) return;
+            float sc = (float)(_s * Zoom), s1 = (float)Math.Max(1, _s);
+            float H = (float)(RaptorH * _s), cy = vr * 0.5f;
+            float colR = pw - (float)((P_dumpX + ChaliceInset - RaptorShift) * _s), half = H * 0.42f, cx = colR - half;
+            double wt = Wall;
+            // broken while the visor's damage runs: slices thrown, segments lost, re-rolled at the glitch rate
+            double broken = el < DisruptUs ? 0.8 * (1 - el / (double)DisruptUs) : 0; long gt = (long)(wt * ChaliceGlitchHz);
+            double f = _rigRange[3] > _rigRange[2] ? _rigRange[2] + (_rigRange[3] - _rigRange[2]) * ((wt / RaptorBreath) % 1.0) : _rigRange[2];
+            int n = rig.RigEdges("RAPTOR", f, Math.PI + wt * RaptorSpin, ref _rigBuf); var e = _rigBuf;
+            double ct = Math.Cos(RaptorTilt), st = Math.Sin(RaptorTilt);
+            // the scan line: top to bottom and back, easing at the turns (body units, +0.5 the crown, -0.5 the soles)
+            double sp = 0.5 - 0.5 * Math.Cos(2 * Math.PI * wt / RaptorScanCycle), yS = 0.5 - sp;
+            float scanY = cy - (float)(yS * ct * H);
+            const int Bands = 9; var shift = new float[Bands]; var gone = new bool[Bands];
+            if (broken > 0)
+                for (int b = 0; b < Bands; b++)
+                {
+                    var r = new Rng(gt, (uint)(300 + b));
+                    if (r.Below(100) < 45 * broken) shift[b] = (float)((r.Below(2001) / 1000.0 - 1) * ChaliceShear * H * broken);
+                    gone[b] = r.Below(100) < 12 * broken;
+                }
+            // the edges, sorted into a few strengths (a pen a strength, not a pen an edge): far .. near, and lit by the scan
+            var lists = new List<PointF>[5]; for (int i = 0; i < 5; i++) lists[i] = new List<PointF>(n);
+            int nm = _markBone != null ? _markBone.Length : 0; var mSum = new double[nm * 4];
+            for (int i = 0; i < n; i++)
+            {
+                int o = i * 7; int bone = (int)e[o + 6];
+                for (int k = 0; k < nm; k++) if (_markBone[k] == bone) { mSum[k * 4] += e[o] + e[o + 3]; mSum[k * 4 + 1] += e[o + 1] + e[o + 4]; mSum[k * 4 + 2] += e[o + 2] + e[o + 5]; mSum[k * 4 + 3] += 2; }
+                double y0 = e[o + 1] * ct - e[o + 2] * st, z0 = e[o + 1] * st + e[o + 2] * ct, y1 = e[o + 4] * ct - e[o + 5] * st, z1 = e[o + 4] * st + e[o + 5] * ct;
+                double k0 = 1 / (1 + z0 * 0.35), k1 = 1 / (1 + z1 * 0.35);
+                var a = new PointF(cx + (float)(e[o] * H * k0), cy - (float)(y0 * H * k0)); var b2 = new PointF(cx + (float)(e[o + 3] * H * k1), cy - (float)(y1 * H * k1));
+                if (broken > 0)
+                {
+                    if (new Rng(gt, (uint)i).Below(100) < (int)(ChaliceDrop * 100 * broken)) continue;
+                    int bd = Math.Max(0, Math.Min(Bands - 1, (int)(((a.Y + b2.Y) * 0.5f - (cy - H * 0.55f)) / (H * 1.1f) * Bands)));
+                    if (gone[bd]) continue; a.X += shift[bd]; b2.X += shift[bd];
+                }
+                double ym = (e[o + 1] + e[o + 4]) * 0.5, zm = (z0 + z1) * 0.5;
+                int li = Math.Abs(ym - yS) < 0.03 ? 4 : Math.Max(0, Math.Min(3, (int)((0.5 - zm * 1.6) * 4)));
+                lists[li].Add(a); lists[li].Add(b2);
+            }
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            if (broken > 0) alpha *= 1 - 0.4 * broken * (new Rng(gt, 47).Below(100) / 100.0);
+            int[] coreA = { 70, 120, 175, 225, 255 }, haloA = { 10, 18, 28, 40, 40 };
+            for (int pass = 0; pass < 2; pass++)
+                for (int li = 0; li < 5; li++)
+                {
+                    var L = lists[li]; if (L.Count == 0) continue;
+                    int al = (int)((pass == 0 ? haloA[li] : coreA[li]) * alpha); if (al < 3) continue;
+                    int col = pass == 0 ? VectorHalo : (li >= 3 ? C_tealFlare : C_teal);
+                    using (var pen = new Pen(Argb(al, col), pass == 0 ? 3.2f * s1 : (li == 4 ? 1.6f : 1.1f) * s1))
+                        for (int q = 0; q + 1 < L.Count; q += 2) g.DrawLine(pen, L[q], L[q + 1]);
+                }
+            // the scan line itself, with a faint wake behind it
+            float sw = H * 0.40f; double dir = Math.Sin(2 * Math.PI * wt / RaptorScanCycle);      // >0: going down
+            for (int k = 3; k >= 0; k--)
+            {
+                float yy = scanY - (float)(Math.Sign(dir) * k * 3.5f * s1);
+                using (var pen = new Pen(Argb((int)((k == 0 ? 150 : 40 / k) * alpha), C_tealFlare), (k == 0 ? 1.3f : 1f) * s1)) g.DrawLine(pen, cx - sw, yy, cx + sw, yy);
+            }
+            // corner marks round it
+            using (var pen = new Pen(Argb((int)(150 * alpha), C_text), 1.3f * s1))
+            {
+                float bx0 = cx - half, bx1 = cx + half, by0 = cy - H * 0.57f, by1 = cy + H * 0.57f, a = 14 * sc;
+                g.DrawLines(pen, new[] { new PointF(bx0, by0 + a), new PointF(bx0, by0), new PointF(bx0 + a, by0) });
+                g.DrawLines(pen, new[] { new PointF(bx1 - a, by0), new PointF(bx1, by0), new PointF(bx1, by0 + a) });
+                g.DrawLines(pen, new[] { new PointF(bx0, by1 - a), new PointF(bx0, by1), new PointF(bx0 + a, by1) });
+                g.DrawLines(pen, new[] { new PointF(bx1 - a, by1), new PointF(bx1, by1), new PointF(bx1, by1 - a) });
+            }
+            // THE CALLOUTS: once the self scan has begun, a spot pings as the line crosses it and keeps its callout, typed out
+            if (_markHit == null || _markHit.Length != nm) { _markHit = new double[nm]; for (int k = 0; k < nm; k++) _markHit[k] = -1; }
+            bool armed = el >= SelfScanUs && !double.IsNaN(_scanPrev);
+            using (var font = new Font("Consolas", 13f * sc, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var fmt = Fmt())
+                for (int k = 0; k < nm; k++)
+                {
+                    if (mSum[k * 4 + 3] <= 0) continue;
+                    double mx = mSum[k * 4] / mSum[k * 4 + 3], my = mSum[k * 4 + 1] / mSum[k * 4 + 3], mz = mSum[k * 4 + 2] / mSum[k * 4 + 3];
+                    if (armed && (my - _scanPrev) * (my - yS) <= 0 && _scanPrev != yS)
+                    {
+                        _markHit[k] = wt;
+                        if (_ov != null && Sound != null && Sound.On && el < DecayFrom) { try { Sound.Line(600 + k, 0.05, MarkHurt[k] ? 1.5 : 1.8); } catch { } }
+                    }
+                    if (_markHit[k] < 0) continue;
+                    double y2 = my * ct - mz * st, z2 = my * st + mz * ct, kk = 1 / (1 + z2 * 0.35), since = wt - _markHit[k];
+                    float px = cx + (float)(mx * H * kk), py = cy - (float)(y2 * H * kk);
+                    double near = Math.Max(0.35, Math.Min(1, 0.6 - z2 * 2));
+                    int mc = MarkHurt[k] ? C_flare : C_tealFlare;
+                    // the ping: a ring opening and fading
+                    if (since < 0.7)
+                        using (var ring = new Pen(Argb((int)(220 * (1 - since / 0.7) * alpha), mc), 1.4f * s1))
+                        { float rr = (float)(4 + 22 * EaseOut(since / 0.7)) * s1; g.DrawEllipse(ring, px - rr, py - rr, 2 * rr, 2 * rr); }
+                    // the spot: a small square bracket, brighter on the near side
+                    float d = 5 * s1;
+                    using (var pen = new Pen(Argb((int)(230 * near * alpha), mc), 1.3f * s1)) g.DrawRectangle(pen, px - d, py - d, 2 * d, 2 * d);
+                    // the callout, out to the left of the figure: a leader, then the text typed on
+                    var txt = MarkText[k]; double typed = Math.Min(1, (wt - FirstHit(k)) / 0.45); int chars = (int)Math.Ceiling(txt.Length * typed);
+                    float lx = cx - H * 0.56f, ly = py;
+                    using (var pen = new Pen(Argb((int)(140 * alpha), C_text), 1f * s1)) { g.DrawLine(pen, px - d, py, lx + 4 * s1, ly); }
+                    if (chars > 0)
+                    {
+                        string shownTxt = txt.Substring(0, chars); var sz = g.MeasureString(shownTxt, font, PointF.Empty, fmt);
+                        using (var br = new SolidBrush(Argb((int)(235 * alpha), MarkHurt[k] ? C_flare : C_text))) g.DrawString(shownTxt, font, br, lx - sz.Width, ly - sz.Height / 2, fmt);
+                    }
+                }
+            _scanPrev = yS;
+            // the heading above and the readings under it
+            using (var font = new Font("Consolas", 15f * sc, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var fmt = Fmt())
+            using (var inkB = new SolidBrush(Argb((int)(235 * alpha), C_text)))
+            {
+                g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                float tx = cx - half, top = cy - H * 0.57f - 26 * sc, ry = cy + H * 0.57f + 12 * sc, lh = 21 * sc;
+                g.DrawString("MS-2 SELF SCAN", font, inkB, tx, top, fmt);
+                double prog = el < SelfScanUs ? 0 : Math.Min(1, (el - SelfScanUs) / (double)Math.Max(1, DamageUs - SelfScanUs));
+                var rng = new Rng((long)(wt * 6), 29);
+                string integ = el < SelfScanUs ? "--" : string.Format("{0}", prog < 1 ? (int)(97 * prog) + rng.Below(3) : 97);
+                g.DrawString("SUIT INTEGRITY " + integ + "%", font, inkB, tx, ry, fmt);
+                g.DrawString(string.Format("SCAN PASS {0:00}", el < SelfScanUs ? 0 : 1 + (int)((wt - FirstScanWall()) / (RaptorScanCycle / 2))), font, inkB, tx, ry + lh, fmt);
+            }
+        }
+        /// <summary>Offline renders: the wall clock the turning and the scan run on (seconds); below 0 = the real one.</summary>
+        public double WallOverride = -1;
+        double Wall { get { return WallOverride >= 0 ? WallOverride : _wall.Elapsed.TotalSeconds; } }
+        double _firstScan = -1;
+        double FirstScanWall() { if (_firstScan < 0) _firstScan = Wall; return _firstScan; }
+        double[] _markFirst;
+        double FirstHit(int k)
+        {
+            if (_markFirst == null || _markFirst.Length != _markHit.Length) { _markFirst = new double[_markHit.Length]; for (int i = 0; i < _markFirst.Length; i++) _markFirst[i] = -1; }
+            if (_markFirst[k] < 0) _markFirst[k] = _markHit[k];
+            return _markFirst[k];
+        }
+
+        // ---- THE GRAIL BEHIND THE BRIEFING (Josh, 2026-10-14: "When we move to the next Objective text, I want the grail to
+        // rotate behind this mission text as a sort of watermark, larger than the objective text overall. Then as we fade to the
+        // game, everything stays the same, but the grail is now centered and large on screen, having grown in a smooth
+        // transition from the new grail watermark ... the grail will play out the shatter and fade effect with the exact same
+        // timing"). From the briefing on, the chalice turns behind the mission text, centred on it and larger than it, BURNED in
+        // (the afterimage's amber screened on, faint), pulling together as it comes up. In the reveal the same burn-in grows
+        // from there to the middle of the view, large, as it strengthens to the afterimage's level; then it breaks up and goes
+        // with the amber exactly as before (GhostBreak, GlareLeft).
+        // THEN (same day, after seeing it): "Move the new grail down by about 50px, and make it much larger in the lower right in
+        // the mirror position of where it was during the previous version. It will remain there at the same size during the fade
+        // to gameplay, and break apart exactly as it did originally." So ONE place for both: the old afterimage's pose mirrored
+        // (lower RIGHT, its size, running off the right and the bottom), 50 px lower (on a 1238-row view); faint on the briefing,
+        // the afterimage's own rise, flare, break-up and fade in the reveal, without moving.
+        public bool GrailWatermark = true;
+        /// <summary>The watermark's strength and how long it takes to come up (s); its middle (shares of the width and the view's
+        /// height) and its size (the old afterimage's: GhostSize of the view's height -- the chalice drawn 0.8 of it).</summary>
+        public double WmAlpha = 0.22, WmFadeIn = 0.6, GrailX = 1 - 0.114, GrailY = 0.78 + 50.0 / 1238, GrailSize = 1.15;
+        int[] _wmMask;
+        void WatermarkPose(int pw, int vr, out float cx, out float cy, out float S)
+        {
+            cx = (float)(pw * GrailX); cy = (float)(vr * GrailY); S = (float)(vr * GrailSize * 0.80);
+        }
+        // ROUND 4 (Josh, 2026-10-14: "Move the grail to a smaller size, having it slowly slowly get larger during the Objective/
+        // mission portion. It wont get as big as it is on the fade to game sequence, but right before the object screen ends, I
+        // want the grail to become broken with a bunch of static as if a signal is being lost. Then ... the same fade to game
+        // sequence we have now, but with the grail moved upward by 100px"). On the briefing it starts at WmFrom of the afterimage's
+        // size and grows steadily to WmTo by the time the screen ends; over the last SignalLoss seconds it breaks up (the trace's
+        // own damage), flickers, fades and drowns in static (GrailStatic). The reveal's afterimage comes back from nothing with
+        // its flare, GhostLift higher, at full size, and breaks up and goes as it always did.
+        /// <summary>The briefing's grail against the afterimage's size: at the start and at the end; how long the signal takes to
+        /// go (s, ending as the screen does); and how much higher the reveal's afterimage is (share of the view's height).</summary>
+        public double WmFrom = 0.5, WmTo = 0.75, SignalLoss = 0.9, GhostLift = 100.0 / 1238;
+        void DrawWatermark(int[] pic, int pw, int vr, long el)
+        {
+            if (!GrailWatermark || !StatusColumn || _noCup || _reboot || el < U_mission) return;
+            double u = Smooth((el - U_mission) / (WmFadeIn * 1e6));
+            float cx, cy, S; WatermarkPose(pw, vr, out cx, out cy, out S);
+            double grow = Math.Max(0, Math.Min(1, (el - U_mission) / (double)Math.Max(1, U_open - U_mission)));
+            S *= (float)(WmFrom + (WmTo - WmFrom) * grow);
+            long lossFrom = U_open - (long)(SignalLoss * 1e6);
+            double lost = Smooth((el - lossFrom) / (SignalLoss * 1e6));
+            double a = WmAlpha * u * (1 - 0.9 * Smooth((lost - 0.55) / 0.45));      // (broken and crackling first, gone only at the very end)
+            if (lost > 0) { var r = new Rng((long)(Wall * ChaliceGlitchHz), 53); if (r.Below(100) < 35 * lost) a *= 0.25 + r.Below(60) / 100.0; }   // (dropping out)
+            BurnChalice(pic, pw, vr, cx, cy, S, a, Math.Max(ChaliceBroken(el), Math.Min(1, lost * 1.4)), 0, 0, ref _wmMask);
+            if (lost > 0) GrailStatic(pic, pw, vr, cx, cy, S, lost);
+        }
+        /// <summary>How thick the static gets as the signal goes (share of the pixels over the grail at its worst).</summary>
+        public double StaticDensity = 0.6, StaticBright = 1.6;
+        // THE SIGNAL GOING: snow over the grail's patch (an oval, soft at its edge), new every 30th of a second, with now and then
+        // a bright torn line across it -- thicker and brighter as `amt` goes to 1
+        void GrailStatic(int[] pic, int pw, int vr, float cx, float cy, float S, double amt)
+        {
+            long tick = (long)(Wall * 30);
+            float rx = S * 0.62f, ry = S * 0.70f;
+            int x0 = Math.Max(0, (int)(cx - rx)), x1 = Math.Min(pw, (int)(cx + rx) + 1), y0 = Math.Max(0, (int)(cy - ry)), y1 = Math.Min(vr, (int)(cy + ry) + 1);
+            if (x1 <= x0 || y1 <= y0) return;
+            int dens = (int)(1000 * StaticDensity * amt);
+            System.Threading.Tasks.Parallel.For(y0, y1, y =>
+            {
+                var r = new Rng(tick * 8191 + y, 61);
+                double dy = (y - cy) / ry; dy *= dy;
+                bool tear = r.Below(1000) < (int)(9 * amt); int tearV = 60 + r.Below(120);
+                int o = y * pw;
+                for (int x = x0; x < x1; x++)
+                {
+                    double dx = (x - cx) / rx, q = dx * dx + dy; if (q >= 1) continue;
+                    double w = 1 - q; w *= w;
+                    if (tear) { int v = (int)(tearV * w * Math.Min(1, amt * StaticBright)); Screen(pic, o + x, v, (int)(v * 0.9), (int)(v * 0.75)); continue; }
+                    if (r.Below(1000) >= dens * w) continue;
+                    int s = (int)(r.Below(230) * w * Math.Min(1, amt * StaticBright));
+                    Screen(pic, o + x, s, (int)(s * 0.92), (int)(s * 0.8));
+                }
+            });
+        }
+        /// <summary>The chalice BURNED into a picture: its crisp lines into a coverage mask, the amber screened on through it.
+        /// S: its size (the drawn height); a: strength 0..1; brk: broken; explode: flying apart (the afterimage's end);
+        /// flash: the lines whitening.</summary>
+        void BurnChalice(int[] pic, int pw, int vr, float cx, float cy, float S, double a, double brk, double explode, double flash, ref int[] mask)
+        {
+            if (a <= 0.01 || S < 4) return;
+            float cupH = S / 0.80f, cupTop = cy - cupH * 0.56f, lw = Math.Max(1.5f, (float)(vr * GhostLine));
+            float reach = S * (0.8f + 0.6f * (float)explode) + 20;
+            int y0 = Math.Max(0, (int)(cy - reach)), y1 = Math.Min(vr, (int)(cy + reach) + 1), rows = y1 - y0; if (rows <= 0) return;
+            if (mask == null || mask.Length < pw * rows) mask = new int[pw * rows]; else Array.Clear(mask, 0, pw * rows);
+            var hm = GCHandle.Alloc(mask, GCHandleType.Pinned);
+            try
+            {
+                using (var bm = new Bitmap(pw, rows, pw * 4, PixelFormat.Format32bppPArgb, hm.AddrOfPinnedObject()))
+                using (var g = Graphics.FromImage(bm))
+                {
+                    g.SmoothingMode = SmoothingMode.AntiAlias; g.TranslateTransform(0, -y0);
+                    double fl = _ghostFlash; _ghostFlash = flash; _explode = explode;
+                    try { DrawChalice(g, cx, cy, S, cupTop, cupH, 1.0, brk, -lw); } finally { _explode = 0; _ghostFlash = fl; }
+                }
+            }
+            finally { hm.Free(); }
+            int col = Mix(GhostAmber, VectorCore, flash * 0.7);
+            int cr = (col >> 16) & 255, cg = (col >> 8) & 255, cb = col & 255, op = (int)(256 * Math.Min(1.0, a)); var mk = mask;
+            System.Threading.Tasks.Parallel.For(y0, y1, y =>
+            {
+                int o = y * pw, mo = (y - y0) * pw;
+                for (int x = 0; x < pw; x++)
+                {
+                    int m = (int)((uint)mk[mo + x] >> 24); if (m == 0) continue;
+                    int ka = m * op >> 8;
+                    int sr = cr * ka >> 8, sg = cg * ka >> 8, sb = cb * ka >> 8, p = pic[o + x];
+                    int r = (p >> 16) & 255, gg = (p >> 8) & 255, b = p & 255;
+                    r = 255 - ((255 - r) * (255 - sr) >> 8); gg = 255 - ((255 - gg) * (255 - sg) >> 8); b = 255 - ((255 - b) * (255 - sb) >> 8);
+                    pic[o + x] = (p & unchecked((int)0xFF000000)) | (r << 16) | (gg << 8) | b;
+                }
+            });
+        }
         // THE FLARE (Josh, 2026-10-07): "just after the degauss ... a flare of bright amber behind the large chalice, like a
         // pulse of light as if the monitor is popping into existence, but a bright round flare that fades as it reaches the
         // center, and is off-center to the bottom left behind the grail image". A round pool of amber light SCREENED onto the
@@ -1843,7 +2473,7 @@ namespace AztTool
         // thunk and dies away.
         /// <summary>Its centre (shares of the width and the view's height), its peak strength, when it starts and how long it
         /// takes to swell and to die (s), and its colour (the core goes paler).</summary>
-        public double FlareX = 0.09, FlareY = 0.87, FlarePeak = 0.85, FlareAt = 0.05, FlareRise = 0.16, FlareFade = 0.75;
+        public double FlareX = 1 - 0.09, FlareY = 0.87, FlarePeak = 0.85, FlareAt = 0.05, FlareRise = 0.16, FlareFade = 0.75;      // (FlareX mirrored to the lower right with the grail: Josh, 2026-10-14)
         public int FlareColour = 0xFFA43A, FlareCore = 0xFFE2A8;
         /// <summary>The red and blue spread apart along the diagonal (share of the radius, Josh: "mix in some red/blue like the
         /// pulses earlier"), and the lens flare: its ghosts' strength and the streak's (0 = none).</summary>
@@ -1934,6 +2564,18 @@ namespace AztTool
         void ChaliceOver(int[] pic, int pw, int ph, double t)
         {
             if (!StatusColumn || _reboot) return;            // (no chalice when loading a game)
+            if (GrailWatermark)
+            {
+                // (2026-10-14) THE WATERMARK STAYS: where the briefing's grail was, the same size; it strengthens from its faint
+                // level to the afterimage's over the afterimage's own rise, flares, breaks up and goes with the amber as it always did
+                int vrW = _lvr > 0 ? _lvr : ph;
+                float wx, wy, wS; WatermarkPose(pw, vrW, out wx, out wy, out wS);
+                double up = Smooth(t / (GhostRise * 1e6));
+                double flash = GhostFlare * up * Math.Exp(-Math.Max(0, t - GhostRise * 1e6) / (GhostFlareTime * 1e6));
+                double aw = GhostAlpha * up * Math.Pow(GlareLeft(t), 0.7), brk = GhostBreak(t);      // (round 4: back from the lost signal, from nothing)
+                BurnChalice(pic, pw, vrW, wx, wy - (float)(vrW * GhostLift), wS, aw, brk, brk, flash, ref _ghostMask);
+                return;
+            }
             // THE AFTERIMAGE (Josh, 2026-10-07): "a large version of it transposed on the lower left side of the viewport as the
             // amber fades into gameplay, like a sunspot/watermark ... filling nearly the entire viewport but spanning outside of
             // it at the bottom and a portion to the left. It will flare, then fade with the fading amber, like a memory."
@@ -2140,6 +2782,8 @@ namespace AztTool
         /// <summary>True while the boot owns the screen (drawing, holding, or revealing).</summary>
         public bool Covering { get { return _mode != M_DONE; } }
         public bool Holding { get { return _mode == M_HOLD; } }
+        /// <summary>This boot is a re-boot after a load (not a new game).</summary>
+        public bool IsReboot { get { return _reboot; } }
         public string Mode { get { return _mode == M_LIVE ? "live" : _mode == M_HOLD ? "hold" : _mode == M_REVEAL ? "reveal" : "done"; } }
 
         [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenProcess(int access, bool inherit, int pid);
@@ -2526,6 +3170,30 @@ namespace AztTool
             return Finish(buf, BeepLevel, 7000, 0.01);
         }
         public short[] BeepClip() { return BeepPcm(); }
+        /// <summary>THE ECHO SCAN'S PING (Josh, 2026-10-14): a sonar ping -- a bright tone sliding a little down, ringing away,
+        /// with a fainter echo of itself a third of a second later.</summary>
+        public void SonarPing()
+        {
+            if (_ping == null)
+            {
+                int n = (int)(1.6 * Rate); var buf = new double[n];
+                for (int i = 0; i < n; i++)
+                {
+                    double t = i / (double)Rate, v = 0;
+                    foreach (var echo in new[] { new[] { 0.0, 1.0 }, new[] { 0.34, 0.32 }, new[] { 0.68, 0.1 } })
+                    {
+                        double u = t - echo[0]; if (u < 0) continue;
+                        double f = 1180 + 260 * Math.Exp(-u / 0.05), env = Math.Min(1, u / 0.003) * Math.Exp(-u / 0.32);
+                        double ph = 2 * Math.PI * (1180 * u - 260 * 0.05 * (Math.Exp(-u / 0.05) - 1));
+                        v += echo[1] * env * (Math.Sin(ph) + 0.25 * Math.Sin(2 * ph + 0.4));
+                    }
+                    buf[i] = v;
+                }
+                _ping = Finish(buf, BeepLevel * 0.9, 6000, 0.05);
+            }
+            Play(_ping);
+        }
+        short[] _ping;
         /// <summary>THE FLAT LINE (Josh, 2026-10-10: the heart "slowly flat line" on death): the monitor's tone held for
         /// `seconds`, fading away over its last 1.2 s.</summary>
         public void Flatline(double seconds)
@@ -2545,6 +3213,13 @@ namespace AztTool
         {
             if (!On || Volume <= 0) return;
             if (_degauss == null) ThreadPool.QueueUserWorkItem(_ => { try { var p = DegaussPcm(); if (_degauss == null) _degauss = p; var q = BeepPcm(); if (_beep == null) _beep = q; } catch { } });
+            KeepOpen = true;
+            lock (_mixLock) { if ((_mixer == null || _mixer.Closed) && !_mixFailed) OpenMixerAsync(); }
+        }
+        /// <summary>Open the sound device now and keep it open while silent (the footsteps: a step must not wait half a second).</summary>
+        public void Warm()
+        {
+            if (!On || Volume <= 0) return;
             KeepOpen = true;
             lock (_mixLock) { if ((_mixer == null || _mixer.Closed) && !_mixFailed) OpenMixerAsync(); }
         }
@@ -2930,6 +3605,295 @@ namespace AztTool
                 p += 2;
             }
             return true;
+        }
+    }
+    // =========================================================================================
+    // FOOTSTEPS (Josh, 2026-10-14: "footsteps ... subtle sound effects, which would change based on the different flooring
+    // being walked on (mainly stone, tile, wood)"). The game has none. The host hears the player walk from the eye's own
+    // movement (as the kicked-up dust does): a step every stride's worth of ground, the stride longer the faster the player
+    // goes; none for a jump of 30+ units (a load or a teleport), none while falling or in the air. What is underfoot: a ray
+    // straight down from the eye to the floor's triangle, and its texture's material (rooms\_materials.json; a room's
+    // "footsteps" block names a texture's surface by hand). Each step is made fresh -- a heel and a softer toe a few
+    // hundredths of a second after it, each a little different (pitch, weight, grit), the feet a little apart in the stereo
+    // -- and played through the host's own mixer (BootSound), at the game's effects level. [[azrael-footsteps]]
+    // =========================================================================================
+    public class Footsteps
+    {
+        public enum Surface { Stone, Tile, Wood, Metal, Water }
+        public bool On = true;
+        /// <summary>Peak level of a walking step (0..1, before Volume and the game's effects level). Subtle by design.</summary>
+        public double Level = 0.20;
+        /// <summary>The game's own effects setting: 0 = muted (the system menu's SFX off), 1 = full. The watcher sets it.</summary>
+        public double SfxShare = 1;
+        /// <summary>Stride (world units) = StrideBase + StrideK x speed (units/s): walking ~146 u/s -> ~70 (about 2 steps a
+        /// second), running ~290 -> ~93 (about 3).</summary>
+        public float StrideBase = 46f, StrideK = 0.16f;
+        /// <summary>Slower than this (u/s, smoothed) is standing still; faster than RunSpeed is running (heavier steps).</summary>
+        public float MinSpeed = 24f, RunSpeed = 215f;
+        /// <summary>Feet are this far below the eye; more than AirGap further than that and the player is in the air.</summary>
+        public float EyeHeight = 45f, AirGap = 40f;
+        /// <summary>A room's hand-named surfaces: texture leaf (with or without its number), or a material -> surface.</summary>
+        public readonly Dictionary<string, Surface> Named = new Dictionary<string, Surface>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>A room's default when the floor's texture says nothing (null = stone).</summary>
+        public Surface? RoomDefault;
+        public readonly BootSound Sound = new BootSound();
+        public int Steps;
+        public Surface Last;
+
+        const int Rate = 44100;
+        readonly Random _rnd = new Random(7);
+        float _lx, _ly, _lz, _walked, _speed, _vy, _still; bool _have, _moving, _left;
+
+        /// <summary>Forget where the player was (a room change, a load): no step for the jump.</summary>
+        public void Reset() { _have = false; _moving = false; _walked = 0f; _speed = 0f; _vy = 0f; }
+
+        /// <summary>One frame: the eye at (ex,ey,ez), dt seconds since the last; the room as posed. `quiet`: the player is
+        /// moved by something else (the map, a conversation, a room cover) -- follow, make no sound. Returns the surface name
+        /// of a step it played this frame, or null.</summary>
+        public string Update(float dt, float ex, float ey, float ez, float[] vx, int[] idx, int[] triTex, Raster.Tex[] texes, bool quiet)
+        {
+            if (dt <= 0f) return null; if (dt > 0.1f) dt = 0.1f;
+            if (!_have) { _lx = ex; _ly = ey; _lz = ez; _have = true; return null; }
+            float mx = ex - _lx, mz = ez - _lz, my = ey - _ly, moved = (float)Math.Sqrt(mx * mx + mz * mz);
+            _lx = ex; _ly = ey; _lz = ez;
+            if (moved >= 30f || Math.Abs(my) >= 30f) { _moving = false; _walked = 0f; _speed = 0f; _vy = 0f; return null; }      // (a jump, not a step)
+            // the game moves the player on its own tick, so frames between see no movement: speed smoothed over ~0.2 s, and
+            // still only after a fifth of a second without any
+            float k = 1f - (float)Math.Exp(-dt / 0.2f);
+            _speed += (moved / dt - _speed) * k; _vy += (my / dt - _vy) * k;
+            if (moved > 0.01f) _still = 0f; else _still += dt;
+            if (_still > 0.22f || _speed < MinSpeed) { if (_still > 0.22f) { _moving = false; _walked = 0f; _speed = 0f; } return null; }
+            float stride = StrideBase + StrideK * _speed;
+            if (!_moving) { _moving = true; _walked = stride * 0.5f; }       // (the first step comes half a stride in)
+            _walked += moved;
+            if (_walked < stride) return null;
+            _walked -= stride; if (_walked > stride) _walked = 0f;
+            if (quiet || !On || SfxShare <= 0.001 || _vy < -120f) return null;                     // (falling: no steps)
+            float down; int tri = RayDown(vx, idx, triTex, ex, ey, ez, EyeHeight + AirGap, out down);
+            if (tri < 0) return null;                                                              // (in the air, or nothing under)
+            Surface s = Classify(texes, triTex[tri]);
+            Last = s; Steps++;
+            bool run = _speed > RunSpeed;
+            _left = !_left;
+            bool lf = _left; int seed = _rnd.Next();
+            ThreadPool.QueueUserWorkItem(_ => { try { Sound.PlayStereo(Step(s, run, lf, seed)); } catch { } });      // (made off the drawing thread: a few ms each)
+            return s.ToString();
+        }
+
+        /// <summary>Keep the sound device open while the game is played (opening it takes half a second: the first step after
+        /// a pause would be late).</summary>
+        public void Warm() { Sound.Warm(); }
+
+        // the first face straight below the eye within `limit`, either side (as Raster.RayDistance); -1 if none
+        static int RayDown(float[] vx, int[] idx, int[] triTex, float px, float py, float pz, float limit, out float dist)
+        {
+            float best = limit; int hit = -1, nTri = Math.Min(idx.Length / 3, triTex.Length);
+            for (int t = 0; t < nTri; t++)
+            {
+                if (triTex[t] < 0) continue;
+                int a = idx[t * 3] * 3, b = idx[t * 3 + 1] * 3, c = idx[t * 3 + 2] * 3;
+                float ax = vx[a], az = vx[a + 2], bx = vx[b], bz = vx[b + 2], cx = vx[c], cz = vx[c + 2];
+                // (looking straight down: inside the triangle's footprint, then its height there)
+                float d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+                if (d > -1e-9f && d < 1e-9f) continue;
+                float l0 = ((bz - cz) * (px - cx) + (cx - bx) * (pz - cz)) / d; if (l0 < 0f) continue;
+                float l1 = ((cz - az) * (px - cx) + (ax - cx) * (pz - cz)) / d; if (l1 < 0f) continue;
+                float l2 = 1f - l0 - l1; if (l2 < 0f) continue;
+                float y = l0 * vx[a + 1] + l1 * vx[b + 1] + l2 * vx[c + 1], dd = py - y;
+                if (dd > 0.25f && dd < best) { best = dd; hit = t; }
+            }
+            dist = best; return hit;
+        }
+
+        Surface Classify(Raster.Tex[] texes, int ti)
+        {
+            Raster.Tex t = texes != null && ti >= 0 && ti < texes.Length ? texes[ti] : null;
+            string mat = t != null && t.Material != null ? t.Material : "", leaf = t != null && t.Leaf != null ? t.Leaf : "";
+            string bare = System.Text.RegularExpressions.Regex.Replace(leaf, @"^\d+-", "");
+            Surface s;
+            if (leaf.Length > 0 && (Named.TryGetValue(leaf, out s) || Named.TryGetValue(bare, out s))) return s;
+            if (mat.Length > 0 && Named.TryGetValue(mat, out s)) return s;
+            switch (mat)
+            {
+                case "wood": return Surface.Wood;
+                case "polished": case "glass": return Surface.Tile;
+                case "iron": case "copper": case "brass": case "gold": case "gilded": return Surface.Metal;
+                case "water": case "slime": return Surface.Water;
+            }
+            string b = bare.ToLowerInvariant();
+            if (System.Text.RegularExpressions.Regex.IsMatch(b, "tile|marb|mosaic|parq")) return Surface.Tile;
+            if (System.Text.RegularExpressions.Regex.IsMatch(b, "wood|plank|plk|board|deck|bri?j|timb")) return Surface.Wood;
+            if (System.Text.RegularExpressions.Regex.IsMatch(b, "grat|grid|grill|mesh|metal|iron|steel")) return Surface.Metal;
+            return RoomDefault ?? Surface.Stone;
+        }
+
+        // ---- THE SOUNDS ------------------------------------------------------------------------------------------------
+        // STONE: a dull low thud, a short dry tap and a little grit scraping under the sole. TILE: a hard bright click with
+        // a short glassy ring and a faint slap back off a hard room. WOOD: a hollow knock (the board's low modes), now and
+        // then a faint creak. METAL (grates, plates): a dull clank that rings a little. WATER: a shallow splash. All through
+        // a gentle low-pass (heard from inside a helmet), heel then toe.
+        /// <summary>One step's sound: interleaved stereo at the engine's rate, at the level it plays.</summary>
+        public short[] Step(Surface s, bool run, bool leftFoot, int seed)
+        {
+            var r = new Random(seed);
+            double len = s == Surface.Metal ? 0.42 : s == Surface.Water ? 0.38 : 0.30;
+            int n = (int)(len * Rate); var buf = new double[n];
+            double pitch = 0.92 + 0.16 * r.NextDouble(), weight = (run ? 1.25 : 1.0) * (0.82 + 0.18 * r.NextDouble());
+            double toeAt = run ? 0.018 + 0.016 * r.NextDouble() : 0.034 + 0.026 * r.NextDouble();
+            Hit(buf, s, 0.0, 1.0, pitch, r, run);
+            Hit(buf, s, toeAt, run ? 0.62 : 0.48, pitch * 1.06, r, run);
+            if (s == Surface.Tile) { int e = (int)(0.026 * Rate); for (int i = n - 1; i >= e; i--) buf[i] += 0.13 * buf[i - e]; }   // (the slap back)
+            double lowPass = s == Surface.Tile ? 9000 : s == Surface.Metal ? 7500 : 6000;
+            double a = 1 - Math.Exp(-2 * Math.PI * lowPass / Rate), lp = 0, lp2 = 0, peak = 1e-9; int tail = (int)(0.03 * Rate);
+            for (int i = 0; i < n; i++) { lp += a * (buf[i] - lp); lp2 += a * (lp - lp2); buf[i] = lp2 * Math.Min(1, (n - i) / (double)tail); peak = Math.Max(peak, Math.Abs(buf[i])); }
+            double gain = s == Surface.Tile ? 0.85 : s == Surface.Metal ? 0.72 : s == Surface.Water ? 0.8 : 1.0;
+            double lvl = Math.Min(0.95, Level * gain * weight * Math.Max(0, Math.Min(1.5, SfxShare)) * Sound.Volume / 0.36);
+            // the feet a little apart: left a little left, right a little right (equal power about the middle)
+            double pan = (leftFoot ? -0.14 : 0.14) + 0.05 * (r.NextDouble() - 0.5), ang = (pan + 1) * Math.PI / 4;
+            double gl = Math.Cos(ang) * Math.Sqrt(2), gr = Math.Sin(ang) * Math.Sqrt(2), kk = lvl / peak * 32767;
+            var o = new short[n * 2];
+            for (int i = 0; i < n; i++)
+            {
+                o[i * 2] = (short)Math.Max(-32767, Math.Min(32767, buf[i] * kk * gl));
+                o[i * 2 + 1] = (short)Math.Max(-32767, Math.Min(32767, buf[i] * kk * gr));
+            }
+            return o;
+        }
+
+        // one footfall (heel or toe) at `at` seconds, `amp` of full
+        static void Hit(double[] buf, Surface s, double at, double amp, double pitch, Random r, bool run)
+        {
+            int s0 = (int)(at * Rate), n = buf.Length - s0; if (n <= 0) return;
+            var x = new double[n];
+            switch (s)
+            {
+                case Surface.Stone:
+                    Thump(x, 95 * pitch, 0.016, 0.55);
+                    Noise(x, r, 1700 * pitch, 0.8, 0.0045, 0.55, 0.0005);
+                    Grit(x, r, 3200, 0.9, run ? 0.07 : 0.05, run ? 0.32 : 0.24);
+                    break;
+                case Surface.Tile:
+                    Thump(x, 125 * pitch, 0.010, 0.38);
+                    Noise(x, r, 3600 * pitch, 1.3, 0.0028, 0.85, 0.0003);
+                    Mode(x, 1950 * pitch * (0.95 + 0.1 * r.NextDouble()), 0.012, 0.20, r);
+                    Mode(x, 2870 * pitch * (0.95 + 0.1 * r.NextDouble()), 0.009, 0.14, r);
+                    Mode(x, 4150 * pitch * (0.95 + 0.1 * r.NextDouble()), 0.006, 0.10, r);
+                    Grit(x, r, 5000, 1.0, 0.025, 0.06);
+                    break;
+                case Surface.Wood:
+                    Mode(x, 150 * pitch * (0.94 + 0.12 * r.NextDouble()), 0.050, 0.55, r);
+                    Mode(x, 335 * pitch * (0.94 + 0.12 * r.NextDouble()), 0.034, 0.42, r);
+                    Mode(x, 610 * pitch * (0.94 + 0.12 * r.NextDouble()), 0.020, 0.28, r);
+                    Noise(x, r, 950 * pitch, 1.0, 0.007, 0.45, 0.0006);
+                    Grit(x, r, 2400, 0.9, 0.035, 0.08);
+                    if (amp >= 1 && r.NextDouble() < 0.12) Creak(x, r);
+                    break;
+                case Surface.Metal:
+                    Thump(x, 85 * pitch, 0.014, 0.35);
+                    Noise(x, r, 2400 * pitch, 1.0, 0.004, 0.5, 0.0004);
+                    Mode(x, 520 * pitch * (0.95 + 0.1 * r.NextDouble()), 0.11, 0.26, r);
+                    Mode(x, 1235 * pitch * (0.95 + 0.1 * r.NextDouble()), 0.075, 0.22, r);
+                    Mode(x, 2140 * pitch * (0.95 + 0.1 * r.NextDouble()), 0.055, 0.17, r);
+                    Mode(x, 3360 * pitch * (0.95 + 0.1 * r.NextDouble()), 0.038, 0.11, r);
+                    break;
+                case Surface.Water:
+                    Thump(x, 80 * pitch, 0.02, 0.4);
+                    Noise(x, r, 1100 * pitch, 0.6, 0.06, 0.45, 0.004);
+                    for (int b = 0; b < 5; b++) Bubble(x, r, 0.005 + 0.07 * r.NextDouble(), 500 + 900 * r.NextDouble(), 0.12 + 0.1 * r.NextDouble());
+                    break;
+            }
+            for (int i = 0; i < n; i++) buf[s0 + i] += x[i] * amp;
+        }
+        // a low sine thud, quick attack
+        static void Thump(double[] x, double f, double decay, double amp)
+        {
+            int n = Math.Min(x.Length, (int)(decay * 8 * Rate));
+            for (int i = 0; i < n; i++) { double t = i / (double)Rate; x[i] += amp * Math.Min(1, t / 0.0012) * Math.Exp(-t / decay) * Math.Sin(2 * Math.PI * f * t * (1 + 0.4 * Math.Exp(-t / 0.006))); }
+        }
+        // a short burst of noise through a band-pass (centre f, Q q), attack `att` s, decay `decay` s
+        static void Noise(double[] x, Random r, double f, double q, double decay, double amp, double att)
+        {
+            int n = Math.Min(x.Length, (int)(decay * 9 * Rate) + (int)(att * Rate)); var w = new double[n];
+            for (int i = 0; i < n; i++) { double t = i / (double)Rate; w[i] = (r.NextDouble() * 2 - 1) * Math.Min(1, t / Math.Max(1e-5, att)) * Math.Exp(-t / decay); }
+            Band(w, f, q); Norm(w);
+            for (int i = 0; i < n; i++) x[i] += amp * w[i];
+        }
+        // the grit under the sole: sparse little grains, scraping for `dur` s
+        static void Grit(double[] x, Random r, double f, double q, double dur, double amp)
+        {
+            int n = Math.Min(x.Length, (int)(dur * 1.6 * Rate)); var w = new double[n]; double g = 0;
+            for (int i = 0; i < n; i++)
+            {
+                double t = i / (double)Rate, env = Math.Min(1, t / 0.004) * Math.Exp(-t / (dur * 0.45));
+                if (r.NextDouble() < 0.035) g = (r.NextDouble() * 2 - 1);
+                w[i] = (g + 0.35 * (r.NextDouble() * 2 - 1)) * env; g *= 0.7;
+            }
+            Band(w, f, q); Norm(w);
+            for (int i = 0; i < n; i++) x[i] += amp * w[i];
+        }
+        // a struck mode: a damped sine
+        static void Mode(double[] x, double f, double decay, double amp, Random r)
+        {
+            int n = Math.Min(x.Length, (int)(decay * 8 * Rate)); double ph = r.NextDouble() * 0.6;
+            for (int i = 0; i < n; i++) { double t = i / (double)Rate; x[i] += amp * Math.Min(1, t / 0.0008) * Math.Exp(-t / decay) * Math.Sin(2 * Math.PI * f * t + ph); }
+        }
+        // a faint board creak: a rough low tone gliding, for a tenth of a second
+        static void Creak(double[] x, Random r)
+        {
+            int s0 = (int)((0.03 + 0.03 * r.NextDouble()) * Rate), n = Math.Min(x.Length - s0, (int)(0.12 * Rate)); if (n <= 0) return;
+            double f0 = 260 + 160 * r.NextDouble(), f1 = f0 * (1.15 + 0.2 * r.NextDouble()), ph = 0;
+            for (int i = 0; i < n; i++)
+            {
+                double u = i / (double)n, f = f0 + (f1 - f0) * u, env = Math.Sin(Math.PI * u);
+                ph += 2 * Math.PI * f / Rate * (1 + 0.08 * (r.NextDouble() - 0.5));
+                double saw = 2 * (ph / (2 * Math.PI) - Math.Floor(ph / (2 * Math.PI) + 0.5));
+                x[s0 + i] += 0.06 * env * saw;
+            }
+        }
+        // a bubble: a sine whose pitch rises as it dies
+        static void Bubble(double[] x, Random r, double at, double f, double amp)
+        {
+            int s0 = (int)(at * Rate), n = Math.Min(x.Length - s0, (int)(0.05 * Rate)); if (n <= 0) return; double ph = 0;
+            for (int i = 0; i < n; i++) { double t = i / (double)Rate; ph += 2 * Math.PI * f * (1 + 2.5 * t / 0.05) / Rate; x[s0 + i] += amp * Math.Min(1, t / 0.001) * Math.Exp(-t / 0.012) * Math.Sin(ph); }
+        }
+        // band-pass in place (RBJ, constant 0 dB peak), run twice for a steeper skirt
+        static void Band(double[] w, double f, double q)
+        {
+            f = Math.Min(f, Rate * 0.45);
+            double w0 = 2 * Math.PI * f / Rate, al = Math.Sin(w0) / (2 * q), a0 = 1 + al;
+            double b0 = al / a0, b2 = -al / a0, a1 = -2 * Math.Cos(w0) / a0, a2 = (1 - al) / a0;
+            for (int pass = 0; pass < 2; pass++)
+            {
+                double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+                for (int i = 0; i < w.Length; i++) { double xi = w[i], y = b0 * xi + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = xi; y2 = y1; y1 = y; w[i] = y; }
+            }
+        }
+        static void Norm(double[] w) { double p = 1e-9; foreach (var v in w) p = Math.Max(p, Math.Abs(v)); for (int i = 0; i < w.Length; i++) w[i] /= p; }
+
+        /// <summary>Offline: a walk across each surface (a few steps, walking then running) as a .wav, for listening.</summary>
+        public void SaveDemo(string path)
+        {
+            var clips = new List<short[]>(); var at = new List<int>(); int pos = 0;
+            foreach (Surface s in Enum.GetValues(typeof(Surface)))
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    bool run = i >= 4; clips.Add(Step(s, run, (i & 1) == 0, 100 * (int)s + i)); at.Add(pos);
+                    pos += (int)((run ? 0.33 : 0.48) * Rate) * 2;
+                }
+                pos += (int)(0.6 * Rate) * 2;
+            }
+            int total = pos; for (int i = 0; i < clips.Count; i++) total = Math.Max(total, at[i] + clips[i].Length);
+            var mix = new int[total]; for (int i = 0; i < clips.Count; i++) for (int j = 0; j < clips[i].Length; j++) mix[at[i] + j] += clips[i][j];
+            var all = new List<short>(total); foreach (var v in mix) all.Add((short)Math.Max(-32767, Math.Min(32767, v)));
+            var pcm = all.ToArray();
+            using (var fs = File.Create(path))
+            using (var bw = new BinaryWriter(fs))
+            {
+                bw.Write(System.Text.Encoding.ASCII.GetBytes("RIFF")); bw.Write(36 + pcm.Length * 2); bw.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
+                bw.Write(16); bw.Write((short)1); bw.Write((short)2); bw.Write(Rate); bw.Write(Rate * 4); bw.Write((short)4); bw.Write((short)16);
+                bw.Write(System.Text.Encoding.ASCII.GetBytes("data")); bw.Write(pcm.Length * 2); foreach (var v in pcm) bw.Write(v);
+            }
         }
     }
 }

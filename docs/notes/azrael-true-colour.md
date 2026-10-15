@@ -296,6 +296,8 @@ left-to-right, panel staying 4:3 for now.
   [[azrael-host-fov-calibration]]); raising it would put objects on screen where the game's
   cursor/hit test does not expect them (clicks miss). Widescreen already raised the horizontal
   FOV 78 -> 88 degrees. Told him; offered a remap of the game's drawings as a risky option.
+  **2026-10-13: done the other way** -- the GAME's field is changed with the host's (its pick reads the field live), so
+  clicks stay right: 60 by default, F12 50/60/70 ([[azrael-fov]]).
 - (22:14) Josh: the frame counter was hidden under the extended shading, and the visor should be
   "shaded top and bottom, curving at the FAR edges" like the original, not curving at the 4:3 line.
   Built: `Overlay.Visor` -- in the wide compose the game's own corner wedges (outer quarter of its
@@ -326,3 +328,10 @@ silhouettes (slight smear), creatures/doors do not move between real frames, dus
 Log line: "frames between frames: N re-projected ...".
 FIRST RUN (22:49) DIED on the first frame: "'Depth' is a ReadOnly property" -- Raster.Depth was readonly; the session ended and the plain 8-bit injection took over (Josh: "isn't showing true colour... can't toggle via F8"). Fixed 22:52: Depth is a plain field + Raster.SetDepthBuffer(); the hand-over is now exercised offline against a real Raster. Lesson: a new hand-over path must be run against the real class, not only simulated.
 SECOND RUN (22:54) died at the first 4-second report: "Attempted to divide by zero" -- my new 'frames between frames' log line used $secs BEFORE the report assigns it ($null -> 0). Fixed 22:56 with its own $secsW. Up to that point the session was healthy (true colour [run], 90 frames drawn). Josh had to launch twice for my bugs; test any new report-line arithmetic with first-report values before shipping.
+**The map-close "dead space" (Josh, 2026-10-14):** after closing the map, sometimes a flat #101010 block covered part of the view, a different shape each time.
+- **Cause:** the compose took as the key whichever colour was COMMONEST in the game's view (Overlay.ReadOnce). The map screen leaves much of the view black, so for the frames until the game had painted the key back, black was the commonest colour and was taken for the key. The real key's pixels (#101010, index 86 here) were then laid over the picture as the game's own.
+  - Confirmed by sampling Josh's screenshot: the block is exactly #101010.
+  - Its top edge fell on the bottom visor band, whose stretched x mapping explains why it reached past the game's own columns.
+- **Fix:** the key the host hands the game (`tcPal32[keyA]`) is ALWAYS see-through as well: `Overlay.KeyAlso` / `GpuRaster.KeyAlso` (shader `uKey2`), in both the card's and the processor's compose.
+  - The key's palette entry is unique (Initialize-TrueColour), so no game drawing can match it.
+  - The watcher warns once if the measured key ever differs from the palette's.

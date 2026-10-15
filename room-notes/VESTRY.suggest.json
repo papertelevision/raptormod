@@ -1,0 +1,51 @@
+{
+    "schema":  1,
+    "room":  "VESTRY",
+    "made":  "2026-10-14T13:55:45.5911697Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "glow",
+                            "confidence":  0.63,
+                            "point":  [
+                                          -38.42,
+                                          -37.27,
+                                          -69.07
+                                      ],
+                            "normal":  [
+                                           0,
+                                           1,
+                                           0
+                                       ],
+                            "part":  "floor",
+                            "material":  "1VES_FLOOR",
+                            "texture":  "09-ves_flor.png",
+                            "uv":  [
+                                       0.084,
+                                       0.232
+                                   ],
+                            "crop":  [
+                                         7,
+                                         169,
+                                         45,
+                                         236,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a round painted glow (3.4x the art\u0027s level)",
+                            "light":  {
+                                          "x":  -38.42,
+                                          "y":  -22.27,
+                                          "z":  -69.07,
+                                          "color":  "#FFEFCB",
+                                          "power":  0.5,
+                                          "range":  90,
+                                          "flicker":  0
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

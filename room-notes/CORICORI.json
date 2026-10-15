@@ -1,354 +1,10 @@
 {
     "schema":  2,
     "room":  "CORICORI",
-    "rev":  62,
+    "rev":  69,
     "nextId":  15,
     "notes":  [
-                  {
-                      "id":  11,
-                      "ref":  "CORICORI/11",
-                      "status":  "review",
-                      "created":  "2026-10-13T03:41:40.1853224Z",
-                      "updated":  "2026-10-13T03:56:49.8585159Z",
-                      "kind":  "other",
-                      "point":  [
-                                    145.39,
-                                    -116.97,
-                                    78.6
-                                ],
-                      "normal":  [
-                                     0.003,
-                                     1,
-                                     -0.007
-                                 ],
-                      "part":  "floorbit",
-                      "material":  "1FLOOR1A",
-                      "texture":  "09-ecrflra1.png",
-                      "uv":  [
-                                 0.491,
-                                 0.463
-                             ],
-                      "target":  null,
-                      "camera":  {
-                                     "pos":  [
-                                                 223.06,
-                                                 2.61,
-                                                 115.56
-                                             ],
-                                     "fwd":  [
-                                                 -0.48,
-                                                 -0.76,
-                                                 -0.43
-                                             ],
-                                     "up":  [
-                                                0,
-                                                1,
-                                                0
-                                            ],
-                                     "fov":  50,
-                                     "mirror":  true,
-                                     "gpuLook":  {
-                                                     "X":  223.06,
-                                                     "Y":  2.61,
-                                                     "Z":  115.56,
-                                                     "Yaw":  -132,
-                                                     "Pitch":  -49.77
-                                                 }
-                                 },
-                      "suggest":  {
-                                      "light":  {
-                                                    "x":  145.47,
-                                                    "y":  -86.97,
-                                                    "z":  78.39,
-                                                    "dir":  [
-                                                                0.359,
-                                                                0,
-                                                                -0.933
-                                                            ]
-                                                }
-                                  },
-                      "seen":  {
-                                   "objMtime":  "2026-10-05T02:29:18.3351877Z",
-                                   "roomFileMtime":  "2026-10-13T03:28:44.1748742Z"
-                               },
-                      "log":  [
-                                  {
-                                      "who":  "josh",
-                                      "text":  "Thes brick are a perfect candidate for tessalation style geometry (or whatever the paralax version is you\u0027re doing) Giving them more depth like each brock was raised or the mortar between was depressed would be perfect.",
-                                      "at":  "2026-10-13T03:41:40.1853224Z",
-                                      "shot":  "CORICORI-11-0.png"
-                                  },
-                                  {
-                                      "who":  "claude",
-                                      "text":  "Done: these floor bricks now have three times the depth -- the stones stand up and the mortar between them sinks (all of the floor\u0027s brick textures). It shows in the game with relief on (F7) and in Room Review\u0027s new Game look (G, then 7). Too much or too little is one number per texture in rooms\\CORICORI.json \"materials\".",
-                                      "at":  "2026-10-13T03:56:49.8585159Z",
-                                      "changes":  [
-                                                      "rooms\\CORICORI.json materials: the floor bricks\u0027 parallax x3 (09-ecrflra1, 08-ecrflra2, 07-ecrflra3, 06-ecrflra4, 16-ecrflr01, 15-ecrflr02, 14-ecrflr03, 13-ecrflr04)"
-                                                  ],
-                                      "round":  24,
-                                      "render":  "CORICORI-11-1-render.png"
-                                  }
-                              ]
-                  },
-                  {
-                      "id":  12,
-                      "ref":  "CORICORI/12",
-                      "status":  "review",
-                      "created":  "2026-10-13T03:42:17.6256914Z",
-                      "updated":  "2026-10-13T03:57:09.3940949Z",
-                      "kind":  "other",
-                      "point":  [
-                                    -27.67,
-                                    103.13,
-                                    4.69
-                                ],
-                      "normal":  [
-                                     0.063,
-                                     -0.998,
-                                     0.027
-                                 ],
-                      "part":  "floorbit10",
-                      "material":  "1ENTER",
-                      "texture":  "05-ecrflr05.png",
-                      "uv":  [
-                                 0.496,
-                                 0.511
-                             ],
-                      "target":  null,
-                      "camera":  {
-                                     "pos":  [
-                                                 114.85,
-                                                 -97.24,
-                                                 34.08
-                                             ],
-                                     "fwd":  [
-                                                 -0.63,
-                                                 0.7,
-                                                 -0.33
-                                             ],
-                                     "up":  [
-                                                0,
-                                                1,
-                                                0
-                                            ],
-                                     "fov":  50,
-                                     "mirror":  true,
-                                     "gpuLook":  {
-                                                     "X":  114.85,
-                                                     "Y":  -97.24,
-                                                     "Z":  34.08,
-                                                     "Yaw":  -117.35,
-                                                     "Pitch":  44.36
-                                                 }
-                                 },
-                      "suggest":  {
-                                      "light":  {
-                                                    "x":  -25.77,
-                                                    "y":  73.2,
-                                                    "z":  5.51,
-                                                    "dir":  [
-                                                                0.919,
-                                                                0,
-                                                                0.395
-                                                            ]
-                                                }
-                                  },
-                      "seen":  {
-                                   "objMtime":  "2026-10-05T02:29:18.3351877Z",
-                                   "roomFileMtime":  "2026-10-13T03:28:44.1748742Z"
-                               },
-                      "log":  [
-                                  {
-                                      "who":  "josh",
-                                      "text":  "I\u0027d like this light shaft to slant a bit, not come in straight down. I\u0027m entering the end point in another note (the start point shoudl stay as is.",
-                                      "at":  "2026-10-13T03:42:17.6256914Z",
-                                      "shot":  "CORICORI-12-0.png"
-                                  },
-                                  {
-                                      "who":  "claude",
-                                      "text":  "Done, with note 13: the shaft now slants. It still comes in through the same spot in the ceiling and now lands on your mark from note 13 (its source moved up along that line; the beam is as wide as before).",
-                                      "at":  "2026-10-13T03:57:09.3940949Z",
-                                      "changes":  [
-                                                      "rooms\\CORICORI.json lights[2]: source -24.65, 363, 1.31 -\u003e -65.89, 363, -78.35, dir 0,-1,0 -\u003e 0.15,-0.945,0.29"
-                                                  ],
-                                      "round":  24,
-                                      "render":  "CORICORI-12-1-render.png"
-                                  }
-                              ]
-                  },
-                  {
-                      "id":  13,
-                      "ref":  "CORICORI/13",
-                      "status":  "review",
-                      "created":  "2026-10-13T03:43:31.1552452Z",
-                      "updated":  "2026-10-13T03:57:28.4723985Z",
-                      "kind":  "other",
-                      "point":  [
-                                    10.4,
-                                    -117.75,
-                                    69.02
-                                ],
-                      "normal":  [
-                                     -0.011,
-                                     1,
-                                     -0.005
-                                 ],
-                      "part":  "floorbit01",
-                      "material":  "1FLOOR2A",
-                      "texture":  "08-ecrflra2.png",
-                      "uv":  [
-                                 0.357,
-                                 0.676
-                             ],
-                      "target":  null,
-                      "camera":  {
-                                     "pos":  [
-                                                 159.49,
-                                                 53.31,
-                                                 50.47
-                                             ],
-                                     "fwd":  [
-                                                 -0.71,
-                                                 -0.7,
-                                                 0.01
-                                             ],
-                                     "up":  [
-                                                0,
-                                                1,
-                                                0
-                                            ],
-                                     "fov":  50,
-                                     "mirror":  true,
-                                     "gpuLook":  {
-                                                     "X":  159.49,
-                                                     "Y":  53.31,
-                                                     "Z":  50.47,
-                                                     "Yaw":  -88.99,
-                                                     "Pitch":  -44.78
-                                                 }
-                                 },
-                      "suggest":  {
-                                      "light":  {
-                                                    "x":  10.06,
-                                                    "y":  -87.75,
-                                                    "z":  68.86,
-                                                    "dir":  [
-                                                                -0.899,
-                                                                0,
-                                                                -0.437
-                                                            ]
-                                                }
-                                  },
-                      "seen":  {
-                                   "objMtime":  "2026-10-05T02:29:18.3351877Z",
-                                   "roomFileMtime":  "2026-10-13T03:28:44.1748742Z"
-                               },
-                      "log":  [
-                                  {
-                                      "who":  "josh",
-                                      "text":  "Here is where the light shaft from the ceiling should end. Also make sure it is not shining through the texture through the space beneath.",
-                                      "at":  "2026-10-13T03:43:31.1552452Z",
-                                      "shot":  "CORICORI-13-0.png"
-                                  },
-                                  {
-                                      "who":  "claude",
-                                      "text":  "Done: the shaft ends here now, and it no longer shines into the space beneath -- the light now casts shadows, so the floor stops it. The ceiling piece with the painted hole is set to cast no shadow, so the beam still comes through it. Checked: nothing blocks it between the hole and your mark.",
-                                      "at":  "2026-10-13T03:57:28.4723985Z",
-                                      "changes":  [
-                                                      "rooms\\CORICORI.json lights[2] shadow true",
-                                                      "rooms\\CORICORI.json noCast: 05-ecrflr05 (the painted-hole ceiling piece, floorbit10 only)"
-                                                  ],
-                                      "round":  24,
-                                      "render":  "CORICORI-13-1-render.png"
-                                  }
-                              ]
-                  },
-                  {
-                      "id":  14,
-                      "ref":  "CORICORI/14",
-                      "status":  "review",
-                      "created":  "2026-10-13T03:44:57.8321734Z",
-                      "updated":  "2026-10-13T03:57:47.4484433Z",
-                      "kind":  "other",
-                      "point":  [
-                                    -349.4,
-                                    -96.05,
-                                    -243.52
-                                ],
-                      "normal":  [
-                                     0.175,
-                                     0.978,
-                                     0.11
-                                 ],
-                      "part":  "floorbit04",
-                      "material":  "1FLOOR1A",
-                      "texture":  "09-ecrflra1.png",
-                      "uv":  [
-                                 0.527,
-                                 0.486
-                             ],
-                      "target":  null,
-                      "camera":  {
-                                     "pos":  [
-                                                 -270.1,
-                                                 52.05,
-                                                 -41.43
-                                             ],
-                                     "fwd":  [
-                                                 -0.39,
-                                                 -0.46,
-                                                 -0.8
-                                             ],
-                                     "up":  [
-                                                0,
-                                                1,
-                                                0
-                                            ],
-                                     "fov":  50,
-                                     "mirror":  true,
-                                     "gpuLook":  {
-                                                     "X":  -270.1,
-                                                     "Y":  52.05,
-                                                     "Z":  -41.43,
-                                                     "Yaw":  -154.13,
-                                                     "Pitch":  -27.64
-                                                 }
-                                 },
-                      "suggest":  {
-                                      "light":  {
-                                                    "x":  -344.14,
-                                                    "y":  -66.7,
-                                                    "z":  -240.21,
-                                                    "dir":  [
-                                                                0.846,
-                                                                0,
-                                                                0.532
-                                                            ]
-                                                }
-                                  },
-                      "seen":  {
-                                   "objMtime":  "2026-10-05T02:29:18.3351877Z",
-                                   "roomFileMtime":  "2026-10-13T03:28:44.1748742Z"
-                               },
-                      "log":  [
-                                  {
-                                      "who":  "josh",
-                                      "text":  "Let\u0027s add a subtle light source here, no flickering as with a torch, but only at around 20% brightness (bounce lighitng)",
-                                      "at":  "2026-10-13T03:44:57.8321734Z",
-                                      "shot":  "CORICORI-14-0.png"
-                                  },
-                                  {
-                                      "who":  "claude",
-                                      "text":  "Added: a steady warm light 30 units above your mark, 20% of a torch (power 0.28; the torches are 1.4), no flicker and no shadows, reaching about 220 units -- a soft bounce-light fill.",
-                                      "at":  "2026-10-13T03:57:47.4484433Z",
-                                      "changes":  [
-                                                      "rooms\\CORICORI.json lights[3] added: bounce light by the WASHCORI door"
-                                                  ],
-                                      "round":  24,
-                                      "render":  "CORICORI-14-1-render.png"
-                                  }
-                              ]
-                  }
+
               ],
     "completed":  [
                       {
@@ -1148,6 +804,371 @@
                                       }
                                   ],
                           "completedAt":  "2026-10-09T16:08:03.5560807Z"
+                      },
+                      {
+                          "id":  12,
+                          "ref":  "CORICORI/12",
+                          "status":  "complete",
+                          "created":  "2026-10-13T03:42:17.6256914Z",
+                          "updated":  "2026-10-13T03:57:09.3940949Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -27.67,
+                                        103.13,
+                                        4.69
+                                    ],
+                          "normal":  [
+                                         0.063,
+                                         -0.998,
+                                         0.027
+                                     ],
+                          "part":  "floorbit10",
+                          "material":  "1ENTER",
+                          "texture":  "05-ecrflr05.png",
+                          "uv":  [
+                                     0.496,
+                                     0.511
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     114.85,
+                                                     -97.24,
+                                                     34.08
+                                                 ],
+                                         "fwd":  [
+                                                     -0.63,
+                                                     0.7,
+                                                     -0.33
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  114.85,
+                                                         "Y":  -97.24,
+                                                         "Z":  34.08,
+                                                         "Yaw":  -117.35,
+                                                         "Pitch":  44.36
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -25.77,
+                                                        "y":  73.2,
+                                                        "z":  5.51,
+                                                        "dir":  [
+                                                                    0.919,
+                                                                    0,
+                                                                    0.395
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-13T03:28:44.1748742Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "I\u0027d like this light shaft to slant a bit, not come in straight down. I\u0027m entering the end point in another note (the start point shoudl stay as is.",
+                                          "at":  "2026-10-13T03:42:17.6256914Z",
+                                          "shot":  "CORICORI-12-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done, with note 13: the shaft now slants. It still comes in through the same spot in the ceiling and now lands on your mark from note 13 (its source moved up along that line; the beam is as wide as before).",
+                                          "at":  "2026-10-13T03:57:09.3940949Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json lights[2]: source -24.65, 363, 1.31 -\u003e -65.89, 363, -78.35, dir 0,-1,0 -\u003e 0.15,-0.945,0.29"
+                                                      ],
+                                          "round":  24,
+                                          "render":  "CORICORI-12-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T18:07:22.5938947Z"
+                      },
+                      {
+                          "id":  13,
+                          "ref":  "CORICORI/13",
+                          "status":  "complete",
+                          "created":  "2026-10-13T03:43:31.1552452Z",
+                          "updated":  "2026-10-13T03:57:28.4723985Z",
+                          "kind":  "other",
+                          "point":  [
+                                        10.4,
+                                        -117.75,
+                                        69.02
+                                    ],
+                          "normal":  [
+                                         -0.011,
+                                         1,
+                                         -0.005
+                                     ],
+                          "part":  "floorbit01",
+                          "material":  "1FLOOR2A",
+                          "texture":  "08-ecrflra2.png",
+                          "uv":  [
+                                     0.357,
+                                     0.676
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     159.49,
+                                                     53.31,
+                                                     50.47
+                                                 ],
+                                         "fwd":  [
+                                                     -0.71,
+                                                     -0.7,
+                                                     0.01
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  159.49,
+                                                         "Y":  53.31,
+                                                         "Z":  50.47,
+                                                         "Yaw":  -88.99,
+                                                         "Pitch":  -44.78
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  10.06,
+                                                        "y":  -87.75,
+                                                        "z":  68.86,
+                                                        "dir":  [
+                                                                    -0.899,
+                                                                    0,
+                                                                    -0.437
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-13T03:28:44.1748742Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Here is where the light shaft from the ceiling should end. Also make sure it is not shining through the texture through the space beneath.",
+                                          "at":  "2026-10-13T03:43:31.1552452Z",
+                                          "shot":  "CORICORI-13-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: the shaft ends here now, and it no longer shines into the space beneath -- the light now casts shadows, so the floor stops it. The ceiling piece with the painted hole is set to cast no shadow, so the beam still comes through it. Checked: nothing blocks it between the hole and your mark.",
+                                          "at":  "2026-10-13T03:57:28.4723985Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json lights[2] shadow true",
+                                                          "rooms\\CORICORI.json noCast: 05-ecrflr05 (the painted-hole ceiling piece, floorbit10 only)"
+                                                      ],
+                                          "round":  24,
+                                          "render":  "CORICORI-13-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T18:07:42.7522860Z"
+                      },
+                      {
+                          "id":  14,
+                          "ref":  "CORICORI/14",
+                          "status":  "complete",
+                          "created":  "2026-10-13T03:44:57.8321734Z",
+                          "updated":  "2026-10-13T03:57:47.4484433Z",
+                          "kind":  "other",
+                          "point":  [
+                                        -349.4,
+                                        -96.05,
+                                        -243.52
+                                    ],
+                          "normal":  [
+                                         0.175,
+                                         0.978,
+                                         0.11
+                                     ],
+                          "part":  "floorbit04",
+                          "material":  "1FLOOR1A",
+                          "texture":  "09-ecrflra1.png",
+                          "uv":  [
+                                     0.527,
+                                     0.486
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -270.1,
+                                                     52.05,
+                                                     -41.43
+                                                 ],
+                                         "fwd":  [
+                                                     -0.39,
+                                                     -0.46,
+                                                     -0.8
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -270.1,
+                                                         "Y":  52.05,
+                                                         "Z":  -41.43,
+                                                         "Yaw":  -154.13,
+                                                         "Pitch":  -27.64
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  -344.14,
+                                                        "y":  -66.7,
+                                                        "z":  -240.21,
+                                                        "dir":  [
+                                                                    0.846,
+                                                                    0,
+                                                                    0.532
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-13T03:28:44.1748742Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Let\u0027s add a subtle light source here, no flickering as with a torch, but only at around 20% brightness (bounce lighitng)",
+                                          "at":  "2026-10-13T03:44:57.8321734Z",
+                                          "shot":  "CORICORI-14-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Added: a steady warm light 30 units above your mark, 20% of a torch (power 0.28; the torches are 1.4), no flicker and no shadows, reaching about 220 units -- a soft bounce-light fill.",
+                                          "at":  "2026-10-13T03:57:47.4484433Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json lights[3] added: bounce light by the WASHCORI door"
+                                                      ],
+                                          "round":  24,
+                                          "render":  "CORICORI-14-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T18:07:48.4305095Z"
+                      },
+                      {
+                          "id":  11,
+                          "ref":  "CORICORI/11",
+                          "status":  "complete",
+                          "created":  "2026-10-13T03:41:40.1853224Z",
+                          "updated":  "2026-10-14T05:53:04.9796101Z",
+                          "kind":  "other",
+                          "point":  [
+                                        145.39,
+                                        -116.97,
+                                        78.6
+                                    ],
+                          "normal":  [
+                                         0.003,
+                                         1,
+                                         -0.007
+                                     ],
+                          "part":  "floorbit",
+                          "material":  "1FLOOR1A",
+                          "texture":  "09-ecrflra1.png",
+                          "uv":  [
+                                     0.491,
+                                     0.463
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     223.06,
+                                                     2.61,
+                                                     115.56
+                                                 ],
+                                         "fwd":  [
+                                                     -0.48,
+                                                     -0.76,
+                                                     -0.43
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  223.06,
+                                                         "Y":  2.61,
+                                                         "Z":  115.56,
+                                                         "Yaw":  -132,
+                                                         "Pitch":  -49.77
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  145.47,
+                                                        "y":  -86.97,
+                                                        "z":  78.39,
+                                                        "dir":  [
+                                                                    0.359,
+                                                                    0,
+                                                                    -0.933
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:18.3351877Z",
+                                       "roomFileMtime":  "2026-10-13T03:28:44.1748742Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Thes brick are a perfect candidate for tessalation style geometry (or whatever the paralax version is you\u0027re doing) Giving them more depth like each brock was raised or the mortar between was depressed would be perfect.",
+                                          "at":  "2026-10-13T03:41:40.1853224Z",
+                                          "shot":  "CORICORI-11-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: these floor bricks now have three times the depth -- the stones stand up and the mortar between them sinks (all of the floor\u0027s brick textures). It shows in the game with relief on (F7) and in Room Review\u0027s new Game look (G, then 7). Too much or too little is one number per texture in rooms\\CORICORI.json \"materials\".",
+                                          "at":  "2026-10-13T03:56:49.8585159Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json materials: the floor bricks\u0027 parallax x3 (09-ecrflra1, 08-ecrflra2, 07-ecrflra3, 06-ecrflra4, 16-ecrflr01, 15-ecrflr02, 14-ecrflr03, 13-ecrflr04)"
+                                                      ],
+                                          "round":  24,
+                                          "render":  "CORICORI-11-1-render.png"
+                                      },
+                                      {
+                                          "who":  "josh",
+                                          "text":  "The depth is a little too deep on those floor bricks. make them 2x instead of 3x depth.",
+                                          "at":  "2026-10-13T23:21:04.7027477Z",
+                                          "shot":  "CORICORI-11-2.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: the floor bricks are now at 2x depth (was 3x) -- every floor brick texture. Still F7 (relief) in the game, 7 in Game look.",
+                                          "at":  "2026-10-14T05:53:04.9796101Z",
+                                          "changes":  [
+                                                          "rooms\\CORICORI.json materials: ecrflra1-4 and ecrflr01-04 parallax 3 -\u003e 2"
+                                                      ],
+                                          "round":  25,
+                                          "render":  "CORICORI-11-3-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T18:07:53.6271364Z"
                       }
                   ],
     "deleted":  [

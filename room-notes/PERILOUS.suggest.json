@@ -1,0 +1,60 @@
+{
+    "schema":  1,
+    "room":  "PERILOUS",
+    "made":  "2026-10-14T13:55:35.7482406Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "uplight",
+                            "confidence":  0.69,
+                            "point":  [
+                                          -258.6,
+                                          -12.68,
+                                          161.21
+                                      ],
+                            "normal":  [
+                                           0.707,
+                                           0,
+                                           -0.707
+                                       ],
+                            "part":  "orr_pwall3",
+                            "material":  "1ORRERYDEVICEW01",
+                            "texture":  "13-or_devw1.png",
+                            "uv":  [
+                                       0.682,
+                                       0.697
+                                   ],
+                            "crop":  [
+                                         158,
+                                         56,
+                                         186,
+                                         92,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted light fan rising up the wall from 9 above the floor (2.3x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -252.94,
+                                          "y":  -16.98,
+                                          "z":  155.55,
+                                          "dir":  [
+                                                      -0.242,
+                                                      0.94,
+                                                      0.242
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FF8F76",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

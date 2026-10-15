@@ -1,0 +1,121 @@
+{
+    "schema":  1,
+    "room":  "POIS_GR",
+    "made":  "2026-10-14T13:55:36.3447795Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "window",
+                            "confidence":  1,
+                            "point":  [
+                                          -32.58,
+                                          21.71,
+                                          -300.85
+                                      ],
+                            "normal":  [
+                                           0,
+                                           1,
+                                           0
+                                       ],
+                            "part":  "chi_floor",
+                            "material":  "1CHIM_ROOF",
+                            "texture":  "22-ch_roof.png",
+                            "uv":  [
+                                       0.506,
+                                       0.502
+                                   ],
+                            "crop":  [
+                                         94,
+                                         89,
+                                         165,
+                                         166,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted window: bright panes behind a bar grid (about 16 bars across; 3.8x the art\u0027s level)",
+                            "light":  null,
+                            "rect":  [
+                                         [
+                                             -12.63,
+                                             21.71,
+                                             -322.49
+                                         ],
+                                         [
+                                             -52.54,
+                                             21.71,
+                                             -322.49
+                                         ],
+                                         [
+                                             -52.54,
+                                             21.71,
+                                             -279.2
+                                         ],
+                                         [
+                                             -12.63,
+                                             21.71,
+                                             -279.2
+                                         ]
+                                     ],
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "window",
+                            "confidence":  1,
+                            "point":  [
+                                          -32.58,
+                                          247.59,
+                                          -300.85
+                                      ],
+                            "normal":  [
+                                           0,
+                                           -1,
+                                           0
+                                       ],
+                            "part":  "chi_roof",
+                            "material":  "1CHIM_ROOF",
+                            "texture":  "22-ch_roof.png",
+                            "uv":  [
+                                       0.506,
+                                       0.502
+                                   ],
+                            "crop":  [
+                                         94,
+                                         89,
+                                         165,
+                                         166,
+                                         256,
+                                         256
+                                     ],
+                            "faces":  1,
+                            "why":  "a painted window: bright panes behind a bar grid (about 16 bars across; 3.8x the art\u0027s level)",
+                            "light":  null,
+                            "rect":  [
+                                         [
+                                             -12.63,
+                                             247.59,
+                                             -322.49
+                                         ],
+                                         [
+                                             -52.54,
+                                             247.59,
+                                             -322.49
+                                         ],
+                                         [
+                                             -52.54,
+                                             247.59,
+                                             -279.2
+                                         ],
+                                         [
+                                             -12.63,
+                                             247.59,
+                                             -279.2
+                                         ]
+                                     ],
+                            "status":  "pending"
+                        }
+                    ]
+}

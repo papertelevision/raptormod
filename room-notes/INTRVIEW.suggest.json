@@ -1,0 +1,111 @@
+{
+    "schema":  1,
+    "room":  "INTRVIEW",
+    "made":  "2026-10-14T13:55:29.5656187Z",
+    "tool":  "tools\\Suggest-PaintedLights.ps1",
+    "minConfidence":  0.55,
+    "suggestions":  [
+                        {
+                            "id":  1,
+                            "kind":  "downlight",
+                            "confidence":  0.85,
+                            "point":  [
+                                          -212.8,
+                                          -36.85,
+                                          37.66
+                                      ],
+                            "normal":  [
+                                           0.946,
+                                           0,
+                                           0.326
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "14-intbch03.png",
+                            "uv":  [
+                                       0.41,
+                                       0.699
+                                   ],
+                            "crop":  [
+                                         46,
+                                         28,
+                                         59,
+                                         52,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  3,
+                            "why":  "a painted light fan falling down the wall (2.7x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -205.24,
+                                          "y":  -31.85,
+                                          "z":  40.26,
+                                          "dir":  [
+                                                      -0.323,
+                                                      -0.94,
+                                                      -0.111
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC76B",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        },
+                        {
+                            "id":  2,
+                            "kind":  "downlight",
+                            "confidence":  0.85,
+                            "point":  [
+                                          -166.05,
+                                          -36.85,
+                                          -98.12
+                                      ],
+                            "normal":  [
+                                           0.946,
+                                           0,
+                                           0.326
+                                       ],
+                            "part":  "bench",
+                            "material":  "BENCHTOP3",
+                            "texture":  "14-intbch03.png",
+                            "uv":  [
+                                       0.41,
+                                       0.699
+                                   ],
+                            "crop":  [
+                                         46,
+                                         28,
+                                         59,
+                                         52,
+                                         128,
+                                         128
+                                     ],
+                            "faces":  3,
+                            "why":  "a painted light fan falling down the wall (2.7x the art\u0027s level)",
+                            "light":  {
+                                          "wash":  true,
+                                          "x":  -158.49,
+                                          "y":  -31.85,
+                                          "z":  -95.51,
+                                          "dir":  [
+                                                      -0.323,
+                                                      -0.94,
+                                                      -0.111
+                                                  ],
+                                          "cone":  [
+                                                       24,
+                                                       44
+                                                   ],
+                                          "color":  "#FFC76B",
+                                          "power":  1.6,
+                                          "range":  120
+                                      },
+                            "status":  "pending"
+                        }
+                    ]
+}

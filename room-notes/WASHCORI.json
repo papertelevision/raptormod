@@ -1,95 +1,10 @@
 {
     "schema":  2,
     "room":  "WASHCORI",
-    "rev":  15,
-    "nextId":  5,
+    "rev":  23,
+    "nextId":  7,
     "notes":  [
-                  {
-                      "id":  4,
-                      "ref":  "WASHCORI/4",
-                      "status":  "review",
-                      "created":  "2026-10-13T03:46:58.2509802Z",
-                      "updated":  "2026-10-13T03:58:40.2374718Z",
-                      "kind":  "other",
-                      "point":  [
-                                    23.58,
-                                    -20.15,
-                                    49.77
-                                ],
-                      "normal":  [
-                                     -0.083,
-                                     0,
-                                     -0.997
-                                 ],
-                      "part":  "washwall3",
-                      "material":  "WASHWALL4",
-                      "texture":  "22-washwl4.png",
-                      "uv":  [
-                                 0.501,
-                                 0.509
-                             ],
-                      "target":  null,
-                      "camera":  {
-                                     "pos":  [
-                                                 -2.29,
-                                                 -25.1,
-                                                 -87.97
-                                             ],
-                                     "fwd":  [
-                                                 0.16,
-                                                 -0.03,
-                                                 0.99
-                                             ],
-                                     "up":  [
-                                                0,
-                                                1,
-                                                0
-                                            ],
-                                     "fov":  50,
-                                     "mirror":  true,
-                                     "gpuLook":  {
-                                                     "X":  -2.29,
-                                                     "Y":  -25.1,
-                                                     "Z":  -87.97,
-                                                     "Yaw":  9.07,
-                                                     "Pitch":  -1.46
-                                                 }
-                                 },
-                      "suggest":  {
-                                      "light":  {
-                                                    "x":  21.08,
-                                                    "y":  -20.15,
-                                                    "z":  19.87,
-                                                    "dir":  [
-                                                                -0.083,
-                                                                0,
-                                                                -0.997
-                                                            ]
-                                                }
-                                  },
-                      "seen":  {
-                                   "objMtime":  "2026-10-05T02:29:29.8961460Z",
-                                   "roomFileMtime":  "2026-10-09T15:34:29.5295408Z"
-                               },
-                      "log":  [
-                                  {
-                                      "who":  "josh",
-                                      "text":  "The torch in this room should be lowered to this point",
-                                      "at":  "2026-10-13T03:46:58.2509802Z",
-                                      "shot":  "WASHCORI-4-0.png"
-                                  },
-                                  {
-                                      "who":  "claude",
-                                      "text":  "Done: the torch is lowered to your mark, 15 units out from the wall like every torch -- 36 units lower than it was.",
-                                      "at":  "2026-10-13T03:58:40.2374718Z",
-                                      "changes":  [
-                                                      "rooms\\WASHCORI.json lights[0]: 20.63, 16.01, 34.96 -\u003e 22.33, -20.15, 34.82"
-                                                  ],
-                                      "round":  24,
-                                      "render":  "WASHCORI-4-1-render.png"
-                                  }
-                              ]
-                  }
+
               ],
     "completed":  [
                       {
@@ -335,6 +250,267 @@
                                       }
                                   ],
                           "completedAt":  "2026-10-09T17:11:48.6499636Z"
+                      },
+                      {
+                          "id":  4,
+                          "ref":  "WASHCORI/4",
+                          "status":  "complete",
+                          "created":  "2026-10-13T03:46:58.2509802Z",
+                          "updated":  "2026-10-13T03:58:40.2374718Z",
+                          "kind":  "other",
+                          "point":  [
+                                        23.58,
+                                        -20.15,
+                                        49.77
+                                    ],
+                          "normal":  [
+                                         -0.083,
+                                         0,
+                                         -0.997
+                                     ],
+                          "part":  "washwall3",
+                          "material":  "WASHWALL4",
+                          "texture":  "22-washwl4.png",
+                          "uv":  [
+                                     0.501,
+                                     0.509
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     -2.29,
+                                                     -25.1,
+                                                     -87.97
+                                                 ],
+                                         "fwd":  [
+                                                     0.16,
+                                                     -0.03,
+                                                     0.99
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  50,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  -2.29,
+                                                         "Y":  -25.1,
+                                                         "Z":  -87.97,
+                                                         "Yaw":  9.07,
+                                                         "Pitch":  -1.46
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  21.08,
+                                                        "y":  -20.15,
+                                                        "z":  19.87,
+                                                        "dir":  [
+                                                                    -0.083,
+                                                                    0,
+                                                                    -0.997
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:29.8961460Z",
+                                       "roomFileMtime":  "2026-10-09T15:34:29.5295408Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "The torch in this room should be lowered to this point",
+                                          "at":  "2026-10-13T03:46:58.2509802Z",
+                                          "shot":  "WASHCORI-4-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done: the torch is lowered to your mark, 15 units out from the wall like every torch -- 36 units lower than it was.",
+                                          "at":  "2026-10-13T03:58:40.2374718Z",
+                                          "changes":  [
+                                                          "rooms\\WASHCORI.json lights[0]: 20.63, 16.01, 34.96 -\u003e 22.33, -20.15, 34.82"
+                                                      ],
+                                          "round":  24,
+                                          "render":  "WASHCORI-4-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T20:07:12.4662837Z"
+                      },
+                      {
+                          "id":  5,
+                          "ref":  "WASHCORI/5",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:08:17.8687315Z",
+                          "updated":  "2026-10-14T20:36:23.4219220Z",
+                          "kind":  "map",
+                          "point":  [
+                                        163.19,
+                                        -33.13,
+                                        -10.18
+                                    ],
+                          "normal":  [
+                                         0.941,
+                                         -0.338,
+                                         0
+                                     ],
+                          "part":  "r2s1",
+                          "material":  "SHIELD1",
+                          "texture":  "08-shield1.png",
+                          "uv":  [
+                                     0.553,
+                                     0.828
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     203.38,
+                                                     26.69,
+                                                     -64.93
+                                                 ],
+                                         "fwd":  [
+                                                     -0.58,
+                                                     -0.61,
+                                                     0.54
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  203.38,
+                                                         "Y":  26.69,
+                                                         "Z":  -64.93,
+                                                         "Yaw":  -46.85,
+                                                         "Pitch":  -37.37
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  191.43,
+                                                        "y":  -43.27,
+                                                        "z":  -10.18,
+                                                        "dir":  [
+                                                                    1,
+                                                                    0,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:29.8961460Z",
+                                       "roomFileMtime":  "2026-10-13T03:53:30.9974748Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Omit the square shape here from the map (the shape outside the main wall)",
+                                          "at":  "2026-10-14T20:08:17.8687315Z",
+                                          "shot":  "WASHCORI-5-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. The square shape outside the main wall (washwall4, x 148) is the shield r2s1 inside a box. Both are off the map, so the frame does not float there on its own. Before | after attached (lower right).",
+                                          "at":  "2026-10-14T20:36:23.4219220Z",
+                                          "changes":  [
+                                                          "rooms\\WASHCORI.json map.hide: r2s1, box"
+                                                      ],
+                                          "round":  26,
+                                          "render":  "WASHCORI-5-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4495126Z"
+                      },
+                      {
+                          "id":  6,
+                          "ref":  "WASHCORI/6",
+                          "status":  "complete",
+                          "created":  "2026-10-14T20:08:30.4213993Z",
+                          "updated":  "2026-10-14T20:36:23.4340516Z",
+                          "kind":  "map",
+                          "point":  [
+                                        155.62,
+                                        -29.19,
+                                        22.68
+                                    ],
+                          "normal":  [
+                                         1,
+                                         0,
+                                         0
+                                     ],
+                          "part":  "alcove3",
+                          "material":  "SAFE3",
+                          "texture":  "09-washsaf3.png",
+                          "uv":  [
+                                     0.206,
+                                     0.773
+                                 ],
+                          "target":  null,
+                          "camera":  {
+                                         "pos":  [
+                                                     219.28,
+                                                     21.06,
+                                                     29.38
+                                                 ],
+                                         "fwd":  [
+                                                     -0.74,
+                                                     -0.55,
+                                                     -0.39
+                                                 ],
+                                         "up":  [
+                                                    0,
+                                                    1,
+                                                    0
+                                                ],
+                                         "fov":  60,
+                                         "mirror":  true,
+                                         "gpuLook":  {
+                                                         "X":  219.28,
+                                                         "Y":  21.06,
+                                                         "Z":  29.38,
+                                                         "Yaw":  -117.9,
+                                                         "Pitch":  -33.45
+                                                     }
+                                     },
+                          "suggest":  {
+                                          "light":  {
+                                                        "x":  185.62,
+                                                        "y":  -29.19,
+                                                        "z":  22.68,
+                                                        "dir":  [
+                                                                    1,
+                                                                    0,
+                                                                    0
+                                                                ]
+                                                    }
+                                      },
+                          "seen":  {
+                                       "objMtime":  "2026-10-05T02:29:29.8961460Z",
+                                       "roomFileMtime":  "2026-10-13T03:53:30.9974748Z"
+                                   },
+                          "log":  [
+                                      {
+                                          "who":  "josh",
+                                          "text":  "Omit this shape from map",
+                                          "at":  "2026-10-14T20:08:30.4213993Z",
+                                          "shot":  "WASHCORI-6-0.png"
+                                      },
+                                      {
+                                          "who":  "claude",
+                                          "text":  "Done. This shape is alcove3 plus the panel set into it (inside); both are off the map. Before | after attached (lower right).",
+                                          "at":  "2026-10-14T20:36:23.4340516Z",
+                                          "changes":  [
+                                                          "rooms\\WASHCORI.json map.hide: alcove3, inside"
+                                                      ],
+                                          "round":  26,
+                                          "render":  "WASHCORI-6-1-render.png"
+                                      }
+                                  ],
+                          "completedAt":  "2026-10-14T21:23:10.4495126Z"
                       }
                   ],
     "deleted":  [

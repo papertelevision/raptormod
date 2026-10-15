@@ -20,7 +20,7 @@
   <button id="next" title="Next room in play order">&#9654;</button>
   <span class="sep"></span>
   <button id="modeBtn" title="Fly (default): the orbit view, WASD floats you through the room with no collision. Walk: as the player, eye height over the floor, walls stop you. F switches; Esc goes back to Fly.">Fly</button>
-  <label><input type="checkbox" id="wire"> Wireframe</label>
+  <label title="The room as the game's 3D map draws it: teal faces and edges, with what the map leaves out (and the room's map settings) left out"><input type="checkbox" id="wire"> Wireframe</label>
   <label><input type="checkbox" id="lo"> Original textures</label>
   <label><input type="checkbox" id="fogPrev"> Fog preview</label>
   <label title="Walls are one-sided in the game: from behind they are not there. Tick to draw both sides."><input type="checkbox" id="back"> Back faces</label>
@@ -30,6 +30,7 @@
   <button id="roomNote" title="A note about the whole room">Note on room</button>
   <button id="renderBtn" title="Render the room's REAL look from here: lights, fog, shadows, from its current settings (about 10 s). Key: R">Render view</button>
   <button id="lookBtn" title="Game look: the room drawn LIVE by the game's own renderer -- its lights, fog, shadows and the texture effects -- as you move. The first time takes a few seconds. Key: G">Game look</button>
+  <button id="paintBtn" title="Painted lights: the lights the original art paints (fans, glows, windows), as amber diamonds to approve or dismiss. Key: P">Painted lights <span id="paintCount" hidden></span></button>
   <span id="status"></span>
 </header>
 <main>
@@ -44,6 +45,7 @@
       <label title="Texture repair: re-laid faces, mixed repeats (the game's F11)"><input type="checkbox" id="lk_repair"> Texture repair <kbd>8</kbd></label>
       <span id="lookMsg"></span>
     </div>
+    <div id="paintBox" hidden></div>
     <div id="renderBox" hidden><div class="rb-head"><span id="renderMsg"></span><button id="renderClose" title="Close">&times;</button></div><img id="renderImg" alt="the renderer's view" hidden></div>
     <div id="help">Fly: WASD / arrows move &middot; Q/E or Space/C down/up &middot; Shift faster &middot; drag turn, right-drag pan, wheel zoom &middot; F: walk &middot; G: game look &middot; click to leave a note</div>
   </div>
@@ -83,6 +85,7 @@
         <option value="mist">Mist / particles</option>
         <option value="texture">Texture</option>
         <option value="geometry">Geometry / hole</option>
+        <option value="map">Map update</option>
         <option value="other" selected>Other</option>
       </select>
     </label>
