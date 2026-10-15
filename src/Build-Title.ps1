@@ -37,7 +37,7 @@ param(
     [switch]$Revert,
     [string]$OutDir,
     [string]$InDir,
-    [string]$GameDir = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL',
+    [string]$GameDir = 'C:\Games\RaptorMod\game\GAME\AZRAEL',
     # 0 = the mod's screen, from the manifest. Pass both to override.
     [int]$Width  = 0,
     [int]$Height = 0,

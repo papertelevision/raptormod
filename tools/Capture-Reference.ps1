@@ -19,10 +19,10 @@
 [CmdletBinding()]
 param(
     [string]$Name = 'ref',
-    [string]$OutDir = 'C:\Games\azrael-render\ref',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$Palette = 'C:\Games\azrael-inject\azrael-palette.pal',
+    [string]$OutDir = 'C:\Games\RaptorMod\cache\ref',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
     [string]$Sym = "$PSScriptRoot\..\AztMod.overlay.sym",
     [string]$Manifest = "$PSScriptRoot\..\AztMod.manifest.json"
 )

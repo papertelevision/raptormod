@@ -16,12 +16,12 @@
 
 [CmdletBinding()]
 param(
-    [string]$Overlay = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTCODE.BIN',
+    [string]$Overlay = 'C:\Games\RaptorMod\game\GAME\AZRAEL\AZTCODE.BIN',
     [int]$W = 1024,
     [int]$H = 576,
     [switch]$Leave,
     [string]$Image,                       # optional: an existing 1024x576 image to show
-    [string]$OutDir = 'C:\Games\azrael-inject'
+    [string]$OutDir = 'C:\Games\RaptorMod\cache'
 )
 
 $ErrorActionPreference = 'Stop'

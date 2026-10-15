@@ -28,7 +28,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string[]]$Res,
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     # unsharp amount after the bicubic upscale. 0 = plain bicubic (soft), 0.8 = default,
     # above ~1.5 it rings on high-contrast grout lines.
     [double]$Sharpen = 0.8,

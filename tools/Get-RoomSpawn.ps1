@@ -36,7 +36,7 @@ param(
     [string]$Scene,
     [switch]$List,
     [switch]$All,
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [double]$EyeHeight = 45
 )
 

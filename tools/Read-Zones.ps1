@@ -2,7 +2,7 @@
 #
 #   .\tools\Read-Zones.ps1
 #   .\tools\Read-Zones.ps1 -Graph          # room adjacency only
-#   .\tools\Read-Zones.ps1 -Csv C:\Games\azrael-zones.csv
+#   .\tools\Read-Zones.ps1 -Csv C:\Games\RaptorMod\scratch\azrael-zones.csv
 #
 # This is unknown 6 in the feasibility report ("room/portal/visibility structures"),
 # which was rated High cost on the assumption it needed reverse engineering. It did not:
@@ -31,8 +31,8 @@
 
 [CmdletBinding()]
 param(
-    [string]$Path = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZONES.DAT',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$Path = 'C:\Games\RaptorMod\game\GAME\AZRAEL\AZONES.DAT',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [switch]$Graph,
     [switch]$MapFiles,
     [string]$Csv

@@ -25,8 +25,8 @@ $wp = Join-Path $toolDir 'Watch-HostRender.ps1'; $tk = $null; $pe = $null
 $ast = [System.Management.Automation.Language.Parser]::ParseFile($wp, [ref]$tk, [ref]$pe)
 foreach ($fn in 'ConvertTo-Rgb24', 'Get-CharacterSig', 'Get-Room') { $fd = $ast.Find({ param($x) $x -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $x.Name -eq $fn }, $true); if ($fd) { . ([scriptblock]::Create($fd.Extent.Text)) } }
 function Say([string]$m, [string]$c = 'Gray') { }
-$CacheDir = 'C:\Games\azrael-render'; $TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX'; $Palette = 'C:\Games\azrael-inject\azrael-palette.pal'
-$W = 1600; $H = 928; $CacheRooms = 8; $TrueColour = $true; $NoRgb = $false; $TexOverrideDir = 'C:\Games\azrael-textures\hires'; $TexScale = 1; $NoReflections = $false
+$CacheDir = 'C:\Games\RaptorMod\cache'; $TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX'; $Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal'
+$W = 1600; $H = 928; $CacheRooms = 8; $TrueColour = $true; $NoRgb = $false; $TexOverrideDir = 'C:\Games\RaptorMod\textures\hires'; $TexScale = 1; $NoReflections = $false
 $roomCache = New-Object System.Collections.Specialized.OrderedDictionary
 $pal = [IO.File]::ReadAllBytes($Palette)
 $rm = Get-Room @($Room.ToUpperInvariant())

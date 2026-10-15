@@ -256,7 +256,7 @@
                                       "at":  "2026-10-14T21:58:04.4938437Z",
                                       "changes":  [
                                                       "rooms\\MINEMAZE.json map.hide: ammobag",
-                                                      "new: Watch-HostRender Update-Pickups -\u003e C:\\Games\\azrael-render\\pickups.json; Get-AztMapSkip leaves those parts off every map"
+                                                      "new: Watch-HostRender Update-Pickups -\u003e C:\\Games\\RaptorMod\\cache\\pickups.json; Get-AztMapSkip leaves those parts off every map"
                                                   ],
                                       "round":  28,
                                       "render":  "MINEMAZE-12-1-render.png"

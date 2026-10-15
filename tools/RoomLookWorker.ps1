@@ -10,8 +10,8 @@
 param(
     [int]$Port = 8650, [int]$ParentPid = 0, [double]$IdleMinutes = 20,
     [ValidateSet('Normal', 'Ultra')][string]$TextureQuality = 'Ultra',
-    [string]$RoomsDir = 'C:\Games\azrael-render\rooms',
-    [string]$TexOverrideDir = 'C:\Games\azrael-textures\hires'
+    [string]$RoomsDir = 'C:\Games\RaptorMod\cache\rooms',
+    [string]$TexOverrideDir = 'C:\Games\RaptorMod\textures\hires'
 )
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $PSCommandPath
@@ -27,7 +27,7 @@ foreach ($fn in 'ConvertTo-Rgb24', 'Get-RoomAtmosphere', 'Set-RoomAtmosphere', '
 function Say([string]$m, [string]$c = 'Gray') { }
 $LampRoomOff = 0.82; $NoFog = $false; $NoDust = $true; $NoLights = $false; $NoMist = $false; $NoParticles = $false; $script:giBake = $null; $script:giSync = $true
 $NoShine = $false; $Shine = 1.0; $NoWet = $false; $NoRepair = $false; $NoParallax = $false; $ParallaxDepth = 1.0; $NoGhost = $false; $NoArtLight = $false; $NoVolume = $false; $NoFlipV = $false
-$CacheDir = 'C:\Games\azrael-render'; $TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX'; $Palette = 'C:\Games\azrael-inject\azrael-palette.pal'
+$CacheDir = 'C:\Games\RaptorMod\cache'; $TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX'; $Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal'
 $W = 1600; $H = 928; $CacheRooms = 4; $TrueColour = $true; $NoRgb = $false; $TexScale = 1; $NoReflections = $false
 $roomCache = New-Object System.Collections.Specialized.OrderedDictionary
 $script:texMax = $(if ($TextureQuality -eq 'Normal') { 2048 } else { 0 })

@@ -1,13 +1,13 @@
 # Start-RoomRound.ps1 -- Claude starts a ROUND of work on Josh's Room Review notes (2026-10-08).
 #
-# Before any room setting is touched, every atmosphere file (C:\Games\azrael-render\rooms\*.json) is copied to
+# Before any room setting is touched, every atmosphere file (C:\Games\RaptorMod\cache\rooms\*.json) is copied to
 # rooms-history\round-NNN -- the state BEFORE that round -- so any round can be undone (Restore-RoomRound.ps1). Then the
 # notes waiting on Claude (status 'new') are listed, oldest first, with everything needed to act on them.
 #
 #   .\tools\Start-RoomRound.ps1            snapshot, number the round, list the work
 #   .\tools\Start-RoomRound.ps1 -ListOnly  just list (no new round)
 param(
-    [string]$RenderDir = 'C:\Games\azrael-render',
+    [string]$RenderDir = 'C:\Games\RaptorMod\cache',
     [string]$NotesDir = '',
     [switch]$ListOnly
 )

@@ -1,17 +1,17 @@
 ﻿# Start-RoomReview.ps1 -- ROOM REVIEW (Josh, 2026-10-08): every room in 3D in a web browser, without the game. Click any
-# point on the geometry and leave a note there; the assistant reads the notes (C:\Games\azrael-render\room-notes) and
+# point on the geometry and leave a note there; the assistant reads the notes (C:\Games\RaptorMod\cache\room-notes) and
 # makes the changes -- mostly in the rooms' atmosphere files (rooms\<ROOM>.json: lights, fog, mist...).
 #
 # A small LOCAL server: it serves the viewer (tools\room-review), each room's offline export (the .obj/.mtl/.png written
-# by Export-XafObj.ps1 into C:\Games\azrael-render, with the hi-res texture where there is one), the room's merged
+# by Export-XafObj.ps1 into C:\Games\RaptorMod\cache, with the hi-res texture where there is one), the room's merged
 # atmosphere, and the notes. It listens on localhost only, never writes a room's settings, and never touches the game.
 #
 #   Review-Rooms.cmd                       (double-click: starts this and opens the browser)
 #   .\tools\Start-RoomReview.ps1 [-Port 8642] [-NoBrowser] [-StrictPort] [-Transport Auto|HttpListener|Tcp]
 param(
-    [string]$RenderDir = 'C:\Games\azrael-render',
-    [string]$HiresDir = 'C:\Games\azrael-textures\hires',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$RenderDir = 'C:\Games\RaptorMod\cache',
+    [string]$HiresDir = 'C:\Games\RaptorMod\textures\hires',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [string]$NotesDir = '',
     [int]$Port = 8642,
     [switch]$StrictPort,

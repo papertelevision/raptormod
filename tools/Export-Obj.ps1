@@ -41,14 +41,14 @@ param(
     [switch]$Report,
     [switch]$NoTransform,
     [int]$MaxFaceScan = 120,
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\room1-tex',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZRAEL\room1-tex',
     [switch]$NoFlipV
 )
 
 $ErrorActionPreference = 'Stop'
 
 if (-not $Path) {
-    foreach ($c in @('C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTGEO.BIN',
+    foreach ($c in @('C:\Games\RaptorMod\game\GAME\AZRAEL\AZTGEO.BIN',
                      (Join-Path $PSScriptRoot '..\..\AZTGEO.BIN'))) {
         if (Test-Path $c) { $Path = (Resolve-Path $c).Path; break }
     }

@@ -87,9 +87,9 @@ param(
     [double]$FogNearFrac = 0.04,  # FogNear as a fraction of FogFar
     [double]$Ambient = 0.45,
     [double]$NormalLight = 0.25,
-    [string]$TexDir  = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$Palette = 'C:\Games\azrael-inject\azrael-palette.pal',
+    [string]$TexDir  = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
     [string]$Sym      = "$PSScriptRoot\..\AztMod.overlay.sym",
     [string]$Manifest = "$PSScriptRoot\..\AztMod.manifest.json",
     [int]$Threads = 0

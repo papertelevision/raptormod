@@ -83,10 +83,10 @@
                                       },
                                       {
                                           "who":  "claude",
-                                          "text":  "Done: the ChatGPT textures (design\\incoming\\lurka) are in the true-colour renderer at 2048x2048, replacing the earlier ESRGAN upscales. Each was fitted back onto the original layout first -- ChatGPT had drawn them 12-34% zoomed in -- and the original\u0027s outlines now sit on the new art\u0027s edges (head 0.88; body, legs and skirt lower only because details inside the shapes are redrawn). The relief (bump) maps follow automatically. The body texture is shared with the Claude models (CL-* and FIGHT use the same image), so they get the new body too. The previous files are in C:\\Games\\azrael-textures\\hires-backup-lurka if you want them back.",
+                                          "text":  "Done: the ChatGPT textures (design\\incoming\\lurka) are in the true-colour renderer at 2048x2048, replacing the earlier ESRGAN upscales. Each was fitted back onto the original layout first -- ChatGPT had drawn them 12-34% zoomed in -- and the original\u0027s outlines now sit on the new art\u0027s edges (head 0.88; body, legs and skirt lower only because details inside the shapes are redrawn). The relief (bump) maps follow automatically. The body texture is shared with the Claude models (CL-* and FIGHT use the same image), so they get the new body too. The previous files are in C:\\Games\\RaptorMod\\textures\\hires-backup-lurka if you want them back.",
                                           "at":  "2026-10-09T23:38:31.7397148Z",
                                           "changes":  [
-                                                          "C:\\Games\\azrael-textures\\hires: 01-l_bod, 02-l_legs, 03-l_head, 04-l_skirt (+ 02-l_bod, 07-l_bod for the models sharing the body) -- fitted, 2048"
+                                                          "C:\\Games\\RaptorMod\\textures\\hires: 01-l_bod, 02-l_legs, 03-l_head, 04-l_skirt (+ 02-l_bod, 07-l_bod for the models sharing the body) -- fitted, 2048"
                                                       ],
                                           "round":  20,
                                           "render":  "LURKA-1-1-render.png"
@@ -102,7 +102,7 @@
                                           "text":  "Most of the \"missing\" polygons were there all along: 182 of Lurka\u0027s 440 triangles are textured with painted black in the original art (wrists, ankles, the insides of limbs, the skirt\u0027s back panels), which vanished into the dark in 1996 and now read as holes. The new textures have those black areas filled with the cloth and skin around them, so every triangle shows real texture. What remains are small seams at the joints: the model is rigid segments 0.3-0.7 units apart at rest, wider as the limbs bend. Closing those properly needs skin bridges that stretch with the animation -- a bigger job I have offered separately.",
                                           "at":  "2026-10-09T23:49:08.3962487Z",
                                           "changes":  [
-                                                          "C:\\Games\\azrael-textures\\hires: 01-l_bod, 02-l_legs, 03-l_head, 04-l_skirt (+ 02-l_bod, 07-l_bod) -- painted-black areas filled from the surrounding art (fitted unfilled versions in hires-backup-lurka-fitted)"
+                                                          "C:\\Games\\RaptorMod\\textures\\hires: 01-l_bod, 02-l_legs, 03-l_head, 04-l_skirt (+ 02-l_bod, 07-l_bod) -- painted-black areas filled from the surrounding art (fitted unfilled versions in hires-backup-lurka-fitted)"
                                                       ],
                                           "round":  21,
                                           "render":  "LURKA-1-3-render.png"
@@ -180,7 +180,7 @@
                                       },
                                       {
                                           "who":  "claude",
-                                          "text":  "Reverted. Lurka is back to the fitted ChatGPT textures as they were before the black fill, and characters draw single-sided again as before. The filled versions are kept in C:\\Games\\azrael-textures\\hires-backup-lurka-filled if you ever want them back.",
+                                          "text":  "Reverted. Lurka is back to the fitted ChatGPT textures as they were before the black fill, and characters draw single-sided again as before. The filled versions are kept in C:\\Games\\RaptorMod\\textures\\hires-backup-lurka-filled if you ever want them back.",
                                           "at":  "2026-10-09T23:55:34.7135956Z",
                                           "round":  22,
                                           "changes":  [

@@ -31,7 +31,7 @@ param(
     [switch]$Restore,             # clear every flag and exit: the way back from -Leave
     [string]$Sym      = "$PSScriptRoot\..\AztMod.overlay.sym",
     [string]$Manifest = "$PSScriptRoot\..\AztMod.manifest.json",
-    [string]$Palette  = 'C:\Games\azrael-inject\azrael-palette.pal'
+    [string]$Palette  = 'C:\Games\RaptorMod\cache\azrael-palette.pal'
 )
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $PSCommandPath

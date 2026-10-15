@@ -1,7 +1,7 @@
 # System menu (fold-out): reverse-engineering reference
 
 Static analysis of the stock `GAME\AZRAEL\R.EXE` with the `tools\load.ps1` toolchain, checked
-against the installed modded `C:\Games\AzraelsTear-Modded\GAME\AZRAEL\R.EXE`, `src\Build-AztMod.ps1`
+against the installed modded `C:\Games\RaptorMod\game\GAME\AZRAEL\R.EXE`, `src\Build-AztMod.ps1`
 and `AztMod.manifest.json` (426 patches). Read `docs\save-load-screen-RE.md` first. It already
 covers the fold-out state words, commands 5/11..16/25, the `SAVE%02d.pcx` picture choice and the
 slot list. This document adds the rest of the fold-out: the toggles, the sliders, QUIT, the
@@ -561,7 +561,7 @@ To pick the host's picture state, reuse the save/load doc §1.4 order:
 ## 7. Snippet: decode any hot-spot table (stock or modded)
 
 ```powershell
-. .\tools\load.ps1 -Exe C:\Games\AzraelsTear-Modded\GAME\AZRAEL\R.EXE; Initialize-Azt
+. .\tools\load.ps1 -Exe C:\Games\RaptorMod\game\GAME\AZRAEL\R.EXE; Initialize-Azt
 function W16($a){ [BitConverter]::ToInt16($IMG.Slice([uint32]$a,2),0) }
 foreach ($scr in 0..3) { $p = [BitConverter]::ToUInt32($IMG.Slice([uint32](0x14712E+$scr*4),4),0); $c = W16 $p; $p += 2
   for ($r=0; $r -lt $c; $r++) { $n = W16 $p; $pts = @(0..($n-1) | % { "({0},{1})" -f (W16 ($p+2+4*$_)), (W16 ($p+4+4*$_)) })

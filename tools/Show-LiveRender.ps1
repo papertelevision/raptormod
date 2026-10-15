@@ -18,11 +18,11 @@
 
 [CmdletBinding()]
 param(
-    [string]$Obj      = 'C:\Games\azrael-rooms2\room01\room01.obj',
-    [string]$PalFile  = 'C:\Games\azrael-inject\azrael-palette.pal',
-    [string]$Overlay  = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTCODE.BIN',
+    [string]$Obj      = 'C:\Games\RaptorMod\scratch\azrael-rooms2\room01\room01.obj',
+    [string]$PalFile  = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
+    [string]$Overlay  = 'C:\Games\RaptorMod\game\GAME\AZRAEL\AZTCODE.BIN',
     [string]$Blender  = 'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe',
-    [string]$OutDir   = 'C:\Games\azrael-inject',
+    [string]$OutDir   = 'C:\Games\RaptorMod\cache',
     [int]$W = 1024,
     [int]$H = 576,
     [switch]$NoInject

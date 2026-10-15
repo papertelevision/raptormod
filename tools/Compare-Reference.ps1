@@ -14,10 +14,10 @@
 [CmdletBinding()]
 param(
     [string]$Name = 'opening',
-    [string]$RefDir = 'C:\Games\azrael-render\ref',
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-    [string]$Palette = 'C:\Games\azrael-inject\azrael-palette.pal',
+    [string]$RefDir = 'C:\Games\RaptorMod\cache\ref',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+    [string]$Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
     # 50, MEASURED, not 60. 60 was an assumption carried through every tool. Matching the
     # host's drawn-pixel mask against the engine's own frame (tools\Tune-Geometry.ps1)
     # gives a sharp unimodal peak at 50.0 -- recall 91.5%, against 81.6% at 49, 83.0% at

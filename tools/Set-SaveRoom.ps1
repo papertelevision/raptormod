@@ -40,7 +40,7 @@ param(
     [double]$Z = [double]::NaN,
     [switch]$Show,
     [switch]$Restore,
-    [string]$SaveDir = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL'
+    [string]$SaveDir = 'C:\Games\RaptorMod\game\GAME\AZRAEL'
 )
 
 $ErrorActionPreference = 'Stop'

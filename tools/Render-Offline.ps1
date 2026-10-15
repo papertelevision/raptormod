@@ -1,7 +1,7 @@
 # Render-Offline.ps1 -- prove the rasteriser WITHOUT the game running.
 #
 #   .\tools\Render-Offline.ps1 -Xaf 256ROOM
-#   .\tools\Render-Offline.ps1 -Obj C:\Games\azrael-models\lurka\LURKA.obj
+#   .\tools\Render-Offline.ps1 -Obj C:\Games\RaptorMod\scratch\azrael-models\lurka\LURKA.obj
 #   .\tools\Render-Offline.ps1 -Xaf 256ROOM -Fov 70 -Orbit 4
 #
 # Nothing is injected and nothing is read from a live process. A .XAF (or an OBJ) goes in,
@@ -20,9 +20,9 @@
 param(
     [string]$Xaf,
     [string]$Obj,
-    [string]$TexDir  = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-    [string]$OutDir  = 'C:\Games\azrael-render',
-    [string]$Palette = 'C:\Games\azrael-inject\azrael-palette.pal',
+    [string]$TexDir  = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+    [string]$OutDir  = 'C:\Games\RaptorMod\cache',
+    [string]$Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
     [string]$Manifest = "$PSScriptRoot\..\AztMod.manifest.json",
     [int]$Width  = 0,          # 0 = take the real injection size from the manifest
     [int]$Height = 0,

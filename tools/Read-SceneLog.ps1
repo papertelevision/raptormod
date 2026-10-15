@@ -41,7 +41,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 if (-not $Path) {
-    foreach ($c in @('C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTSCN.LOG',
+    foreach ($c in @('C:\Games\RaptorMod\game\GAME\AZRAEL\AZTSCN.LOG',
                      (Join-Path $PSScriptRoot '..\..\AZTSCN.LOG'))) {
         if (Test-Path $c) { $Path = (Resolve-Path $c).Path; break }
     }

@@ -79,7 +79,7 @@ param(
     [switch]$NoSmooth,
     [switch]$SmoothAll,
     # LIVE DOORWAYS -- OFF. Where the game hangs a still picture of the next room in a doorway,
-    # -Portals draws the next room itself (needs C:\Games\azrael-render\portals.json, from
+    # -Portals draws the next room itself (needs C:\Games\RaptorMod\cache\portals.json, from
     # tools\Build-PortalMap.ps1). Switched off by default on 2026-10-05 at Josh's call: the
     # rooms were never modelled to meet, so the joins do not line up perfectly and each
     # doorway would need ironing out by hand. The game's own pictures are shown instead.
@@ -215,7 +215,7 @@ param(
     # can load before the game starts"). Play-HostRender.cmd passes it; without it the watcher waits for
     # a game started some other way, as before.
     [switch]$Launch,
-    [string]$GameDir = 'C:\Games\AzraelsTear-Modded',
+    [string]$GameDir = 'C:\Games\RaptorMod\game',
     # -Launch shows "Loading RaptorMod..." and holds the game until the renderer has hold of it; this
     # skips both (the game then runs as soon as it starts, as before).
     [switch]$NoLoadingScreen,
@@ -295,7 +295,7 @@ param(
     # REPLACEMENT TEXTURES (true colour only). A PNG in this folder named like a texture's own
     # exported file (08-ecrflra2.png) replaces its colours, at any size. The game's files are
     # not touched and the game's own texture memory is not involved.
-    [string]$TexOverrideDir = 'C:\Games\azrael-textures\hires',
+    [string]$TexOverrideDir = 'C:\Games\RaptorMod\textures\hires',
     # TEXTURE QUALITY (Josh, 2026-10-11): Normal = replacement textures at most 2048 on their long side (a scaled copy, made
     # once beside the folder), Ultra = as large as they are (4096). Empty: the player's choice in <GameDir>\raptormod-settings.json
     # ("textureQuality"; the title's Options will offer it -- "coming soon" for now), else Ultra.
@@ -353,7 +353,7 @@ param(
     # at a fraction of that for a slower machine; -TcMaxPixels caps it, scaled down evenly, so
     # a 4K display does not ask for three times the work of a 1440p one by default.
     [ValidateRange(0.25, 2.0)][double]$TcScale = 1.0,
-    [int]$TcMaxPixels = 3200000,
+    [int]$TcMaxPixels = 0,      # (0: the player's settings file "tcMaxPixels", else 5,500,000 -- see below)
     # AFTER THE PICTURE IS DRAWN (true colour only): edge smoothing and sharpening, BOTH OFF.
     # EDGE SMOOTHING OFF (Josh, 2026-10-05: "I no longer need the anti-aliasing/smoothing
     # feature"): with grainy upscaled textures it took the grain for edges. -AA turns it back on.
@@ -477,7 +477,7 @@ param(
     # -RoomsDir\_defaults.json (classes of rooms, e.g. every cave) and -RoomsDir\<ROOM>.json
     # (that room's own lights and overrides). Edit the files; a room re-reads its file when
     # it is entered. -NoFog / -NoDust / -NoLights switch each off for the session.
-    [string]$RoomsDir = 'C:\Games\azrael-render\rooms',
+    [string]$RoomsDir = 'C:\Games\RaptorMod\cache\rooms',
     [switch]$NoFog, [switch]$NoDust, [switch]$NoLights,
     [switch]$TcGameSize,       # draw at the game's own 1600x928 and let the window stretch it (the first true-colour build)
     [int]$KeyIndex = 0,           # palette index handed to the game as the key; 0 = choose one
@@ -485,7 +485,7 @@ param(
     [string]$TcRect = '',         # 'x,y,w,h' in screen pixels: put the window exactly here instead of working it out
     [string]$TcNudge = '',        # 'dx,dy,dw,dh' added to the worked-out rectangle
     [int]$AuditSeconds = 4,
-    [string]$AuditDir = 'C:\Games\azrael-render\audit',
+    [string]$AuditDir = 'C:\Games\RaptorMod\cache\audit',
     # Do not hand the viewport back for a few engine-drawn frames after each teleport (diagnostic;
     # without it floors stop holding in rooms entered while the host is drawing).
     [switch]$NoLoadPulse,
@@ -499,7 +499,7 @@ param(
     # distance as data. The picture flicks to the engine's for about half a second each time.
     [switch]$CaptureRef,
     [int]$CaptureRefSeconds = 8,
-    [string]$CaptureRefDir = 'C:\Games\azrael-render\ref2',
+    [string]$CaptureRefDir = 'C:\Games\RaptorMod\cache\ref2',
     # THE FLOATING-RAPTOR EXPERIMENT. Every $CharProbeSeconds while a character is in the
     # room: record every frame's matrices, hand the viewport back so the ENGINE draws for a
     # moment, record them again, take the viewport back, and log what moved. A dead Raptor
@@ -599,18 +599,18 @@ param(
     # FEWER bright pixels than the engine's own frame and essentially no isolated dots. The
     # live frame is the only thing that settles it, so write it down rather than infer it.
     [int]$SaveFrames = 0,
-    [string]$SaveDir = 'C:\Games\azrael-render\frames',
+    [string]$SaveDir = 'C:\Games\RaptorMod\cache\frames',
     [int]$CacheRooms = 8,         # loaded rooms kept in memory for instant re-entry
     [int]$Threads = 0,
-    [string]$TexDir  = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$Palette = 'C:\Games\azrael-inject\azrael-palette.pal',
+    [string]$TexDir  = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
     # RESOLVED IN THE BODY, not here. $PSScriptRoot is empty while parameter defaults are
     # bound under `powershell -File`, so "$PSScriptRoot\..\x" became "C:\x" and the script
     # died on startup -- and -File is exactly how a double-clicked launcher runs it.
     [string]$Sym      = '',
     [string]$Manifest = '',
-    [string]$LogFile  = 'C:\Games\azrael-render\watch.log'
+    [string]$LogFile  = 'C:\Games\RaptorMod\cache\watch.log'
 )
 if (-not $Retro) { $TrueColour = [switch]$true }      # (see -Retro)
 $ErrorActionPreference = 'Stop'
@@ -619,6 +619,18 @@ $toolDir = Split-Path -Parent $PSCommandPath
 if (-not $Sym)     { $Sym      = Join-Path $toolDir '..\AztMod.overlay.sym' }
 if (-not $Manifest) { $Manifest = Join-Path $toolDir '..\AztMod.manifest.json' }
 New-Item -ItemType Directory -Force (Split-Path $LogFile -Parent) | Out-Null
+# A START-UP ERROR IS SEEN (2026-10-15): before the session's own log writer is up (Say), an error that stopped this script showed
+# only in the launcher's minimised window -- and with -Launch the game was already running, so the player saw the plain game and
+# no reason. Now it goes into watch.log, and (a game launched from here) into a message box; later failures are logged too.
+$script:startupDone = $false
+trap {
+    $msg = $_.Exception.Message + ' (' + ($_.InvocationInfo.PositionMessage -replace '\s+', ' ').Trim() + ')'
+    try { [IO.File]::AppendAllText($LogFile, ("[{0}] {1}: {2}`r`n" -f (Get-Date -Format 'HH:mm:ss'), $(if ($script:startupDone) { 'STOPPED' } else { 'STARTUP FAILED' }), $msg)) } catch { }
+    if (-not $script:startupDone -and $Launch) {
+        try { [void](New-Object -ComObject WScript.Shell).Popup("RaptorMod's renderer could not start:`r`n`r`n$msg`r`n`r`nThe game runs on without it. Details: $LogFile", 0, 'RaptorMod', 16) } catch { }
+    }
+    break
+}
 # TEXTURE QUALITY (see -TextureQuality): the switch, else the player's settings file, else Ultra; Normal caps replacement
 # textures at 2048 ($script:texMax, read by Get-Room's Add-AztRgb)
 $script:texQuality = [string]$TextureQuality
@@ -780,6 +792,10 @@ $S_delta2  = $(if ($symMap.ContainsKey('aztCamDelta2')) { [uint32]$symMap['aztCa
 $S_fovTan = $(if ($symMap.ContainsKey('aztFovTan')) { [uint32]$symMap['aztFovTan'] } else { [uint32]0 })
 # (the game's own map: not drawn while the host draws its 3D map -- AztMapBlit, Josh 2026-10-14)
 $S_oldMapOff = $(if ($symMap.ContainsKey('aztOldMapOff')) { [uint32]$symMap['aztOldMapOff'] } else { [uint32]0 })
+# THE PICTURE'S PIXEL CAP (2026-10-15: was -TcMaxPixels 5500000 in Play-HostRender-TrueColour.cmd, Josh's 4K screen): the switch,
+# else this PC's settings file ("tcMaxPixels" in raptormod-settings.json), else 5.5 M -- a smaller screen's view is under it anyway
+if ($TcMaxPixels -le 0) { try { $sp = Join-Path $GameDir 'raptormod-settings.json'; if (Test-Path $sp) { $tp = (Get-Content $sp -Raw | ConvertFrom-Json).tcMaxPixels; if ($tp) { $TcMaxPixels = [int]$tp } } } catch { } }
+if ($TcMaxPixels -le 0) { $TcMaxPixels = 5500000 }
 $script:fovGame = -not $Retro
 if ($script:fovGame -and $Fov -le 0) { try { $sp = Join-Path $GameDir 'raptormod-settings.json'; if (Test-Path $sp) { $fs = (Get-Content $sp -Raw | ConvertFrom-Json).fov; if ($fs) { $Fov = [double]$fs } } } catch { } }
 if ($Retro -or $Fov -le 0) { $Fov = $(if ($Retro) { 50 } else { 60 }) }
@@ -1281,7 +1297,7 @@ function Update-Pose($room, $st, $live, [bool]$stats = $true) {
 $script:xafIndex = $null; $script:aniXafs = @{}; $script:nameToFiles = $null
 function Initialize-CharacterIndex {
     $script:xafIndex = @{}
-    $ix = 'C:\Games\azrael-render\xaf-objects.json'
+    $ix = 'C:\Games\RaptorMod\cache\xaf-objects.json'
     if (-not (Test-Path $ix)) { return }
     $j = Get-Content $ix -Raw | ConvertFrom-Json
     $script:nameToFiles = New-Object 'System.Collections.Hashtable' ([StringComparer]::Ordinal)
@@ -1680,6 +1696,15 @@ function Write-GroundHits {
 }
 
 function Get-CharacterSig($chars) { (@($chars | ForEach-Object { '{0}={1}' -f $_.Prefix, $_.Xaf }) -join ',') }
+# THE BOOT WAITS FOR THE ROOM (2026-10-15, the second PC: its first room took 61 s, the visor boot's hold gave up after 10 s and the
+# 8-bit game showed): while a room is prepared the boot's hold does not time out (BootHd.HoldWhileBusy, its status line under the
+# briefing), and when it is ready the hold is given 15 s more for the textures to reach the card and the first frame
+function Get-RoomBusy([string[]]$rooms, $chars = @()) {
+    $bh = $script:bootHd
+    if ($bh) { $bh.BusyText = 'PREPARING TEXTURES...'; $bh.HoldWhileBusy = $true }
+    try { Get-Room $rooms $chars }
+    finally { if ($bh) { $bh.HoldExtendUntil = [Diagnostics.Stopwatch]::GetTimestamp() + 15 * [Diagnostics.Stopwatch]::Frequency; $bh.HoldWhileBusy = $false } }
+}
 
 function Get-Room([string[]]$rooms, $chars = @()) {
     $key = ($rooms -join '+') + '|' + (Get-CharacterSig $chars)
@@ -1720,6 +1745,8 @@ function Get-Room([string[]]$rooms, $chars = @()) {
             if ($rgbSt.Companions) { Say ("  companion maps (shine / height / glow) for {0} of them" -f $rgbSt.Companions) Green }
             if (@($rgbSt.CompanionErrors).Count) { Say ("  companion maps that would not load: {0}" -f (@($rgbSt.CompanionErrors) -join '; ')) Yellow }
             if ($rgbSt.FromFile -or $rgbSt.FromPalette) {
+                # (2026-10-15: where the time went -- the second PC's first room took 61 s in all; the shared-art index is built once per PC)
+                if ($rgbSt.TwinMs -gt 300) { Say ("  shared-art index: {0:N0} ms ({1})" -f $rgbSt.TwinMs, $rgbSt.TwinNote) DarkCyan }
                 Say ("  true colour textures: {0} painted originals, {1} from the palette, {2} ms{3}" -f $rgbSt.FromFile, $rgbSt.FromPalette, $rgbClock.ElapsedMilliseconds, `
                     $(if ($rgbSt.Bad.Count) { '  ** texture order did not match for ' + ($rgbSt.Bad -join ', ') + ': palette colours used' } else { '' })) Cyan
             }
@@ -2647,6 +2674,12 @@ function Start-ScanWire($ovl) {
         $script:scanWire = $sw; $script:scanSaid = 0
         Say ("scanner wireframe: the host draws {0} when scanned" -f ($got -join ', ')) Green
     } catch { Say ("scanner wireframe failed: {0} -- the game's own bitmaps" -f $_.Exception.Message) Yellow; Stop-ScanWire }
+}
+# NOT SILENT (2026-10-15): the graphics card refused means the processor draws -- slower, without the card's effects -- and the
+# player could not tell why; the visor says so once (the reason is in watch.log)
+function Show-GpuRefused([string]$why) {
+    if ($script:gpuRefusedShown) { return }; $script:gpuRefusedShown = $true
+    try { if ($script:ov) { (Get-VisorNote).Show(@('RAPTOR H.U.D. // GRAPHICS CARD NOT AVAILABLE', 'DRAWING ON THE PROCESSOR -- SEE WATCH.LOG'), 6) } } catch { }
 }
 function Stop-TrueColour([string]$why) {
     Say ("true colour: {0} -- back to the 8-bit picture for this session" -f $why) Red
@@ -4525,8 +4558,8 @@ function Invoke-Session {
                 $script:gpu = $gq; $script:gpuOn = $true
                 Say ("THE GRAPHICS CARD DRAWS THE PICTURE: {0} (OpenGL {1}); textures up to {2:N1} GB on it{3}; F9 switches to the processor and back" -f $gq.Renderer, $gq.Version, ($gq.MaxTextureBytes / 1GB), $(if ($gq.CardMemoryBytes -gt 0) { " (the driver reports {0:N1} GB)" -f ($gq.CardMemoryBytes / 1GB) } else { '' })) Cyan
                 Say ("texture quality: {0} -- replacement textures {1}" -f $script:texQuality.ToUpperInvariant(), $(if ($script:texMax -gt 0) { "at most $($script:texMax) px (scaled copies in $($TexOverrideDir)-$($script:texMax))" } else { 'as large as they are' })) Cyan
-            } else { Say ("graphics card not available: {0} -- drawing stays on the processor" -f $gErr) Yellow }
-        } catch { Say ("graphics card not available: {0} -- drawing stays on the processor" -f $_.Exception.Message) Yellow; $script:gpu = $null }
+            } else { Say ("graphics card not available: {0} -- drawing stays on the processor" -f $gErr) Yellow; Show-GpuRefused $gErr }
+        } catch { Say ("graphics card not available: {0} -- drawing stays on the processor" -f $_.Exception.Message) Yellow; $script:gpu = $null; Show-GpuRefused $_.Exception.Message }
     }
     # the player's body for the placed lights' shadows: the raptor rig, its walk and idle ranges from the .ANI naming it
     $script:body = $null; $script:bodyBuf = $null
@@ -4974,7 +5007,7 @@ function Invoke-Session {
                         $loadUi = (-not $script:roomCover) -and (Test-LoadUi)
                         if ($loadUi) { Set-LoadProgress 0.0; $script:rgbProgress = { param($d, $t) Set-LoadProgress (0.65 * $d / [Math]::Max(1, $t)) } }
                         try {
-                            $room = Get-Room $names
+                            $room = Get-RoomBusy $names
                             $curChars = @()
                             $cameFrom = $loadedNames
                             $loadedNames = $joined
@@ -5228,7 +5261,7 @@ function Invoke-Session {
                             $loadedCharSig = $sig
                             foreach ($c in $chars) { Say ("  character {0} -> {1}.XAF ({2} of {3} frames matched)" -f $c.Prefix, $c.Xaf, $c.Hits, $c.Of) Cyan }
                             if (-not $chars.Count) { Say '  no characters in the scene now' Cyan }
-                            $room = Get-Room ($loadedNames -split '\+') $chars
+                            $room = Get-RoomBusy ($loadedNames -split '\+') $chars
                             # (during a load the characters' textures too go to the card before the first frame, under its cover)
                             if ($script:gpu -and $script:gpuOn -and -not $SlowRaster -and (Test-LoadUi)) { try { Send-RoomTextures $room $null } catch { Say ("  character textures to the card failed: {0}" -f $_.Exception.Message) Yellow } }
                             $curChars = $chars
@@ -5965,6 +5998,7 @@ function Invoke-Session {
 # running process had no logging in it. Comparing this line against the file on disk
 # settles "is the thing I am debugging the thing I just changed" in one glance.
 Say ("Watch-HostRender built {0:yyyy-MM-dd HH:mm:ss}" -f (Get-Item $PSCommandPath).LastWriteTime) DarkGray
+$script:startupDone = $true
 Say ("watching for the game. Field of view {0} degrees{2}, lighting {1}. Ctrl-C to stop." -f $Fov, $(if ($Light) { 'on' } else { 'off' }), $(if ($script:fovGame) { " (the game's own field set to match; F12 cycles 50/60/65/70)" } else { " (the game's own)" })) Green
 if ($script:fovNote) { Say ("field of view: {0}" -f $script:fovNote) Yellow }
 $sawGame = $false; $attachClock = $null; $attachSaid = $false; $attachErr = ''

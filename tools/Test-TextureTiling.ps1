@@ -10,8 +10,8 @@
 # SEAM are for the ART (cut-out art -- ropes, chains on black holes -- is not flagged).
 #
 #   .\tools\Test-TextureTiling.ps1                                   (every room in portals.json)
-#   .\tools\Test-TextureTiling.ps1 -Rooms CORICORI,SPAROOM -Sheet C:\Games\azrael-render\tc-test\tiling.png
-param([string[]]$Rooms = @(), [string]$RenderDir = 'C:\Games\azrael-render', [string]$Hires = 'C:\Games\azrael-textures\hires',
+#   .\tools\Test-TextureTiling.ps1 -Rooms CORICORI,SPAROOM -Sheet C:\Games\RaptorMod\cache\tc-test\tiling.png
+param([string[]]$Rooms = @(), [string]$RenderDir = 'C:\Games\RaptorMod\cache', [string]$Hires = 'C:\Games\RaptorMod\textures\hires',
       [double]$StretchK = 4, [string]$Out = '', [string]$Sheet = '', [int]$Top = 30,
       # SHARED ART (2026-10-12): the same original picture is exported once per unit that holds it (03-baptapce in MINEMAZE is
       # 00-baptapce in BAPTIST, pixel for pixel), and the replacement art goes in by file name -- so new art made for one room's

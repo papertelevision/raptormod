@@ -1,5 +1,5 @@
 # Fill-KeyedTexture.ps1 -- Josh's replacement art for a KEYED texture (a `_key` leaf: magenta cut-outs) made safe for the renderer.
-#   .\tools\Fill-KeyedTexture.ps1 -In <new art.png> -Out C:\Games\azrael-textures\hires\<leaf>_key.png -Orig C:\Games\azrael-render\<leaf>_key.png
+#   .\tools\Fill-KeyedTexture.ps1 -In <new art.png> -Out C:\Games\RaptorMod\textures\hires\<leaf>_key.png -Orig C:\Games\RaptorMod\cache\<leaf>_key.png
 # Back up the installed file first (Fit-RoomTextures' -Backup folder). First used on MINEMAZE 11-mmzgun_key / 14-mmzamul_key (2026-10-11).
 param([string]$In, [string]$Out, [string]$Orig)
 # KEYED REPLACEMENT ART (magenta cut-outs). The ORIGINAL's mask decides the holes in the renderer (GpuRaster uMask: palette

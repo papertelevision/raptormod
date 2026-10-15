@@ -1,6 +1,6 @@
 ---
 name: azrael-atmosphere
-description: "Fog, floating dust and PLACED lights in the host renderer (built 2026-10-05 21:45, not yet seen in game): per-room JSON in C:\Games\azrael-render\rooms, cave class defaults, torch on room 1's inscription wall. How it works and the numbers."
+description: "Fog, floating dust and PLACED lights in the host renderer (built 2026-10-05 21:45, not yet seen in game): per-room JSON in C:\Games\RaptorMod\cache\rooms, cave class defaults, torch on room 1's inscription wall. How it works and the numbers."
 metadata:
   type: project
 ---
@@ -10,7 +10,7 @@ and all caves; floating dust; one warm flickering torch in room 1 "towards the m
 perhaps the one with the Latin wording". He wants to PLACE further lights himself later (the
 game has no light data: every torch is paint; see [[azrael-true-colour]]).
 
-**Files (he edits these):** `C:\Games\azrael-render\rooms\_defaults.json` = classes with room
+**Files (he edits these):** `C:\Games\RaptorMod\cache\rooms\_defaults.json` = classes with room
 lists + fog/dust defaults (class "cave": 32 rooms, fog #120C08 near 120 far 820 max 0.88, dust 500
 r 360). `rooms\<ROOM>.json` = that room's own `lights` (x y z in the room's coordinates, color,
 power, range, flicker) and fog/dust overrides. Re-read on every room entry.
@@ -29,7 +29,7 @@ Watcher: `Get-RoomAtmosphere` / `Set-RoomAtmosphere` / `Update-RoomLights` (flic
 + smoothed noise, floor 0.45); `-RoomsDir`, `-NoFog`, `-NoDust`, `-NoLights`.
 Cost: room 1 draw 7 -> 14 ms offline at 2560x1238 with fog + one light (a sqrt per light per
 pixel; optimise if the frame rate complains). Frame interpolation still NOT built.
-Offline frame: C:\Games\azrael-render\tc-test\atmos-cori.png.
+Offline frame: C:\Games\RaptorMod\cache\tc-test\atmos-cori.png.
 
 ## Josh's verdict (21:30): fog "perfect", dust "perfect", torch "perfect" -- three tweaks, built 21:42
 

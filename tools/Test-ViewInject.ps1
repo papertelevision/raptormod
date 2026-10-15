@@ -27,7 +27,7 @@ param(
     [long]$VarW   = 0x133380,
     [long]$VarH   = 0x133384,
     [long]$BufAt  = 0x138000,
-    [string]$OutDir = 'C:\Games\azrael-inject'
+    [string]$OutDir = 'C:\Games\RaptorMod\cache'
 )
 
 $ErrorActionPreference = 'Stop'

@@ -12,7 +12,7 @@
 #    units that grow the most, and totals.
 param(
     [int]$Levels = 1, [double]$CreaseDeg = 40, [double]$MinMove = 0.03, [int]$MaxTris = 60000,
-    [string]$CacheDir = 'C:\Games\azrael-render', [int]$Top = 14
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache', [int]$Top = 14
 )
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $PSCommandPath

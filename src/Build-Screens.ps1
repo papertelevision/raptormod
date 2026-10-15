@@ -1,6 +1,6 @@
 # Build-Screens.ps1 -- full-screen UI art that is neither HUD nor book page.
 #
-#   .\src\Build-Screens.ps1 -Import -InDir C:\Games\azrael-gfx\screens
+#   .\src\Build-Screens.ps1 -Import -InDir C:\Games\RaptorMod\sources\gfx\screens
 #   .\src\Build-Screens.ps1 -Import -InDir ... -Only HELP
 #   .\src\Build-Screens.ps1 -Revert
 #
@@ -39,8 +39,8 @@
 param(
     [switch]$Import,
     [switch]$Revert,
-    [string]$InDir  = 'C:\Games\azrael-gfx\screens',
-    [string]$GameDir = 'C:\Games\AzraelsTear-Modded\GAME',
+    [string]$InDir  = 'C:\Games\RaptorMod\sources\gfx\screens',
+    [string]$GameDir = 'C:\Games\RaptorMod\game\GAME',
     [string]$ArtDir  = (Join-Path $PSScriptRoot '..\art'),
     [string[]]$Only,
     [int]$Width  = 0,          # 0 = take the mod's own screen size from the manifest

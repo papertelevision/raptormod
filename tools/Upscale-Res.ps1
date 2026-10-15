@@ -23,7 +23,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Res,
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [int]$MaxAxis = 512,          # the engine's ceiling; both axes must end up <= this
     [int[]]$Keyed = @(),          # record indices whose .XAF name contains '#'
     [switch]$Revert,

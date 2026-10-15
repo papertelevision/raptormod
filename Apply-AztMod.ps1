@@ -260,7 +260,7 @@ if ($man.patches | Where-Object name -eq 'opening-movie') {
         } else {
             Warn "this build patches in an extra intro movie but GAME\AZRAEL\OPENING.MOV is missing --"
             Warn "  the intro will fail at that call. Re-encode it with:"
-            Warn "  .\tools\Convert-ToAnim.ps1 -Mp4 C:\Games\azrael-video\update\opening.mp4 -Out '$omDst'"
+            Warn "  .\tools\Convert-ToAnim.ps1 -Mp4 C:\Games\RaptorMod\sources\video\update\opening.mp4 -Out '$omDst'"
         }
     } else {
         Ok ("OPENING.MOV present ({0:N0} MB) -- the extra intro movie will play" -f ((Get-Item $omDst).Length / 1MB))
@@ -650,7 +650,10 @@ if NOT ERRORLEVEL 1 r %1 %2 %3
 # of it: heavy rooms could not get near the 40 fps cap, which made everything
 # frame-tied crawl. The two launchers have to agree on the emulator or the tuning
 # in azrael-staging.conf is tuning something nobody runs.
-$bat = Join-Path $target 'Play-Azrael-Modded.bat'
+# (2026-10-15: this plain launcher is now Play-Azrael-8bit.bat -- the 8-bit game, no renderer. Play-Azrael-Modded.bat, written
+# below, starts the GPU version through the repo's launcher: on the second PC that name was the obvious one to click, and it
+# never started the renderer)
+$bat = Join-Path $target 'Play-Azrael-8bit.bat'
 $staging = Join-Path $target 'DOSBOX-STAGING\dosbox.exe'
 if ((Test-Path $staging) -and (Test-Path (Join-Path $target 'azrael-staging.conf'))) {
     @'
@@ -667,6 +670,24 @@ start "" /W /B DOSBOX\DOSBox.exe -noconsole -conf azrael-base.conf -conf azrael-
 '@ | Set-Content -Path $bat -Encoding ascii
     Ok "wrote $(Split-Path -Leaf $bat)  (DOSBox 0.74 -- Staging not found)"
 }
+
+# THE MAIN LAUNCHER: the GPU version (the repo's Play-HostRender-TrueColour.cmd: the renderer starts the game), the 8-bit one
+# when there is no repo beside this install
+$gpuCmd = Join-Path $PSScriptRoot 'Play-HostRender-TrueColour.cmd'
+$main = Join-Path $target 'Play-Azrael-Modded.bat'
+if (Test-Path $gpuCmd) {
+    @"
+@echo off
+REM RaptorMod -- the GPU version: the host renderer starts the game ($([IO.Path]::GetFileName($gpuCmd)) in the repo).
+REM Play-Azrael-8bit.bat beside this runs the game without the renderer.
+call "$gpuCmd" %*
+"@ | Set-Content -Path $main -Encoding ascii
+    Ok "wrote Play-Azrael-Modded.bat  (the GPU version, through $gpuCmd)"
+} else {
+    Copy-Item $bat $main -Force
+    Ok "wrote Play-Azrael-Modded.bat  (the 8-bit game: no renderer beside this install)"
+}
+$bat = $main
 
 Say ""
 Say "Done. Launch with:  $bat"

@@ -19,9 +19,9 @@ param(
     [int]$Runs = 30,
     [int]$W = 1600, [int]$H = 928,
     [double]$Fov = 50,
-    [string]$TexDir   = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$Palette  = 'C:\Games\azrael-inject\azrael-palette.pal'
+    [string]$TexDir   = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$Palette  = 'C:\Games\RaptorMod\cache\azrael-palette.pal'
 )
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $PSCommandPath

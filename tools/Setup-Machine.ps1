@@ -3,32 +3,40 @@
 #   powershell -ExecutionPolicy Bypass -File tools\Setup-Machine.ps1 -AssetPack E:\raptormod-assets
 #   powershell -ExecutionPolicy Bypass -File tools\Setup-Machine.ps1                 (no pack: just the links and derived files)
 #
+# EVERYTHING ON THIS PC LIVES IN ONE FOLDER, C:\Games\RaptorMod (2026-10-15, Josh: "a single install folder"):
+#   game\       the patched game (DOSBox Staging, its confs, saves, raptormod-settings.json)
+#   cache\      the renderer's caches and watch.log; rooms\ and room-notes\ are junctions to this repo's
+#   textures\   hires\ (the hi-res textures), hires-2048\ (made for Normal quality), hires-backup-*
+#   sources\    books, gfx, video, realesrgan, soundtrack, files (Josh's working files)
+#   scratch\    old research / test output
+#   Play RaptorMod.cmd, Room Review.cmd -- and ONE desktop shortcut, RaptorMod
+# The git repo stays in the Steam game folder (the build reads the stock game from there).
+#
 # What it does, in order (each step says what it did, or why it skipped):
-#   1. checks the repo sits in the Steam game folder (<Steam library>\steamapps\common\Azrael's Tear\AztMod)
-#   2. -AssetPack: restores the pack's tar files (tools\Export-AssetPack.ps1) to their places -- a folder that already
-#      exists is left alone unless -Force
-#   3. C:\Games\azrael-render\rooms and \room-notes -> junctions to this repo's rooms\ and room-notes\ (the tools all read
-#      the old paths): the room settings and Room Review's notes are versioned; the notes' screenshots stay on each PC
-#   4. C:\Games\azrael-inject\azrael-palette.pal <- runtime\azrael-palette.pal (the renderer needs it)
+#   1. checks the repo sits in the Steam game folder (<Steam library>\steamapps\common\Azrael's Tear\AztMod); the repo's git settings
+#   2. MOVES the old layout in (C:\Games\AzraelsTear-Modded, azrael-render, azrael-textures, azrael-books, azrael-gfx, azrael-video,
+#      realesrgan, Desktop\AzraelTearSoundtrack, Desktop\RaptorModFiles, the old test folders): a move, never a copy, and only
+#      where the new place is still empty
+#   3. -AssetPack: restores the pack's tar files (tools\Export-AssetPack.ps1) -- a part already there is left alone unless -Force
+#   4. cache\rooms and \room-notes -> junctions to this repo's rooms\ and room-notes\; the palette into cache\
 #   5. art\title\title-music.wav <- decoded from art\title\title-music.mp3 (the title's music player wants PCM)
-#   6. with the game installed at C:\Games\AzraelsTear-Modded: Apply-AztMod -Install (this repo's patches), then the
-#      manifest is recorded as installed (Install-Update.cmd diffs against it)
-#   7. every room's cached export (tools\Build-RoomCache.ps1: the OBJ/textures Room Review's 3D viewer shows, and the
-#      renderer's units) -- a few minutes the first time, seconds after; -SkipRoomCache to leave it to first use
-#   8. desktop shortcuts: the game (Play-HostRender-TrueColour.cmd) and Room Review (Review-Rooms.cmd)
-#   9. a dry run of the launcher (AZT_DRYRUN: every step checked, nothing started)
-# Also: the repo's local git settings (core.autocrlf false, core.longpaths true, the author) where unset.
+#   6. Apply-AztMod -Install (this repo's patches) into game\, the manifest recorded as installed; the DOSBox conf's capture folder
+#   7. every room's cached export (tools\Build-RoomCache.ps1) -- a few minutes the first time, seconds after
+#   8. textures prepared: the shared-art index built and every hi-res texture read once (a fresh PC's first room took 61 s
+#      otherwise -- 2026-10-15), and the graphics card checked (tools\Test-GpuCaps.ps1)
+#   9. the launchers in C:\Games\RaptorMod and ONE desktop shortcut, RaptorMod (older RaptorMod shortcuts are removed)
+#  10. a dry run of the launcher (AZT_DRYRUN: every step checked, nothing started)
 # The game is never launched. tools\Install-RaptorMod.ps1 runs all of this on a fresh PC (clone + pack from the NAS).
-
 [CmdletBinding()]
 param(
     [string]$AssetPack = '',
-    [string]$GameDest = 'C:\Games\AzraelsTear-Modded',
+    [string]$GameDest = 'C:\Games\RaptorMod\game',
     [switch]$Force,
     [switch]$SkipInstall,
     [switch]$SkipRoomCache,
     [switch]$NoShortcut
 )
+$Root = 'C:\Games\RaptorMod'
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 function Step($s) { Write-Host ""; Write-Host "== $s" -ForegroundColor Cyan }
@@ -60,7 +68,36 @@ else {
     }
 }
 
-# ---- 2. the asset pack ----------------------------------------------------------------------------------------------
+# ---- 2. the old layout moves in -------------------------------------------------------------------------------------
+Step "one folder: $Root"
+New-Item -ItemType Directory -Force -Path $Root | Out-Null
+$desk = [Environment]::GetFolderPath('Desktop')
+$moves = @(
+    @('C:\Games\AzraelsTear-Modded', 'game'), @('C:\Games\azrael-render', 'cache'), @('C:\Games\azrael-textures', 'textures'),
+    @('C:\Games\azrael-books', 'sources\books'), @('C:\Games\azrael-gfx', 'sources\gfx'), @('C:\Games\azrael-video', 'sources\video'),
+    @('C:\Games\realesrgan', 'sources\realesrgan'), @((Join-Path $desk 'AzraelTearSoundtrack'), 'sources\soundtrack'), @((Join-Path $desk 'RaptorModFiles'), 'sources\files'),
+    @('C:\Games\azrael-inject', 'scratch\azrael-inject'), @('C:\Games\azrael-models', 'scratch\azrael-models'), @('C:\Games\azrael-rooms', 'scratch\azrael-rooms'),
+    @('C:\Games\azrael-rooms2', 'scratch\azrael-rooms2'), @('C:\Games\azrael-compare', 'scratch\azrael-compare'), @('C:\Games\azrael-suppress3d', 'scratch\azrael-suppress3d'),
+    @('C:\Games\azrael-stage7', 'scratch\azrael-stage7'), @('C:\Games\azrael-scene.json', 'scratch\azrael-scene.json'), @('C:\Games\azrael-zones.csv', 'scratch\azrael-zones.csv'),
+    @('C:\Games\azrael-rooms.csv', 'scratch\azrael-rooms.csv'))
+$moved = 0
+foreach ($mv in $moves) {
+    $old = $mv[0]; $new = Join-Path $Root $mv[1]
+    if (-not (Test-Path -LiteralPath $old)) { continue }
+    if (Test-Path -LiteralPath $new) { Warn "$old is still here, but $new exists too -- left as it is (move what you need by hand)"; $problems += "both $old and $new"; continue }
+    if (($old -like 'C:\Games\AzraelsTear-Modded*') -and (Get-Process dosbox* -ErrorAction SilentlyContinue)) { Warn 'DOSBox is running -- close the game and run this again to move the game folder'; $problems += 'DOSBox running'; continue }
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $new) | Out-Null
+    try { Move-Item -LiteralPath $old -Destination $new -ErrorAction Stop; Ok "$old -> $new"; $moved++ }
+    catch { Warn "could not move $old ($($_.Exception.Message)) -- close anything using it and run this again"; $problems += "move $old" }
+}
+if (-not $moved) { Ok 'nothing of the old layout left to move' }
+# (the DOSBox conf's capture folder, and anything else in the game's confs, follow the game folder)
+foreach ($cf in @(Get-ChildItem (Join-Path $Root 'game') -Filter '*.conf' -File -ErrorAction SilentlyContinue)) {
+    $ct = [IO.File]::ReadAllText($cf.FullName)
+    if ($ct -match '(?i)C:\\Games\\AzraelsTear-Modded') { [IO.File]::WriteAllText($cf.FullName, ($ct -replace '(?i)C:\\Games\\AzraelsTear-Modded', 'C:\Games\RaptorMod\game')); Ok "$($cf.Name): paths moved to the new game folder" }
+}
+
+# ---- 3. the asset pack ----------------------------------------------------------------------------------------------
 if ($AssetPack) {
     Step "asset pack: $AssetPack"
     $pj = Join-Path $AssetPack 'pack.json'
@@ -72,12 +109,12 @@ if ($AssetPack) {
     $free = (Get-PSDrive C).Free
     if ($free -lt $need * 1.1) { Warn ("C: has {0:N1} GB free; the pack needs about {1:N1} GB" -f ($free / 1GB), ($need / 1GB)) }
     foreach ($c in @($pack.components)) {
-        $dest = ([string]$c.restore).Replace('%DESKTOP%', [Environment]::GetFolderPath('Desktop')).Replace('%REPO%', $repo)
+        $dest = [string]$c.restore
+        if ($dest -notlike "$Root*") { Warn "$($c.name): an older pack (restores into $dest) -- skipped; export the pack again from the PC that has everything"; $problems += "old pack $($c.name)"; continue }
         $file = Join-Path $AssetPack $c.tar
         if (-not (Test-Path $file)) { Warn "$($c.name): $($c.tar) missing from the pack -- skipped"; continue }
         $present = @($c.paths | Where-Object { Test-Path (Join-Path $dest ($_ -replace '/', '\')) })
-        # (Room Review's screenshots restore INTO the repo's room-notes\, which every clone has: there, present = its PNGs)
-        if ($c.name -eq 'screenshots') { $present = @($c.paths | Where-Object { $d0 = Join-Path $dest ($_ -replace '/', '\'); (Test-Path $d0) -and [IO.Directory]::EnumerateFiles($d0, '*.png').GetEnumerator().MoveNext() }) }
+
         if ($present.Count -and -not $Force) { Ok ("{0}: already here ({1}) -- left alone (-Force to restore over it)" -f $c.name, ($present -join ', ')); continue }
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
         Write-Host ("   {0}: restoring {1:N0} MB into {2} ..." -f $c.name, ([long]$c.bytes / 1MB), $dest)
@@ -96,7 +133,7 @@ if ($AssetPack) {
     }
 }
 
-# ---- 3. junctions: room settings and Room Review's notes ------------------------------------------------------------
+# ---- 4. junctions: room settings and Room Review's notes; the palette ------------------------------------------------
 function Set-RepoJunction([string]$link, [string]$target) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $link) | Out-Null
     New-Item -ItemType Directory -Force -Path $target | Out-Null
@@ -113,13 +150,13 @@ function Set-RepoJunction([string]$link, [string]$target) {
     }
     New-Item -ItemType Junction -Path $link -Target $target | Out-Null; Ok "$link -> $target"
 }
-Step 'junctions (rooms\, room-notes\ -> C:\Games\azrael-render)'
-Set-RepoJunction 'C:\Games\azrael-render\rooms' (Join-Path $repo 'rooms')
-Set-RepoJunction 'C:\Games\azrael-render\room-notes' (Join-Path $repo 'room-notes')
+Step 'junctions (rooms\, room-notes\ -> C:\Games\RaptorMod\cache)'
+Set-RepoJunction 'C:\Games\RaptorMod\cache\rooms' (Join-Path $repo 'rooms')
+Set-RepoJunction 'C:\Games\RaptorMod\cache\room-notes' (Join-Path $repo 'room-notes')
 
-# ---- 4. palette -----------------------------------------------------------------------------------------------------
+# (the palette)
 Step 'palette'
-$palDst = 'C:\Games\azrael-inject\azrael-palette.pal'; $palSrc = Join-Path $repo 'runtime\azrael-palette.pal'
+$palDst = 'C:\Games\RaptorMod\cache\azrael-palette.pal'; $palSrc = Join-Path $repo 'runtime\azrael-palette.pal'
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $palDst) | Out-Null
 if ((Test-Path $palDst) -and ((Get-FileHash $palDst).Hash -eq (Get-FileHash $palSrc).Hash)) { Ok 'up to date' }
 else {
@@ -156,7 +193,7 @@ else {
     Copy-Item (Join-Path $repo 'AztMod.manifest.json') (Join-Path $repo 'AztMod.manifest.installed.json') -Force
     Ok 'patches installed; manifest recorded as installed'
 }
-foreach ($dep in @(@('DOSBox Staging', (Join-Path $GameDest 'DOSBOX-STAGING\dosbox.exe')), @('extracted textures (GAME\AZTEX)', (Join-Path $GameDest 'GAME\AZTEX')), @('hi-res textures', 'C:\Games\azrael-textures\hires'))) {
+foreach ($dep in @(@('DOSBox Staging', (Join-Path $GameDest 'DOSBOX-STAGING\dosbox.exe')), @('extracted textures (GAME\AZTEX)', (Join-Path $GameDest 'GAME\AZTEX')), @('hi-res textures', 'C:\Games\RaptorMod\textures\hires'))) {
     if (Test-Path $dep[1]) { Ok "$($dep[0]): present" } else { Warn "$($dep[0]): MISSING ($($dep[1]))"; $problems += $dep[0] }
 }
 
@@ -172,24 +209,50 @@ else {
         $rc = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\Build-RoomCache.ps1') 2>&1
         $rcExit = $LASTEXITCODE; @($rc) | Select-Object -Last 3 | ForEach-Object { Write-Host "   $_" }
         if ($rcExit -ne 0) { throw "exit $rcExit" }
-        Ok ("done in {0:N0} s ({1} rooms exported for the viewer)" -f $sw.Elapsed.TotalSeconds, @(Get-ChildItem 'C:\Games\azrael-render' -Filter '*.obj' -File -ErrorAction SilentlyContinue).Count)
+        Ok ("done in {0:N0} s ({1} rooms exported for the viewer)" -f $sw.Elapsed.TotalSeconds, @(Get-ChildItem 'C:\Games\RaptorMod\cache' -Filter '*.obj' -File -ErrorAction SilentlyContinue).Count)
     }
     catch { Warn "Build-RoomCache failed: $($_.Exception.Message)"; $problems += 'room cache' }
 }
 
-# ---- 8. shortcut ----------------------------------------------------------------------------------------------------
-if (-not $NoShortcut) {
-    Step 'desktop shortcuts'
-    foreach ($sc in @(@("Azrael's Tear (Host Renderer - true colour).lnk", 'Play-HostRender-TrueColour.cmd'), @('Room Review.lnk', 'Review-Rooms.cmd'))) {
-        $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) $sc[0]
-        if (Test-Path $lnk) { Ok "$($sc[0]): already there"; continue }
-        if (-not (Test-Path (Join-Path $repo $sc[1]))) { Warn "$($sc[1]) missing -- no shortcut"; continue }
-        $sh = New-Object -ComObject WScript.Shell; $s = $sh.CreateShortcut($lnk)
-        $s.TargetPath = Join-Path $repo $sc[1]; $s.WorkingDirectory = $repo; $s.Save(); Ok "made: $lnk"
-    }
+# ---- 8. textures prepared, and the graphics card checked --------------------------------------------------------------
+# (2026-10-15, the second PC: its first room took 61 s -- the shared-art index opens every hi-res texture and hashes every
+# original, and on files just restored that is slow the first time; done here instead of under the visor boot)
+Step 'textures prepared (the shared-art index; every hi-res texture read once)'
+$hires = Join-Path $Root 'textures\hires'
+if (-not (Test-Path $hires) -or -not (Test-Path (Join-Path $Root 'cache'))) { Warn 'no textures\hires or cache yet -- skipped' }
+else {
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    $prep = @"
+`$ErrorActionPreference = 'Stop'; . '$($repo.Replace("'", "''"))\tools\LoadRoom.ps1'
+`$m = Get-AztTwinArt '$Root\cache' '$hires'; `$script:AztTwin.Note
+"@
+    $out = & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $prep 2>&1
+    if ($LASTEXITCODE -eq 0) { Ok ("shared-art index: {0} ({1:N0} s)" -f (@($out) -join ' '), $sw.Elapsed.TotalSeconds) } else { Warn "shared-art index failed: $(@($out) -join ' ')"; $problems += 'texture index' }
 }
+Step 'graphics card'
+$gc = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\Test-GpuCaps.ps1') -CacheDir (Join-Path $Root 'cache') 2>&1
+if ($LASTEXITCODE -eq 0) { Ok (@($gc) -join ' ') } else { Warn ((@($gc) -join ' ') + ' -- the game would run without the GPU picture'); $problems += 'graphics card' }
 
-# ---- 9. the launcher, dry run -----------------------------------------------------------------------------------------
+# ---- 9. the launchers and ONE desktop shortcut ------------------------------------------------------------------------
+Step "launchers ($Root) and the desktop shortcut"
+$playCmd = Join-Path $Root 'Play RaptorMod.cmd'; $reviewCmd = Join-Path $Root 'Room Review.cmd'
+[IO.File]::WriteAllText($playCmd, "@echo off`r`nREM RaptorMod -- the GPU version (the host renderer starts the game). Made by tools\Setup-Machine.ps1.`r`ncall `"$(Join-Path $repo 'Play-HostRender-TrueColour.cmd')`" %*`r`n", (New-Object Text.ASCIIEncoding))
+[IO.File]::WriteAllText($reviewCmd, "@echo off`r`nREM Room Review (the room-settings viewer). Made by tools\Setup-Machine.ps1.`r`ncall `"$(Join-Path $repo 'Review-Rooms.cmd')`" %*`r`n", (New-Object Text.ASCIIEncoding))
+Ok "wrote $playCmd and $reviewCmd"
+if (-not $NoShortcut) {
+    $sh = New-Object -ComObject WScript.Shell
+    # older RaptorMod shortcuts (anything on the desktop that starts something in the repo or the game folder) go: ONE remains
+    foreach ($l in @(Get-ChildItem $desk -Filter '*.lnk' -File -ErrorAction SilentlyContinue)) {
+        if ($l.Name -eq 'RaptorMod.lnk') { continue }
+        $tp = [string]$sh.CreateShortcut($l.FullName).TargetPath
+        if ($tp -and ($tp -like "$repo\*" -or $tp -like 'C:\Games\AzraelsTear-Modded\*' -or $tp -like "$Root\*")) { [IO.File]::Delete($l.FullName); Ok "removed the old shortcut $($l.Name)" }
+    }
+    $lnk = Join-Path $desk 'RaptorMod.lnk'; $s = $sh.CreateShortcut($lnk)
+    $s.TargetPath = $playCmd; $s.WorkingDirectory = $Root; $s.Description = "Azrael's Tear with RaptorMod (the GPU version)"
+    $ico = Join-Path $Root 'game\DOSBOX-STAGING\dosbox.exe'; if (Test-Path $ico) { $s.IconLocation = "$ico,0" }
+    $s.Save(); Ok "desktop: RaptorMod -> $playCmd"
+}
+# ---- 10. the launcher, dry run ----------------------------------------------------------------------------------------
 Step 'launcher check (dry run: nothing is started)'
 $env:AZT_DRYRUN = '1'
 try { $out = & cmd /c "call `"$(Join-Path $repo 'Play-HostRender.cmd')`"" 2>&1; $out | ForEach-Object { Write-Host "   $_" } }
@@ -198,4 +261,4 @@ if (($out -join "`n") -match 'renderer script found') { Ok 'the launcher finds t
 
 Write-Host ""
 if ($problems.Count) { Write-Host ("setup finished with {0} thing(s) to sort out: {1}" -f $problems.Count, ($problems -join '; ')) -ForegroundColor Yellow }
-else { Write-Host 'setup finished: this PC is ready (play with the desktop shortcut)' -ForegroundColor Green }
+else { Write-Host "setup finished: this PC is ready -- play with the RaptorMod shortcut on the desktop (or $Root\Play RaptorMod.cmd)" -ForegroundColor Green }

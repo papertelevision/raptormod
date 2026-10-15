@@ -2,11 +2,11 @@
 # word, the table's names, which rule, or the default). -Sheet draws the textures grouped by material, to check the tags by eye.
 #
 #   .\tools\Show-Materials.ps1 -Room SPAROOM
-#   .\tools\Show-Materials.ps1 -Room ORRERY -Sheet C:\Games\azrael-render\tc-test\materials-ORRERY.png
+#   .\tools\Show-Materials.ps1 -Room ORRERY -Sheet C:\Games\RaptorMod\cache\tc-test\materials-ORRERY.png
 #   .\tools\Show-Materials.ps1 -Room LURKA -Character            (what a character wears: its own rules)
 #   .\tools\Show-Materials.ps1 -All                              (every unit: counts, and the names left to the default)
 param([string]$Room = '', [switch]$Character, [string]$Sheet = '', [switch]$All,
-      [string]$RenderDir = 'C:\Games\azrael-render', [string]$Hires = 'C:\Games\azrael-textures\hires', [string]$RoomsDir = '')
+      [string]$RenderDir = 'C:\Games\RaptorMod\cache', [string]$Hires = 'C:\Games\RaptorMod\textures\hires', [string]$RoomsDir = '')
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $PSCommandPath
 if (-not $RoomsDir) { $RoomsDir = Join-Path $RenderDir 'rooms' }

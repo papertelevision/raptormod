@@ -4,7 +4,7 @@
 #   .\tools\Upscale-Room.ps1 -Room CORICORI -Sheet        (also writes before/after sheets)
 #   .\tools\Upscale-Room.ps1 -Room CORICORI -Revert       (take this room's replacements out)
 #
-# The game's own files are not touched. Results go to C:\Games\azrael-textures\hires under the
+# The game's own files are not touched. Results go to C:\Games\RaptorMod\textures\hires under the
 # textures' own file names, which is where Watch-HostRender -TrueColour looks for replacement
 # art (see -TexOverrideDir). Deleting a file there puts that texture back to the original.
 #
@@ -29,10 +29,10 @@ param(
     [Parameter(Mandatory = $true)][string]$Room,
     [int]$Scale = 4,
     [string]$Model = 'realesrgan-x4plus',
-    [string]$ExeDir   = 'C:\Games\realesrgan',
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$OutDir   = 'C:\Games\azrael-textures\hires',
-    [string]$WorkDir  = 'C:\Games\azrael-textures\upscale-work',
+    [string]$ExeDir   = 'C:\Games\RaptorMod\sources\realesrgan',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$OutDir   = 'C:\Games\RaptorMod\textures\hires',
+    [string]$WorkDir  = 'C:\Games\RaptorMod\textures\upscale-work',
     [double]$LockTexels = 2.0,        # the light lock's reach, in ORIGINAL texels
     # THE LOOK (see Fx.Finish). The defaults are the first batch: all upscaler, nothing added.
     [ValidateRange(0.0, 1.0)][double]$Blend = 1.0,

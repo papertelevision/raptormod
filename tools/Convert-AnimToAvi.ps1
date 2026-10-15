@@ -1,7 +1,7 @@
 # Convert-AnimToAvi.ps1 -- turn Azrael's .MOV cutscenes into playable AVI files.
 #
 #   .\tools\Convert-AnimToAvi.ps1 -Path MOV_TOB.MOV -Out C:\tmp\TOB.avi
-#   .\tools\Convert-AnimToAvi.ps1 -InDir <folder of .MOV> -OutDir C:\Games\azrael-video
+#   .\tools\Convert-AnimToAvi.ps1 -InDir <folder of .MOV> -OutDir C:\Games\RaptorMod\sources\video
 #
 # Motion-JPEG video plus 8-bit PCM audio, muxed by tools\AviWriter.cs. There is no ffmpeg on
 # this machine, so the container is written directly.
@@ -30,7 +30,7 @@ param(
     # LOGO.WAV sitting next to it in GAME\AZRAEL -- 22,050 Hz 8-bit stereo, 8.31s. The
     # game plays the two together; the .MOV alone is silent by design.
     [string]$Wav,
-    [string]$GameDir = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL'
+    [string]$GameDir = 'C:\Games\RaptorMod\game\GAME\AZRAEL'
 )
 
 # movies with no embedded audio whose soundtrack is a separate file

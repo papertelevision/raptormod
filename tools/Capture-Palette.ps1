@@ -19,7 +19,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Overlay = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTCODE.BIN',
+    [string]$Overlay = 'C:\Games\RaptorMod\game\GAME\AZRAEL\AZTCODE.BIN',
     # DERIVED FROM THE MANIFEST, not hard-coded. These were 1024/576/4096, the geometry of a
     # resolution the game no longer runs at -- and the search at the bottom of this block
     # looks for `mov eax, W*H`, so a stale W/H does not find a wrong buffer, it finds NOTHING.
@@ -31,7 +31,7 @@ param(
     [int]$H = 0,
     [int]$Stride = 0,             # display bytes per row (screen width x 4)
     [string]$Manifest = '',
-    [string]$OutDir = 'C:\Games\azrael-inject'
+    [string]$OutDir = 'C:\Games\RaptorMod\cache'
 )
 
 $ErrorActionPreference = 'Stop'

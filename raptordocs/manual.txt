@@ -1,5 +1,5 @@
 // RAPTOR DOCS -- THE MANUAL, as the visor's library shows it (TitleScreen, tools\RaptorDocs.cs).
-// Built from the 1996 manual (C:\Games\AzraelsTear-Modded\manual\Azraels-Tear-Manual.pdf): OCR'd and proofread against
+// Built from the 1996 manual (C:\Games\RaptorMod\game\manual\Azraels-Tear-Manual.pdf): OCR'd and proofread against
 // the page scans, 2026-10-11. The publisher's text -- it lives here with Josh's art, never in git.
 // tools\Build-RaptorDocs.ps1 copies it into <game>\raptordocs.
 //

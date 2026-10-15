@@ -22,8 +22,8 @@ param(
     [switch]$Detail,
     [int]$PerRoom = 14,                 # floor viewpoints per room, besides the markers
     [int]$Size = 192,
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$GameDir  = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$GameDir  = 'C:\Games\RaptorMod\game\GAME\AZRAEL',
     [string]$Csv = ''
 )
 $ErrorActionPreference = 'Stop'

@@ -37,7 +37,7 @@ param(
     # scan with no margin has nothing to tell the eye where the paper ends and the screen
     # begins. Both axes are scaled by the SAME factor, so the page keeps the shape it had.
     [int]$FillPct = 80,
-    [string]$BookDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX\BOOKS',
+    [string]$BookDir = 'C:\Games\RaptorMod\game\GAME\AZTEX\BOOKS',
     [string]$InDir,            # optional PNG replacements, named <stem>.png
     [string[]]$Only,           # process only these stems; everything else is left alone
     [switch]$Revert

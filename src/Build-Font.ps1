@@ -27,7 +27,7 @@
 # gap (notably '"') gets a single shadow-coloured pixel dropped into the bottom
 # row to bridge it -- black, below the baseline, invisible in play.
 param(
-    [string]$GameDir = "C:\Games\AzraelsTear-Modded\GAME\AZRAEL",
+    [string]$GameDir = "C:\Games\RaptorMod\game\GAME\AZRAEL",
     [string]$OutDir  = "$PSScriptRoot\..\art",
     [string]$Face    = 'Verdana',   # a screen face: open apertures, large x-height
     [double]$EmSize  = 10,

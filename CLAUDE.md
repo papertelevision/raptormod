@@ -1,7 +1,7 @@
 # RaptorMod (AztMod) -- notes for Claude
 
 A mod for *Azrael's Tear* (1996, DOS/4GW, run in DOSBox Staging), built as:
-- a **binary patcher** for the game's `R.EXE`: `src\Build-AztMod.ps1` assembles the patches into `AztMod.manifest.json`, and `Apply-AztMod.ps1` installs it into a COPY of the game at `C:\Games\AzraelsTear-Modded`;
+- a **binary patcher** for the game's `R.EXE`: `src\Build-AztMod.ps1` assembles the patches into `AztMod.manifest.json`, and `Apply-AztMod.ps1` installs it into a COPY of the game at `C:\Games\RaptorMod\game`;
 - a **host GPU renderer**: `tools\Watch-HostRender.ps1` plus the C# in `tools\*.cs`. It reads the running game's memory and draws the 3D view, HUD, visor effects and menus in true colour over DOSBox.
 
 Josh (the owner) plays and judges everything in game. This repo is the private working repo; a public patcher comes later.
@@ -42,7 +42,7 @@ Other docs:
   1. build: `& .\src\Build-AztMod.ps1 -OutFile $env:TEMP\x.json`;
   2. diff it against `AztMod.manifest.json`;
   3. copy BOTH `$env:TEMP\x.json` and `$env:TEMP\AztMod.overlay.sym` over the repo copies;
-  4. install with `.\Apply-AztMod.ps1 -Install -Dest C:\Games\AzraelsTear-Modded` (DOSBox closed).
+  4. install with `.\Apply-AztMod.ps1 -Install -Dest C:\Games\RaptorMod\game` (DOSBox closed).
   Commit the manifest and `AztMod.overlay.sym` together.
 - **Never overwrite a fixed-up operand.** Check `Test-FixupsIn` (`tools\load.ps1`, `tools\helpers.ps1`). `Assert-NoOverlap` fails the build on overlapping patches.
 
@@ -57,10 +57,13 @@ Other docs:
 | Path | What it is |
 |---|---|
 | `<Steam>\steamapps\common\Azrael's Tear\AztMod` | **This repo.** The build reads the stock game from `..\GAME\AZRAEL`. |
-| `C:\Games\AzraelsTear-Modded` | The built, patched game: DOSBox Staging, extracted AZTEX, movies, soundtrack. Not in git. |
-| `C:\Games\azrael-render` | The renderer's caches and `watch.log`. Its `rooms\` and `room-notes\` are junctions to this repo's `rooms\` and `room-notes\`: room settings and Room Review notes are versioned, and their screenshots are ignored. |
-| `C:\Games\azrael-textures\hires` | Hi-res texture overrides (~3 GB). Not in git; comes with the asset pack. |
-| `C:\Games\azrael-inject\azrael-palette.pal` | Copied from `runtime\` by `tools\Setup-Machine.ps1`. |
+| `C:\Games\RaptorMod` | **Everything else on the PC, in ONE folder** (2026-10-15, Josh). Made and kept in shape by `tools\Setup-Machine.ps1`, which also moves an older layout (`C:\Games\azrael-*`, `AzraelsTear-Modded`, the Desktop source folders) in. Not in git. |
+| `C:\Games\RaptorMod\game` | The built, patched game: DOSBox Staging, extracted AZTEX, movies, soundtrack, saves, `raptormod-settings.json` (fov, textureQuality, tcMaxPixels). `Play-Azrael-Modded.bat` there starts the GPU version; `Play-Azrael-8bit.bat` the plain game. |
+| `C:\Games\RaptorMod\cache` | The renderer's caches, `watch.log`, `gpu-check.json` and the palette (`azrael-palette.pal`, copied from `runtime\`). Its `rooms\` and `room-notes\` are junctions to this repo's `rooms\` and `room-notes\`. |
+| `C:\Games\RaptorMod\textures` | `hires\`: the hi-res textures (~6 GB, from the asset pack); `hires-2048\` (made for Normal quality); `hires-backup-*`. |
+| `C:\Games\RaptorMod\sources` | Authoring sources from the asset pack: `books`, `gfx`, `video`, `realesrgan`, `soundtrack`, `files` (Josh's working files). |
+| `C:\Games\RaptorMod\scratch` | Old research and test output. |
+| `C:\Games\RaptorMod\Play RaptorMod.cmd` | What the ONE desktop shortcut (RaptorMod) starts; `Room Review.cmd` beside it. |
 
 ## Git
 

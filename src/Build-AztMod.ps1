@@ -4912,7 +4912,7 @@ $BOOK_FILL_PCT = 80
 # away imported high-resolution art. Naming the folder here keeps the installer and the
 # import in step. A build that cannot see the folder just falls back to the .src pages, so
 # a redistributable package is unaffected.
-$BOOK_SOURCE_DIR = 'C:\Games\azrael-books'
+$BOOK_SOURCE_DIR = 'C:\Games\RaptorMod\sources\books'
     if ($BOOK_FULLSCREEN) { $BOOK_W = $SCREEN_W; $BOOK_H = $SCREEN_H }
     else                  { $BOOK_W = 640;       $BOOK_H = 480 }
     $BOOK_X = [int](($SCREEN_W - $BOOK_W) / 2)

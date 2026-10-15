@@ -30,7 +30,7 @@
 param(
     [Parameter(Mandatory)][string]$Xaf,
     [string]$Obj,
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [switch]$Revert,
     [switch]$NoFlipV,
     # Share a vertex between faces that differ ONLY in normal, averaging the normals.

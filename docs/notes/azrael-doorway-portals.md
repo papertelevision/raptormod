@@ -37,11 +37,11 @@ neighbour's entrance door (found offline as a door-named slab across its tunnel)
 lifted and no far door known = keep the game's picture. "...CLOSE"/`sa_door`/black quads are
 never replaced.
 
-**Code:** `tools\Build-PortalMap.ps1` -> `C:\Games\azrael-render\portals.json` (169 doorways,
+**Code:** `tools\Build-PortalMap.ps1` -> `C:\Games\RaptorMod\cache\portals.json` (169 doorways,
 121 with a picture). `Get-AztPortals` (LoadRoom.ps1). `Raster.BeginPortals/AddPortal/
 EndPortals/DrawTexturedMasked` + `AztTool.Portals.Prepare/Draw` (aperture mask tested against
 the room's depth, so a shut near door hides it). `tools\Test-Portals.ps1` renders
-picture-vs-live PNGs to `C:\Games\azrael-render\portal-test` (-All: 121/121 pass, none empty).
+picture-vs-live PNGs to `C:\Games\RaptorMod\cache\portal-test` (-All: 121/121 pass, none empty).
 Watcher: `-NoPortals`; logs `doorways:` and a `PORTAL CHECK` line per room change (actual
 heading change vs the map's turn -- the map's turn is UNVERIFIED against the game until read).
 Cost ~1.6 ms/frame with a doorway filling 16% of 1600x928. Neighbour is static: rest pose,

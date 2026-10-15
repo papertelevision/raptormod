@@ -140,7 +140,7 @@ early-ending delta stream spills into the next chunk.
 `tools\AviWriter.cs` + `tools\Convert-AnimToAvi.ps1` mux MJPEG video and PCM audio into AVI.
 There is no ffmpeg on this machine, so the container is written by hand; MJPEG because a raw
 640x480 OUTRO2 would be 614 MB. **All 12 movies converted, 173.7 MB total**, into
-`C:\Games\azrael-video`. AVI gotcha: idx1 offsets are relative to the `movi` FOURCC, not
+`C:\Games\RaptorMod\sources\video`. AVI gotcha: idx1 offsets are relative to the `movi` FOURCC, not
 absolute — absolute offsets parse fine and seek wrongly.
 
 ## THE SIZE CEILING, AND THE PATCH THAT LIFTS IT

@@ -26,7 +26,7 @@
 param(
     [Parameter(Mandatory)][string]$Res,
     [Parameter(Mandatory)][string]$OutDir,
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX'
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX'
 )
 
 $ErrorActionPreference = 'Stop'

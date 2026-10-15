@@ -107,6 +107,10 @@ namespace AztTool
         /// <summary>(Stopwatch ticks) the hold does not give up before this: the watcher keeps it ahead while it is still loading
         /// the room's textures under the cover, a big room's can outlast HoldMaxMs on a slow machine.</summary>
         public long HoldExtendUntil;
+        /// <summary>THE RENDERER IS STILL PREPARING THE ROOM (2026-10-15, the second PC: its first room took 61 s on a fresh install
+        /// -- the shared-art index and every texture read for the first time -- and the hold gave up after HoldMaxMs, so the 8-bit
+        /// game showed): while this is set the hold waits, up to HoldBusyMaxMs, with BusyText under the briefing.</summary>
+        public volatile bool HoldWhileBusy; public volatile string BusyText = ""; public int HoldBusyMaxMs = 180000;
         /// <summary>The boot's own frame rate: the game draws its boot at about 24, so 40 is smooth at a fraction of the work.</summary>
         public int Fps = 40;
 
@@ -2894,13 +2898,15 @@ namespace AztTool
                 HudBeats(elHost);
                 if (mode == M_LIVE && !Covering4Load) { SoundBeats(elHost); HeartBeats(elHost); }
                 if (Sound != null) Sound.Hum(Covering4Load ? 0 : mode == M_LIVE ? HumAt(elHost) : HumSettle);
-                if (_mode == M_HOLD && _holdClock.ElapsedMilliseconds > HoldMaxMs && Stopwatch.GetTimestamp() > Interlocked.Read(ref HoldExtendUntil))
+                bool busyWait = HoldWhileBusy && _holdClock.ElapsedMilliseconds < HoldBusyMaxMs;
+                if (_mode == M_HOLD && _holdClock.ElapsedMilliseconds > HoldMaxMs && Stopwatch.GetTimestamp() > Interlocked.Read(ref HoldExtendUntil) && !busyWait)
                 {
                     lock (_gate) { if (_mode == M_HOLD) _mode = M_DONE; }
                     ReleaseHud();
-                    Note(string.Format("visor boot: no host 3D after {0} ms of hold -- getting out of the way", HoldMaxMs));
+                    Note(string.Format("visor boot: no host 3D after {0:N0} ms of hold -- getting out of the way", _holdClock.ElapsedMilliseconds));
                     continue;
                 }
+                if (_mode == M_HOLD && busyWait && !_busyNoted && _holdClock.ElapsedMilliseconds > HoldMaxMs) { _busyNoted = true; Note("visor boot: holding past " + HoldMaxMs + " ms -- the renderer is still preparing the room (" + BusyText + ")"); }
                 LastEl = elHost;
 
                 // draw and show
@@ -2920,7 +2926,7 @@ namespace AztTool
                 }
                 else
                 {
-                    try { lock (_drawLock) RenderAt(pic, pw, ph, vr, hold ? U_open - 1 : elHost, sweepEl, _reboot, true, dtMs); }
+                    try { lock (_drawLock) { RenderAt(pic, pw, ph, vr, hold ? U_open - 1 : elHost, sweepEl, _reboot, true, dtMs); if (hold && HoldWhileBusy && _holdClock.ElapsedMilliseconds > 1500) DrawBusy(pic, pw, ph, vr); } }
                     catch (Exception e) { lock (_gate) _mode = M_DONE; ReleaseHud(); Note("visor boot: drawing failed: " + e.Message); continue; }
                 }
                 RenderMs = RenderMs * 0.9 + sw.Elapsed.TotalMilliseconds * 0.1;
@@ -2931,6 +2937,27 @@ namespace AztTool
                     catch (Exception e) { _mode = M_DONE; Note("visor boot: the overlay refused the picture: " + e.Message); }
                 }
             }
+        }
+
+        bool _busyNoted;
+        // the held briefing's status line while the renderer prepares the room: typed in the boot's ink, a caret blinking after it
+        void DrawBusy(int[] pic, int pw, int ph, int vr)
+        {
+            string s = BusyText; if (string.IsNullOrEmpty(s)) return;
+            double t = _holdClock.Elapsed.TotalSeconds; int n = Math.Min(s.Length, (int)((t - 1.5) * 30)); if (n <= 0) return;
+            string shown = s.Substring(0, n) + ((((int)(t * 2.5)) & 1) == 0 ? "_" : " ");
+            Paint(pic, pw, ph, g =>
+            {
+                float sc = (float)(_s * Zoom);
+                using (var font = new Font("Consolas", 16f * sc, FontStyle.Bold, GraphicsUnit.Pixel))
+                using (var fmt = Fmt())
+                using (var br = new SolidBrush(Argb(230, C_text)))
+                {
+                    g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                    var sz = g.MeasureString(s + "_", font, PointF.Empty, fmt);
+                    g.DrawString(shown, font, br, (pw - sz.Width) / 2f, vr * 0.80f, fmt);
+                }
+            });
         }
 
         public void Dispose()

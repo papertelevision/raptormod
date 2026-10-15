@@ -13,7 +13,7 @@ seeing "through the ceiling" in MINEMAZE near the Raptor.
 at most every `-AuditSeconds` 4) it hands the viewport back ~0.5 s, takes the engine's settled
 picture (Save-EngineReference path) and runs `Raster.CompareFrames` (16x16 blocks of mean
 luminance, tol 28). Logs `AUDIT room at (x,y,z): N% differs; engine-only, host-only`, appends
-`C:\Games\azrael-render\audit\audit.csv` (with the camera matrix), saves a side-by-side PNG
+`C:\Games\RaptorMod\cache\audit\audit.csv` (with the camera matrix), saves a side-by-side PNG
 (engine LEFT, host RIGHT) when engine-only or host-only > 1.5% or differs > 10%.
 Calibration on the old ref2 pairs: good views 1.7-5% differ, 0% engine-only; a host frame with
 its top third blanked reads 11.6% engine-only; a pair taken with a door swinging reads 31%.

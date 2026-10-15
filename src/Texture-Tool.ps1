@@ -30,7 +30,7 @@ param(
     [Parameter(Mandatory)][string]$Res,
     [string]$OutDir,
     [string]$InDir,
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [int[]] $Keyed = @(),         # record indices that are chroma-keyed
     # 512 is the largest size the game itself ships. Larger is UNTESTED: the format has
     # no limit (width/height are int32) but the software rasteriser may cap UV precision.

@@ -1,6 +1,6 @@
 # Export-XafObj.ps1 -- turn a .XAF straight into a textured Wavefront OBJ.
 #
-#   .\tools\Export-XafObj.ps1 -Xaf LURKA -OutDir C:\Games\azrael-models\lurka
+#   .\tools\Export-XafObj.ps1 -Xaf LURKA -OutDir C:\Games\RaptorMod\scratch\azrael-models\lurka
 #   .\tools\Export-XafObj.ps1 -Xaf LURKA -OutDir ... -Report      # inspect, write nothing
 #
 # This is the OFF-LINE route, and for a CHARACTER it is the right one. tools\Export-Obj.ps1
@@ -32,7 +32,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Xaf,
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [string]$OutDir,
     [switch]$Report,
     [switch]$NoTextures,
@@ -58,7 +58,7 @@ $OBJ_VERSION = '# xafobj-version 4'    # 4: textureless materials are written to
 $stem = $Xaf -replace '\.(XAF|RES)$',''
 $xafPath = if (Test-Path $Xaf) { $Xaf } else { Join-Path $TexDir "$stem.XAF" }
 if (-not (Test-Path $xafPath)) { throw "no such .XAF: $xafPath" }
-if (-not $OutDir) { $OutDir = Join-Path 'C:\Games\azrael-models' $stem.ToLower() }
+if (-not $OutDir) { $OutDir = Join-Path 'C:\Games\RaptorMod\scratch\azrael-models' $stem.ToLower() }
 
 if ($IfStale) {
     $cached = Join-Path $OutDir "$stem.obj"

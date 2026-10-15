@@ -18,11 +18,11 @@ param(
     [int[]]$Batch = @(),
     [switch]$List,
     [int]$BatchSize = 12,
-    [string]$PlanFile = 'C:\Games\azrael-textures\upscale-plan.txt',
-    [string]$LogFile  = 'C:\Games\azrael-textures\upscale-all.log',
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$OutDir   = 'C:\Games\azrael-textures\hires',
-    [string]$Portals  = 'C:\Games\azrael-render\portals.json',
+    [string]$PlanFile = 'C:\Games\RaptorMod\textures\upscale-plan.txt',
+    [string]$LogFile  = 'C:\Games\RaptorMod\textures\upscale-all.log',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$OutDir   = 'C:\Games\RaptorMod\textures\hires',
+    [string]$Portals  = 'C:\Games\RaptorMod\cache\portals.json',
     [string]$First    = 'CORICORI'
 )
 $ErrorActionPreference = 'Stop'

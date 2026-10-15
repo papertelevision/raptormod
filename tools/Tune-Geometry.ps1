@@ -20,10 +20,10 @@
 [CmdletBinding()]
 param(
     [string]$Name = 'opening3',
-    [string]$RefDir = 'C:\Games\azrael-render\ref',
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-    [string]$Palette = 'C:\Games\azrael-inject\azrael-palette.pal',
+    [string]$RefDir = 'C:\Games\RaptorMod\cache\ref',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+    [string]$Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
     [double[]]$Fovs = @(40, 45, 50, 55, 60, 65, 70, 75, 80),
     # Wide enough that the peak is found, not clamped. A first run capped at 250 reported
     # -250 for three FOVs in a row, which is the search hitting its own limit rather than

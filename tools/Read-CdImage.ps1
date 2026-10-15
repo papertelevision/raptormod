@@ -15,7 +15,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Image = 'C:\Games\AzraelsTear-Modded\AZT.BIN',
+    [string]$Image = 'C:\Games\RaptorMod\game\AZT.BIN',
     [string]$Filter,          # regex against the full path inside the image
     [string]$OutDir,          # extract when given
     # Emit the matched entries as objects instead of only printing them. The listing is

@@ -1,6 +1,6 @@
 ---
 name: azrael-room-review
-description: "Room Review = local 3D viewer (desktop shortcut \"Room Review\") where Josh clicks rooms and leaves notes; notes are in C:\\Games\\azrael-render\\room-notes\\<ROOM>.json. How to read and answer them, and the traps found building it."
+description: "Room Review = local 3D viewer (desktop shortcut \"Room Review\") where Josh clicks rooms and leaves notes; notes are in C:\\Games\\RaptorMod\\cache\\room-notes\\<ROOM>.json. How to read and answer them, and the traps found building it."
 metadata:
   node_type: memory
   type: project
@@ -8,7 +8,7 @@ metadata:
   modified: 2026-10-08T14:22:11.296Z
 ---
 
-Built 2026-10-08 at Josh's request: review rooms without playing through the game. He clicks a point and leaves a note; I read the notes and make the changes, mostly in C:\Games\azrael-render\rooms\<ROOM>.json.
+Built 2026-10-08 at Josh's request: review rooms without playing through the game. He clicks a point and leaves a note; I read the notes and make the changes, mostly in C:\Games\RaptorMod\cache\rooms\<ROOM>.json.
 
 **Pieces**
 - `AztMod\Review-Rooms.cmd`, plus the Desktop shortcut "Room Review".
@@ -17,7 +17,7 @@ Built 2026-10-08 at Josh's request: review rooms without playing through the gam
 - Batch 1: rooms.json "batch" (CORICORI, WASHCORI, SPAROOM, MINEHEAD, MINEMAZE, BAPTIST, WELLROOM, CHAMBNEW, ORRERY, TUNNMAZE). Add rooms there for later batches.
 - `Root .claude\launch.json` "room-review" (for MY browser-pane checks; the pane wants it at the session root `Azrael's Tear\.claude`, not AztMod).
 
-**Data:** it serves the existing Export-XafObj output in C:\Games\azrael-render (.obj/.mtl/.png), hi-res from azrael-textures\hires, and the merged atmosphere via Get-RoomAtmosphere (AST-extracted). The server never writes room settings.
+**Data:** it serves the existing Export-XafObj output in C:\Games\RaptorMod\cache (.obj/.mtl/.png), hi-res from azrael-textures\hires, and the merged atmosphere via Get-RoomAtmosphere (AST-extracted). The server never writes room settings.
 
 **Notes file:** `{schema, room, rev, nextId, notes[], deleted[]}`. Each note has:
 - `id`, `status` (open/done/question/wontfix), `kind`, `text`;
@@ -54,7 +54,7 @@ Related: [[azrael-volumetric-fog]], [[azrael-atmosphere]], [[azrael-zones-room-g
 Lifecycle: **new** (Josh wrote; my turn) -> **review** (I replied; his turn) -> he follows up (back to new) or marks **complete** (it leaves the list and is kept in the file's 'completed'). Each note's 'log' = [{who josh|claude, text, at, shot?, render?, changes?, round?}]. Schema 2; schema 1 is converted on read. Shared I/O: tools\RoomNotes.ps1.
 
 When Josh says "notes are ready":
-1. `.\tools\Start-RoomRound.ps1` -- snapshots rooms\*.json to C:\Games\azrael-render\rooms-history\round-NNN (the state BEFORE the round), numbers the round in room-notes\rounds.json, and lists every 'new' note with its place, view (-X -Y -Z -Yaw -Pitch), suggested light and full log. (`-ListOnly` just lists.)
+1. `.\tools\Start-RoomRound.ps1` -- snapshots rooms\*.json to C:\Games\RaptorMod\cache\rooms-history\round-NNN (the state BEFORE the round), numbers the round in room-notes\rounds.json, and lists every 'new' note with its place, view (-X -Y -Z -Yaw -Pitch), suggested light and full log. (`-ListOnly` just lists.)
 2. Make the changes in rooms\<ROOM>.json.
 3. `.\tools\Reply-RoomNote.ps1 -Room R -Id n -Text '...' -Changes 'rooms\R.json lights[1] added', ...` -- renders the note's view through Test-GpuLook (flashlight off | on, side by side, ~8 s), attaches it, and sets review. `-NoRender` for questions.
 4. Undo: `.\tools\Restore-RoomRound.ps1 -Round N [-Room R]` (current files saved to rooms-history\restore-<time> first).
@@ -63,7 +63,7 @@ The server only lets the viewer set status 'complete' (anything else -> 400); 'e
 Traps: the dialog is saved on the form SUBMIT (a hidden tab held back the 'close' event, so nothing saved); the 5 s poll only runs while the tab is visible; the safety hook blocks PowerShell commands containing JS like `marks.remove(` -- write JS blocks with the Write tool and splice them in.
 
 **RENDER VIEW + SELF-REFRESHING EXPORTS (2026-10-08):**
-- The viewer's 'Render view' button (key R) POSTs the camera's gpuLook to /api/rooms/R/render. The server runs tools\Render-RoomView.ps1 (Test-GpuLook x2: flashlight off | on, side by side) as a hidden process, one at a time (409 while busy). The viewer polls /render/<id> and serves /renders/R/<id>.png from C:\Games\azrael-render\room-renders (the newest 40 are kept). About 10 s. Reply-RoomNote.ps1 uses the same Render-RoomView.ps1.
+- The viewer's 'Render view' button (key R) POSTs the camera's gpuLook to /api/rooms/R/render. The server runs tools\Render-RoomView.ps1 (Test-GpuLook x2: flashlight off | on, side by side) as a hidden process, one at a time (409 while busy). The viewer polls /render/<id> and serves /renders/R/<id>.png from C:\Games\RaptorMod\cache\room-renders (the newest 40 are kept). About 10 s. Reply-RoomNote.ps1 uses the same Render-RoomView.ps1.
 - Opening a room (GET /api/rooms/R) re-exports it with Export-XafObj (no -IfStale) when GAME\AZTEX\R.XAF or R.RES is newer than the cached OBJ. -IfStale only checks the format version, NOT dates. The manifest's 'refreshed' says why. The export is deterministic (only the header date comment differs).
 - What the viewer does NOT show: lighting (it is unlit; Render view shows it), live game state (doors, picked-up items, characters).
 
@@ -75,7 +75,7 @@ Traps: the dialog is saved on the form SUBMIT (a hidden tab held back the 'close
 
 **EXTRA LINKS (2026-10-09, WASHCORI/1):** portals.json only holds DOORWAYS. A drop (WASHCORI door01 -> false floor zxfalse -> MINEMAZE, zone WashRoomMineMaze, trigger zxwshrR3) was missing, so Josh thought the cave room was missing. It was MINEMAZE, already in batch 1. 	ools\room-review\links.json {ROOM: [{to, zone, door[x,y,z]}]} is merged into the door markers, read fresh per request. The game watcher never reads it, so portals.json stays untouched. To find a room's other exits, use 	ools\Read-Zones.ps1 -Csv file (zone names <A><B>, trigger zx objects in the room's OBJ). Lincoln = KURTB.DES ('identified - Lincoln'), trigger zxkurt in MINEMAZE.
 
-**In git since 2026-10-10** ([[raptormod-repo]]): the notes live in the repo's oom-notes\ (C:\Games\azrael-render\room-notes is a junction to it; screenshots ignored) and the rooms in ooms\. After a round's replies, commit oom-notes + ooms together.
+**In git since 2026-10-10** ([[raptormod-repo]]): the notes live in the repo's oom-notes\ (C:\Games\RaptorMod\cache\room-notes is a junction to it; screenshots ignored) and the rooms in ooms\. After a round's replies, commit oom-notes + ooms together.
 
 **DROPDOWN GROUPS (Josh, 2026-10-12: "group all character models separately from the rooms"):** In play order / All rooms / **Characters** / Other models / Dev copies. The lists are in viewer.js (only viewer.js and viewer.css are served, so no server restart -- F5): `ANI_RIGS` = the 27 rigs the game's GAME\AZRAEL\*.ANI files name (FILE line), `CHAR_COPIES` = copies, takes and tests of the same figures (identified by their parts: Claude's CL-* takes, EUGTEST, THEO-ANI/IKTEST, RAPBLOD, TRILOB4, SCORPDE#...), `OTHER_MODELS` = camera dummies, SQR-TEST, DEATH, DROWN. Shown as `Character · MODEL`, the .ANI rig first. Size and trigger counts do NOT separate rooms from figures (rest-pose offsets make some rigs 2700 units wide; some test rooms have no zx triggers), so the lists are explicit. CLDATAK (mine tracks) and SPA-ANI (spa pipes) are rooms despite their names.
 
@@ -90,7 +90,7 @@ Traps: the dialog is saved on the form SUBMIT (a hidden tab held back the 'close
 
 **PAINTED-LIGHT FINDER (Josh, 2026-10-14: "search every room's art for painted light like CHAMBNEW's spotlights and drop suggested pins. You'd approve each one, so you still place every light"):**
 - `tools\Suggest-PaintedLights.ps1 -Room R` (or `-All`; `-WhatIf` lists only, `-DebugDir d` draws each texture's finds) + `tools\PaintedLightFinder.cs`. (Not `Find-PaintedLights.ps1`: that older tool puts torches at the paint field's bright places, [[azrael-painted-darkness-props]].) Writes `room-notes\<ROOM>.suggest.json` {schema 1, room, made, suggestions[{id, kind, confidence, point, normal, part, material, texture, uv, crop, faces, why, light, rect?, status}]}; never rooms\*.json.
-- Reads the ORIGINAL art (C:\Games\azrael-render\NN-name.png, never the hi-res), against each texture's own median: windows first (coarse smoothing, then a regular bar grid both ways in the raw pixels), then fans and glows (finer smoothing; touching lights split at their dimmer necks). FAN gates (tuned on CHAMBNEW 08-chwall, checked over all 99 rooms): 1.2%+ of the art, filled 60%+, 1.1-1.9 long along the throw, the strip past its end lit over the strip past its source by 0.4+ of its lift, 2.3x the art's level, art (not black padding) right beside its source. GLOW gates: centre over rim (peak), a lit ring outside (halo), 1.5%+, 2.5x, and a swell in the broadly smoothed art. Without these the first run gave 3011 pins (wet streaks, pale stones, floor tiles); now 177 over 42 rooms.
+- Reads the ORIGINAL art (C:\Games\RaptorMod\cache\NN-name.png, never the hi-res), against each texture's own median: windows first (coarse smoothing, then a regular bar grid both ways in the raw pixels), then fans and glows (finer smoothing; touching lights split at their dimmer necks). FAN gates (tuned on CHAMBNEW 08-chwall, checked over all 99 rooms): 1.2%+ of the art, filled 60%+, 1.1-1.9 long along the throw, the strip past its end lit over the strip past its source by 0.4+ of its lift, 2.3x the art's level, art (not black padding) right beside its source. GLOW gates: centre over rim (peak), a lit ring outside (halo), 1.5%+, 2.5x, and a swell in the broadly smoothed art. Without these the first run gave 3011 pins (wet streaks, pale stones, floor tiles); now 177 over 42 rooms.
 - Each find goes on EVERY face that shows it (UVs tile: the point is tried at each whole shift in the triangle's UV range), with the face's +u/+v in the world: the fan's fade decides uplight / downlight / sidelight (a fan on a floor is a glow). The normal faces the room: fans of rays both sides, the side that escapes into the void is outside (once per triangle). Uplight: 8 out, 5 above the floor under it, up and 20 degrees into the wall, cone [24,44], wash, colour = the find's brightest third at full brightness, power 1.6, range 120 (CHAMBNEW's approved recipe); a foot more than 60 above the floor is the texture tiling up the wall again (skipped). Downlight mirrored; glow = all round, 15 out, power 0.5, range 90; window = its world rect only.
 - Merged within 20 units; a texture landing in more than 12 places loses confidence (wallpaper), more than 48 faces is skipped outright (PULPIT3's tiled floor took 20 min before); default -MinConfidence 0.55. A find within 30 of an existing light in rooms\R.json is 'covered' (kept, no pin). Re-running keeps ids and approved/dismissed statuses by place.
 - VALIDATED: CHAMBNEW's 12 fans land 0.6-12.6 units from Josh's marks (notes 1-12), normals exact, all 'covered' by his 12 uplights; BAPTIST 6 windows on the x 80 wall (+4 on the mirror wall at x -217, +1 ceiling); MINEHEAD the 2 grate cells (37-mineplab); CORICORI none. Known junk that gets through: CLOCK's gear, R22G's arch corner, INTER2; LIGHT gets 22 glows (its lit rock art).

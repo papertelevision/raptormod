@@ -2,7 +2,7 @@
 # (AztMod.manifest.installed.json) to the current one (AztMod.manifest.json): put back the
 # stock bytes of every patch that changed or went away, write the new ones, write the overlay,
 # then verify EVERY patch in the current manifest against the file. Refuses while the game runs.
-param([string]$Game = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL')
+param([string]$Game = 'C:\Games\RaptorMod\game\GAME\AZRAEL')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 if (@(Get-Process dosbox -ErrorAction SilentlyContinue).Count) { Write-Host 'The game is running. Close it first, then run this again.' -ForegroundColor Red; exit 1 }

@@ -2,7 +2,7 @@ param([string]$Room, [double]$Yaw = 30, [double]$Pitch = 40, [double]$Zoom = 1.2
 # A map note's before | after: the 3D map of the room with the round's snapshot of rooms\<ROOM>.json (before) and the current one.
 $ErrorActionPreference = 'Stop'
 $mod = "C:\Program Files (x86)\Steam\steamapps\common\Azrael's Tear\AztMod"
-$cur = Join-Path $mod "rooms\$Room.json"; $old = "C:\Games\azrael-render\rooms-history\$Round\$Room.json"
+$cur = Join-Path $mod "rooms\$Room.json"; $old = "C:\Games\RaptorMod\cache\rooms-history\$Round\$Room.json"
 $sp = Split-Path $Out -Parent; $bak = Join-Path $sp "$Room.json.cur"
 Copy-Item $cur $bak -Force
 try {

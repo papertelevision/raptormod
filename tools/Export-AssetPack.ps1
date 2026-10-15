@@ -10,18 +10,19 @@
 # THE PACK HOLDS A COPY OF THE GAME (the built install). It is for Josh's own machines: keep it on a private drive or a
 # private cloud folder -- never a public place.
 #
-# Components (default: install, hires, books, gfx; -Include all adds the optional ones):
-#   install    C:\Games\AzraelsTear-Modded       the built game: DOSBox Staging + its conf and soundfont, the extracted and
-#                                                upscaled GAME\AZTEX, the re-encoded movies, the CD soundtrack, saves
-#   hires      C:\Games\azrael-textures\hires    the renderer's hi-res textures (~6 GB: Real-ESRGAN runs + Josh's 4K art)
-#   books      C:\Games\azrael-books             the upscaled book pages (an install input)
-#   gfx        C:\Games\azrael-gfx               Josh's sources only: decals\<ROOM>\updated, screens, credits, orrery-puzzle,
-#                                                (the title's manual text + print-out list are in git: raptordocs\; their scans are credits\)
-#   audio      Desktop\AzraelTearSoundtrack      optional: soundtrack / boot-sound sources (Build-Soundtrack, loading audio)
-#   video      C:\Games\azrael-video\update      optional: the MP4 sources the movies are re-encoded from
-#   realesrgan C:\Games\realesrgan               optional: the upscaler (only for re-running upscales / HUD builds)
-#   rmfiles    Desktop\RaptorModFiles            optional: Josh's working files (3D, audio, updated art, the opening MP4s)
-#   gfxextra   C:\Games\azrael-gfx               optional: Josh's 4K/2K decal sources (decals\<ROOM>\4k-2k, ~3 GB) and wire\
+# Components (default: install, hires, books, gfx; -Include all adds the optional ones). EVERYTHING lives in ONE folder,
+# C:\Games\RaptorMod (2026-10-15, Josh: "a single install folder"), and every tar is made from it and restored into it:
+#   install    game\                  the built game: DOSBox Staging + its conf and soundfont, the extracted and upscaled
+#                                     GAME\AZTEX, the re-encoded movies, the CD soundtrack, saves, raptormod-settings.json
+#   hires      textures\hires\        the renderer's hi-res textures (~6 GB: Real-ESRGAN runs + Josh's 4K art)
+#   books      sources\books\         the upscaled book pages (an install input)
+#   gfx        sources\gfx\           Josh's sources only: decals\<ROOM>\updated, screens, credits, orrery-puzzle
+#                                     (the title's manual text + print-out list are in git: raptordocs\; their scans are credits\)
+#   audio      sources\soundtrack\    optional: soundtrack / boot-sound sources (Build-Soundtrack, loading audio)
+#   video      sources\video\update\  optional: the MP4 sources the movies are re-encoded from
+#   realesrgan sources\realesrgan\    optional: the upscaler (only for re-running upscales / HUD builds)
+#   rmfiles    sources\files\         optional: Josh's working files (3D, audio, updated art, the opening MP4s)
+#   gfxextra   sources\gfx\           optional: Josh's 4K decal masters (decals\<ROOM>\4k-2k) and wire\
 
 [CmdletBinding()]
 param(
@@ -32,35 +33,35 @@ param(
 $ErrorActionPreference = 'Stop'
 $tar = Join-Path $env:SystemRoot 'System32\tar.exe'
 if (-not (Test-Path $tar)) { throw "tar.exe not found at $tar" }
-$desk = [Environment]::GetFolderPath('Desktop')
+$root = 'C:\Games\RaptorMod'
 
-# name -> root (the folder the tar is made FROM and restored INTO), the paths inside it, excludes, restore root token
+# name -> root (the folder the tar is made FROM and restored INTO: always the RaptorMod folder), the paths inside it, excludes
 $all = [ordered]@{
-    install    = @{ Root = 'C:\Games'; Paths = @('AzraelsTear-Modded'); Restore = 'C:\Games'
-                    Exclude = @('AzraelsTear-Modded/AztMod', 'AzraelsTear-Modded/.claude', 'AzraelsTear-Modded/capture', '*.log', '*.LOG', 'AzraelsTear-Modded/stdout.txt') }
-    hires      = @{ Root = 'C:\Games\azrael-textures'; Paths = @('hires'); Restore = 'C:\Games\azrael-textures'; Exclude = @() }
-    books      = @{ Root = 'C:\Games'; Paths = @('azrael-books'); Restore = 'C:\Games'; Exclude = @('azrael-books/before') }
-    gfx        = @{ Root = 'C:\Games'; Paths = $null; Restore = 'C:\Games'; Exclude = @() }
-    audio      = @{ Root = $desk; Paths = @('AzraelTearSoundtrack'); Restore = '%DESKTOP%'; Exclude = @() }
-    video      = @{ Root = 'C:\Games\azrael-video'; Paths = @('update'); Restore = 'C:\Games\azrael-video'; Exclude = @() }
-    realesrgan = @{ Root = 'C:\Games'; Paths = @('realesrgan'); Restore = 'C:\Games'; Exclude = @() }
-    rmfiles    = @{ Root = $desk; Paths = @('RaptorModFiles'); Restore = '%DESKTOP%'; Exclude = @() }
-    gfxextra   = @{ Root = 'C:\Games'; Paths = $null; Restore = 'C:\Games'; Exclude = @() }
+    install    = @{ Root = $root; Paths = @('game'); Restore = $root
+                    Exclude = @('game/AztMod', 'game/.claude', 'game/capture', '*.log', '*.LOG', 'game/stdout.txt') }
+    hires      = @{ Root = $root; Paths = @('textures/hires'); Restore = $root; Exclude = @() }
+    books      = @{ Root = $root; Paths = @('sources/books'); Restore = $root; Exclude = @('sources/books/before') }
+    gfx        = @{ Root = $root; Paths = $null; Restore = $root; Exclude = @() }
+    audio      = @{ Root = $root; Paths = @('sources/soundtrack'); Restore = $root; Exclude = @() }
+    video      = @{ Root = $root; Paths = @('sources/video/update'); Restore = $root; Exclude = @() }
+    realesrgan = @{ Root = $root; Paths = @('sources/realesrgan'); Restore = $root; Exclude = @() }
+    rmfiles    = @{ Root = $root; Paths = @('sources/files'); Restore = $root; Exclude = @() }
+    gfxextra   = @{ Root = $root; Paths = $null; Restore = $root; Exclude = @() }
 }
-# gfx: Josh's own sources only (the rest of azrael-gfx is a regenerable export)
+# gfx: Josh's own sources only (the rest of sources\gfx is a regenerable export)
+$gfxDir = Join-Path $root 'sources\gfx'
 $gfx = @()
-foreach ($d in @('screens', 'credits', 'orrery-puzzle')) { if (Test-Path (Join-Path 'C:\Games\azrael-gfx' $d)) { $gfx += "azrael-gfx/$d" } }
-if (Test-Path 'C:\Games\azrael-gfx\decals') {
-    Get-ChildItem 'C:\Games\azrael-gfx\decals' -Directory | ForEach-Object { if (Test-Path (Join-Path $_.FullName 'updated')) { $gfx += "azrael-gfx/decals/$($_.Name)/updated" } }
+foreach ($d in @('screens', 'credits', 'orrery-puzzle')) { if (Test-Path (Join-Path $gfxDir $d)) { $gfx += "sources/gfx/$d" } }
+if (Test-Path (Join-Path $gfxDir 'decals')) {
+    Get-ChildItem (Join-Path $gfxDir 'decals') -Directory | ForEach-Object { if (Test-Path (Join-Path $_.FullName 'updated')) { $gfx += "sources/gfx/decals/$($_.Name)/updated" } }
 }
 $all.gfx.Paths = $gfx
 # gfxextra: the decal SOURCES Fit-RoomTextures makes the hi-res textures from (4k-2k), and the wire art
-$gx = @(); if (Test-Path 'C:\Games\azrael-gfx\wire') { $gx += 'azrael-gfx/wire' }
-if (Test-Path 'C:\Games\azrael-gfx\decals') {
-    Get-ChildItem 'C:\Games\azrael-gfx\decals' -Directory | ForEach-Object { if (Test-Path (Join-Path $_.FullName '4k-2k')) { $gx += "azrael-gfx/decals/$($_.Name)/4k-2k" } }
+$gx = @(); if (Test-Path (Join-Path $gfxDir 'wire')) { $gx += 'sources/gfx/wire' }
+if (Test-Path (Join-Path $gfxDir 'decals')) {
+    Get-ChildItem (Join-Path $gfxDir 'decals') -Directory | ForEach-Object { if (Test-Path (Join-Path $_.FullName '4k-2k')) { $gx += "sources/gfx/decals/$($_.Name)/4k-2k" } }
 }
 $all.gfxextra.Paths = $gx
-
 if ($Include -contains 'all') { $Include = @($all.Keys) }
 foreach ($n in $Include) { if (-not $all.Contains($n)) { throw "unknown component '$n' (known: $($all.Keys -join ', '), all)" } }
 

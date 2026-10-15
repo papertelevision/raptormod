@@ -23,11 +23,11 @@ Josh (2026-10-10) wants to work from several PCs with a normal GitHub workflow. 
 - game files: *.EXE, *.BIN, *.MOV, *.DAT.
 
 **Moved into the repo:**
-- `rooms\`: `C:\Games\azrael-render\rooms` is now a JUNCTION to it. The old folder is kept as `rooms.pre-repo-20261010`.
-- `room-notes\` (2026-10-10, Josh: the Room Review app belongs in this repo): `C:\Games\azrael-render\room-notes` is now a junction to it. The JSON is versioned; `room-notes/*.png` screenshots are ignored and per PC (optional pack component `screenshots`). The old folder is kept as `room-notes.pre-repo-20261010`.
+- `rooms\`: `C:\Games\RaptorMod\cache\rooms` is now a JUNCTION to it. The old folder is kept as `rooms.pre-repo-20261010`.
+- `room-notes\` (2026-10-10, Josh: the Room Review app belongs in this repo): `C:\Games\RaptorMod\cache\room-notes` is now a junction to it. The JSON is versioned; `room-notes/*.png` screenshots are ignored and per PC (optional pack component `screenshots`). The old folder is kept as `room-notes.pre-repo-20261010`.
 - The app itself (`tools\room-review\`, `Start-RoomReview.ps1`, the round/reply/restore tools, `Review-Rooms.cmd`, `.claude\launch.json`) was already in the initial import.
 - Setup-Machine builds every room's export (tools\Build-RoomCache.ps1) so the viewer lists all 178 rooms on a fresh PC: the server only knows rooms whose OBJ exists.
-- The palette: `runtime\azrael-palette.pal`. Setup copies it to C:\Games\azrael-inject.
+- The palette: `runtime\azrael-palette.pal`. Setup copies it to C:\Games\RaptorMod\cache.
 
 **Big data = the ASSET PACK** (`tools\Export-AssetPack.ps1 -OutDir <folder>`): one tar per component, restored by `tools\Setup-Machine.ps1 -AssetPack <folder>`.
 - install: the built game, ~2.3 GB.
@@ -97,3 +97,4 @@ Fixes made along the way:
 - **NAS TRAP (measured 2026-10-15):** `tar.exe` writing straight to the NAS ran at 2.2 MB/s, because its 10 KB records each wait on SMB over Wi-Fi. `robocopy /J` to the same share ran at 58 MB/s.
   - **The fix:** Export-AssetPack builds each tar in `%TEMP%\raptormod-pack-stage` and robocopies it over (size-checked), so the whole pack takes ~3 minutes. Setup-Machine copies each tar down the same way before unpacking.
   - **The first full pack:** 9 components, 10.9 GB, from repo f377038. Every tar lists cleanly, and a test restore of `books` from the NAS matched 83/83 files.
+- **2026-10-15: ONE install folder.** Everything that is not the repo is under `C:\Games\RaptorMod` (see [[azrael-install-layout]]). The pack restores into it; Setup-Machine moves an older layout in and leaves ONE desktop shortcut.

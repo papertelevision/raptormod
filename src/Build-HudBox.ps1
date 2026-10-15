@@ -20,7 +20,7 @@
 # re-arranged sheet cannot silently swap them.
 param(
     [string]$Sheet,
-    [string]$GameDir = "C:\Games\AzraelsTear-Modded\GAME\AZRAEL",
+    [string]$GameDir = "C:\Games\RaptorMod\game\GAME\AZRAEL",
     [string]$OutDir  = "$PSScriptRoot\..\art",
     [int]   $BoxW    = 174,
     [int]   $BoxHOff = 94,

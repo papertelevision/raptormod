@@ -26,9 +26,9 @@ param(
     # THE MAP (GpuRaster.DrawMap): the room's wireframe map over the dimmed picture, turned -MapYaw / -MapPitch degrees;
     # -MapFlip: the cut-away the other way round (if the ceiling shows instead of the floor)
     [switch]$Map, [double]$MapYaw = 30, [double]$MapPitch = 52, [double]$MapZoom = 1, [switch]$MapFlip, [double]$MapIntroAt = -1,     # (-MapIntroAt s: the map's pulse-in, s seconds in)
-    [string]$RoomsDir = 'C:\Games\azrael-render\rooms',      # (the room files: a scratch copy to try settings)
+    [string]$RoomsDir = 'C:\Games\RaptorMod\cache\rooms',      # (the room files: a scratch copy to try settings)
     # the replacement art's folder (as the watcher's -TexOverrideDir)
-    [string]$TexOverrideDir = 'C:\Games\azrael-textures\hires'
+    [string]$TexOverrideDir = 'C:\Games\RaptorMod\textures\hires'
 )
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -40,7 +40,7 @@ $ast = [System.Management.Automation.Language.Parser]::ParseFile($wp, [ref]$tk, 
 foreach ($fn in 'ConvertTo-Rgb24', 'Get-RoomAtmosphere', 'Set-RoomAtmosphere', 'Update-RoomLights', 'Get-CharacterSig', 'Get-Room', 'Set-GpuAtmosphere', 'Set-GpuGi', 'Complete-GpuGi', 'Set-RoomTextureRules', 'Set-GpuGhost', 'Set-RoomGhosts', 'Get-MaterialTable', 'Resolve-TexMaterial', 'Set-RoomMaterials', 'Set-GpuWet', 'Set-GpuRepair') { $fd = $ast.Find({ param($x) $x -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $x.Name -eq $fn }, $true); if ($fd) { . ([scriptblock]::Create($fd.Extent.Text)) } }
 function Say([string]$m, [string]$c = 'Gray') { if ($m -match 'REPLACEMENT ART|shared art') { Write-Host $m -ForegroundColor DarkGray } }      # (the watcher's chatter, but which art each texture got)
 $LampRoomOff = 0.82; $NoFog = $false; $NoDust = [bool]$NoDustMotes; $NoLights = [bool]$NoTorches; $NoMist = $false; $NoParticles = $false; $script:giBake = $null; $script:giSync = $true      # (bounced light: worked out here and now, or read from its cache)
-$CacheDir = 'C:\Games\azrael-render'; $TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX'; $Palette = 'C:\Games\azrael-inject\azrael-palette.pal'
+$CacheDir = 'C:\Games\RaptorMod\cache'; $TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX'; $Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal'
 $W = 1600; $H = 928; $CacheRooms = 8; $TrueColour = $true; $NoRgb = $false; $TexScale = 1; $NoReflections = $false
 $roomCache = New-Object System.Collections.Specialized.OrderedDictionary
 $script:texMax = $(if ($TextureQuality -eq 'Normal') { 2048 } else { 0 })
@@ -252,7 +252,7 @@ if ($MaterializeAt -ge 0) { "  materialize: lines through walls {0} edges" -f $g
             "  OLD PATH for comparison: read-back {0:N2} ms + processor stretch {1:N2} ms (+ the GDI copy, not measured)" -f (@($rb | Sort-Object)[4]), (@($sc | Sort-Object)[4])
         } finally { $gpu.DetachPresent(); $po.Dispose() }
     }
-    if (-not $Out) { $Out = Join-Path 'C:\Games\azrael-render\tc-test' ("look-{0}{1}.png" -f $Room, $(if ($Off) { '-off' } elseif ($LampOff) { '-lampoff' } else { '' })) }
+    if (-not $Out) { $Out = Join-Path 'C:\Games\RaptorMod\cache\tc-test' ("look-{0}{1}.png" -f $Room, $(if ($Off) { '-off' } elseif ($LampOff) { '-lampoff' } else { '' })) }
     New-Item -ItemType Directory -Force (Split-Path $Out) | Out-Null
     $bm = New-Object System.Drawing.Bitmap -ArgumentList $Width, $Height, ([System.Drawing.Imaging.PixelFormat]::Format32bppRgb)
     $bd = $bm.LockBits((New-Object System.Drawing.Rectangle -ArgumentList 0, 0, $Width, $Height), [System.Drawing.Imaging.ImageLockMode]::WriteOnly, [System.Drawing.Imaging.PixelFormat]::Format32bppRgb)

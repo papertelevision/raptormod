@@ -27,9 +27,9 @@ public static class CmpC {
 }
 '@
 $W = 1600; $H = 928; $stride = 1600; $key = 0x101010
-$pal = [IO.File]::ReadAllBytes('C:\Games\azrael-inject\azrael-palette.pal')
-$room = Import-AztRoom -Rooms @('CORICORI') -CacheDir C:\Games\azrael-render -TexDir C:\Games\AzraelsTear-Modded\GAME\AZTEX -Palette C:\Games\azrael-inject\azrael-palette.pal -Width $Width -Height $Height
-[void](Add-AztRgb -Names @('CORICORI') -CacheDir C:\Games\azrael-render -Pal $pal -OverrideDir 'C:\Games\azrael-textures\hires'); [AztTool.Raster]::EnsureRgb($room.Texes, $pal)
+$pal = [IO.File]::ReadAllBytes('C:\Games\RaptorMod\cache\azrael-palette.pal')
+$room = Import-AztRoom -Rooms @('CORICORI') -CacheDir C:\Games\RaptorMod\cache -TexDir C:\Games\RaptorMod\game\GAME\AZTEX -Palette C:\Games\RaptorMod\cache\azrael-palette.pal -Width $Width -Height $Height
+[void](Add-AztRgb -Names @('CORICORI') -CacheDir C:\Games\RaptorMod\cache -Pal $pal -OverrideDir 'C:\Games\RaptorMod\textures\hires'); [AztTool.Raster]::EnsureRgb($room.Texes, $pal)
 $r = New-Object AztTool.Raster($Width, $Height); $r.NearZ = [single]0.5; $r.SetVerticalFov(50); $r.EnableRgb()
 $e = $null; $gpu = [AztTool.GpuRaster]::Create($Width, $Height, [ref]$e); if (-not $gpu) { "NO GPU: $e"; exit 1 }
 $screen = New-Object int[] ($stride * $H + 64); $gh = [Runtime.InteropServices.GCHandle]::Alloc($screen, 'Pinned')

@@ -1,7 +1,7 @@
 # Symbolise a Reality Lab error capture.
 #
 #   .\tools\Read-Raptor.ps1
-#   .\tools\Read-Raptor.ps1 -Dump C:\Games\azrael-render\raptor.txt
+#   .\tools\Read-Raptor.ps1 -Dump C:\Games\RaptorMod\cache\raptor.txt
 #
 # AztRaptorTrap (see $ENABLE_RAPTOR_TRAP in src\Build-AztMod.ps1) replaces RL's registered
 # error callback at 0x10204 and sifts the stack for anything inside obj1, i.e. anything that
@@ -24,7 +24,7 @@ $ErrorActionPreference = 'Stop'
 
 # $PSScriptRoot is EMPTY in param defaults under `powershell -File`, so resolve here.
 $here = Split-Path -Parent $PSCommandPath
-if (-not $Dump) { $Dump = 'C:\Games\azrael-render\raptor.txt' }
+if (-not $Dump) { $Dump = 'C:\Games\RaptorMod\cache\raptor.txt' }
 if (-not $Sym)  { $Sym  = Join-Path $here '..\AztMod.overlay.sym' }
 if (-not (Test-Path $Dump)) { throw "no capture at $Dump -- run the watcher until the game reports a Reality Lab error" }
 

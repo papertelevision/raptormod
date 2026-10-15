@@ -1,7 +1,7 @@
 # HUD text (story log, conversation list, inventory list): reverse-engineering reference
 
 Static analysis of the stock `GAME\AZRAEL\R.EXE` with the `tools\load.ps1` toolchain. A few
-checks were made against the installed modded `C:\Games\AzraelsTear-Modded\GAME\AZRAEL\R.EXE`
+checks were made against the installed modded `C:\Games\RaptorMod\game\GAME\AZRAEL\R.EXE`
 and against `AztMod.manifest.json` / `src\Build-AztMod.ps1`; those are labelled **[MOD]**.
 Addresses are image-LINEAR (no 0x200000 load base). At runtime the game adds
 `0x1F0000` to obj1 addresses and `0x1F1000` to obj2 addresses (`tools\GuestBase.ps1`).

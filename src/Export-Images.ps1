@@ -22,8 +22,8 @@
 # is a surprise, not because they are candidates.
 [CmdletBinding()]
 param(
-    [string]$GameDir = 'C:\Games\AzraelsTear-Modded\GAME',
-    [string]$OutDir  = 'C:\Games\azrael-gfx',
+    [string]$GameDir = 'C:\Games\RaptorMod\game\GAME',
+    [string]$OutDir  = 'C:\Games\RaptorMod\sources\gfx',
     [switch]$IncludeBooks,
     [string[]]$Only,
     [switch]$NoSheets

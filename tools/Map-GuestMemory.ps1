@@ -25,7 +25,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Exe = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\R.EXE',
+    [string]$Exe = 'C:\Games\RaptorMod\game\GAME\AZRAEL\R.EXE',
     [int]$WaitFor = 0,             # seconds to poll for a dosbox process
     [int]$Settle = 20,             # seconds to let the game initialise before reading
     [long]$Lin = 0,                # a guest IMAGE-linear address to dump (e.g. 0x133000)

@@ -21,7 +21,7 @@
 #     TEXTURE CACHE ALLOCATION:    <cache>
 [CmdletBinding()]
 param(
-    [string]$GameDir = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL',
+    [string]$GameDir = 'C:\Games\RaptorMod\game\GAME\AZRAEL',
     [int]   $Skip    = 30,     # samples to discard as intro/menu
     [int]   $Cap     = 24,     # the build's frame cap, for the ceiling count
     [string]$Label   = ''

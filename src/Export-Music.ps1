@@ -20,7 +20,7 @@
 # sounds is entirely down to the synthesiser -- for AztMod that is FluidSynth
 # with soundfonts\GeneralUser-GS.sf2, set in azrael-staging.conf.
 param(
-    [string]$GameDir = "C:\Games\AzraelsTear-Modded\GAME\AZRAEL",
+    [string]$GameDir = "C:\Games\RaptorMod\game\GAME\AZRAEL",
     [string]$OutDir  = "$PSScriptRoot\..\..\music-export"
 )
 

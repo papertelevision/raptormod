@@ -41,7 +41,7 @@ Josh asked for both on 2026-10-14 (phase 2, with the painted-light finder in Roo
   - `MapComplexK` fades them in. COLOURS (Josh, 2026-10-14): visited rooms in the map's teal (no white core; 0.75 of the current room); never-reached rooms a faint GREY outline (`MapUnseenInk` 0x6C7278 / flare 0x8C9298, `MapComplexDim` 0.14, faces 0.2), "rather hidden" until reached. They are drawn after the room's own pass with uWave off, faces at 0.8 / 0.4 and lines x `MapComplexDim` 0.3 for unvisited rooms.
   - The camera stays centred on the current room; MapZoom now goes down to 0.03, and near/far use the complex's radius.
 - **Watcher:**
-  - `Get-MapVisited` / `Add-MapVisited` (on every `room ->`) / `Clear-MapVisited` (a NEW game boot), stored in `C:\Games\azrael-render\visited-rooms.json`;
+  - `Get-MapVisited` / `Add-MapVisited` (on every `room ->`) / `Clear-MapVisited` (a NEW game boot), stored in `C:\Games\RaptorMod\cache\visited-rooms.json`;
   - Step-Map lays the complex out on open when the room or the visited list changed;
   - the wheel goes down to 0.06, and the complex fades in from zoom 0.62 to 0.37.
 - **Per SAVE (Josh, 2026-10-14: a new game still showed other rooms; "tied to the individual save file"):**

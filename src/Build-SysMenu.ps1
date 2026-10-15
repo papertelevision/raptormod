@@ -22,7 +22,7 @@ param(
     [int]$H = 340,
     [string]$Master,
     [string]$OutDir,
-    [string]$GameDir = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL',
+    [string]$GameDir = 'C:\Games\RaptorMod\game\GAME\AZRAEL',
     [switch]$PreviewOnly,
     # Writing into AztMod\art (the prebuilt set the installer ships) must leave
     # nothing but the PCX behind -- stray PNGs there are files the copy loop then

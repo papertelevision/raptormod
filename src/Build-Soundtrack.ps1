@@ -20,8 +20,8 @@
 # thing to check -- the robust alternative is to read the TOC at runtime through
 # MSCDEX (IOCTL input, control block 11) and fill the table from the disc instead.
 param(
-    [string]$Src  = "$([Environment]::GetFolderPath('Desktop'))\AzraelTearSoundtrack",      # (2026-10-14: was <Steam>\music-export\Soundtrack_mp3 -- the same 11 MP3s; this one is in the asset pack)
-    [string]$Dest = 'C:\Games\AzraelsTear-Modded',
+    [string]$Src  = 'C:\Games\RaptorMod\sources\soundtrack',      # (2026-10-14: was <Steam>\music-export\Soundtrack_mp3 -- the same 11 MP3s; this one is in the asset pack)
+    [string]$Dest = 'C:\Games\RaptorMod\game',
     [string]$ArtDir = "$PSScriptRoot\..\art",
     [int]   $DataSectors = 0,       # 0 = derive from AZT.BIN
     # The visor boot effect. Placed LAST, as slot 11, so it can never shift a music LBA --
@@ -36,7 +36,7 @@ param(
     #
     # -PeakDb -1 rather than the default peak-match: see Add-Reverb's own note on why
     # normalising back to the source peak makes the dry content quieter than it started.
-    [string]$Effect = "$([Environment]::GetFolderPath('Desktop'))\AzraelTearSoundtrack\Effects\new-booting-verb.wav"
+    [string]$Effect = 'C:\Games\RaptorMod\sources\soundtrack\Effects\new-booting-verb.wav'
 )
 $ErrorActionPreference = 'Stop'
 

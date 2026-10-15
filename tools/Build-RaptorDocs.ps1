@@ -2,7 +2,7 @@
 # print-outs, from Josh's sources into the game install.
 #
 #   powershell -ExecutionPolicy Bypass -File tools\Build-RaptorDocs.ps1
-#   powershell -ExecutionPolicy Bypass -File tools\Build-RaptorDocs.ps1 -GameDir C:\Games\AzraelsTear-Modded -Source C:\Games\azrael-gfx
+#   powershell -ExecutionPolicy Bypass -File tools\Build-RaptorDocs.ps1 -GameDir C:\Games\RaptorMod\game -Source C:\Games\RaptorMod\sources\gfx
 #
 # Sources:
 #   <TextDir>\manual.txt       the 1996 manual, OCR'd and proofread against its scan (the markup is in its header)
@@ -15,8 +15,8 @@
 # Run it again after changing either source; the watcher reads the files when the title opens.
 [CmdletBinding()]
 param(
-    [string]$GameDir = 'C:\Games\AzraelsTear-Modded',
-    [string]$Source = 'C:\Games\azrael-gfx',
+    [string]$GameDir = 'C:\Games\RaptorMod\game',
+    [string]$Source = 'C:\Games\RaptorMod\sources\gfx',
     [string]$TextDir = '',          # ('' = the repo's raptordocs\, from this script's own path: $PSScriptRoot is empty in a param default)
     [ValidateRange(50, 100)][int]$Quality = 92
 )

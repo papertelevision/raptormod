@@ -7,8 +7,9 @@
 #   2. finds Git, or installs it with winget (you answer winget's own prompts)
 #   3. clones the repo (-Branch, default dev-next) into <game>\AztMod -- or, if it is already there, fetches and fast-forwards
 #      (GitHub asks you to sign in the first time: the repo is private)
-#   4. runs AztMod\tools\Setup-Machine.ps1 -AssetPack <the pack folder>: restores the pack, links, installs the patches,
-#      builds the room cache, makes the shortcuts (see that script)
+#   4. runs AztMod\tools\Setup-Machine.ps1 -AssetPack <the pack folder>: everything goes into ONE folder, C:\Games\RaptorMod (an
+#      older install's folders are moved in); it restores the pack, links, installs the patches,
+#      builds the room cache, prepares the textures, checks the graphics card, makes ONE desktop shortcut (RaptorMod) --
 # -DryRun prints what it would do and changes nothing. The game is never launched.
 
 [CmdletBinding()]
@@ -102,9 +103,9 @@ if (-not (Test-Path $pj)) { throw "no pack.json in $AssetPack -- run this from t
 $pack = [IO.File]::ReadAllText($pj) | ConvertFrom-Json; $tot = 0L; foreach ($c in @($pack.components)) { $tot += [long]$c.bytes }
 Ok ("{0} component(s), {1:N1} GB, made {2} on {3} (repo {4})" -f @($pack.components).Count, ($tot / 1GB), $pack.created, $pack.fromComputer, $pack.repoCommit)
 $setup = Join-Path $target 'tools\Setup-Machine.ps1'
-if ($DryRun) { Plan "run powershell -File `"$setup`" -AssetPack `"$AssetPack`" (restore ~$([int]($tot / 1GB)) GB, install the patches, room cache, shortcuts)"; return }
+if ($DryRun) { Plan "run powershell -File `"$setup`" -AssetPack `"$AssetPack`" (restore ~$([int]($tot / 1GB)) GB, install the patches into C:\Games\RaptorMod, room cache, textures, GPU check, the RaptorMod shortcut)"; return }
 if (Get-Process dosbox* -ErrorAction SilentlyContinue) { throw 'DOSBox is running -- close the game, then run this again.' }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $setup -AssetPack $AssetPack
 if ($LASTEXITCODE -ne 0) { throw "Setup-Machine stopped with an error (exit $LASTEXITCODE) -- see above" }
 Write-Host ""
-Write-Host 'RaptorMod is installed: play with the desktop shortcut "Azrael''s Tear (Host Renderer - true colour)".' -ForegroundColor Green
+Write-Host 'RaptorMod is installed in C:\Games\RaptorMod: play with the RaptorMod shortcut on the desktop.' -ForegroundColor Green

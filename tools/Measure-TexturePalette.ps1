@@ -24,7 +24,7 @@
 [CmdletBinding()]
 param(
     [string]$Res = 'CORICORI',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [int]$Scale = 2,             # the output scale the art is being made for
     [int]$Top = 6,               # dominant colours to report per texture
     [int]$DarkThresh = 18,       # at or below this luminance a pixel is shadow, not material

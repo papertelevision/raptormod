@@ -69,7 +69,7 @@ function Get-AztGuestBase {
     #>
     [CmdletBinding()]
     param(
-        [string]$Exe = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\R.EXE',
+        [string]$Exe = 'C:\Games\RaptorMod\game\GAME\AZRAEL\R.EXE',
         [int]$ProcessId = 0,
         # Only regions at least this big are searched. The emulated RAM is ONE allocation of
         # memsize MB (32), so 8 MB skips everything else DOSBox has mapped -- most of the scan's

@@ -1,5 +1,5 @@
 # Restore-RoomRound.ps1 -- undo Room Review rounds (2026-10-08): put room settings back to how they were BEFORE round N
-# (its snapshot in C:\Games\azrael-render\rooms-history\round-NNN), for one room or all. The current files are
+# (its snapshot in C:\Games\RaptorMod\cache\rooms-history\round-NNN), for one room or all. The current files are
 # snapshotted first (rooms-history\restore-<time>), so a restore can itself be undone.
 #
 #   .\tools\Restore-RoomRound.ps1 -Round 3 -Room WASHCORI     (WASHCORI as it was before round 3)
@@ -7,7 +7,7 @@
 param(
     [Parameter(Mandatory)][int]$Round,
     [string]$Room = '',
-    [string]$RenderDir = 'C:\Games\azrael-render'
+    [string]$RenderDir = 'C:\Games\RaptorMod\cache'
 )
 $ErrorActionPreference = 'Stop'
 $snap = Join-Path $RenderDir ('rooms-history\round-{0:D3}' -f $Round)

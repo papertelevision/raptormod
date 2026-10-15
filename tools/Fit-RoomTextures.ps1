@@ -15,8 +15,8 @@
 param(
     [Parameter(Mandatory)][string]$Room,
     [string]$Src = '',
-    [string]$Dst = 'C:\Games\azrael-textures\hires',
-    [string]$Orig = 'C:\Games\azrael-render',
+    [string]$Dst = 'C:\Games\RaptorMod\textures\hires',
+    [string]$Orig = 'C:\Games\RaptorMod\cache',
     [string]$Backup = '',
     [ValidateSet(512, 1024, 2048, 4096)][int]$Size = 2048,     # 4096: only a few per room, or they overflow the card's texture budget (GpuRaster.MaxTextureBytes)
     [double]$MinMatch = 0.75,
@@ -34,7 +34,7 @@ $toolDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Add-Type -AssemblyName System.Drawing
 if (-not ('AztTool.TexFit' -as [type])) { Add-Type -Path (Join-Path $toolDir 'TexFit.cs') -ReferencedAssemblies System.Drawing }
 $Room = $Room.ToUpperInvariant()
-if (-not $Src) { $Src = "C:\Games\azrael-gfx\decals\$Room\updated" }
+if (-not $Src) { $Src = "C:\Games\RaptorMod\sources\gfx\decals\$Room\updated" }
 if (-not $Backup) { $Backup = Join-Path (Split-Path $Dst -Parent) ("hires-backup-{0}" -f $Room.ToLowerInvariant()) }
 New-Item -ItemType Directory -Force $Backup | Out-Null
 # the room's own textures (its MTL), so a name from another room is never touched

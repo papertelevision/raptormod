@@ -54,7 +54,7 @@ scale; running HudArt second wipes the reskin. Full order for a resolution chang
 Two wiring traps in that chain: **`Build-SysMenu` defaults `-OutDir` to
 `design\incoming\sysmenu\out`, not `art\`** (pass it explicitly or the frames never
 ship), and **`Build-Font` defaults `-GameDir` to the MODIFIED copy** at
-`C:\Games\AzraelsTear-Modded` — point it at the pristine Steam install.
+`C:\Games\RaptorMod\game` — point it at the pristine Steam install.
 
 `Apply-AztMod.ps1` line ~317 still hard-codes `-BoxW 207 -BoxHOff 111 -BoxHOn 231`
 for the redistributable path while `sysMenuW/H` come from the manifest. That is a

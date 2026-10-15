@@ -27,7 +27,7 @@
 param(
     [long]$Flag = 0x1525F2,
     [int]$HoldMs = 1200,
-    [string]$OutDir = 'C:\Games\azrael-suppress3d',
+    [string]$OutDir = 'C:\Games\RaptorMod\scratch\azrael-suppress3d',
     [long]$VideoBase = 0,          # 0 = locate it by page-diffing
     [long]$FbOffset = 0x140000,
     [int]$Stride = 2048,

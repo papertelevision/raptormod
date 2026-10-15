@@ -41,7 +41,7 @@
 # interpolation or walk past 512. -Revert restores every .RES that has a .orig.
 [CmdletBinding()]
 param(
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     # The startup split. Defaults are the measured block and the reserve this build
     # patches in; pass them if either changes.
     [long]  $BlockBytes   = 29891584,

@@ -15,7 +15,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Overlay = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTCODE.BIN',
+    [string]$Overlay = 'C:\Games\RaptorMod\game\GAME\AZRAEL\AZTCODE.BIN',
     [int]$W = 1024,
     [int]$H = 576
 )

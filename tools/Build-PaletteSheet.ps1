@@ -1,7 +1,7 @@
 # Build-PaletteSheet.ps1 -- one reference page: every original texture beside its measured
 # palette, grouped by material family.
 #
-#   .\tools\Build-PaletteSheet.ps1 -Res CORICORI -Out C:\Games\azrael-textures\room01\PALETTE.png
+#   .\tools\Build-PaletteSheet.ps1 -Res CORICORI -Out C:\Games\RaptorMod\textures\room01\PALETTE.png
 #
 # Attach this to the image model along with the text brief. The hex list tells it what the
 # colours ARE; this shows it what they look like together, and -- more usefully -- what the
@@ -12,7 +12,7 @@
 [CmdletBinding()]
 param(
     [string]$Res = 'CORICORI',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [Parameter(Mandatory)][string]$Out,
     [int]$Thumb = 150
 )

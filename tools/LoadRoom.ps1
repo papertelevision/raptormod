@@ -26,10 +26,10 @@ function Import-AztRoomSlow {
         # same per-name posing that opens doors places and animates a character, and two
         # copies of one rig stay separate because their prefixes differ.
         [object[]]$Characters = @(),
-        [string]$RefDir   = 'C:\Games\azrael-render\ref',
-        [string]$CacheDir = 'C:\Games\azrael-render',
-        [string]$TexDir   = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-        [string]$Palette  = 'C:\Games\azrael-inject\azrael-palette.pal',
+        [string]$RefDir   = 'C:\Games\RaptorMod\cache\ref',
+        [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+        [string]$TexDir   = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+        [string]$Palette  = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
         [int]$Width = 0, [int]$Height = 0
     )
     $toolDir = $PSScriptRoot
@@ -418,9 +418,11 @@ function Add-AztRgb {
     if ($work.Count -eq 0) { return [pscustomobject]@{ FromFile = 0; FromPalette = 0; Bad = @(); Replaced = @(); Twins = 0 } }
     $haveOv = [bool]($OverrideDir -and (Test-Path $OverrideDir))
     # the leaf whose replacement art each texture shows: its own, or a twin's new art (SHARED ART, Get-AztTwinArt)
-    $artOf = @{}; $twinErr = ''; $nTwin = 0
+    $artOf = @{}; $twinErr = ''; $nTwin = 0; $twinMs = 0
     if ($haveOv) {
+        $twSw = [Diagnostics.Stopwatch]::StartNew()
         $twin = $null; try { $twin = Get-AztTwinArt $CacheDir $OverrideDir } catch { $twinErr = $_.Exception.Message }
+        $twinMs = [int]$twSw.ElapsedMilliseconds
         foreach ($w in $work) { foreach ($p in $w.Pngs) { $lf = [IO.Path]::GetFileNameWithoutExtension($p); $artOf[$p] = $(if ($twin -and $twin.ContainsKey($lf)) { $twin[$lf] } else { $lf }) } }
     }
     $ovGuess = 0; if ($haveOv) { foreach ($w in $work) { foreach ($p in $w.Pngs) { if (Test-Path (Join-Path $OverrideDir ($artOf[$p] + '.png'))) { $ovGuess++ } } } }
@@ -504,7 +506,7 @@ function Add-AztRgb {
         }
         $w.Mem.RgbDone = $true; $w.Mem.RgbDir = $dirKey; $w.Mem.RgbBytes = $b
     }
-    return [pscustomobject]@{ FromFile = $fromFile; FromPalette = $fromPal; Bad = $bad; Replaced = $replaced; Companions = $mats; CompanionErrors = $matErr; Twins = $nTwin; TwinError = $twinErr }
+    return [pscustomobject]@{ FromFile = $fromFile; FromPalette = $fromPal; Bad = $bad; Replaced = $replaced; Companions = $mats; CompanionErrors = $matErr; Twins = $nTwin; TwinError = $twinErr; TwinMs = $twinMs; TwinNote = $(if ($script:AztTwin) { $script:AztTwin.Note } else { '' }) }
 }
 $script:AztRgbUse = 0
 # THE SESSION'S TEXTURE CACHE, BOUNDED (2026-10-12). Every unit's painted colours stay decoded for the session, so a room
@@ -531,10 +533,10 @@ function Import-AztRoom {
         [string]$RefName,
         [string[]]$Rooms,
         [object[]]$Characters = @(),
-        [string]$RefDir   = 'C:\Games\azrael-render\ref',
-        [string]$CacheDir = 'C:\Games\azrael-render',
-        [string]$TexDir   = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-        [string]$Palette  = 'C:\Games\azrael-inject\azrael-palette.pal',
+        [string]$RefDir   = 'C:\Games\RaptorMod\cache\ref',
+        [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+        [string]$TexDir   = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+        [string]$Palette  = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
         [int]$Width = 0, [int]$Height = 0
     )
     # (Smoother models -- curved subdivision of each unit at load, tools\retired\MeshSmooth.cs --
@@ -604,7 +606,7 @@ function Import-AztRoom {
 # of the room's files from the portal map (tools\Build-PortalMap.ps1: portals.json, per .XAF -- the doorway's pad 'door',
 # the way out of the room 'axis' (x, z), the room it leads to 'to'). Returns @{ Marks = float[] (8 per door, GpuRaster
 # SetMapMarks: x, y, z, out x, out z, 0 = a door, size 0, 0); Doors = @( @{ To; X; Y; Z } ) }.
-function Get-AztMapDoors([string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render') {
+function Get-AztMapDoors([string[]]$Files, [string]$CacheDir = 'C:\Games\RaptorMod\cache') {
     $mapPath = Join-Path $CacheDir 'portals.json'
     $marks = New-Object 'System.Collections.Generic.List[single]'; $doors = @()
     if (-not (Test-Path $mapPath)) { return @{ Marks = $marks.ToArray(); Doors = $doors } }
@@ -628,7 +630,7 @@ function Get-AztMapDoors([string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-
 # the ones with no texture (TRANSPARANT, ATRANNIE...) left out -- checked on MINEHEAD: Tex[8] = 27-mineflr2 after TRANSPARANT --
 # the files one after another. Each: Mat (the material, upper case) and Leaf (the png's name, upper case, its 'NN-' prefix off).
 $script:AztTexNames = @{}
-function Get-AztTexNames([string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render') {
+function Get-AztTexNames([string[]]$Files, [string]$CacheDir = 'C:\Games\RaptorMod\cache') {
     $out = New-Object 'System.Collections.Generic.List[object]'
     foreach ($f in $Files) {
         $n = $f.ToUpperInvariant(); $obj = Join-Path $CacheDir ($n + '.obj'); $mtl = Join-Path $CacheDir ($n + '.mtl')
@@ -651,7 +653,7 @@ function Get-AztTexNames([string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-
     }
     return ,$out
 }
-function Get-AztMapSkip($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render') {
+function Get-AztMapSkip($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\RaptorMod\cache') {
     $names = @{}; $doorXYZ = New-Object 'System.Collections.Generic.List[single]'
     $mapPath = Join-Path $CacheDir 'portals.json'
     if (Test-Path $mapPath) {
@@ -718,7 +720,7 @@ function Get-AztMapSkip($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\a
     # 'black' planes), which are no shape of the room
     $darkTex = New-Object 'System.Collections.Generic.HashSet[int]'
     try {
-        $palB = [IO.File]::ReadAllBytes('C:\Games\azrael-inject\azrael-palette.pal'); $palK = $(if (($palB | Measure-Object -Maximum).Maximum -le 63) { 4 } else { 1 })
+        $palB = [IO.File]::ReadAllBytes('C:\Games\RaptorMod\cache\azrael-palette.pal'); $palK = $(if (($palB | Measure-Object -Maximum).Maximum -le 63) { 4 } else { 1 })
         for ($k = 0; $k -lt $Room.Texes.Count; $k++) {
             $tx = $Room.Texes[$k]; if (-not $tx -or $tx.W -ne 1 -or $tx.H -ne 1) { continue }
             $ci = [int]$tx.Idx[0] * 3; if ($ci + 2 -ge $palB.Length) { continue }
@@ -777,7 +779,7 @@ function Get-AztMapSkip($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\a
 # the map clips every triangle not in "keep" at y (GpuRaster.SetMapCut / ClipMapBelow): walls that run on down under the floor end at
 # it. $null when the room has no cut; else @{ Y = the height; Tris = per triangle of $Room, true = cut it }. (Get-AztMapSkip also
 # drops what is WHOLLY under it, so the complex's rooms lose that much even where they are not clipped.)
-function Get-AztMapCut($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render') {
+function Get-AztMapCut($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\RaptorMod\cache') {
     $y = $null; $keep = @{}; $cutFiles = @{}
     foreach ($f in $Files) {
         $rp = Join-Path (Join-Path $CacheDir 'rooms') ($f.ToUpper() + '.json')
@@ -807,7 +809,7 @@ $script:AztPortalMap = $null; $script:AztPortalMapStamp = $null; $script:AztPort
 # that were never visited are placed too, faint (group 2), and not walked through. The rooms' map geometry (as the room's
 # own map: doorway pictures, characters, occluders and strays left out -- Get-AztMapSkip) is kept per room once read.
 $script:AztComplexGeo = @{}
-function Get-AztComplexGeo([string]$Name, [string]$CacheDir = 'C:\Games\azrael-render') {
+function Get-AztComplexGeo([string]$Name, [string]$CacheDir = 'C:\Games\RaptorMod\cache') {
     $k = $Name.ToUpperInvariant()
     $rjp = Join-Path (Join-Path $CacheDir 'rooms') ($k + '.json'); if (Test-Path $rjp) { $k += '@' + (Get-Item $rjp).LastWriteTimeUtc.Ticks }
     $pkf = Join-Path $CacheDir 'pickups.json'; if (Test-Path $pkf) { $k += '#' + (Get-Item $pkf).LastWriteTimeUtc.Ticks }      # (the pick-ups learned: read again)      # (its map settings changed: read again)
@@ -847,7 +849,7 @@ function Get-AztComplexGeo([string]$Name, [string]$CacheDir = 'C:\Games\azrael-r
     $script:AztComplexGeo[$k] = $geo
     return $geo
 }
-function Get-AztComplex([string]$Root, [string[]]$Visited, [string]$CacheDir = 'C:\Games\azrael-render', [int]$MaxRooms = 80, [switch]$ShowUnvisited) {
+function Get-AztComplex([string]$Root, [string[]]$Visited, [string]$CacheDir = 'C:\Games\RaptorMod\cache', [int]$MaxRooms = 80, [switch]$ShowUnvisited) {
     $mapPath = Join-Path $CacheDir 'portals.json'
     if (-not (Test-Path $mapPath)) { return $null }
     $stamp = (Get-Item $mapPath).LastWriteTimeUtc.Ticks
@@ -888,9 +890,9 @@ function Get-AztComplex([string]$Root, [string[]]$Visited, [string]$CacheDir = '
     return @{ V = $cxV.ToArray(); T = $cxT.ToArray(); G = $cxG.ToArray(); Rooms = $names }
 }
 function Get-AztPortals {
-    param($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\azrael-render',
-          [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-          [string]$Palette = 'C:\Games\azrael-inject\azrael-palette.pal')
+    param($Room, [string[]]$Files, [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+          [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+          [string]$Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal')
     $script:AztPortalNotes = @()
     $res = New-Object 'System.Collections.Generic.List[AztTool.Portal]'
     $mapPath = Join-Path $CacheDir 'portals.json'

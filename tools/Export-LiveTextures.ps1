@@ -23,7 +23,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Path = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTTEX.BIN',
+    [string]$Path = 'C:\Games\RaptorMod\game\GAME\AZRAEL\AZTTEX.BIN',
     [Parameter(Mandatory)][string]$OutDir
 )
 

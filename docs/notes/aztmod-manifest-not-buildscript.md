@@ -25,7 +25,7 @@ count is unchanged, the manifest is stale.
 .\src\Build-AztMod.ps1 -OutFile <temp>.json     # regenerate
 # diff against the live manifest BEFORE installing
 Copy-Item <temp>.json .\AztMod.manifest.json
-.\Apply-AztMod.ps1 -Install -Dest C:\Games\AzraelsTear-Modded
+.\Apply-AztMod.ps1 -Install -Dest C:\Games\RaptorMod\game
 ```
 
 **Always diff first.** The live manifest may predate uncommitted edits to the build script,

@@ -10,7 +10,7 @@ Characters in the host renderer (built 2026-10-04, **not yet seen in game** at t
 **Identification.** The engine instances a rig under a container frame `XAFQ%d` and names
 every bone frame `ZZ%04d` + the object's own name (both format strings are in R.EXE at file
 0x1867D0 / 0x1871C3). So live names `ZZ0001EUBUM`, `ZZ0001EUHEAD`… are one instance; strip
-the prefix and match the set against `C:\Games\azrael-render\xaf-objects.json`.
+the prefix and match the set against `C:\Games\RaptorMod\cache\xaf-objects.json`.
 
 **Which file.** Several .XAF share a skeleton (EUGBLD, EUGBLD1, EUGBLD2, EUGTEST: same 30
 names; BLD1==BLD2 geometry, BLD differs in 9 meshes). The tie-break is the character

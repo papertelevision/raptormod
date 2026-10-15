@@ -103,7 +103,7 @@ kept as `MDI.INI.aztbak`). Staging then reports
 
 Synth: **`mididevice = fluidsynth`** with **GeneralUser GS v2.0.3**
 (`GeneralUser-GS.sf2`, 32,319,396 bytes) in
-`C:\Games\AzraelsTear-Modded\soundfonts\`, via
+`C:\Games\RaptorMod\game\soundfonts\`, via
 `[fluidsynth] soundfont = GeneralUser-GS.sf2` + `soundfont_dir = soundfonts`.
 Staging recognises the bank by name and auto-applies tuned chorus/reverb, and
 runs at 48 kHz without resampling.

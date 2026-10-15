@@ -22,7 +22,7 @@ param(
     [double]$Side = 0,            # step sideways, to see the parallax
     [switch]$All,
     [int]$Width = 800, [int]$Height = 464,
-    [string]$CacheDir = 'C:\Games\azrael-render',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
     [string]$OutDir = ''
 )
 $ErrorActionPreference = 'Stop'

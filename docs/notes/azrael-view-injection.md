@@ -217,7 +217,7 @@ guest to release the buffer FIRST, then sample the camera, then render and push.
 
 ## The palette is CAPTURED
 
-`C:\Games\azrael-inject\azrael-palette.pal` — 768 bytes, **255 distinct colours**. Captured
+`C:\Games\RaptorMod\cache\azrael-palette.pal` — 768 bytes, **255 distinct colours**. Captured
 by painting known indices through the injection path and reading the result out of the
 display surface (`tools\Capture-Palette.ps1`). Contains the magenta chroma key, which
 corroborates it.

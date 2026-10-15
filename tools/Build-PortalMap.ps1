@@ -1,6 +1,6 @@
 # Build-PortalMap.ps1 -- which room is behind each doorway, and where it sits.
 #
-#   .\tools\Build-PortalMap.ps1              # writes C:\Games\azrael-render\portals.json
+#   .\tools\Build-PortalMap.ps1              # writes C:\Games\RaptorMod\cache\portals.json
 #   .\tools\Build-PortalMap.ps1 -Report      # and prints every portal it found
 #
 # WHY. A doorway in this game does not show the next room. It shows a PICTURE of it: a quad
@@ -38,8 +38,8 @@
 # doorway. A picture of a CLOSED door ("...CLOSE") is left alone: that one should stay a picture.
 [CmdletBinding()]
 param(
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$GameDir  = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$GameDir  = 'C:\Games\RaptorMod\game\GAME\AZRAEL',
     [string]$Out      = '',
     [switch]$Report
 )

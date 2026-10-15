@@ -1,7 +1,7 @@
 # Save/Load slot screen: reverse-engineering reference
 
 Static analysis of the stock `GAME\AZRAEL\R.EXE`, using the `tools\load.ps1` toolchain. A few
-checks were made against the installed modded `C:\Games\AzraelsTear-Modded\GAME\AZRAEL\R.EXE`
+checks were made against the installed modded `C:\Games\RaptorMod\game\GAME\AZRAEL\R.EXE`
 and are labelled as such. Addresses are LINEAR (no 0x200000 load base). File offsets come from
 `$IMG.FileOffsetOfLinear` (obj1: `file = 0x61A54 + (lin - 0x10000)`; obj2 data:
 `file = 0x184A54 + (lin - 0x140000)`).

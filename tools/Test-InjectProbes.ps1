@@ -20,12 +20,12 @@
 
 [CmdletBinding()]
 param(
-    [string]$Overlay = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTCODE.BIN',
+    [string]$Overlay = 'C:\Games\RaptorMod\game\GAME\AZRAEL\AZTCODE.BIN',
     [long]$OverlayBase = 0x133000,
     [long]$BufAt = 0x138000,
     [int]$InjW = 256,
     [int]$InjBand = 16,
-    [string]$OutDir = 'C:\Games\azrael-inject'
+    [string]$OutDir = 'C:\Games\RaptorMod\cache'
 )
 
 $ErrorActionPreference = 'Stop'

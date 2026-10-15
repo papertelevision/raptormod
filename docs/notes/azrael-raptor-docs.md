@@ -1,6 +1,6 @@
 ---
 name: azrael-raptor-docs
-description: "RAPTOR DOCS on the title (2026-10-11): STORY became RAPTOR DOCS -> a panel like OPTIONS -> MANUAL (the 1996 manual typeset in the visor, <game>\\raptordocs\\manual.txt) and CLASSIFIED DOCS (the box's print-outs, arrow pads, click to magnify); BACK/Esc = main menu. tools\\RaptorDocs.cs (partial TitleScreen) + CursorShapes.cs under TITLE_GATE; Build-RaptorDocs.ps1 from C:\\Games\\azrael-gfx\\raptordocs."
+description: "RAPTOR DOCS on the title (2026-10-11): STORY became RAPTOR DOCS -> a panel like OPTIONS -> MANUAL (the 1996 manual typeset in the visor, <game>\\raptordocs\\manual.txt) and CLASSIFIED DOCS (the box's print-outs, arrow pads, click to magnify); BACK/Esc = main menu. tools\\RaptorDocs.cs (partial TitleScreen) + CursorShapes.cs under TITLE_GATE; Build-RaptorDocs.ps1 from C:\\Games\\RaptorMod\\sources\\gfx\\raptordocs."
 metadata:
   node_type: memory
   type: project
@@ -24,7 +24,7 @@ Josh (2026-10-11): rename the title's STORY to "Raptor Docs". It opens "just lik
   - `raptordocs\manual.txt` and `classified.txt` in this repo (since 2026-10-13; before that in the asset pack's gfx component);
   - the scans in `credits\*.png`.
   - Re-run it after editing either. Nothing about it is in the manifest.
-- **The manual's TEXT is in this repo; the print-outs' SCANS are not** (Josh, 2026-10-13: "This repo will never go public, I'm going to have a separate distributable git for that later, so please include it ... a community patch/mod that is provided free of charge ... please omit the scans but include the text"). `raptordocs\manual.txt` and `raptordocs\classified.txt` (repo root) are what Build-RaptorDocs reads (`-TextDir`, default the repo's `raptordocs\`); the scans stay in `C:\Games\azrael-gfx\credits\` (asset pack), as does the PDF (`<game>\manual`, not redistributable). The old copies in `C:\Games\azrael-gfx\raptordocs\` are no longer read (nor packed). What goes into the later public distribution repo is decided there.
+- **The manual's TEXT is in this repo; the print-outs' SCANS are not** (Josh, 2026-10-13: "This repo will never go public, I'm going to have a separate distributable git for that later, so please include it ... a community patch/mod that is provided free of charge ... please omit the scans but include the text"). `raptordocs\manual.txt` and `raptordocs\classified.txt` (repo root) are what Build-RaptorDocs reads (`-TextDir`, default the repo's `raptordocs\`); the scans stay in `C:\Games\RaptorMod\sources\gfx\credits\` (asset pack), as does the PDF (`<game>\manual`, not redistributable). The old copies in `C:\Games\RaptorMod\sources\gfx\raptordocs\` are no longer read (nor packed). What goes into the later public distribution repo is decided there.
 
 **The manual**
 - **Source:** the archive.org PDF (14 spreads = 28 booklet pages, MRC images + a GlyphLessFont text layer, CID = Unicode).

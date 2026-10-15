@@ -2,7 +2,7 @@
 #
 #   .\tools\Read-LiveScene.ps1
 #   .\tools\Read-LiveScene.ps1 -Depth 3 -WithVisualsOnly
-#   .\tools\Read-LiveScene.ps1 -Json C:\Games\azrael-scene.json
+#   .\tools\Read-LiveScene.ps1 -Json C:\Games\RaptorMod\scratch\azrael-scene.json
 #
 # §10 of the feasibility report calls "scene graph -> renderer" the best-leverage seam,
 # and §13 puts object transforms as the step after camera extraction. Both are now
@@ -31,7 +31,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Overlay = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTCODE.BIN',
+    [string]$Overlay = 'C:\Games\RaptorMod\game\GAME\AZRAEL\AZTCODE.BIN',
     [long]$OverlayBase = 0x133000,
     [int]$MaxNodes = 4000,
     [int]$Depth = 99,

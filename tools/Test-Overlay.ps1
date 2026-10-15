@@ -15,7 +15,7 @@ if (-not ('AztTool.ProcMem' -as [type])) { Add-Type -Path (Join-Path $toolDir 'P
 $W = 1600; $H = 928; $SW = 1600; $SH = 1200; $fail = 0
 function Check([string]$what, [bool]$ok) { Write-Host ("  {0,-58} {1}" -f $what, $(if ($ok) { 'ok' } else { 'FAILED' })) -ForegroundColor $(if ($ok) { 'Gray' } else { 'Red' }); if (-not $ok) { $script:fail++ } }
 
-$palB = [IO.File]::ReadAllBytes('C:\Games\azrael-inject\azrael-palette.pal'); $pal32 = New-Object int[] 256
+$palB = [IO.File]::ReadAllBytes('C:\Games\RaptorMod\cache\azrael-palette.pal'); $pal32 = New-Object int[] 256
 for ($i = 0; $i -lt 256; $i++) { $pal32[$i] = ([int]$palB[$i*3] -shl 16) -bor ([int]$palB[$i*3+1] -shl 8) -bor [int]$palB[$i*3+2] }
 
 $hdr = 4096*3 + 64; $first = [int]($hdr / 4)

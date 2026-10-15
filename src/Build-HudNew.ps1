@@ -28,7 +28,7 @@ param(
     [string]$Expanded  = '',
     [string]$ArtDir    = '',
     [string]$StockGame = '',      # '' = the stock game this repo sits in: <Steam>\Azrael's Tear\GAME\AZRAEL
-    [string]$Upscaler  = 'C:\Games\realesrgan\realesrgan-ncnn-vulkan.exe',
+    [string]$Upscaler  = 'C:\Games\RaptorMod\sources\realesrgan\realesrgan-ncnn-vulkan.exe',
     # how much taller the opened log box is, in game rows (0 = from HUD_Expanded.png's screen)
     [int]$Extend = 0,
     [switch]$NoUpscale

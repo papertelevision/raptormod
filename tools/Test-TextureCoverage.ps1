@@ -3,7 +3,7 @@
 # Run it after installing a room's new textures. Flags: structure (correlation < 0.3), DETAIL MISSING (edge energy < 0.7 of the original's),
 # SMOOTH IN n% (8x8 cells where the original has detail and the new art is flat -- catches a strip like MINEMAZE's ramp), DARKER.
 # A flagged cell in a near-black region (original mean < ~10) is dither noise, not a problem: check with -Only/-Sheet.
-param([string]$Room = 'MINEMAZE', [string]$Sheet = '', [string]$Hires = 'C:\Games\azrael-textures\hires', [string]$Only = '')
+param([string]$Room = 'MINEMAZE', [string]$Sheet = '', [string]$Hires = 'C:\Games\RaptorMod\textures\hires', [string]$Only = '')
 # WHERE THE MODEL SAMPLES EACH TEXTURE vs WHAT THE REPLACEMENT HOLDS THERE. For every texture of the room: the UV triangles
 # that use it are drawn into a mask at the original's size; inside that mask the original and the installed replacement
 # (boxed down to the original's size) are compared -- structure (luminance correlation), detail (edge energy, new / orig) and
@@ -94,7 +94,7 @@ public static class UvAudit {
 }
 '@
 function Read-Px($path) { $bm = [Drawing.Bitmap]::FromFile($path); $w = $bm.Width; $h = $bm.Height; $c = New-Object Drawing.Bitmap $w, $h, ([Drawing.Imaging.PixelFormat]::Format32bppArgb); $g = [Drawing.Graphics]::FromImage($c); $g.DrawImage($bm, 0, 0, $w, $h); $g.Dispose(); $bm.Dispose(); $bd = $c.LockBits((New-Object Drawing.Rectangle 0, 0, $w, $h), 'ReadOnly', 'Format32bppArgb'); $p = New-Object int[] ($w * $h); [Runtime.InteropServices.Marshal]::Copy($bd.Scan0, $p, 0, $p.Length); $c.UnlockBits($bd); $c.Dispose(); @{ W = $w; H = $h; P = $p } }
-$cache = 'C:\Games\azrael-render'; $hires = $Hires
+$cache = 'C:\Games\RaptorMod\cache'; $hires = $Hires
 $map = @{}; $cur = $null; foreach ($l in [IO.File]::ReadAllLines("$cache\$Room.mtl")) { $s = $l.Trim(); if ($s.StartsWith('newmtl ')) { $cur = $s.Substring(7) } elseif ($s.StartsWith('map_Kd ')) { $map[$cur] = $s.Substring(7) } }
 $vt = New-Object System.Collections.Generic.List[double[]]; $tris = @{}; $m = ''; $parts = @{}; $o = ''
 foreach ($l in [IO.File]::ReadAllLines("$cache\$Room.obj")) {

@@ -1,5 +1,5 @@
 // RAPTOR DOCS -- THE CLASSIFIED PRINT-OUTS, in the order the title's reader shows them (Josh, 2026-10-11: "the original
 // print-outs that came with the game, but were not included in the release"). tools\Build-RaptorDocs.ps1 reads this.
-//   source (under C:\Games\azrael-gfx) | its title | the line under it
+//   source (under C:\Games\RaptorMod\sources\gfx) | its title | the line under it
 credits\Colin_Scott_Letter_4096px.png | LETTER  //  COLIN SCOTT | DELIVERED IF THE SENDER HAD NOT RETURNED IN FOUR DAYS
 credits\Sir_Guy_of_Bramley_Testament_4096px.png | THE LAST TESTAMENT OF SIR GUY OF BRAMLEY | TRANSLATED COPY  //  ENCLOSED WITH THE LETTER

@@ -28,7 +28,7 @@ frames can never exceed 256 colours. That ceiling is the reason option 2 (host r
 its own window, the game runs as simulation) is the eventual destination.
 
 **To resume the in-engine work:** the build is `src\Build-AztMod.ps1` → `Apply-AztMod.ps1
--Install -Dest C:\Games\AzraelsTear-Modded`. Injection ships **disabled**
+-Install -Dest C:\Games\RaptorMod\game`. Injection ships **disabled**
 (`aztInjEnable = 0`); nothing in the current build changes normal play.
 
 ---
@@ -1445,7 +1445,7 @@ boulder is the replacement, the right boulder is untouched engine geometry in th
 frame: same position, same texture, same camera, hard facet ridges against a smooth
 surface.
 
-**Tool:** `azrael-stage7-replacement.py`, output in `C:\Games\azrael-stage7`.
+**Tool:** `azrael-stage7-replacement.py`, output in `C:\Games\RaptorMod\scratch\azrael-stage7`.
 
 ---
 

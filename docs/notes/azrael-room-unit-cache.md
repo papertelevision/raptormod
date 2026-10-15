@@ -10,7 +10,7 @@ OBJ text, quantise textures and walk every triangle in script on every room chan
 when a character arrived: 0.8-2.4 s each.
 
 Now: `Get-AztUnit` builds ONE file's finished geometry via the old path (renamed
-`Import-AztRoomSlow`, unchanged) and saves it as `C:\Games\azrael-render\<NAME>.unit`
+`Import-AztRoomSlow`, unchanged) and saves it as `C:\Games\RaptorMod\cache\<NAME>.unit`
 (`AztRoom.RoomUnit`, tools\RoomUnit.cs). `AztRoom.Composed.Build` lays units end to end with
 indices rebased; two instances of one rig share textures but get their own geometry.
 Measured: slow 772-2,355 ms -> **4-24 ms from disk, ~3 ms from memory**, and every array
@@ -27,7 +27,7 @@ greedy cover from an inverted index (name -> files), <1 ms, same answers on 8 ro
 fed RAW names (`WalkBlocks`), not `WalkLive`'s, because WalkLive adds bare aliases for
 ZZ-prefixed bones and a rig would then be chosen as a "room". Index hashtables are ORDINAL.
 
-**Palette.** The capture at `C:\Games\azrael-inject\azrael-palette.pal` (2026-10-04 01:33)
+**Palette.** The capture at `C:\Games\RaptorMod\cache\azrael-palette.pal` (2026-10-04 01:33)
 post-dates the HUD rebuild and is current (Josh confirmed colours). The old staleness warning
 compared timestamps with the overlay and false-alarmed after every install; it is replaced by
 `Test-LivePalette`, which reads the game's own palette (3-byte master at obj2 0x163310, 4-byte
@@ -37,7 +37,7 @@ orders. Which reading is right is unknown until the first live run prints it.
 **Lighting / draw distance: not done, being measured.** `-CaptureRef` on the watcher saves, every
 8 s while the camera is still, the host's unlit frame + depth and the ENGINE's picture from
 the same pose (read from the surface at [0x163A34] after handing the viewport back) into
-`C:\Games\azrael-render\ref2\*.{host,eng,depth}.bin + .json`. Fit brightness-vs-depth from
+`C:\Games\RaptorMod\cache\ref2\*.{host,eng,depth}.bin + .json`. Fit brightness-vs-depth from
 those, then turn `-Light` on with fitted FogNear/FogFar/FogCurve. The existing -Light numbers
 were tuned against a reference with the OLD palette baked in -- do not trust them.
 
@@ -52,7 +52,7 @@ Four clean engine/host pairs (MINEHEAD, WELLROOM, ORRERY, CORICORI): engine/host
 
 ## Corpus sweep + launcher (2026-10-05, renderer phase wrap-up)
 
-**Sweep of all 178 .XAF (135,043 triangles), results in `C:\Games\azrael-render\room-sweep.csv`:** 0 load failures, 130,604 textured, 1,424 solid colour, 3,015 hidden by rule, **0 on the grey fallback**, no blank textures, no NaN/extreme coordinates. The only 63 fallback triangles were faces with NO material at all, every one an authoring helper (`dummy` in CAM/CAMERA01/CAMWALK1, `tdummy` in TOBIAS, `fight` in FIGHT, `sailorbox` = the whole of SAILOR_A, `rat`'s 2-face root in RATTY); Import-AztRoomSlow now skips material-less faces (`AZT_UNIT_RULES = 'rules-2'`, cache rebuilt, 83 s). Offline only -- it proves every file loads and is fully textured, not that every room looks right in play.
+**Sweep of all 178 .XAF (135,043 triangles), results in `C:\Games\RaptorMod\cache\room-sweep.csv`:** 0 load failures, 130,604 textured, 1,424 solid colour, 3,015 hidden by rule, **0 on the grey fallback**, no blank textures, no NaN/extreme coordinates. The only 63 fallback triangles were faces with NO material at all, every one an authoring helper (`dummy` in CAM/CAMERA01/CAMWALK1, `tdummy` in TOBIAS, `fight` in FIGHT, `sailorbox` = the whole of SAILOR_A, `rat`'s 2-face root in RATTY); Import-AztRoomSlow now skips material-less faces (`AZT_UNIT_RULES = 'rules-2'`, cache rebuilt, 83 s). Offline only -- it proves every file loads and is fully textured, not that every room looks right in play.
 
 **One-click launcher:** `AztMod\Play-HostRender.cmd` + desktop shortcut *Azrael's Tear (Host Renderer)*. Relaunches itself minimised, refuses if a DOSBox is already up, starts the game (same command line as Play-Azrael-Modded.bat), then runs `Watch-HostRender.ps1 -Once` and closes with the game. `-Once` now also exits if the game goes away before a session starts or never appears within 90 s. `AZT_DRYRUN=1` walks the file without starting anything (used to test it; the real path has NOT been run -- never auto-launch). Batch trap hit while writing it: the file's own path contains `(x86)`, so expanding `%~f0` inside an `if ( ... )` block closes the block; use goto.
 

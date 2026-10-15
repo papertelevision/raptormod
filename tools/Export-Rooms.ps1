@@ -1,6 +1,6 @@
 # Export-Rooms.ps1 -- split a multi-room capture and export one textured OBJ per room.
 #
-#   .\tools\Export-Rooms.ps1 -OutRoot C:\Games\azrael-rooms
+#   .\tools\Export-Rooms.ps1 -OutRoot C:\Games\RaptorMod\scratch\azrael-rooms
 #   .\tools\Export-Rooms.ps1 -Index            # just list the rooms, export nothing
 #
 # A multi-room session writes four interleaved streams, each carrying a 32-byte 'ROOM'
@@ -21,7 +21,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Dir = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL',
+    [string]$Dir = 'C:\Games\RaptorMod\game\GAME\AZRAEL',
     [string]$OutRoot,
     [switch]$Index,
     [switch]$AllVisits          # export every capture, not one per distinct room

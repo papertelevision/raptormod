@@ -39,7 +39,7 @@ param(
     [Parameter(ParameterSetName = 'stage')][switch]$KeepFps,
     [Parameter(ParameterSetName = 'restore')][switch]$Restore,
     [Parameter(ParameterSetName = 'list')][switch]$List,
-    [string]$GameRoot = 'C:\Games\AzraelsTear-Modded'
+    [string]$GameRoot = 'C:\Games\RaptorMod\game'
 )
 
 $ErrorActionPreference = 'Stop'

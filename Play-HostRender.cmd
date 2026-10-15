@@ -11,7 +11,7 @@ REM
 REM Arguments pass through to the renderer:   Play-HostRender.cmd -KeepCap
 REM                                           Play-HostRender.cmd -NoFpsCounter -SaveFrames 5
 REM
-REM If something goes wrong, the renderer's log is C:\Games\azrael-render\watch.log, and
+REM If something goes wrong, the renderer's log is C:\Games\RaptorMod\cache\watch.log, and
 REM AztMod\Watch-HostRender.cmd still runs the renderer on its own, visibly, for any game.
 
 REM Re-launch minimised, so the renderer's window is not sitting over the game.
@@ -25,7 +25,7 @@ exit /b
 
 :run
 title AztMod host renderer
-set "GAME=C:\Games\AzraelsTear-Modded"
+set "GAME=C:\Games\RaptorMod\game"
 if not exist "%GAME%\DOSBOX-STAGING\dosbox.exe" (
     echo The modded game was not found at %GAME%.
     echo Run Apply-AztMod.ps1 first.
@@ -53,7 +53,7 @@ REM powershell -File takes "C:\Program" as the script.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\Watch-HostRender.ps1" -Once -Launch -GameDir "%GAME%" %*
 if errorlevel 1 (
     echo.
-    echo The host renderer stopped with an error. See C:\Games\azrael-render\watch.log
+    echo The host renderer stopped with an error. See C:\Games\RaptorMod\cache\watch.log
     pause
 )
 goto :eof

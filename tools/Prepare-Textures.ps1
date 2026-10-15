@@ -24,7 +24,7 @@ param(
     [Parameter(Mandatory)][string]$InDir,
     [string]$OutDir,
     [string]$Res = 'CORICORI',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [switch]$NoAutoCrop,        # AutoCrop is ON by default: AI output is usually framed
     [switch]$NoFitUV,           # FitUV is ON by default: most textures are sub-region
     [double]$SeamWarn = 2.0,

@@ -1,6 +1,6 @@
 # Export-Books.ps1 -- dump the readable book/scroll pages to PNG for re-authoring.
 #
-#   .\src\Export-Books.ps1 -OutDir C:\Games\azrael-books
+#   .\src\Export-Books.ps1 -OutDir C:\Games\RaptorMod\sources\books
 #
 # The counterpart to Build-Books.ps1's -InDir. Put the improved PNGs back with:
 #   .\src\Build-Books.ps1 -InDir <that folder>
@@ -27,7 +27,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$OutDir,
-    [string]$BookDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX\BOOKS',
+    [string]$BookDir = 'C:\Games\RaptorMod\game\GAME\AZTEX\BOOKS',
     [switch]$Installed          # export what is installed rather than the pristine .src
 )
 

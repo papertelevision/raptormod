@@ -20,7 +20,7 @@
 # Room Review's Approve turns a suggestion into a note, and the light is added in the next round of notes).
 #
 #   .\tools\Suggest-PaintedLights.ps1 -Room CHAMBNEW            (one or more rooms)
-#   .\tools\Suggest-PaintedLights.ps1 -All [-IncludeHidden]     (every room in C:\Games\azrael-render; not the characters,
+#   .\tools\Suggest-PaintedLights.ps1 -All [-IncludeHidden]     (every room in C:\Games\RaptorMod\cache; not the characters,
 #                                                                camera dummies or test models the viewer groups apart)
 #   -MinConfidence 0.55  -Merge 20  -WhatIf (list, write nothing)  -DebugDir <dir> (each texture's finds drawn over it)
 param(
@@ -31,7 +31,7 @@ param(
     [double]$Merge = 20,
     [switch]$WhatIf,
     [string]$DebugDir = '',
-    [string]$RenderDir = 'C:\Games\azrael-render',
+    [string]$RenderDir = 'C:\Games\RaptorMod\cache',
     [string]$NotesDir = ''
 )
 $ErrorActionPreference = 'Stop'

@@ -16,7 +16,7 @@ anisotropic, eye adaptation, colour grading, supersampling, visor glass, visor m
 All are GRAPHICS CARD ONLY: the processor picture (F9) and -AA/F8 paths have none of them.
 
 **Where:** `tools\GpuRaster.cs` + `tools\Particles.cs`; watcher `-Relief 1.0 -AO 0.6 -Beam 0.7
--NoMist -NoParticles`; room files `C:\Games\azrael-render\rooms`: `_defaults.json` everywhere =
+-NoMist -NoParticles`; room files `C:\Games\RaptorMod\cache\rooms`: `_defaults.json` everywhere =
 mist + kickup, cave = drips; `WASHCORI.json` = steam + its own lighter mist; embers come from every
 light with flicker > 0 (room file "embers" can tune or set rate 0). `Set-GpuAtmosphere` at room load.
 - RELIEF: built ON THE CARD at texture upload (MakeRelief: luminance at the half-size mip minus

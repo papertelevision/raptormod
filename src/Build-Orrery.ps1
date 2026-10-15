@@ -1,6 +1,6 @@
 # Build-Orrery.ps1 -- slice a generated contact sheet into the orrery puzzle's 18 PCX files.
 #
-#   .\src\Build-Orrery.ps1 -Sheet C:\Games\azrael-gfx\orrery-puzzle\incoming\sheet.png
+#   .\src\Build-Orrery.ps1 -Sheet C:\Games\RaptorMod\sources\gfx\orrery-puzzle\incoming\sheet.png
 #   .\src\Build-Orrery.ps1 -Revert
 #
 # THE FOUR VARIANTS ARE ROTATIONS, NOT SEPARATE ART. Measured on the stock files: for every
@@ -27,9 +27,9 @@
 # quantise onto the key colour and punch holes through the ring.
 [CmdletBinding()]
 param(
-    [string]$Sheet  = 'C:\Games\azrael-gfx\orrery-puzzle\incoming\sheet.png',
+    [string]$Sheet  = 'C:\Games\RaptorMod\sources\gfx\orrery-puzzle\incoming\sheet.png',
     [string]$ArtDir = (Join-Path $PSScriptRoot '..\art\ORRPUZ'),
-    [string]$OrrGame = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\ORRPUZ',   # stock, read-only
+    [string]$OrrGame = 'C:\Games\RaptorMod\game\GAME\AZRAEL\ORRPUZ',   # stock, read-only
     [int]$BgSum     = 30,      # R+G+B at or below this is background -> index 0
     [switch]$Revert
 )

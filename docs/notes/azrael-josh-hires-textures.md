@@ -1,6 +1,6 @@
 ---
 name: azrael-josh-hires-textures
-description: "Josh's own hi-res room textures (C:\\Games\\azrael-gfx\\decals\\<ROOM>\\updated) go into the true-colour override folder (4096; 2K tier in hires-2048) via Fit-RoomTextures; CORICORI done 2026-10-08. Layout and size rules. Twins (the same picture under other leaves) follow by themselves through the loader alias."
+description: "Josh's own hi-res room textures (C:\\Games\\RaptorMod\\sources\\gfx\\decals\\<ROOM>\\updated) go into the true-colour override folder (4096; 2K tier in hires-2048) via Fit-RoomTextures; CORICORI done 2026-10-08. Layout and size rules. Twins (the same picture under other leaves) follow by themselves through the loader alias."
 metadata:
   node_type: memory
   type: project
@@ -10,7 +10,7 @@ metadata:
 
 Josh (2026-10-08): "very high resolution textures for the first room ... labeled the same as the current ones ... replace those in the game ... with the same normal mapping applied."
 
-- **Where they go:** `C:\Games\azrael-textures\hires\<leaf>.png` (Watch-HostRender `-TexOverrideDir`, true colour only). The leaf is the texture's exported name (`00-r12r5.png`); Josh's files carry copy suffixes like `(3)`, so match on `^\d\d-name`. Add-AztRgb loads the override at any size.
+- **Where they go:** `C:\Games\RaptorMod\textures\hires\<leaf>.png` (Watch-HostRender `-TexOverrideDir`, true colour only). The leaf is the texture's exported name (`00-r12r5.png`); Josh's files carry copy suffixes like `(3)`, so match on `^\d\d-name`. Add-AztRgb loads the override at any size.
   - The ORIGINAL still decides the holes, so a replacement must keep the original's layout.
   - Relief maps are built on the card from whatever colour texture loads, so "the same normal mapping" applies with no extra step.
 - **NOW 4096 (Josh: "they still feel blurry ... are they being downsampled?"):**
@@ -27,7 +27,7 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
   - Raising the cap is Josh's call (fps): offered 2026-10-08.
 - **(Superseded) size 2048, not 4096:** the card budget is MaxTextureBytes 1.5 GB (GpuRaster). Eight 4096² textures plus relief maps would cross it, so ForgetTextures would re-upload every frame. 2048 is already 8x the 256 originals. Josh's 4096 files stay as the masters.
 - **Shape mismatch:** `02-vstpap01` came as a 2:1 crop of a 128² original (a scroll on black). Its content box (non-black) was fitted onto the original's content box in a black 2048 square.
-- **Script:** session scratchpad `Install-CoriTextures.ps1` (-Src/-Dst/-Orig/-Size/-Sheet). It backs up the replaced hires files to `C:\Games\azrael-textures\hires-backup-20261008-coricori` and writes an original|new check sheet. Copy it into tools if this becomes a habit.
+- **Script:** session scratchpad `Install-CoriTextures.ps1` (-Src/-Dst/-Orig/-Size/-Sheet). It backs up the replaced hires files to `C:\Games\RaptorMod\textures\hires-backup-20261008-coricori` and writes an original|new check sheet. Copy it into tools if this becomes a habit.
 - **ALIGNMENT IS THE REAL PROBLEM (Josh: "some of the textures aren't lining up"):** ChatGPT redraws zoom in 8-18% and shift up to 9%. The fix is `tools\Fit-RoomTextures.ps1 -Room R` (+ `tools\TexFit.cs`):
   - It measures zoom and shift by edge NCC against the original (128 coarse, 256 refined) and warps the image back. The uncovered border fills from the previous aligned replacement (`-Backup`).
   - It scores the result (flag under 0.75 at 256) and writes a check sheet with the original's outlines in red.
@@ -36,7 +36,7 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
 - **Unplaced:** "Ominous Storm Cloudscape in Deep Blue (2).png" (1774x887) has no texture name, so it was skipped. Asked Josh where it goes.
 - Not the same thing as [[azrael-texture-remaster-verdict]] (AI/upscaled originals rejected): this is Josh's own art, per room, on request.
 
-**Clean (unlit) textures, CORICORI (2026-10-09):** Josh will re-render the room's textures with ChatGPT WITHOUT the painted lighting, then light them for real. The project instructions are in C:\Games\azrael-gfx\decals\CORICORI\ChatGPT-project-instructions.md.
+**Clean (unlit) textures, CORICORI (2026-10-09):** Josh will re-render the room's textures with ChatGPT WITHOUT the painted lighting, then light them for real. The project instructions are in C:\Games\RaptorMod\sources\gfx\decals\CORICORI\ChatGPT-project-instructions.md.
 - MEASURED: no CORICORI texture has a single palette-0 pixel, so ALL their black is painted lighting, not holes.
 - The floor/ceiling/wall textures are fixed-camera RENDERS: a lit, perspective-drawn patch of surface fading to black. The new art must therefore keep the perspective and the positions, and be filled edge to edge.
 - Real dark features to keep: the ceiling hole in 05-ecrflr05 (the light shafts) and the black around the 02 scroll. The 11-or_tunnl atlas keeps its panel gaps.
@@ -50,7 +50,7 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
 - Backup: hires-backup-coricori.
 
 **CORICORI FINAL set (2026-10-11, Josh: "my final textures ... the most high quality textures yet"):** 19 new files in `updated` (clean names, all 4096; 02-vstpap01 unchanged from 10-09, so skipped).
-- Staged 18 (all but 01 and 02) in the scratchpad: `Fit-RoomTextures -Room CORICORI -Src <stage> -Size 4096 -Backup C:\Games\azrael-textures\hires-backup-coricori-20261011`.
+- Staged 18 (all but 01 and 02) in the scratchpad: `Fit-RoomTextures -Room CORICORI -Src <stage> -Size 4096 -Backup C:\Games\RaptorMod\textures\hires-backup-coricori-20261011`.
   - Pass a NEW `-Backup`: the script only backs up a leaf that is not already in the backup folder, so the old folder would have let the 10-09 set be overwritten unsaved.
 - Mostly "none needed"; six got tiny corrections (zoom 0.988-1.008, shift <= 0.4%).
 - Flagged 0.71-0.73: 00-r12r5, 04-cor2wash, 07-ecrflra3. Outlines checked on the sheet; they line up, only interiors are redrawn.
@@ -73,7 +73,7 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
 **THE GOAL: TEXTURE QUALITY Normal / Ultra (Josh, 2026-10-11).** A title-menu setting: Normal loads 2K textures, Ultra loads 4K.
 - Josh is re-rendering every texture himself first; 4K art goes to other rooms only as he delivers it.
 - Plumbing built:
-  - `Add-AztRgb -MaxSize` (LoadRoom.ps1): a replacement larger than MaxSize is read from a scaled copy in `<OverrideDir>-<MaxSize>` (`C:\Games\azrael-textures\hires-2048`), made once and remade when the master is newer (`Get-AztSizedOverride`, PNG header size via `Get-AztPngSize`). The RgbDir key includes the size.
+  - `Add-AztRgb -MaxSize` (LoadRoom.ps1): a replacement larger than MaxSize is read from a scaled copy in `<OverrideDir>-<MaxSize>` (`C:\Games\RaptorMod\textures\hires-2048`), made once and remade when the master is newer (`Get-AztSizedOverride`, PNG header size via `Get-AztPngSize`). The RgbDir key includes the size.
   - Watcher `-TextureQuality Normal|Ultra`, else `<GameDir>\raptormod-settings.json` "textureQuality", else **Ultra** (today's look while the menu says coming soon). `$script:texMax` 2048 / 0; logged as "texture quality: ...". Test-GpuLook has `-TextureQuality`.
 - MEASURED on CORICORI:
   - Normal: 20 at 2048, 848 MB on the card, room load 1.0 s. The FIRST Normal load took 9.0 s, making the 20 copies (41 MB).
@@ -83,7 +83,7 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
 **ALL DOORS for Josh to up-rez (2026-10-11):** `Desktop\all doors`, 42 originals plus `_where these go.txt` (file -> every room: leaf it replaces).
 - Chosen from the decals as textures NAMED door/dor, deduplicated by MD5. spadoor alone is 11 rooms' leaves.
 - Left out (named "dor" but not door panels): ecrdor01 / ecrdor02 (CORICORI's door walls and inscription), dorcor, dotopdor, dowaldor, cha_ddor, clfdoor.
-- CORICORI's own door panel `20-spadoor` is NOT in decals\CORICORI, and it is a different picture from the shared spadoor. It was taken from C:\Games\azrael-render as `spadoor-coricori.png`.
+- CORICORI's own door panel `20-spadoor` is NOT in decals\CORICORI, and it is a different picture from the shared spadoor. It was taken from C:\Games\RaptorMod\cache as `spadoor-coricori.png`.
 - To install the up-rez: each file name -> its leaves from the txt; Fit-RoomTextures per room, or copy to every leaf of a shared image.
 
 **LURKA (Room Review LURKA/1, 2026-10-09): the ChatGPT character textures installed at 2048.**
@@ -91,13 +91,13 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
 - Fit-RoomTextures works for a CHARACTER given a scratch `-Orig` folder holding a one-off `LURKA.mtl` plus the originals from `decals\LURKA`, and a `-Src` of renamed copies (`01-l_bod.png` ...).
 - Zoom 1.12-1.34. Silhouettes line up; the scores (head 0.88, others 0.5-0.6) are low only because interiors are redrawn.
 - **Shared texture:** l_bod is the same image as the CL-* models' `02-l_bod` and FIGHT's `07-l_bod`, so the fitted body was copied to those leaves too. Find sharing by hashing `decals\*\*<name>.png`.
-- Backup: `C:\Games\azrael-textures\hires-backup-lurka`.
+- Backup: `C:\Games\RaptorMod\textures\hires-backup-lurka`.
 - **REVERTED (round 22, Josh: "this isn't working, revert"):** the fill smeared flat skin/beige over the back panels. The fitted unfilled textures are installed again and `TwoSidedMoves = false`. The filled set is kept in `hires-backup-lurka-filled`. Don't retry the push-pull fill on characters.
 - **(Reverted) "Missing polygons" (LURKA/1 follow-up) = PAINTED BLACK, not holes:** 182 of 440 triangles map onto black in the original art (wrists, ankles, limb insides, skirt backs). Filled with push-pull from the surrounding art (scratchpad `fill-black.ps1`: big or edge-touching dark regions only). The fitted, unfilled versions are in `hires-backup-lurka-fitted`.
 - The real joint seams are small: rigid parts 0.3-0.7 units apart at rest in a ~48-unit model. Closing them needs skin bridges that follow the pose; that was offered as a separate task, not done.
 - **Skirt (LURKA/2):** GpuRaster `TwoSidedMoves` draws all character (Moves) textures without back-face culling.
 
-**MINEHEAD next (2026-10-09):** `C:\Games\azrael-gfx\decals\MINEHEAD\updated` was created for Josh's clean re-renders (48 originals sit beside it). Its ChatGPT-project-instructions.md is written for this room:
+**MINEHEAD next (2026-10-09):** `C:\Games\RaptorMod\sources\gfx\decals\MINEHEAD\updated` was created for Josh's clean re-renders (48 originals sit beside it). Its ChatGPT-project-instructions.md is written for this room:
 - keep the original's aspect ratio at 4096 on the long side (sizes vary: 256x128, 128x256, 512x128...);
 - MAGENTA cut-outs stay pure #FF00FF (04, 06, 07);
 - the grate set must NOT paint the light the engine now makes: 37-mineplab cells (holes are cut from the ORIGINAL, so the new art there doesn't matter), 38-mineplat's light shafts, and 39-minewal1's painted grid (it IS the slope under the grate);
@@ -107,7 +107,7 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
   - The previous replacement is in hires-backup-minehead.
 
 **MINEMAZE 4K set (2026-10-11, Josh: "added new textures for MineMaze ... in a 2k-4k folder ... add the 4k textures ... the 2k can come later and are labeled 2k").**
-- Source `C:\Games\azrael-gfx\decals\MINEMAZE\4k-2k`: 22 at 4096 on the long side (01, 02, 04-23; 00-n_black and 03-baptapce not redone) plus `_2k` twins (left for the Normal tier; the plumbing makes its own 2048 copies until then). All match the originals' aspects (square, 128x256, 256x128).
+- Source `C:\Games\RaptorMod\sources\gfx\decals\MINEMAZE\4k-2k`: 22 at 4096 on the long side (01, 02, 04-23; 00-n_black and 03-baptapce not redone) plus `_2k` twins (left for the Normal tier; the plumbing makes its own 2048 copies until then). All match the originals' aspects (square, 128x256, 256x128).
 - **NAMES:** the decals call two of them `11-mmzgun#` / `14-mmzamul#`, but the MTL leaves (and the hires files) are `11-mmzgun_key` / `14-mmzamul_key` -- the exporter turns `#` into `_key`. Fit-RoomTextures' `^\d\d-[A-Za-z0-9_]+` stops at `#`, so stage renamed copies.
 - **18 through Fit-RoomTextures** (-Size 4096, -Backup `hires-backup-minemaze-20261011`): mostly "none needed", tiny fixes on 12/13/16/19/20 (zoom 0.978-1.004, shift <= 1.8%). Flagged 07/09/16/18/21/22 (0.35-0.74) checked on the sheet: the outlines line up; interiors are redrawn.
 - **04-ent_rope and 05-minelad1 WITHOUT the fit** (copied as delivered, 2048x4096 / 4096x2048): the fit wanted 0.80 x / 0.85 y squeezes chasing the painted light falloff (the MINEHEAD-39 failure) while the outlines already lined up. Note Fit-RoomTextures sizes by WIDTH (`H = Size*oh/ow`): a PORTRAIT texture at -Size 4096 would come out 4096x8192 -- don't run portraits through it at 4096.
@@ -120,7 +120,7 @@ Josh (2026-10-08): "very high resolution textures for the first room ... labeled
 - **NEW `tools\Test-TextureCoverage.ps1 -Room R`:** per texture, the UV triangles that use it are drawn into a mask, and inside it the original and the installed art are compared: correlation, edge energy (DETAIL MISSING < 0.7), and 8x8 cells where the original has detail and the new art is smooth ("SMOOTH IN n%"). On the delivered ramp it said smooth in 24%; after the fix it is clean. `-Only a,b -Sheet x.png` draws the flagged cells.
   - MINEMAZE remaining flags checked and fine: 11-mmzgun_key (its outline matches the original's to 0.002; the metal is just darker and smoother) and 16-mmzsupp (cells near-black in both, mean 1-7: dither noise).
   - Run it after every room install, before Josh plays it.
-- **Josh's own 2K set installed (same day, "fix for the 2k textures too")** into `C:\Games\azrael-textures\hires-2048` (the Normal tier's folder; backup folder `hires-2048-backup-minemaze-20261011`, empty: nothing was there).
+- **Josh's own 2K set installed (same day, "fix for the 2k textures too")** into `C:\Games\RaptorMod\textures\hires-2048` (the Normal tier's folder; backup folder `hires-2048-backup-minemaze-20261011`, empty: nothing was there).
   - The 22 `_2k` files are exact halves of the 4K ones.
   - 18 went through Fit-RoomTextures -Size 2048 -Dst hires-2048 (the same tiny fixes as at 4K).
   - The rope and the walkway were RE-MEASURED on the 2K files: rope 23/512 again (46 px); planks rows 24..156 of 1024, stretched onto 32..311.

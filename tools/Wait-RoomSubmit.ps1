@@ -4,7 +4,7 @@
 #
 #   .\tools\Wait-RoomSubmit.ps1 [-PollSeconds 3]
 param(
-    [string]$RenderDir = 'C:\Games\azrael-render',
+    [string]$RenderDir = 'C:\Games\RaptorMod\cache',
     [string]$NotesDir = '',
     [double]$PollSeconds = 3
 )

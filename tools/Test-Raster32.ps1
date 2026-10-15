@@ -15,10 +15,10 @@
 param(
     [string[]]$Rooms = @('CORICORI', 'SPAROOM', 'MINEHEAD'),
     [int]$W = 1600, [int]$H = 928, [double]$Fov = 50,
-    [switch]$Save, [string]$OutDir = 'C:\Games\azrael-render\tc-test',
-    [string]$TexDir   = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$Palette  = 'C:\Games\azrael-inject\azrael-palette.pal'
+    [switch]$Save, [string]$OutDir = 'C:\Games\RaptorMod\cache\tc-test',
+    [string]$TexDir   = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$Palette  = 'C:\Games\RaptorMod\cache\azrael-palette.pal'
 )
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $PSCommandPath

@@ -23,7 +23,7 @@ Josh (2026-10-09): "Bounced light (global illumination), pre-calculated per room
 - **Watcher:**
   - Set-GpuGi runs from Set-GpuAtmosphere; Complete-GpuGi runs each frame after Update-RoomLights and uploads when the bake is ready.
   - Background bake: half the threads at BelowNormal priority. NEVER starve DOSBox.
-  - Cache: `C:\Games\azrael-render\gi\<ROOM>-<signature>.gi`. The signature covers geometry, texture colours, lights and settings. A changed room file means a new bake on the next room entry; there is no live reload.
+  - Cache: `C:\Games\RaptorMod\cache\gi\<ROOM>-<signature>.gi`. The signature covers geometry, texture colours, lights and settings. A changed room file means a new bake on the next room entry; there is no live reload.
   - `-NoGi` turns it off. Test-GpuLook bakes synchronously and takes `-NoGi`, `-GiStrength` and `-GiAmbient`.
 - **Calibration (MEASURED):** the original textures average 14% brightness because the lighting is painted into them. At albedo 1 the median bounce was 0.04 against a room level of 0.82, so it was invisible.
   - CORICORI uses `albedo 2.2` (each surface capped at 0.9), `strength 2.5`, `ambient 0.4`, `spacing 20`, `rays 64`, `bounces 3`.

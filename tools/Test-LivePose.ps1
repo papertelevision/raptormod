@@ -20,7 +20,7 @@
 param(
     [Parameter(Mandatory)][string[]]$Rooms,
     [string[]]$Characters = @(),
-    [string]$CacheDir = 'C:\Games\azrael-render'
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache'
 )
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $PSCommandPath

@@ -87,7 +87,7 @@
 - [Frame cost](azrael-frame-cost.md) - lamp shadows ~11 ms + picture size are heavy; frame interpolation REMOVED.
 - [GPU renderer](azrael-gpu-renderer.md) - GpuRaster.cs draws/sharpens/composes true colour by default; F9 = processor.
 - [GPU effects](azrael-gpu-effects.md) - relief, AO, beam, mist, particles; black flicker fixed with aztInjSync 0.
-- [Atmosphere](azrael-atmosphere.md) - fog/dust/placed lights per room JSON in C:\Games\azrael-render\rooms.
+- [Atmosphere](azrael-atmosphere.md) - fog/dust/placed lights per room JSON in C:\Games\RaptorMod\cache\rooms.
 - [Widescreen panel](azrael-widescreen-panel.md) - full-width lower interface, game + host copies from one mapping.
 - [New HUD](azrael-hud-new.md) - HUD_NEW/GLOW, now v3 art via Build-HudV3.ps1 (16:10 mapping).
 - [Host pointer](azrael-host-pointer.md) - full-width mouse with no game code; broke hover/pickup -> off (-HostPointer).
@@ -141,3 +141,4 @@
 - [Wireframe "7" reference](wireframe-7-style.md) - Josh: "keep for later": orange extruded 7, solid visible edges, DASHED hidden edges, on black; copy in docs\reference.
 - [DrawImageUnscaled DPI trap](gdi-drawimageunscaled-dpi-trap.md) - it scales by the bitmap's stored DPI (96/144 by launch): the loading screen drew at 2/3 off-centre. Use Blit (pixel rect).
 - [Footsteps](azrael-footsteps.md) - host-made steps by floor (stone/tile/wood/metal/water): BootHd.cs Footsteps, rooms\_footsteps.json names the tile/wood painted floors (materials untouched), room "footsteps"; game SFX setting obeyed; -NoFootsteps/-FootstepVolume. NEW room keys go in Get-RoomAtmosphere's first object too (pscustomobject throws).
+- [Install layout](azrael-install-layout.md) - ONE folder C:\Games\RaptorMod (game/cache/textures/sources/scratch) + ONE desktop shortcut RaptorMod; Setup-Machine migrates the old layout; boot busy-hold (HoldWhileBusy) after the 2nd PC's 61 s first room; Test-GpuCaps; Play-Azrael-Modded.bat = GPU version.

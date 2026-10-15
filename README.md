@@ -6,7 +6,7 @@ A private working repo for **RaptorMod**, a modernisation of *Azrael's Tear* (In
 
 **A patcher for the game's `R.EXE`.**
 - `src\Build-AztMod.ps1` assembles x86 patches and an overlay of new code into `AztMod.manifest.json`.
-- `Apply-AztMod.ps1` installs that into a **copy** of the game at `C:\Games\AzraelsTear-Modded`. The Steam install is never modified.
+- `Apply-AztMod.ps1` installs that into a **copy** of the game at `C:\Games\RaptorMod\game`. The Steam install is never modified.
 - The patches add, among other things:
   - mouselook;
   - widescreen and high resolution;
@@ -29,7 +29,7 @@ Per-room look settings live in `rooms\*.json`.
 |---|---|
 | Setting up a PC | [`SETUP.md`](SETUP.md) |
 | Play | `Play-HostRender-TrueColour.cmd` (the desktop shortcut that `tools\Setup-Machine.ps1` makes) |
-| Install or refresh the patches | `.\Apply-AztMod.ps1 -Install -Dest C:\Games\AzraelsTear-Modded` (game closed), or re-run `tools\Setup-Machine.ps1` |
+| Install or refresh the patches | `.\Apply-AztMod.ps1 -Install -Dest C:\Games\RaptorMod\game` (game closed), or re-run `tools\Setup-Machine.ps1` |
 | Room look review | `Review-Rooms.cmd` (a local 3D viewer with click-to-note) |
 | How things work | `docs\notes\MEMORY.md` (the project's notes, by topic) and `docs\*.md` (reverse-engineering write-ups) |
 | Working with Claude | [`CLAUDE.md`](CLAUDE.md) |
@@ -42,7 +42,7 @@ Per-room look settings live in `rooms\*.json`.
 | `tools\` | The renderer (`Watch-HostRender.ps1` + C#), RE tools (`load.ps1`, `Disasm.cs`, `LeTool.cs`), Room Review, machine setup and the asset pack |
 | `art\` | Built art the installer copies into the game, plus the renderer's title, loading, boot and panel art |
 | `design\` | Hand-made art sources the art builders read |
-| `rooms\` | Per-room renderer settings (`C:\Games\azrael-render\rooms` is a junction to here) |
+| `rooms\` | Per-room renderer settings (`C:\Games\RaptorMod\cache\rooms` is a junction to here) |
 | `runtime\` | The install's hand-made configs (DOSBox Staging conf, MDI.INI, RESOURCE.CFG) and the palette |
 | `docs\` | Write-ups and the notes |
 | `AztMod.manifest.json`, `AztMod.overlay.sym` | **Generated** by `Build-AztMod.ps1`, committed, because the installer and renderer need them. Rebuild and commit them together. |

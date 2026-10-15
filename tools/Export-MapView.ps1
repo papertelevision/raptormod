@@ -4,7 +4,7 @@
 # settings), written as the hidden triangles' middles -- the viewer's OBJ has the same triangles in the same coordinates (checked:
 # SPAROOM 671/671, MINEHEAD 1158/1161) -- and the cut under the floor.
 #   { room, made, hidden: ["x,y,z" to 0.1, ...], cut: { y, keep: [parts] } | null }
-param([Parameter(Mandatory)][string]$Room, [Parameter(Mandatory)][string]$Out, [string]$CacheDir = 'C:\Games\azrael-render')
+param([Parameter(Mandatory)][string]$Room, [Parameter(Mandatory)][string]$Out, [string]$CacheDir = 'C:\Games\RaptorMod\cache')
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Add-Type -Path @((Join-Path $toolDir 'Raster.cs'), (Join-Path $toolDir 'Quantize.cs'), (Join-Path $toolDir 'HostView.cs'), (Join-Path $toolDir 'SceneGraph.cs'),

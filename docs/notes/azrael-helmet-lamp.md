@@ -16,7 +16,7 @@ to maxGain (56 levels, 1.7), never index 0. Per pixel: level = LampRoom + LampPo
 cone = f(screen radius), falloff = f(depth), no visible shadows. Cost +0.3-0.5 ms at 1600x928.
 Watcher: on by default; `-NoLamp`, `-LampRoom` 0.70, `-LampPower` 0.90, `-LampRange` 600,
 `-LampInner` 10, `-LampOuter` 24. Mutually exclusive with the old `-Light` fog path.
-Test renders in `C:\Games\azrael-render\lamp-test`. Offline it reads as a soft pool on a near wall
+Test renders in `C:\Games\RaptorMod\cache\lamp-test`. Offline it reads as a soft pool on a near wall
 and is subtle across a big room -- tuning is Josh's call once seen.
 
 **Known consequence:** `-Audit` compares against the unlit engine picture, so with the lamp on it

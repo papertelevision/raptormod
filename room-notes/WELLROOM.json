@@ -86,7 +86,7 @@
                                           "text":  "Done: the well now has the spa\u0027s modern water -- the same teal glow from under the surface, Fresnel shine, rippled reflections and glints -- scaled to the small pool (one lamp under the middle, ripples and the caustic web about half the spa\u0027s size). The well\u0027s surface is the part \u0027death\u0027 and was not named as water, so the renderer did not know it was water before; the room file now says so (\"water.parts\").",
                                           "at":  "2026-10-10T00:33:20.6703524Z",
                                           "changes":  [
-                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "C:\\Games\\RaptorMod\\cache\\rooms\\WELLROOM.json (new)",
                                                           "water block: glow #2FD8C6, glowPower 0.14, one lamp (42.7, -69.4) radius 26, ripples size 14, caustics size 20",
                                                           "Watch-HostRender.ps1 Get-Room: a room\u0027s water.parts marks parts as water"
                                                       ],
@@ -175,7 +175,7 @@
                                           "text":  "Done: the water\u0027s rippling light reaches the ceiling over the well (120 units up, at about half strength) and spreads up to 100 units past the rim, so the walls round the well and its pipes take the moving teal caustics too.",
                                           "at":  "2026-10-10T00:33:32.6810310Z",
                                           "changes":  [
-                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "C:\\Games\\RaptorMod\\cache\\rooms\\WELLROOM.json (new)",
                                                           "water.caustics.height 200"
                                                       ],
                                           "round":  23,
@@ -263,7 +263,7 @@
                                           "text":  "Done, two ways. As in the other rooms, a black volumetric fog thickens where the ORIGINAL art is painted dark -- in this room that is mostly along the walls and corners. And as in MINEHEAD, the light from the artwork: the original art\u0027s painted light and shade, texel by texel, now shades the room\u0027s own light and its bounce, so the black drawn on the floor and walls reads as real darkness (the torch and the teal lights still cut through it).",
                                           "at":  "2026-10-10T00:33:44.0306453Z",
                                           "changes":  [
-                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "C:\\Games\\RaptorMod\\cache\\rooms\\WELLROOM.json (new)",
                                                           "volume + volume.paint (as CORICORI)",
                                                           "artLight (as MINEHEAD: floor 0.12, gamma 0.7, open 4, close 2, blur 1, percentile 0.85)",
                                                           "gi (bounced light, ambient 0.6)"
@@ -353,7 +353,7 @@
                                           "text":  "Done: one of our torches (sconce, flame, flicker, shadows, scale 0.8) on the west wall at your mark, the light 15 units out from the wall as every torch.",
                                           "at":  "2026-10-10T00:33:55.7755477Z",
                                           "changes":  [
-                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "C:\\Games\\RaptorMod\\cache\\rooms\\WELLROOM.json (new)",
                                                           "lights[0] torch at (-146.85, 10.86, -19.84) facing +x"
                                                       ],
                                           "round":  23,
@@ -441,7 +441,7 @@
                                           "text":  "Done: a faint hazy teal light (#5FD8CA, between the spa water\u0027s glow and its mist) at your mark, 15 units off the wall, no flicker, showing a little in the dark air. Kept low (power 0.3).",
                                           "at":  "2026-10-10T00:34:08.2355224Z",
                                           "changes":  [
-                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "C:\\Games\\RaptorMod\\cache\\rooms\\WELLROOM.json (new)",
                                                           "lights[1] at (3.65, -18.04, -107.04), power 0.3, air 2"
                                                       ],
                                           "round":  23,
@@ -529,7 +529,7 @@
                                           "text":  "Done: a second, fainter one in the same teal at your mark (power 0.2). With the caustics\u0027 reach raised (note 2) the well\u0027s rippling reflection shows on all three walls round it and on the pipes.",
                                           "at":  "2026-10-10T00:34:19.6159710Z",
                                           "changes":  [
-                                                          "C:\\Games\\azrael-render\\rooms\\WELLROOM.json (new)",
+                                                          "C:\\Games\\RaptorMod\\cache\\rooms\\WELLROOM.json (new)",
                                                           "lights[2] at (70.82, -4.12, -17.65), power 0.2, air 2"
                                                       ],
                                           "round":  23,

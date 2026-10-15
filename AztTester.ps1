@@ -11,10 +11,10 @@ Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
 $AZTMOD   = $PSScriptRoot
-$GAMEROOT = 'C:\Games\AzraelsTear-Modded'
+$GAMEROOT = 'C:\Games\RaptorMod\game'
 $MOVDIR   = Join-Path $GAMEROOT 'GAME\MOV'
 $PLAYBAT  = Join-Path $GAMEROOT 'Play-Azrael-Staging.bat'
-$ROOMCSV  = 'C:\Games\azrael-rooms.csv'
+$ROOMCSV  = 'C:\Games\RaptorMod\scratch\azrael-rooms.csv'
 $BUFFER   = 819200
 
 # ---------- helpers ---------------------------------------------------------------------

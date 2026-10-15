@@ -92,7 +92,7 @@ Related: [[azrael-gpu-boot]], [[azrael-characters-host-render]], [[azrael-frame-
 - Range: WALK, else RUN, else REST. A one-frame range is a held pose (LEOB 501, THEOB WALK 502); span 0 is handled in the drawing.
 - Left to the game: ZOMBIE (frames and text, but no .ANI or rig anywhere: cut) and SAILOR (SAILOR_A.XAF is an 8-vertex box; AddCore rejects rigs under 24 vertices).
 - 'dummy' meshes are skipped like BLOOD (their bones stay): TOBIAS's 416-unit `tdummy` shrank him to dots.
-- START-ANGLE CACHE: C:\Games\azrael-render\scanwire-phases.txt (key: name|xaf:size:mtime|range|frames|v2). The alignment is ~2 s a set (49 s for all 24) and cached it's 0.5 s. Bump the |vN when the rig loader changes.
+- START-ANGLE CACHE: C:\Games\RaptorMod\cache\scanwire-phases.txt (key: name|xaf:size:mtime|range|frames|v2). The alignment is ~2 s a set (49 s for all 24) and cached it's 0.5 s. Bump the |vN when the rig loader changes.
 - Verified: contact sheet (scratchpad scan-all.ps1) of the game's frame 0 next to ours for all 24.
 
 ## v8 (2026-10-08): ITEMS -- batch 2 done (not yet seen in game)

@@ -12,7 +12,7 @@ param(
     [switch]$NoRender,
     [string]$RenderFile = '',     # (an image made elsewhere -- e.g. a map note's before | after of the 3D map -- attached instead of the view render)
     [int]$Width = 960, [int]$Height = 540,
-    [string]$RenderDir = 'C:\Games\azrael-render',
+    [string]$RenderDir = 'C:\Games\RaptorMod\cache',
     [string]$NotesDir = ''
 )
 $ErrorActionPreference = 'Stop'

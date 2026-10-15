@@ -1,7 +1,7 @@
 # Build-Credits.ps1 -- the quit-screen credits backdrop.
 #
-#   .\src\Build-Credits.ps1 -Export -OutDir C:\Games\azrael-gfx\credits
-#   .\src\Build-Credits.ps1 -Import -InDir  C:\Games\azrael-gfx\credits
+#   .\src\Build-Credits.ps1 -Export -OutDir C:\Games\RaptorMod\sources\gfx\credits
+#   .\src\Build-Credits.ps1 -Import -InDir  C:\Games\RaptorMod\sources\gfx\credits
 #   .\src\Build-Credits.ps1 -Revert
 #
 # WHAT THIS FIXES. The credits routine at 0x1FC6C creates two surfaces and the mod patches
@@ -53,7 +53,7 @@ param(
     [switch]$Revert,
     [string]$OutDir,
     [string]$InDir,
-    [string]$GameDir = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL',
+    [string]$GameDir = 'C:\Games\RaptorMod\game\GAME\AZRAEL',
     [string]$ArtDir  = (Join-Path $PSScriptRoot '..\art'),
     [int]$Width  = 0,          # 0 = take the mod's own screen size from the manifest
     [int]$Height = 0,

@@ -75,4 +75,4 @@ Josh (2026-10-13): the 50 degrees "is a major reason why this game still doesn't
 - Rooms showing edges never meant to be seen: Josh's call which to patch.
 
 ## 65 (Josh, 2026-10-13, after playing it: "Wow it works perfectly")
-"I'd like to add a 65 fov option between 60/70 as I think personally that would be my perfect setting." F12 now cycles **50 / 60 / 65 / 70**. His own `C:\Games\AzraelsTear-Modded\raptormod-settings.json` was created with `{ "fov": 65 }`, so his sessions open at 65; the shipped default stays 60 (the file is per machine, not in git).
+"I'd like to add a 65 fov option between 60/70 as I think personally that would be my perfect setting." F12 now cycles **50 / 60 / 65 / 70**. His own `C:\Games\RaptorMod\game\raptormod-settings.json` was created with `{ "fov": 65 }`, so his sessions open at 65; the shipped default stays 60 (the file is per machine, not in git).

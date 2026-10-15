@@ -8,7 +8,7 @@ This audit covers the whole running mod:
 - the title screen.
 
 The method:
-- measured costs from `C:\Games\azrael-render\watch.log`;
+- measured costs from `C:\Games\RaptorMod\cache\watch.log`;
 - micro-benchmarks of the PowerShell and GDI+ calls involved;
 - a read of every hot path.
 

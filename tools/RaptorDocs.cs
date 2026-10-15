@@ -16,7 +16,7 @@
 //     the pages; Home / End go to the first / last.
 //   * A reader repaints whole only when something changes (ViewDirty). Otherwise only its moving parts are redrawn: the
 //     arrow pads, the manual's icons, a page loading, revealing or panning.
-// tools\Build-RaptorDocs.ps1 writes DocsDir from Josh's sources (C:\Games\azrael-gfx\raptordocs, credits\*.png).
+// tools\Build-RaptorDocs.ps1 writes DocsDir from Josh's sources (C:\Games\RaptorMod\sources\gfx\raptordocs, credits\*.png).
 using System;
 using System.Collections.Generic;
 using System.Drawing;

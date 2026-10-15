@@ -18,7 +18,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Blob = 'C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTCODE.BIN',
+    [string]$Blob = 'C:\Games\RaptorMod\game\GAME\AZRAEL\AZTCODE.BIN',
     [int]$Pid_ = 0,
     [int]$SigLen = 256,
     [long]$GuestLinear = 0x133000

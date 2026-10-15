@@ -19,9 +19,9 @@
 # walk of the graph and one pass over the .XAF corpus settles it with a number attached.
 [CmdletBinding()]
 param(
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [string]$Sym    = "$PSScriptRoot\..\AztMod.overlay.sym",
-    [string]$IndexFile = 'C:\Games\azrael-render\xaf-objects.json',
+    [string]$IndexFile = 'C:\Games\RaptorMod\cache\xaf-objects.json',
     [int]$Top = 3,
     [switch]$Quiet,
     # An ALREADY-ATTACHED guest base, from Get-AztGuestBase. Attaching costs a needle scan

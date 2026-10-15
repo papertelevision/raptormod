@@ -1,6 +1,6 @@
 # Build-TexturePrompt.ps1 -- write the image-model brief for a room, from measurements.
 #
-#   .\tools\Build-TexturePrompt.ps1 -Res CORICORI -Out C:\Games\azrael-textures\room01\PROMPT.txt
+#   .\tools\Build-TexturePrompt.ps1 -Res CORICORI -Out C:\Games\RaptorMod\textures\room01\PROMPT.txt
 #
 # The first version of this brief was written from adjectives ("dark and desaturated, mossy
 # stone") and the model returned warm sandstone for surfaces that are cool grey-green in the
@@ -25,7 +25,7 @@
 [CmdletBinding()]
 param(
     [string]$Res = 'CORICORI',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
     [int]$Scale = 2,
     [double]$Soften = 0.35,
     [Parameter(Mandatory)][string]$Out

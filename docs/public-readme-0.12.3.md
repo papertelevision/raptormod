@@ -18,10 +18,10 @@ installed from Steam.
 2. Open PowerShell in it and run:
 
 ```powershell
-.\Apply-AztMod.ps1 -Install -Dest "C:\Games\AzraelsTear-Modded"
+.\Apply-AztMod.ps1 -Install -Dest "C:\Games\RaptorMod\game"
 ```
 
-3. Play with `C:\Games\AzraelsTear-Modded\Play-Azrael-Modded.bat`.
+3. Play with `C:\Games\RaptorMod\game\Play-Azrael-Modded.bat`.
 
 The installer locates your Steam copy automatically; pass
 `-GameDir "<path to Azrael's Tear>"` if it lives somewhere unusual.
@@ -38,8 +38,8 @@ If PowerShell refuses to run the script, either unblock it
 ### Other commands
 
 ```powershell
-.\Apply-AztMod.ps1 -Status -Dest "C:\Games\AzraelsTear-Modded"
-.\Apply-AztMod.ps1 -Revert -Dest "C:\Games\AzraelsTear-Modded"
+.\Apply-AztMod.ps1 -Status -Dest "C:\Games\RaptorMod\game"
+.\Apply-AztMod.ps1 -Revert -Dest "C:\Games\RaptorMod\game"
 ```
 
 `-Revert` restores `R.EXE` and every replaced art file from the backups the

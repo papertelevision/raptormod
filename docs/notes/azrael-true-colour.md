@@ -129,15 +129,15 @@ pixels a texel on a full-screen wall, so the ART is now the limit, not the rende
 ## Replacement textures in true colour (built 14:2x, not yet seen in game)
 
 Josh: smoothing + sharpen "looks good". He then asked to put the September hi-res slab
-`C:\Games\azrael-textures\incoming\08-ecrflra2.png` (1254x1254, already relit to the original's
+`C:\Games\RaptorMod\textures\incoming\08-ecrflra2.png` (1254x1254, already relit to the original's
 shadows) back into room 1 -- HE raised it, so the "do not propose texture remastering" rule in
 [[azrael-texture-remaster-verdict]] is satisfied, and its two blockers (256 colours, the 4.5 MB
 guest texture cache) do not apply to the host renderer at all.
-- `-TexOverrideDir` (default `C:\Games\azrael-textures\hires`): a PNG there named like the
+- `-TexOverrideDir` (default `C:\Games\RaptorMod\textures\hires`): a PNG there named like the
   texture's exported file replaces its RGB at ANY size (`Add-AztRgb -OverrideDir`). The original
   is loaded first (proves the order) and its Idx still decides holes, so replacement art must
   keep the original's layout. Game files and guest memory untouched. Log: "REPLACEMENT ART from".
-- 08-ecrflra2.png copied into hires\. Offline pair: C:\Games\azrael-render\tc-test\override-pair.png.
+- 08-ecrflra2.png copied into hires\. Offline pair: C:\Games\RaptorMod\cache\tc-test\override-pair.png.
 - NOTE: 09-ecrflra2.png is the SAME art in another slot (also used by R1.mtl) and is NOT overridden.
 
 ## Frame-rate pass (built 14:40, not yet seen in game)
@@ -191,14 +191,14 @@ one image at a time). **His standing requirement: the textures ARE the lighting 
 must keep the original's black space and painted light/shadow exactly.**
 - He first downloaded the Python SOURCE (Real-ESRGAN-master: needs Python+PyTorch, none here,
   AMD GPU) -- wrong package; then the portable `realesrgan-ncnn-vulkan-20220424-windows`.
-  Copied to **C:\Games\realesrgan** (exe + models; his desktop copies untouched).
+  Copied to **C:\Games\RaptorMod\sources\realesrgan** (exe + models; his desktop copies untouched).
 - `tools\Upscale-Room.ps1 -Room X [-Sheet] [-Revert] [-Force]`: room's map_Kd PNGs from
-  C:\Games\azrael-render -> flatten alpha to black -> 16-texel WRAPPED pad (tiling survives) ->
+  C:\Games\RaptorMod\cache -> flatten alpha to black -> 16-texel WRAPPED pad (tiling survives) ->
   one Real-ESRGAN run over the folder (x4, realesrgan-x4plus) -> crop -> **LIGHT LOCK**:
   out = upscaled * blur(original enlarged) / blur(upscaled), per channel, wrapping 3x box blur,
-  reach `-LockTexels 2` original texels -> C:\Games\azrael-textures\hires\<same name>.png.
+  reach `-LockTexels 2` original texels -> C:\Games\RaptorMod\textures\hires\<same name>.png.
   CORICORI: 21 textures in 17 s; low-frequency light error 0.3-3.4 -> 0.05-0.7 of 255.
-- The hand-made ChatGPT slab was moved to C:\Games\azrael-textures\hires-retired\ at his request.
+- The hand-made ChatGPT slab was moved to C:\Games\RaptorMod\textures\hires-retired\ at his request.
 - HONEST READ of the output (sheets in upscale-work\CORICORI-sheets: plain | upscaler | final):
   crisper block edges and cleaner surfaces, lighting intact, but the usual ESRGAN "smoothed
   painting" look and NO invented stone detail -- less dramatic than the generative slab he liked.
@@ -212,7 +212,7 @@ blurry"; asked for higher res, tuning between original feel and upscale, and SPA
   `-Grain` (mono, brightness-scaled, none on black) = `Fx.Finish`, all zero-mean so the light lock
   holds; and `-Ladder NAME.png [-LadderX/-LadderY/-LadderSize]` = one picture, 8 labelled variants
   A-H, reusing the saved upscaler output. Ladders written for 08-ecrflra2 and 18-ecrrwl01 in
-  C:\Games\azrael-textures\upscale-work\. AWAITING his pick; then re-run both rooms with -Force.
+  C:\Games\RaptorMod\textures\upscale-work\. AWAITING his pick; then re-run both rooms with -Force.
 - Told him: more pixels (8x) will not cure the blur -- the model has no more detail to give;
   grain/sharpen is what restores the photographic feel. Other ESRGAN community models need a
   download; generative services remain the route to invented detail.
@@ -241,7 +241,7 @@ before treating either as the recipe.
 Real-ESRGAN twice (16x) then a 2x box average; grain and sharpen are sized against the ORIGINAL
 texel (radius scale/4) and the coarse grain levelled to the 4x recipe's strength (RMS 0.32).
 All four units re-run at 8x into hires (256 -> 2048, 512 -> 4096); ~13 min total (4 min a room).
-**The 4x set he called fantastic is kept in C:\Games\azrael-textures\hires-4x** (71 files) --
+**The 4x set he called fantastic is kept in C:\Games\RaptorMod\textures\hires-4x** (71 files) --
 copy it back over hires to return. Offline: draw 7.1 -> 8.1 ms in room 1 with 8x.
 FEEDBACK (2026-10-05): he rejected a tool call that was building a comparison image --
 "You don't need to create comparisons, let's just run [it] so I can see in game." For texture

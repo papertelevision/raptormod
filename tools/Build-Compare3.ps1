@@ -18,8 +18,8 @@
 
 [CmdletBinding()]
 param(
-    [string]$Capture = 'C:\Games\AzraelsTear-Modded\capture\image0007.png',
-    [string]$Dir     = 'C:\Games\azrael-compare',
+    [string]$Capture = 'C:\Games\RaptorMod\game\capture\image0007.png',
+    [string]$Dir     = 'C:\Games\RaptorMod\scratch\azrael-compare',
     [string]$Pose    = 'f2169',
     # detail crop, in 1024x576 render coordinates: the boulder and the right-hand wall
     [int[]]$Detail   = @(470, 300, 300, 170)

@@ -7,9 +7,9 @@
 #
 #   .\Make-LoadingAudio.ps1 [-Track <mp3>] [-Voice <wav>] [-CutDb -55]
 param(
-    [string]$Track = "$([Environment]::GetFolderPath('Desktop'))\AzraelTearSoundtrack\NewSounds\raptormod_loading.mp3",
+    [string]$Track = 'C:\Games\RaptorMod\sources\soundtrack\NewSounds\raptormod_loading.mp3',
     [string]$Voice = '',
-    [string]$Ratchet = "$([Environment]::GetFolderPath('Desktop'))\AzraelTearSoundtrack\NewSounds\ratchet.mp3",     # the HUD's slide-in (Josh's own)
+    [string]$Ratchet = 'C:\Games\RaptorMod\sources\soundtrack\NewSounds\ratchet.mp3',     # the HUD's slide-in (Josh's own)
     [double]$CutDb = -55
 )
 $ErrorActionPreference = 'Stop'

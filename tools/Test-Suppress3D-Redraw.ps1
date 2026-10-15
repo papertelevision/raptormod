@@ -40,7 +40,7 @@ param(
     [ValidateSet('Flag','Jump')][string]$Mode = 'Jump',
     [long]$JumpSite = 0x14160,        # obj1: the `jnz 0x1418C` guarding the 3D block
     [long]$Flag = 0x1525F2,
-    [string]$OutDir = 'C:\Games\azrael-suppress3d',
+    [string]$OutDir = 'C:\Games\RaptorMod\scratch\azrael-suppress3d',
     [long]$FbOffset = 0x140000,
     [int]$Stride = 2048,
     [int]$SettleMs = 700
@@ -94,7 +94,7 @@ function Rect-NonZero { param($rows)
 }
 
 # the overlay's frame counter, to show the game loop is alive
-$ovl = [IO.File]::ReadAllBytes('C:\Games\AzraelsTear-Modded\GAME\AZRAEL\AZTCODE.BIN')
+$ovl = [IO.File]::ReadAllBytes('C:\Games\RaptorMod\game\GAME\AZRAEL\AZTCODE.BIN')
 $off = -1
 for ($i = 0; $i + 4 -le $ovl.Length; $i++) {
     if ($ovl[$i] -eq 0x43 -and $ovl[$i+1] -eq 0x41 -and $ovl[$i+2] -eq 0x4D -and $ovl[$i+3] -eq 0x31) { $off = $i; break }

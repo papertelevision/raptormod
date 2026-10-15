@@ -1,7 +1,7 @@
 # Test-GpuRaster.ps1 -- the graphics-card renderer (tools\GpuRaster.cs) against the processor's
 # (tools\Raster.cs), without a game: the same room, the same cameras.
 #   -Lit: both lit as the watcher lights them -- helmet lamp (aimed off centre), the room's fog
-#   and placed lights from C:\Games\azrael-render\rooms -- with no shadows on either side.
+#   and placed lights from C:\Games\RaptorMod\cache\rooms -- with no shadows on either side.
 #   -Full: everything the watcher draws, on both sides, every frame -- -Lit plus the lamp's shadow
 #   view (one lamp, 512 tall), the placed lights' shadow views, water reflections (the room
 #   loaded by the watcher's own Get-Room, which finds the pools) and dust.
@@ -14,15 +14,15 @@
 param(
     [string]$Room = 'CORICORI',
     [int]$Width = 2562, [int]$Height = 1238,
-    [string]$CacheDir = 'C:\Games\azrael-render',
-    [string]$TexDir = 'C:\Games\AzraelsTear-Modded\GAME\AZTEX',
-    [string]$Palette = 'C:\Games\azrael-inject\azrael-palette.pal',
-    [string]$HiresDir = 'C:\Games\azrael-textures\hires',
-    [string]$OutDir = 'C:\Games\azrael-render\tc-test',
+    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
+    [string]$TexDir = 'C:\Games\RaptorMod\game\GAME\AZTEX',
+    [string]$Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
+    [string]$HiresDir = 'C:\Games\RaptorMod\textures\hires',
+    [string]$OutDir = 'C:\Games\RaptorMod\cache\tc-test',
     [int]$Frames = 40,
     [switch]$Lit,
     [switch]$Full,
-    [string]$RoomsDir = 'C:\Games\azrael-render\rooms',
+    [string]$RoomsDir = 'C:\Games\RaptorMod\cache\rooms',
     # the view in the top rows only, the picture carrying on beneath (the 3D under the widescreen panel)
     [int]$ViewRows = 0
 )

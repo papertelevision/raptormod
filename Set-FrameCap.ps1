@@ -17,7 +17,7 @@
 param(
     [ValidateRange(5, 120)]
     [int]$Fps,
-    [string]$Dest = 'C:\Games\AzraelsTear-Modded'
+    [string]$Dest = 'C:\Games\RaptorMod\game'
 )
 
 $ErrorActionPreference = 'Stop'
