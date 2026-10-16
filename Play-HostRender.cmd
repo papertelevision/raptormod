@@ -11,7 +11,7 @@ REM
 REM Arguments pass through to the renderer:   Play-HostRender.cmd -KeepCap
 REM                                           Play-HostRender.cmd -NoFpsCounter -SaveFrames 5
 REM
-REM If something goes wrong, the renderer's log is C:\Games\RaptorMod\cache\watch.log, and
+REM If something goes wrong, the renderer's log is <root>\cache\watch.log (C:\Games\RaptorMod in the dev layout), and
 REM AztMod\Watch-HostRender.cmd still runs the renderer on its own, visibly, for any game.
 
 REM Re-launch minimised, so the renderer's window is not sitting over the game.
@@ -25,13 +25,15 @@ exit /b
 
 :run
 title AztMod host renderer
-set "GAME=C:\Games\RaptorMod\game"
-if not exist "%GAME%\DOSBOX-STAGING\dosbox.exe" (
-    echo The modded game was not found at %GAME%.
-    echo Run Apply-AztMod.ps1 first.
-    pause
-    exit /b 1
-)
+REM The install's root: RAPTORMOD_ROOT when a release launcher set it, else the dev layout. (No IF block: a root
+REM may hold "(x86)" too.)
+REM (a release: this file is <root>\app\Play-HostRender.cmd and <root>\raptormod-root.txt marks the install -- found from here
+REM when a shortcut did not set RAPTORMOD_ROOT, e.g. the game folder's Play-Azrael-Modded.bat)
+if not defined RAPTORMOD_ROOT if exist "%~dp0..\raptormod-root.txt" for %%I in ("%~dp0..") do set "RAPTORMOD_ROOT=%%~fI"
+set "RMROOT=C:\Games\RaptorMod"
+if defined RAPTORMOD_ROOT set "RMROOT=%RAPTORMOD_ROOT%"
+set "GAME=%RMROOT%\game"
+if not exist "%GAME%\DOSBOX-STAGING\dosbox.exe" goto nogame
 
 REM AZT_DRYRUN=1 checks every step of this file without starting the game or the renderer.
 if defined AZT_DRYRUN goto dry
@@ -51,11 +53,19 @@ REM game's boot begins (Josh, 2026-10-07). Same DOSBox command line as Play-Azra
 REM The path is quoted because this lives under "Program Files (x86)" -- unquoted,
 REM powershell -File takes "C:\Program" as the script.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\Watch-HostRender.ps1" -Once -Launch -GameDir "%GAME%" %*
-if errorlevel 1 (
-    echo.
-    echo The host renderer stopped with an error. See C:\Games\RaptorMod\cache\watch.log
-    pause
-)
+if errorlevel 1 goto failed
+goto :eof
+
+:nogame
+echo The modded game was not found at %GAME%.
+echo Run the RaptorMod installer (or Apply-AztMod.ps1) first.
+pause
+exit /b 1
+
+:failed
+echo.
+echo The host renderer stopped with an error. See %RMROOT%\cache\watch.log
+pause
 goto :eof
 
 :dry

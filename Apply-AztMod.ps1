@@ -37,8 +37,15 @@ param(
     # Skip the intro movie (AZRAEL.BAT runs TM before R). Testing convenience.
     [Parameter(ParameterSetName='Install')][switch]$SkipIntro,
 
-    [string]$Manifest = "$PSScriptRoot\AztMod.manifest.json"
+    [string]$Manifest = "$PSScriptRoot\AztMod.manifest.json",
+    # the release's installer lays FINISHED book pages over the game after this, so the slow rescale (~10 min) is skipped
+    [switch]$SkipBooks
 )
+# ($PSScriptRoot is EMPTY in param() defaults under powershell -File -- the release's Install-Game runs this that way: the
+#  manifest default then read "\AztMod.manifest.json". Filled in here from this script's own path.)
+$here = Split-Path -Parent $PSCommandPath
+if (-not $Manifest -or $Manifest -eq '\AztMod.manifest.json') { $Manifest = Join-Path $here 'AztMod.manifest.json' }
+if (-not $GameDir) { $GameDir = Split-Path -Parent $here }
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 2
@@ -524,7 +531,7 @@ if ($man.PSObject.Properties.Name -contains 'overlay' -and $man.overlay) {
 # would sit in the top-left corner. The manifest carries the flag so the two
 # cannot drift apart.
 if ($man.PSObject.Properties.Name -contains 'art' -and
-    $man.art.PSObject.Properties.Name -contains 'bookFullscreen' -and [bool]$man.art.bookFullscreen) {
+    $man.art.PSObject.Properties.Name -contains 'bookFullscreen' -and [bool]$man.art.bookFullscreen -and -not $SkipBooks) {
     $bookGen = Join-Path $PSScriptRoot 'src\Build-Books.ps1'
     $bookDir = Join-Path $target 'GAME\AZTEX\BOOKS'
     if ((Test-Path $bookGen) -and (Test-Path $bookDir)) {

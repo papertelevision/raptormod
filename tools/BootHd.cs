@@ -1,4 +1,4 @@
-﻿// BootHd.cs -- the visor boot, drawn by the host at display resolution (the GPU version).
+// BootHd.cs -- the visor boot, drawn by the host at display resolution (the GPU version).
 //
 // The game's boot is an 8-bit animation painted into the staging buffer: a 1bpp readout
 // expanded through palette tables, glitches drawn as palette runs, everything at 1600x928.

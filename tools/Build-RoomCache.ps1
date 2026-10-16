@@ -12,9 +12,9 @@
 # every unit's stamp, so every unit is rebuilt then.
 param(
     [string[]]$Only,
-    [string]$TexDir   = 'C:\Games\RaptorMod\game\GAME\AZTEX',
-    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
-    [string]$Palette  = 'C:\Games\RaptorMod\cache\azrael-palette.pal'
+    [string]$TexDir   = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\game\GAME\AZTEX",
+    [string]$CacheDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache",
+    [string]$Palette  = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache\azrael-palette.pal"
 )
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $PSCommandPath

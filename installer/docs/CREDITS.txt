@@ -1,0 +1,15 @@
+RaptorMod {VERSION} -- credits
+=============================
+
+RaptorMod: Josh Sears -- design, art direction, remastered textures and
+artwork, soundtrack recordings, testing.
+
+Azrael's Tear (1996) was developed by Intelligent Games and published by
+Mindscape. RaptorMod patches the player's own copy; it contains none of the
+original game's program or data files.
+
+Built with:
+  - DOSBox Staging (https://dosbox-staging.github.io) -- the emulator
+  - GeneralUser GS by S. Christian Collins -- the General MIDI soundfont
+  - Real-ESRGAN (Xintao Wang et al.) -- used to upscale textures
+See THIRD-PARTY-NOTICES.txt for their licences.

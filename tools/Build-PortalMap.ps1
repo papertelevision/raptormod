@@ -38,8 +38,8 @@
 # doorway. A picture of a CLOSED door ("...CLOSE") is left alone: that one should stay a picture.
 [CmdletBinding()]
 param(
-    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
-    [string]$GameDir  = 'C:\Games\RaptorMod\game\GAME\AZRAEL',
+    [string]$CacheDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache",
+    [string]$GameDir  = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\game\GAME\AZRAEL",
     [string]$Out      = '',
     [switch]$Report
 )

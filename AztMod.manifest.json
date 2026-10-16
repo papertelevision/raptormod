@@ -1,6 +1,6 @@
 ﻿{
     "modName":  "AztMod",
-    "modVersion":  "0.16.0",
+    "modVersion":  "1.0.0",
     "feature":  "FPS mode + WASD + 1600x1200",
     "hires":  true,
     "view":  {
@@ -25,15 +25,22 @@
                  "A D               STRAFE left / right (true lateral movement)",
                  "HOLD right mouse  restores the game\u0027s normal pointer with its contextual",
                  "                  TAKE / USE / PUSH icons. Release to go back to looking.",
-                 "Left mouse        fires the weapon IN COMBAT MODE (Space toggles combat).",
+                 "Left mouse        fires the weapon IN COMBAT MODE (Z toggles combat / the MS7 sight).",
                  "                  It no longer walks you forward. Outside combat it does",
                  "                  nothing -- the game has no separate fire key.",
                  "UP / DOWN arrows  scroll the story log in the panel. They no longer move",
                  "                  you -- movement is WASD, so they were duplicates.",
                  "F3                sticky cursor mode, if you would rather not hold a button",
                  "F10               invert mouse Y (stock game feature)",
+                 "With the RaptorMod renderer (the Play RaptorMod shortcut):",
+                 "Space             jump (still skips a spoken line)",
+                 "C                 crouch (press again to stand)",
+                 "Z                 weapon / MS7 sight (combat mode)",
+                 "F                 helmet lamp      V   echo scan      E   story log box",
+                 "ESC               visor system menu (save, load, options, quit)",
+                 "F12               field of view    F9  card / processor drawing",
                  "",
-                 "The HUD boot banner reads \"AztMod 0.16.0 lfbspike \" when the mod is live."
+                 "The HUD boot banner reads \"RaptorMod 1.0.0        \" when the mod is live."
              ],
     "symbols":  [
                     {
@@ -777,17 +784,17 @@
                     },
                     {
                         "name":  "banner-1",
-                        "note":  "HUD boot banner -\u003e \u0027AztMod 0.16.0 lfbspike\u0027 (pure data; visible proof the mod is live)",
+                        "note":  "HUD boot banner -\u003e \u0027RaptorMod 1.0.0\u0027 (pure data; visible proof the mod is live)",
                         "offset":  1592168,
                         "expect":  "4D6F64656C2037204865616420557020446973706C6179",
-                        "replace":  "417A744D6F6420302E31362E30206C66627370696B6520"
+                        "replace":  "526170746F724D6F6420312E302E302020202020202020"
                     },
                     {
                         "name":  "banner-2",
-                        "note":  "HUD boot banner -\u003e \u0027AztMod 0.16.0 lfbspike\u0027 (pure data; visible proof the mod is live)",
+                        "note":  "HUD boot banner -\u003e \u0027RaptorMod 1.0.0\u0027 (pure data; visible proof the mod is live)",
                         "offset":  1594510,
                         "expect":  "4D6F64656C2037204865616420557020446973706C6179",
-                        "replace":  "417A744D6F6420302E31362E30206C66627370696B6520"
+                        "replace":  "526170746F724D6F6420312E302E302020202020202020"
                     },
                     {
                         "name":  "map-backdrop-path",

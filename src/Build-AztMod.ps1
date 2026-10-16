@@ -295,7 +295,7 @@ $OBJ1_FLAGS_OFF = $OBJTAB_FILE + 8
 
 # ---- HUD boot banner (pure data; doubles as proof the mod is live) ---------
 $BANNER_TEXT  = 'Model 7 Head Up Display'
-$BANNER_NEW   = 'AztMod 0.16.0 lfbspike '   # must be exactly 23 characters
+$BANNER_NEW   = 'RaptorMod 1.0.0        '   # must be exactly 23 characters (RaptorMod 1.0, the public release, 2026-10-16)
 $BANNER_FILES = @(0x184B68, 0x18548E)
 
 # ---- screen mode -----------------------------------------------------------
@@ -14673,7 +14673,7 @@ Write-Host ("no-overlap check: {0} patches cover {1:N0} distinct file bytes, non
 
 $manifest = [ordered]@{
     modName      = 'AztMod'
-    modVersion   = '0.16.0'
+    modVersion   = '1.0.0'
     feature      = ("FPS mode + WASD + {0}x{1}" -f $SCREEN_W, $SCREEN_H)
     # The installer needs this: a hi-res build only works once UVCONFIG.DAT is out
     # of the way (see the note in Apply-AztMod.ps1).
@@ -14706,13 +14706,20 @@ $manifest = [ordered]@{
         'A D               STRAFE left / right (true lateral movement)'
         'HOLD right mouse  restores the game''s normal pointer with its contextual'
         '                  TAKE / USE / PUSH icons. Release to go back to looking.'
-        'Left mouse        fires the weapon IN COMBAT MODE (Space toggles combat).'
+        'Left mouse        fires the weapon IN COMBAT MODE (Z toggles combat / the MS7 sight).'
         '                  It no longer walks you forward. Outside combat it does'
         '                  nothing -- the game has no separate fire key.'
         'UP / DOWN arrows  scroll the story log in the panel. They no longer move'
         '                  you -- movement is WASD, so they were duplicates.'
         'F3                sticky cursor mode, if you would rather not hold a button'
         'F10               invert mouse Y (stock game feature)'
+        'With the RaptorMod renderer (the Play RaptorMod shortcut):'
+        'Space             jump (still skips a spoken line)'
+        'C                 crouch (press again to stand)'
+        'Z                 weapon / MS7 sight (combat mode)'
+        'F                 helmet lamp      V   echo scan      E   story log box'
+        'ESC               visor system menu (save, load, options, quit)'
+        'F12               field of view    F9  card / processor drawing'
         ''
         ('The HUD boot banner reads "{0}" when the mod is live.' -f $BANNER_NEW)
     )

@@ -118,7 +118,7 @@
 - [Ghost (Niamh)](azrael-ghost.md) - room 'ghost' block: card draws a rig as glowing smoke + wisps + dim light; sizes = shares of her height; -NoGhost.
 - [Damaged visor](azrael-visor-damage.md) - health-driven cracks/broken corner/hit static/vitals ECG in the card's PRESENT pass; -NoVisorDamage.
 - [Title menu](azrael-title-menu.md) - 4K title + Continue/Load (title-loop hold + cmd 16); grail flakes, face glow, foreground bokeh (hand-composited: GDI+ alpha too slow).
-- [RaptorMod repo](raptormod-repo.md) - papertelevision/raptormod; main = DOSBox 1.0 (4019f83); native rebuild on `native` (C:\Games\RaptorMod-Native); NEVER commit/push until Josh says.
+- [RaptorMod repo](raptormod-repo.md) - papertelevision/raptormod (was PUBLIC 2026-10-16: Josh to privatize); main 253f3ba; no gh CLI (local squash); native rebuild on `native` (C:\Games\RaptorMod-Native); NEVER commit/push until Josh says.
 - [Vector cursors](azrael-vector-cursors.md) - the 30 cursors as animated vectors (CursorIcons.cs); every blit raises 'pointer hidden'; weapon out = no pick-up cursor; -NoIconCursor.
 - [Leaving DOSBox](azrael-leaving-dosbox.md) - 2026-10-15: STAGED NATIVE REBUILD (host -> libretro core -> native systems in lockstep -> no emulator), in an ALL-NEW folder.
 - [RaptorMod roadmap](raptormod-roadmap.md) - 1.0 = Steam DOSBox patch (fixes + 2K/4K tiers); 2.0 = native rebuild in a NEW folder; Unity later. No deep DOSBox-only fixes in 1.0.
@@ -144,3 +144,4 @@
 - [Install layout](azrael-install-layout.md) - everything off-repo lives in C:\Games\RaptorMod (game, cache, textures, sources); Setup-Machine.ps1 keeps it.
 - [Crisp visor text](azrael-crisp-visor-text.md) - visor fonts/positions whole-pixel via ScanWire.cs Crisp; card labels texelFetch. Never new Font/DrawString directly.
 - [Jump + crouch](azrael-jump.md) - Space jump (eased plan into fall speed 0x152592), C crouch toggle (eye 0x140328; speed ONLY via crouchK in the fps step), Z weapon; view eased, bob, shadow.
+- [Public release 1.0](raptormod-release.md) - Inno wizard, all-in-one for ModDB; game built from the player's Steam copy (Install-Game, disc-map); hash guard; RAPTORMOD_ROOT.

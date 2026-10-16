@@ -215,7 +215,7 @@ param(
     # can load before the game starts"). Play-HostRender.cmd passes it; without it the watcher waits for
     # a game started some other way, as before.
     [switch]$Launch,
-    [string]$GameDir = 'C:\Games\RaptorMod\game',
+    [string]$GameDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\game",
     # -Launch shows "Loading RaptorMod..." and holds the game until the renderer has hold of it; this
     # skips both (the game then runs as soon as it starts, as before).
     [switch]$NoLoadingScreen,
@@ -295,7 +295,7 @@ param(
     # REPLACEMENT TEXTURES (true colour only). A PNG in this folder named like a texture's own
     # exported file (08-ecrflra2.png) replaces its colours, at any size. The game's files are
     # not touched and the game's own texture memory is not involved.
-    [string]$TexOverrideDir = 'C:\Games\RaptorMod\textures\hires',
+    [string]$TexOverrideDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\textures\hires",
     # TEXTURE QUALITY (Josh, 2026-10-11): Normal = replacement textures at most 2048 on their long side (a scaled copy, made
     # once beside the folder), Ultra = as large as they are (4096). Empty: the player's choice in <GameDir>\raptormod-settings.json
     # ("textureQuality"; the title's Options will offer it -- "coming soon" for now), else Ultra.
@@ -488,7 +488,7 @@ param(
     # -RoomsDir\_defaults.json (classes of rooms, e.g. every cave) and -RoomsDir\<ROOM>.json
     # (that room's own lights and overrides). Edit the files; a room re-reads its file when
     # it is entered. -NoFog / -NoDust / -NoLights switch each off for the session.
-    [string]$RoomsDir = 'C:\Games\RaptorMod\cache\rooms',
+    [string]$RoomsDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache\rooms",
     [switch]$NoFog, [switch]$NoDust, [switch]$NoLights,
     [switch]$TcGameSize,       # draw at the game's own 1600x928 and let the window stretch it (the first true-colour build)
     [int]$KeyIndex = 0,           # palette index handed to the game as the key; 0 = choose one
@@ -496,7 +496,7 @@ param(
     [string]$TcRect = '',         # 'x,y,w,h' in screen pixels: put the window exactly here instead of working it out
     [string]$TcNudge = '',        # 'dx,dy,dw,dh' added to the worked-out rectangle
     [int]$AuditSeconds = 4,
-    [string]$AuditDir = 'C:\Games\RaptorMod\cache\audit',
+    [string]$AuditDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache\audit",
     # Do not hand the viewport back for a few engine-drawn frames after each teleport (diagnostic;
     # without it floors stop holding in rooms entered while the host is drawing).
     [switch]$NoLoadPulse,
@@ -510,7 +510,7 @@ param(
     # distance as data. The picture flicks to the engine's for about half a second each time.
     [switch]$CaptureRef,
     [int]$CaptureRefSeconds = 8,
-    [string]$CaptureRefDir = 'C:\Games\RaptorMod\cache\ref2',
+    [string]$CaptureRefDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache\ref2",
     # THE FLOATING-RAPTOR EXPERIMENT. Every $CharProbeSeconds while a character is in the
     # room: record every frame's matrices, hand the viewport back so the ENGINE draws for a
     # moment, record them again, take the viewport back, and log what moved. A dead Raptor
@@ -610,18 +610,18 @@ param(
     # FEWER bright pixels than the engine's own frame and essentially no isolated dots. The
     # live frame is the only thing that settles it, so write it down rather than infer it.
     [int]$SaveFrames = 0,
-    [string]$SaveDir = 'C:\Games\RaptorMod\cache\frames',
+    [string]$SaveDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache\frames",
     [int]$CacheRooms = 8,         # loaded rooms kept in memory for instant re-entry
     [int]$Threads = 0,
-    [string]$TexDir  = 'C:\Games\RaptorMod\game\GAME\AZTEX',
-    [string]$CacheDir = 'C:\Games\RaptorMod\cache',
-    [string]$Palette = 'C:\Games\RaptorMod\cache\azrael-palette.pal',
+    [string]$TexDir  = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\game\GAME\AZTEX",
+    [string]$CacheDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache",
+    [string]$Palette = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache\azrael-palette.pal",
     # RESOLVED IN THE BODY, not here. $PSScriptRoot is empty while parameter defaults are
     # bound under `powershell -File`, so "$PSScriptRoot\..\x" became "C:\x" and the script
     # died on startup -- and -File is exactly how a double-clicked launcher runs it.
     [string]$Sym      = '',
     [string]$Manifest = '',
-    [string]$LogFile  = 'C:\Games\RaptorMod\cache\watch.log'
+    [string]$LogFile  = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache\watch.log"
 )
 if (-not $Retro) { $TrueColour = [switch]$true }      # (see -Retro)
 $ErrorActionPreference = 'Stop'
@@ -634,7 +634,13 @@ New-Item -ItemType Directory -Force (Split-Path $LogFile -Parent) | Out-Null
 # only in the launcher's minimised window -- and with -Launch the game was already running, so the player saw the plain game and
 # no reason. Now it goes into watch.log, and (a game launched from here) into a message box; later failures are logged too.
 $script:startupDone = $false
-trap {
+# THE LOG, FOR PLAYERS TOO (RaptorMod 1.0): it used to grow forever (24 MB) with times but no dates. Now it rolls over at
+# 5 MB (watch.1.log keeps the one before) and every session opens with a dated header -- Collect Logs.cmd zips both.
+try {
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $LogFile) | Out-Null
+    if ((Test-Path $LogFile) -and (Get-Item $LogFile).Length -gt 5MB) { Move-Item -Force $LogFile ([IO.Path]::ChangeExtension($LogFile, '.1.log')) }
+    [IO.File]::AppendAllText($LogFile, ("`r`n==== {0:yyyy-MM-dd HH:mm:ss}  RaptorMod session  (root {1}, game {2})`r`n" -f (Get-Date), $(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod (dev)' }), $GameDir))
+} catch { }trap {
     $msg = $_.Exception.Message + ' (' + ($_.InvocationInfo.PositionMessage -replace '\s+', ' ').Trim() + ')'
     try { [IO.File]::AppendAllText($LogFile, ("[{0}] {1}: {2}`r`n" -f (Get-Date -Format 'HH:mm:ss'), $(if ($script:startupDone) { 'STOPPED' } else { 'STARTUP FAILED' }), $msg)) } catch { }
     if (-not $script:startupDone -and $Launch) {
@@ -1310,7 +1316,7 @@ function Update-Pose($room, $st, $live, [bool]$stats = $true) {
 $script:xafIndex = $null; $script:aniXafs = @{}; $script:nameToFiles = $null
 function Initialize-CharacterIndex {
     $script:xafIndex = @{}
-    $ix = 'C:\Games\RaptorMod\cache\xaf-objects.json'
+    $ix = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache\xaf-objects.json"
     if (-not (Test-Path $ix)) { return }
     $j = Get-Content $ix -Raw | ConvertFrom-Json
     $script:nameToFiles = New-Object 'System.Collections.Hashtable' ([StringComparer]::Ordinal)
@@ -3268,7 +3274,26 @@ function Step-EyeSmooth($m) {
         if ($tb -ge $LandBobTime) { $script:eyeBobOn = $false } else { $y -= $LandBob * [Math]::Sin([Math]::PI * $tb / $LandBobTime) }
     }
     $m[13] = [single]$y
-}$script:echoLabels = $null; $script:echoLabelsRoom = $null; $script:echoModelSaid = @{}
+}
+# Every true-colour frame, before the hide rects: returns $true while the 3D map covers the view.
+# THE VISOR'S ECHO SCAN (Josh, 2026-10-14: "tap a key and an amber pulse ripples through the room like the map's intro
+# wave. It outlines doors, pickups and creatures through the walls for a second"). -EchoKey (V: the game binds no V or v --
+# its ascii dispatch at 0x12E75 compares H M P Q X Y h m p r s x y and punctuation; host keys are not taken from the game)
+# starts it: a sonar ping, an amber shell running out over the room (GpuRaster.EchoT; FS_MAIN's uEcho), and as it reaches
+# them the outlines of the DOORS (door/gate parts and each doorway's opening, portals.json farQuad), the ITEMS (parts the
+# game's OBJECTS.DAT names, still in the scene) and the CREATURES (character parts, as they move) light up through the walls,
+# flare and fade (GpuRaster.SetEchoTargets). Not while the map, a boot cover or the room cover is up. -NoEcho: none.
+$script:echoClock = $null; $script:echoWas = $false
+# the character models the labels call CREATURES ("Live fauna detected. Avoid."); every other character is a HUMANOID
+$EchoCreatures = '^(EUG|SCORP|TRILOB|RATTY|COB)'      # (LURKA is a person -- Josh, 2026-10-15: she had "Live fauna detected")
+# THE LOCKED DOORS ("Locked door."; Josh, 2026-10-15: "only have tooltips on locked doors"). Found in the game's own scripts
+# (PUZZLES.DAT): the doors whose operate event waits on an Unlocked / Unbolted flag, plays the locked-door sound (sdoorlte) or
+# says "locked" -- R17Door2 + VestryDoor1/2 (VESTRY), R23Door2 (the bolted door: INTRVIEW / INTER2), R27Door2 (LAB), R35Door2-5
+# (R35 / R35_2) -- each tied to its room by ROOMS.DAT and to its part by OBJECTS.DAT (+0x78), checked against the rooms' parts.
+# Every other door opens when clicked. A locked door that has moved from its rest place (opened) loses its label.
+$EchoLockedDoors = @{ 'VESTRY' = @('sidedoor04', 'Object04', 'bar07'); 'INTRVIEW' = @('BOLTDOOR'); 'INTER2' = @('BOLTDOOR'); 'LAB' = @('labdoor02')
+    'R35' = @('usedoor02', 'usedoor04', 'vs_orgdo04', 'vs_orgdo01'); 'R35_2' = @('usedoor02', 'usedoor04', 'vs_orgdo04', 'vs_orgdo01') }
+$script:echoLabels = $null; $script:echoLabelsRoom = $null; $script:echoModelSaid = @{}
 function Get-PartSpan($room, $pt) {
     $v = $room.V; $lo = @(1e9, 1e9, 1e9); $hi = @(-1e9, -1e9, -1e9)
     for ($i = [int]$pt.VFirst; $i -lt [int]$pt.VFirst + [int]$pt.VCount; $i++) { for ($k = 0; $k -lt 3; $k++) { $q = $v[$i * 3 + $k]; if ($q -lt $lo[$k]) { $lo[$k] = $q }; if ($q -gt $hi[$k]) { $hi[$k] = $q } } }
@@ -6384,7 +6409,8 @@ try {
         if ($script:gate -and $script:gate.MemBase -and $script:gate.Pid -eq (Get-GamePid)) {
             $g = [pscustomobject]@{ ProcessId = $script:gate.Pid; MemBase = [long]$script:gate.MemBase; RamBase = 0; RamSize = 0; Needles = @(); Delta1 = [long]0x1F0000; Delta2 = [long]$script:gate.D2 }
         } else {
-            try { $g = $(if ($late) { Get-AztGuestBase -AllowOneObject } else { Get-AztGuestBase -MinRegion 8MB }) } catch { $attachErr = $_.Exception.Message }
+            try { $gExe = Join-Path $GameDir 'GAME\AZRAEL\R.EXE'      # (the install's own R.EXE: a release lives anywhere)
+            $g = $(if ($late) { Get-AztGuestBase -AllowOneObject -Exe $gExe } else { Get-AztGuestBase -MinRegion 8MB -Exe $gExe }) } catch { $attachErr = $_.Exception.Message }
         }
         if (-not $g) {
             if ($attachClock.Elapsed.TotalSeconds -gt 30 -and -not $attachSaid) { Say ("attach failed: {0} (still trying)" -f $attachErr) Yellow; $attachSaid = $true }

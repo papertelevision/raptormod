@@ -1,0 +1,26 @@
+RaptorMod {VERSION} -- third-party software and notices
+======================================================
+
+RaptorMod is a free, unofficial fan patch for Azrael's Tear (1996, Mindscape).
+It requires the Steam release of the game and patches a copy of it on your PC.
+It is provided as is, without warranty of any kind. Azrael's Tear and its
+trademarks belong to their owners; RaptorMod is not affiliated with or endorsed
+by them.
+
+The package includes the following third-party software, unmodified:
+
+DOSBox Staging 0.83.0
+  Licence: GNU General Public License v2.0 or later (with components under
+  BSD, LGPL-2.1, MIT, Zlib and other licences). The full texts are in
+  game\DOSBOX-STAGING\LICENSE.txt and game\DOSBOX-STAGING\doc\licenses.
+  Source code: https://github.com/dosbox-staging/dosbox-staging/releases/tag/v0.83.0
+  (or https://github.com/dosbox-staging/dosbox-staging, tag v0.83.0).
+
+GeneralUser GS 2.0.3 (soundfont) by S. Christian Collins
+  Licence: game\soundfonts\GeneralUser-GS-LICENSE.txt.
+  https://schristiancollins.com/generaluser.php
+
+Textures were upscaled with Real-ESRGAN (BSD-3-Clause; https://github.com/xinntao/Real-ESRGAN);
+the tool itself is not included.
+
+By installing you confirm that you own Azrael's Tear on Steam.

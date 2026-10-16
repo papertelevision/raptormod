@@ -8,7 +8,7 @@
 # the game. It does not test the overlay window itself (that needs the game running).
 
 [CmdletBinding()]
-param([string]$CacheDir = 'C:\Games\RaptorMod\cache')
+param([string]$CacheDir = "$(if ($env:RAPTORMOD_ROOT) { $env:RAPTORMOD_ROOT } else { 'C:\Games\RaptorMod' })\cache")
 $ErrorActionPreference = 'Stop'
 $toolDir = Split-Path -Parent $PSCommandPath
 $res = [ordered]@{ checked = (Get-Date).ToString('s'); computer = $env:COMPUTERNAME; ok = $false; compiled = $false; vendor = ''; renderer = ''; version = ''; cardMemoryGB = 0; screen = ''; error = '' }
