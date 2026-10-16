@@ -110,7 +110,7 @@ Josh (2026-10-11): recreate the game's environment cursors "in animated vectors,
 
 **"Could not pick up the key in the well" (same session) = THE WEAPON WAS OUT, not the cursor.**
 - Both clicks there were SHOT RECORDs with C1 (weapon word 0x14721C) and L1.
-- The game's SPACE key toggles the weapon. It is 0x136D8 `cmp al,0x20 -> 0x131E1`, the toggle itself at 0x13235. It is skipped while the fold-out, mouselook (0x147218), a close-up, 0x181F88, 0x14721A or 0x1471F0 is up. In the in-game help it is "Toggle MS7 Sniper sight - SPACE".
+- The game's SPACE key toggles the weapon (since 2026-10-15 the player presses **Z** for it; Space jumps, C crouches -- [[azrael-jump]]). It is 0x136D8 `cmp al,0x20 -> 0x131E1`, the toggle itself at 0x13235. It is skipped while the fold-out, mouselook (0x147218), a close-up, 0x181F88, 0x14721A or 0x1471F0 is up. In the in-game help it is "Toggle MS7 Sniper sight - SPACE".
 - While the weapon is out, the per-frame cursor pick 0x116E4 jumps past all contextual cursors at 0x119D6 (also while 0x147218 is set). The cursor is the game's own 0x15210C and the left button fires.
 - Other writers of 0x14721C: conversation start clears it (0x17EC3) and the end restores it (0x17A6B); 0x16E20 / 0x17011 are state restores.
 - RaptorMod's Space also SKIPS a spoken line (AztSkipKey). A Space pressed as a line ends therefore draws the weapon.

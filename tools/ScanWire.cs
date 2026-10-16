@@ -418,6 +418,10 @@ namespace AztTool
         public bool BodyStepped = false;
         double _bx = double.NaN, _bz, _walkF, _idleF, _fx = double.NaN, _fz, _floorY = double.NaN; bool _walking;
         public double BodySpeed;
+        /// <summary>JUMP / CROUCH (Josh, 2026-10-15: "move the player character shadow up and down when jumping/crouching"):
+        /// BodyLift raises the whole body that far over its floor (a jump's height over standing); BodySquash (0..1) shortens
+        /// it from the head down, feet kept on the floor (the share of its height a crouch takes off).</summary>
+        public double BodyLift, BodySquash;
         /// <summary>Once a frame: the body under the camera (`cam16`, row-vector: right, up, forward, position), stood on
         /// the floor `floorDist` below the eye, walking if the camera moved, idling if not; its triangles into buf. dt in s.
         /// STEADY ON PURPOSE (Josh, 2026-10-08: 'very jiggly'): a wall torch only a little above the body's head turns any
@@ -469,9 +473,10 @@ namespace AztTool
             double bk = BodyBack * h * s, px = ex - ffx * bk, pz = ez - ffz * bk;
             var model = new double[16];
             model[0] = ffz * s; model[1] = 0; model[2] = -ffx * s;                // rig X -> across (a turn about Y, not a mirror)
-            model[4] = 0; model[5] = s; model[6] = 0;                             // rig Y -> up
+            double sv = s * (1 - Math.Max(0, Math.Min(0.8, BodySquash)));        // (a crouch: shorter, feet where they were)
+            model[4] = 0; model[5] = sv; model[6] = 0;                            // rig Y -> up
             model[8] = ffx * s; model[9] = 0; model[10] = ffz * s;                // rig Z (its front: visor, toes) -> the facing
-            model[12] = px - (cxr * model[0] + czr * model[8]); model[13] = _floorY - feet * s; model[14] = pz - (cxr * model[2] + czr * model[10]);
+            model[12] = px - (cxr * model[0] + czr * model[8]); model[13] = _floorY + Math.Max(0, BodyLift) - feet * sv; model[14] = pz - (cxr * model[2] + czr * model[10]);
             model[15] = 1;
             return BodyTris(name, frame, model, buf);
         }

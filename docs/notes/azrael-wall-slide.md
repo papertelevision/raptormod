@@ -1,6 +1,6 @@
 ---
 name: azrael-wall-slide
-description: "How Azrael's movement integrator blocks, and how AztMod turns a dead stop into a wall slide by retrying the step."
+description: "How Azrael's movement blocks: two thin wall tests (slide via 0x162DD4) and the GROUND test 0x11E68 (no floor / face over knee height = dead stop -> AztStepRetry axis retry, 2026-10-15)."
 metadata: 
   node_type: memory
   type: project
@@ -138,3 +138,34 @@ adding stubs, check whether an old one is still reachable before assuming there
 is no room.
 
 See [[azrael-key-addresses]] and [[aztmod-patch-framework]].
+
+## 2026-10-15: the GROUND test also slides now (AztStepRetry) -- the real cause of "snagging"
+
+Josh: "it's easy to get stuck on the geometry in the game ... in Room Review everything is so much smoother".
+Disassembled all three tests of a forward step (path B, the same in A):
+
+- `0x10180` (from, to) -> `0x2F918`: ONE RAY at eye height from the old spot to the new, front faces only;
+  0 = blocked. Leaves the face normal in `0x162DD4` (it IS the normal: the tangent reading was never needed).
+- `0x10160` (x, y, z) -> `0x10118` -> `0x2ED5C`: an 8-unit point test (the pushed `0x40200000` is the high
+  dword of the double **8.0**) at eye + `[0x140004]` (= **-8**): within 8 of a face plane AND the projection
+  inside that polygon (face interiors only, never edges). Also leaves the normal.
+- `0x11E68` (x, y, z) = **the GROUND test at the new spot** (down-cast `0x2F758`, hits `0x164FBC`/`0x164ECC`/
+  `0x164FC0`). The earlier "rejects a step into an interactive OBJECT" was wrong: `0x1523E2` is only the
+  scan readout. It returns REJECT (`[esp+0x9C] = 1`) when **no floor face** is found under the spot
+  (`jz 0x12315`; faces are tested in rounded integer coordinates, so seams can drop a step) or when an
+  **up-facing face above knee height** (`eye - 22 + v`, `[0x140340]`) is under it (`0x121CC`): a lip, ledge,
+  plinth, an object's top. Its reject is `jnz 0x1DE08` at `0x1D78C` / `0x1D940`: stock, a DEAD STOP.
+
+So the walls were already thin (Room Review probes a 14-unit body, chest + eye) and already slid; the snags were
+the ground test. **AztStepRetry** (overlay, the cave is full: 21 bytes spare) takes both `jnz`s: restore the
+position (`aztSaveX/Z`), retry along ONE AXIS of the direction (the larger first, then the other -- as Room
+Review's walk), sharing `aztSlideDone` (two retries a frame in all). `aztStepMine` (overlay; AztFrameAll clears
+it each frame) says the first retry was ours, so the second takes the other axis of `aztStepDirX/Z`; after a wall
+slide it splits the slid vector. Axis order by IEEE bits with the sign masked (integer compare = magnitude order).
+Every retried step runs all three tests again, so nothing can pass that could not before. A retry re-runs the
+ground test's fall step (as the wall slide's always did): negligible.
+
+Note on `AztSaveMove`: it saves `aztSaveDirX/Z` on EVERY pass, retries included, so the wall slide's second
+attempt works from the first attempt's vector (harmless: it ends blocked or stopped). Not changed.
+
+Jumping helps too: at the top of a jump the ground test accepts faces up to ~59 units over the old floor.

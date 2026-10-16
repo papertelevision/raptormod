@@ -20,7 +20,7 @@ Josh (2026-10-13): the 50 degrees "is a major reason why this game still doesn't
   - `0x10F83`: startup;
   - `0x11145`: `0x10FEC`, the 1/2/3 render level;
   - `0x11398` and `0x11403`: `0x111A8`, the viewport re-created on a room load or a close-up.
-- **Nothing else changes it.** The MS7 sniper sight (SPACE) is a HUD sprite, not a zoom.
+- **Nothing else changes it.** The MS7 sniper sight (Z since the jump, [[azrael-jump]]; the game's key is SPACE) is a HUD sprite, not a zoom.
 - **Each frame** `Viewport::Render` `0x5BD0C` -> `0x59404`:
   - `+0x240 = 1/field_x`, `+0x244 = 1/field_y`;
   - when `+0xD8` is set (Create sets it), `a = (w x [dev+0x160]) / (h x [dev+0x164])` (`w,h` = `obj+0x3C/+0x40` ints, `dev` = `obj+0x2C`);

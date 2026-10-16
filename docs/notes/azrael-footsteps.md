@@ -73,3 +73,5 @@ Josh, 2026-10-14: "footsteps ... subtle sound effects, which would change based 
 - Anything that carries the player horizontally (a cart or raft ride, if the game has one) would sound like walking. A room's `"footsteps": false` silences such a room.
 - Scripted camera moves that are not covered by the quiet list would step.
 - **Flashlight switch sound (Josh, 2026-10-15):** "the tile footstep is actually perfect for the sound of the flashlight turning on/off" -- he listened to exported tile steps (Desktop\RaptorMod tile steps) and chose "run 3" for ON and "run 4" for OFF = `Footsteps.Step(Tile, run: true, leftFoot: on, seed 1011 / 1012)` (`LampOnSeed`/`LampOffSeed`). `Footsteps.LampClick(on)`, called by Watch-HostRender `Invoke-LampClick` on the F key's toggle only (not the automatic off at a new game); through `$script:steps` (the game's effects level) or, before/without footsteps, its own Footsteps instance. Verified sample-exact against the files he heard.
+
+2026-10-15: every step (and the jump's) now has a small stone-room REVERB tail (Footsteps.Reverb, ReverbWet 0.30 / ReverbTail 0.55 s); the lamp click does not. See [[azrael-jump]].

@@ -113,3 +113,4 @@ Related: [[raptormod-roadmap]], [[azrael-overlay-read-limit]], [[azrael-opengl-v
   - `CON%d`/`NPC%d.DAT`, `FLAGLIST.DAT`, `OBJLIST.DAT`.
 - **Genuinely binary:** only `WORLD.DAT` (348 KB), `PUZZLES.DAT` (1.1 MB) and `NAMES.DAT` (113 KB).
 - **"Every room can be walked, with characters" overstated it.** Room Review's walk uses its own approximate collision, and characters are drawn at rest pose or as scan wireframes only.
+- **2026-10-15: dev-next squash-merged into main (4019f83 = the DOSBox version 1.0 backup; dev-next d86379e has the same content). The NEXT PHASE (staged native rebuild) is branch `native`, from main, checked out as a git WORKTREE in the all-new folder `C:\Games\RaptorMod-Native\AztMod` (Josh: "an all new file folder ... I want to maintain a dosbox version"). The Steam-folder checkout stays on dev-next and `C:\Games\RaptorMod` stays as it is -- never build or install the native work into them.**

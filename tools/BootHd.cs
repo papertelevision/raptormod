@@ -1,4 +1,4 @@
-// BootHd.cs -- the visor boot, drawn by the host at display resolution (the GPU version).
+﻿// BootHd.cs -- the visor boot, drawn by the host at display resolution (the GPU version).
 //
 // The game's boot is an 8-bit animation painted into the staging buffer: a 1bpp readout
 // expanded through palette tables, glitches drawn as palette runs, everything at 1600x928.
@@ -4175,6 +4175,7 @@ namespace AztTool
             if (!_have) { _lx = ex; _ly = ey; _lz = ez; _have = true; return null; }
             float mx = ex - _lx, mz = ez - _lz, my = ey - _ly, moved = (float)Math.Sqrt(mx * mx + mz * mz);
             _lx = ex; _ly = ey; _lz = ez;
+            if (Airborne) { _moving = false; _walked = 0f; return null; }                          // (a jump: the landing has its own sound)
             if (moved >= 30f || Math.Abs(my) >= 30f) { _moving = false; _walked = 0f; _speed = 0f; _vy = 0f; return null; }      // (a jump, not a step)
             // the game moves the player on its own tick, so frames between see no movement: speed smoothed over ~0.2 s, and
             // still only after a fifth of a second without any
@@ -4195,7 +4196,8 @@ namespace AztTool
             bool run = _speed > RunSpeed;
             _left = !_left;
             bool lf = _left; int seed = _rnd.Next();
-            ThreadPool.QueueUserWorkItem(_ => { try { Sound.PlayStereo(Step(s, run, lf, seed)); } catch { } });      // (made off the drawing thread: a few ms each)
+            double crouchLv = 1 - (1 - CrouchLevel) * Math.Max(0, Math.Min(1, Crouch));
+            ThreadPool.QueueUserWorkItem(_ => { try { Sound.PlayStereo(Step(s, run, lf, seed, 1.0, true, crouchLv)); } catch { } });      // (made off the drawing thread: a few ms each)
             return s.ToString();
         }
 
@@ -4212,7 +4214,60 @@ namespace AztTool
         {
             if (SfxShare <= 0.001) return;
             int seed = on ? LampOnSeed : LampOffSeed; bool lf = on;
-            ThreadPool.QueueUserWorkItem(_ => { try { Sound.PlayStereo(Step(Surface.Tile, true, lf, seed)); } catch { } });
+            ThreadPool.QueueUserWorkItem(_ => { try { Sound.PlayStereo(Step(Surface.Tile, true, lf, seed, 1.0, false)); } catch { } });
+        }
+
+        /// <summary>THE JUMP'S HEADROOM (Josh, 2026-10-15: a jump on Space): the distance from the eye straight UP to the lowest
+        /// face over it (the same footprint test as RayDown), or `limit` if there is none that close -- so a jump is never so
+        /// high the eye goes through a low ceiling or a tunnel's roof.</summary>
+        public static float RayUp(float[] vx, int[] idx, int[] triTex, float px, float py, float pz, float limit)
+        {
+            float best = limit; int nTri = Math.Min(idx.Length / 3, triTex.Length);
+            for (int t = 0; t < nTri; t++)
+            {
+                if (triTex[t] < 0) continue;
+                int a = idx[t * 3] * 3, b = idx[t * 3 + 1] * 3, c = idx[t * 3 + 2] * 3;
+                float ax = vx[a], az = vx[a + 2], bx = vx[b], bz = vx[b + 2], cx = vx[c], cz = vx[c + 2];
+                float d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+                if (d > -1e-9f && d < 1e-9f) continue;
+                float l0 = ((bz - cz) * (px - cx) + (cx - bx) * (pz - cz)) / d; if (l0 < 0f) continue;
+                float l1 = ((cz - az) * (px - cx) + (ax - cx) * (pz - cz)) / d; if (l1 < 0f) continue;
+                float l2 = 1f - l0 - l1; if (l2 < 0f) continue;
+                float y = l0 * vx[a + 1] + l1 * vx[b + 1] + l2 * vx[c + 1], up = y - py;
+                if (up > 0.25f && up < best) best = up;
+            }
+            return best;
+        }
+        /// <summary>The jump's sounds, on the floor the player last walked on: a running step as they leave the ground, and both
+        /// feet (louder: LandLevel) as they land -- all JumpPitch lower than a walking step (Josh, 2026-10-15: "quite a bit lower
+        /// pitched just for some variation").</summary>
+        public double LandLevel = 1.4, JumpPitch = 0.38;      // (0.6 first, then 0.42; Josh: "deeper in tone even further", then .38)
+        /// <summary>CROUCHED STEPS (Josh, 2026-10-15: "20% quieter than when walking normally"): the watcher sets Crouch (0..1,
+        /// the eased crouch) and a walking step plays at 1 - (1 - CrouchLevel) x Crouch of its level. Not the jump's sounds.</summary>
+        public double CrouchLevel = 0.72, Crouch;      // (0.8 first; Josh: "10% softer than they are now when crouched")
+        /// <summary>A JUMP is in the air (the watcher sets it from its jump state): no steps, and the stride starts over on
+        /// landing (Josh, 2026-10-15: "when running and jumping, the normal footsteps will continue while I'm in the air").</summary>
+        public bool Airborne;
+        public void JumpSound(bool landing)
+        {
+            if (!On || SfxShare <= 0.001) return;
+            var s = Last; int seed = _rnd.Next(); bool lf = (seed & 1) == 0;
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    var a = Step(s, true, lf, seed, JumpPitch);
+                    if (landing)
+                    {
+                        // both feet, the second ~40 ms after the first, louder
+                        var b = Step(s, true, !lf, seed + 1, JumpPitch); int off = (int)(0.04 * Rate) * 2; var m = new short[Math.Max(a.Length, b.Length + off)];
+                        for (int i = 0; i < m.Length; i++) { double v = (i < a.Length ? a[i] : 0) + (i >= off && i - off < b.Length ? b[i - off] : 0); v *= LandLevel; m[i] = (short)Math.Max(-32767, Math.Min(32767, v)); }
+                        a = m;
+                    }
+                    Sound.PlayStereo(a);
+                }
+                catch { }
+            });
         }
 
         // the first face straight below the eye within `limit`, either side (as Raster.RayDistance); -1 if none
@@ -4263,13 +4318,48 @@ namespace AztTool
         // a short glassy ring and a faint slap back off a hard room. WOOD: a hollow knock (the board's low modes), now and
         // then a faint creak. METAL (grates, plates): a dull clank that rings a little. WATER: a shallow splash. All through
         // a gentle low-pass (heard from inside a helmet), heel then toe.
-        /// <summary>One step's sound: interleaved stereo at the engine's rate, at the level it plays.</summary>
-        public short[] Step(Surface s, bool run, bool leftFoot, int seed)
+        /// <summary>REVERB on the steps and the jump (Josh, 2026-10-15: "add some reverb to both the footsteps and jump sound"):
+        /// a small stone room -- six damped combs and two all-passes a channel (Freeverb's shape, the right channel's delays a
+        /// little longer for width), its peak ReverbWet of the dry step's, ReverbTail s long (faded out over its last 50 ms).
+        /// ReverbRoom = the combs' feedback (the decay), ReverbDamp = how dark the tail goes. Not on the lamp's click.</summary>
+        public double ReverbWet = 0.30, ReverbTail = 0.65, ReverbRoom = 0.78, ReverbDamp = 0.35;      // (tail 0.55 first; Josh: .65)
+        /// <summary>ECHO (Josh, 2026-10-15: "a slight echo to the footsteps and jump sounds"): EchoRepeats copies of the step
+        /// and its room, EchoDelay s apart, the first at EchoLevel and each next EchoDecay of the one before, darker each time
+        /// (a one-pole low-pass at EchoDark Hz) and leaning a little to alternate sides. With the reverb: not the lamp click.</summary>
+        public double EchoDelay = 0.17, EchoLevel = 0.20, EchoDecay = 0.45, EchoDark = 2600; public int EchoRepeats = 2;
+        static readonly int[] CombAt44 = { 1116, 1188, 1277, 1356, 1422, 1491 }, PassAt44 = { 556, 441 };
+        void Reverb(double[] dry, int nOut, out double[] L, out double[] R)
         {
-            var r = new Random(seed);
-            double len = s == Surface.Metal ? 0.42 : s == Surface.Water ? 0.38 : 0.30;
+            L = new double[nOut]; R = new double[nOut];
+            for (int ch = 0; ch < 2; ch++)
+            {
+                var o = ch == 0 ? L : R; int spread = ch == 0 ? 0 : 23; double sc = Rate / 44100.0;
+                foreach (int c44 in CombAt44)
+                {
+                    var cb = new double[Math.Max(8, (int)((c44 + spread) * sc))]; int ix = 0; double fs = 0;
+                    for (int i = 0; i < nOut; i++)
+                    {
+                        double y = cb[ix]; fs = y * (1 - ReverbDamp) + fs * ReverbDamp;
+                        cb[ix] = (i < dry.Length ? dry[i] : 0) + fs * ReverbRoom; o[i] += y;
+                        if (++ix == cb.Length) ix = 0;
+                    }
+                }
+                foreach (int p44 in PassAt44)
+                {
+                    var ab = new double[Math.Max(8, (int)((p44 + spread) * sc))]; int ix = 0;
+                    for (int i = 0; i < nOut; i++) { double bo = ab[ix], x = o[i]; o[i] = bo - x; ab[ix] = x + bo * 0.5; if (++ix == ab.Length) ix = 0; }
+                }
+            }
+        }
+
+        /// <summary>One step's sound: interleaved stereo at the engine's rate, at the level it plays. pitchScale &lt; 1 = lower
+        /// (the jump's), and as much longer so its ring is not cut short; reverb: the room's tail after it (Reverb).</summary>
+        public short[] Step(Surface s, bool run, bool leftFoot, int seed, double pitchScale = 1.0, bool reverb = true, double level = 1.0)
+        {
+            var r = new Random(seed); pitchScale = Math.Max(0.25, Math.Min(4, pitchScale));
+            double len = (s == Surface.Metal ? 0.42 : s == Surface.Water ? 0.38 : 0.30) / Math.Min(1, pitchScale);
             int n = (int)(len * Rate); var buf = new double[n];
-            double pitch = 0.92 + 0.16 * r.NextDouble(), weight = (run ? 1.25 : 1.0) * (0.82 + 0.18 * r.NextDouble());
+            double pitch = (0.92 + 0.16 * r.NextDouble()) * pitchScale, weight = (run ? 1.25 : 1.0) * (0.82 + 0.18 * r.NextDouble());
             double toeAt = run ? 0.018 + 0.016 * r.NextDouble() : 0.034 + 0.026 * r.NextDouble();
             Hit(buf, s, 0.0, 1.0, pitch, r, run);
             Hit(buf, s, toeAt, run ? 0.62 : 0.48, pitch * 1.06, r, run);
@@ -4278,15 +4368,49 @@ namespace AztTool
             double a = 1 - Math.Exp(-2 * Math.PI * lowPass / Rate), lp = 0, lp2 = 0, peak = 1e-9; int tail = (int)(0.03 * Rate);
             for (int i = 0; i < n; i++) { lp += a * (buf[i] - lp); lp2 += a * (lp - lp2); buf[i] = lp2 * Math.Min(1, (n - i) / (double)tail); peak = Math.Max(peak, Math.Abs(buf[i])); }
             double gain = s == Surface.Tile ? 0.85 : s == Surface.Metal ? 0.72 : s == Surface.Water ? 0.8 : 1.0;
-            double lvl = Math.Min(0.95, Level * gain * weight * Math.Max(0, Math.Min(1.5, SfxShare)) * Sound.Volume / 0.36);
+            double lvl = Math.Min(0.95, Level * gain * weight * Math.Max(0, Math.Min(1.5, SfxShare)) * Sound.Volume / 0.36) * Math.Max(0, level);
             // the feet a little apart: left a little left, right a little right (equal power about the middle)
             double pan = (leftFoot ? -0.14 : 0.14) + 0.05 * (r.NextDouble() - 0.5), ang = (pan + 1) * Math.PI / 4;
             double gl = Math.Cos(ang) * Math.Sqrt(2), gr = Math.Sin(ang) * Math.Sqrt(2), kk = lvl / peak * 32767;
-            var o = new short[n * 2];
-            for (int i = 0; i < n; i++)
+            // the room after it: the tail's peak a share of the dry step's, faded out at its end
+            double[] wl = null, wr = null; int nOut = n;
+            if (reverb && ReverbWet > 0.001 && ReverbTail > 0.01)
             {
-                o[i * 2] = (short)Math.Max(-32767, Math.Min(32767, buf[i] * kk * gl));
-                o[i * 2 + 1] = (short)Math.Max(-32767, Math.Min(32767, buf[i] * kk * gr));
+                nOut = n + (int)(ReverbTail * Rate); Reverb(buf, nOut, out wl, out wr);
+                double wp = 1e-9; for (int i = 0; i < nOut; i++) wp = Math.Max(wp, Math.Max(Math.Abs(wl[i]), Math.Abs(wr[i])));
+                double ws = ReverbWet * peak / wp; int ft = (int)(0.05 * Rate);
+                for (int i = 0; i < nOut; i++) { double f = ws * Math.Min(1.0, (nOut - i) / (double)ft); wl[i] *= f; wr[i] *= f; }
+            }
+            // the step and its room; then its echoes off the far walls (the whole mix again, later, quieter and darker)
+            int dly = reverb && EchoRepeats > 0 && EchoLevel > 0.001 ? (int)(EchoDelay * Rate) : 0, nAll = nOut + dly * (dly > 0 ? EchoRepeats : 0);
+            var mL = new double[nAll]; var mR = new double[nAll];
+            for (int i = 0; i < nOut; i++)
+            {
+                double d = i < n ? buf[i] : 0;
+                mL[i] = d * gl + (wl != null ? wl[i] : 0); mR[i] = d * gr + (wr != null ? wr[i] : 0);
+            }
+            if (dly > 0)
+            {
+                double ea = 1 - Math.Exp(-2 * Math.PI * EchoDark / Rate), g = EchoLevel;
+                for (int k = 1; k <= EchoRepeats; k++, g *= EchoDecay)
+                {
+                    // darker each repeat (the filter run k times), a little to one side, then the other
+                    double side = (k & 1) == 1 ? 0.15 : -0.15, gL = g * (1 - side), gR = g * (1 + side);
+                    double[] eL = new double[nOut], eR = new double[nOut]; Array.Copy(mL, eL, nOut); Array.Copy(mR, eR, nOut);
+                    for (int pass = 0; pass < k; pass++)
+                    {
+                        double fl = 0, fr = 0;
+                        for (int i = 0; i < nOut; i++) { fl += ea * (eL[i] - fl); eL[i] = fl; fr += ea * (eR[i] - fr); eR[i] = fr; }
+                    }
+                    int off = dly * k;
+                    for (int i = 0; i < nOut; i++) { mL[i + off] += eL[i] * gL; mR[i + off] += eR[i] * gR; }
+                }
+            }
+            var o = new short[nAll * 2];
+            for (int i = 0; i < nAll; i++)
+            {
+                o[i * 2] = (short)Math.Max(-32767, Math.Min(32767, mL[i] * kk));
+                o[i * 2 + 1] = (short)Math.Max(-32767, Math.Min(32767, mR[i] * kk));
             }
             return o;
         }

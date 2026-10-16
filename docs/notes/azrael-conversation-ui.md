@@ -71,7 +71,7 @@ The fix is `-Hi 56` on the ramp search, level count unchanged.
 Related: [[azrael-story-log-scrollback]], [[azrael-palette-budget]],
 [[azrael-texture-cache-reserve]]
 
-**Space guard (2026-10-11):** RaptorMod's Space skip shares the key with the game's weapon toggle (0x136D8 -> 0x131E1), so a Space just after a line drew the weapon. The watcher's SpaceGuard (tools\Keys.cs) holds Space back for 1 s after any line ends; see [[azrael-vector-cursors]]. The overlay had no room for a game-side guard.
+**Space guard (2026-10-11; since 2026-10-15 Space outside a line JUMPS and Z is the weapon -- [[azrael-jump]]):** RaptorMod's Space skip shares the key with the game's weapon toggle (0x136D8 -> 0x131E1), so a Space just after a line drew the weapon. The watcher's SpaceGuard (tools\Keys.cs) holds Space back for 1 s after any line ends; see [[azrael-vector-cursors]]. The overlay had no room for a game-side guard.
 
 ## The conversation's look (Josh, 2026-10-13)
 "there is a red glow that appears in the 4:3 aspect from the original game. I want that removed. Instead ... a subtle amber glow that is on the outside edge of the visor anytime the character is engaged with a npc dialogue. Then a small soundwave icon at the bottom left of the visor, with small text beneath: Conversation recording engaged..." Plus: the log box stood open and blank through the NPC's first line. **Installed 2026-10-13, not yet seen in game.**

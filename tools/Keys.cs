@@ -67,6 +67,24 @@ namespace AztTool
         public int GamePid;
         /// <summary>How long after a line ends Space is held back (ms).</summary>
         public int QuietMs = 1000;
+        // ---- THE JUMP (Josh, 2026-10-15: "a basic jump button assigned to the SPACE BAR"); then the same day: the weapon /
+        // sniper toggle on Z, C a CROUCH key (F stays the helmet lamp) ---------------------------------------------------------
+        /// <summary>On: Space outside a spoken line is a JUMP -- dropped before the game and counted in JumpPresses for the
+        /// watcher (one per press: a held Space's repeats do not count) -- and WeaponVk (Z) is the game's weapon / MS7 sight
+        /// toggle: dropped, and a Space down + up (marked, so this hook lets it through) sent to the game in its place.</summary>
+        public bool JumpMode;
+        public int WeaponVk = 0x5A;
+        /// <summary>On: CrouchVk (C) is held back from the game and each press TOGGLES Crouched (Josh, 2026-10-15: "make C a
+        /// toggle for crouch, not hold to crouch"); the watcher lowers the eye while it is set, and may clear it. Not while a
+        /// save name is typed.</summary>
+        public bool CrouchMode; public int CrouchVk = 0x43;
+        public volatile bool Crouched;
+        volatile bool _crouchDown;              // (C held: its repeats and its key-up never reach the game)
+        /// <summary>Counters the watcher takes (Interlocked.Read): Space presses for a jump, Z presses turned into the weapon toggle.</summary>
+        public long JumpPresses, WeaponPresses;
+        /// <summary>The overlay's aztTypingKeys word (host address): while it is set a save name is being typed, and Space, Z
+        /// and C go to the game as letters.</summary>
+        public long TypingAddr;
         // ---- for the report --------------------------------------------------------------------------------------------
         public long Swallowed, Passed, LineEnds, EarlyUps, ReadFails; public string StartError = "";
         public bool Hooked { get { return _hook != IntPtr.Zero; } }
@@ -75,6 +93,8 @@ namespace AztTool
         HookProc _hookProc; Thread _hookT, _pollT; volatile uint _tid; IntPtr _hook; volatile bool _run;
         long _endedAt = long.MinValue;          // (clock ms when the last line ended; MinValue = none yet)
         volatile bool _gameDown;                // the game was given Space's key-down and not yet its key-up
+        volatile bool _jumpDown, _weaponDown;   // (a Space / Z held as a jump / weapon key: its repeats and key-up are dropped)
+        readonly byte[] _t2 = new byte[2];      // (the hook's typing read)
         bool _wasSpeaking;
         readonly byte[] _b2 = new byte[2];      // (the poll thread's)
         readonly byte[] _h2 = new byte[2];      // (the hook's)
@@ -130,6 +150,19 @@ namespace AztTool
                 Thread.Sleep(4);
             }
         }
+        bool Typing()
+        {
+            IntPtr got; if (TypingAddr == 0 || !ReadProcessMemory(_proc, new IntPtr(TypingAddr), _t2, new IntPtr(2), out got)) return false;
+            return (_t2[0] | (_t2[1] << 8)) != 0;
+        }
+        // the game's own weapon toggle, for C: a Space down and up, marked as ours
+        void SendSpaceTap()
+        {
+            var inp = new INPUT[2]; inp[0].type = 1; inp[1].type = 1;
+            inp[0].u.ki = new KEYBDINPUT { wVk = VK_SPACE, wScan = SC_SPACE, dwFlags = 0, time = 0, dwExtraInfo = Marker };
+            inp[1].u.ki = new KEYBDINPUT { wVk = VK_SPACE, wScan = SC_SPACE, dwFlags = KEYEVENTF_KEYUP, time = 0, dwExtraInfo = Marker };
+            SendInput(2, inp, Marshal.SizeOf(typeof(INPUT)));
+        }
         void SendSpaceUp()
         {
             var inp = new INPUT[1]; inp[0].type = 1;
@@ -155,7 +188,27 @@ namespace AztTool
             try
             {
                 // (KBDLLHOOKSTRUCT: vkCode +0, scanCode, flags, time, then dwExtraInfo at +16 in both 32- and 64-bit)
-                if (code >= 0 && Marshal.ReadInt32(l, 0) == VK_SPACE && Marshal.ReadIntPtr(l, 16) != Marker)
+                int vk = code >= 0 ? Marshal.ReadInt32(l, 0) : 0;
+                if (code >= 0 && JumpMode && vk == WeaponVk && Marshal.ReadIntPtr(l, 16) != Marker)
+                {
+                    // Z: the weapon toggle (not while a save name is typed: then it is a letter)
+                    int msg = w.ToInt32(); bool down = msg == 0x100 || msg == 0x104;
+                    if (down && GameInFront() && !Typing())
+                    {
+                        if (!_weaponDown) { _weaponDown = true; if (Speaking(_h2) <= 0) { Interlocked.Increment(ref WeaponPresses); SendSpaceTap(); } }
+                        return new IntPtr(1);
+                    }
+                    if (!down && _weaponDown) { _weaponDown = false; return new IntPtr(1); }
+                }
+                if (code >= 0 && CrouchMode && vk == CrouchVk && Marshal.ReadIntPtr(l, 16) != Marker)
+                {
+                    // C: each press toggles the crouch (its repeats, and its key-up, never reach the game)
+                    int msg = w.ToInt32(); bool down = msg == 0x100 || msg == 0x104;
+                    if (down && _crouchDown) return new IntPtr(1);
+                    if (down && GameInFront() && !Typing()) { _crouchDown = true; Crouched = !Crouched; return new IntPtr(1); }
+                    if (!down && _crouchDown) { _crouchDown = false; return new IntPtr(1); }
+                }
+                if (code >= 0 && vk == VK_SPACE && Marshal.ReadIntPtr(l, 16) != Marker)
                 {
                     int msg = w.ToInt32();
                     if (msg == 0x100 || msg == 0x104)                                   // key down (or a repeat of it)
@@ -165,12 +218,19 @@ namespace AztTool
                             long now = _clock.ElapsedMilliseconds, ended = Interlocked.Read(ref _endedAt);
                             bool quiet = ended != long.MinValue && now - ended < QuietMs && Speaking(_h2) == 0;
                             if (quiet) { Interlocked.Exchange(ref _endedAt, now); Swallowed++; return new IntPtr(1); }
+                            // THE JUMP: Space outside a spoken line (and not typed into a save name) is the host's, not the game's
+                            if (JumpMode && !_gameDown && Speaking(_h2) == 0 && !Typing())
+                            {
+                                if (!_jumpDown) { _jumpDown = true; Interlocked.Increment(ref JumpPresses); }
+                                return new IntPtr(1);
+                            }
                             if (!_gameDown) Passed++;
                             _gameDown = true;
                         }
                     }
                     else if (msg == 0x101 || msg == 0x105)                              // key up
                     {
+                        if (_jumpDown) { _jumpDown = false; return new IntPtr(1); }     // (a jump's Space: the game never had it)
                         if (_gameDown) _gameDown = false;                               // (the game had the down: it gets the up)
                         else if (GameInFront()) return new IntPtr(1);                   // (it never had it, or had its up already)
                     }
@@ -189,9 +249,11 @@ namespace AztTool
             {
                 bool quiet = ended != long.MinValue && now - ended < QuietMs && Speaking(_h2) == 0;
                 if (quiet) { Interlocked.Exchange(ref _endedAt, now); Swallowed++; return false; }
+                if (JumpMode && !_gameDown && Speaking(_h2) == 0 && !Typing()) { if (!_jumpDown) { _jumpDown = true; Interlocked.Increment(ref JumpPresses); } return false; }
                 if (!_gameDown) Passed++;
                 _gameDown = true; return true;
             }
+            if (_jumpDown) { _jumpDown = false; return false; }
             if (_gameDown) { _gameDown = false; return true; }
             return false;
         }

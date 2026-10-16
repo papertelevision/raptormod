@@ -5084,6 +5084,83 @@ $BOOK_SOURCE_DIR = 'C:\Games\RaptorMod\sources\books'
     }
     A-Ret $ovl
 
+    # ---------------------------------------------------------------------------
+    # AztStepRetry (OVERLAY: the stub cave is full) -- replaces the `jnz 0x1DE08` after each forward path's GROUND test
+    # (0x11E68 at 0x1D78C / 0x1D940). Jumped to, so esp is the function's own.
+    # ---------------------------------------------------------------------------
+    # Josh, 2026-10-15: "it's easy to get stuck on the geometry in the game ... in
+    # Room Review everything is so much smoother". The wall tests are thin (a ray at
+    # eye height and an 8-unit point test, face interiors only) and already slide.
+    # What stops the player DEAD is the ground test at the new spot, which rejects a
+    # step when (a) no floor face is found under it -- the faces are tested in rounded
+    # integer coordinates, so seams between floor polygons can drop a step -- or (b)
+    # an up-facing face sits above knee height (eye - 22 + v) under it: a lip, a
+    # ledge, a plinth, the top of an object. Stock: the step is simply abandoned.
+    #
+    # Now the step is retried along ONE AXIS of its own direction, the larger first,
+    # then the other -- as Room Review's walk does -- so a diagonal step round a lip or
+    # off a seam carries on instead of stopping. Shares aztSlideDone with the wall
+    # slide (two retries a frame in all). No wall normal is involved (0x11E68 makes
+    # none), and the retried step runs every test again, so nothing new can pass.
+    Add-Label $ovl 'AztStepRetry'
+    A-PushEax $ovl; A-PushEdx $ovl; A-PushEsi $ovl; A-PushEdi $ovl
+    A-Call $ovl ([uint32]$asm.Labels['AztDeltas'])
+    A-CmpWordSiImm $ovl ([uint32]$asm.Labels['aztSlideDone']) 1
+    A-Ja $ovl 'ASR_abandon'                     # two retries this frame already
+    A-MovEaxSi $ovl ([uint32]$asm.Labels['aztSaveX'])                  # the position back where it was
+    A-MovEspDispEax $ovl 0x1C
+    A-MovEaxSi $ovl ([uint32]$asm.Labels['aztSaveZ'])
+    A-MovEspDispEax $ovl 0x24
+    A-CmpWordSiImm $ovl ([uint32]$asm.Labels['aztSlideDone']) 0
+    A-Jnz $ovl 'ASR_second'
+    # first retry this frame: remember the direction, keep its larger axis
+    A-MovEaxDi $ovl $g_dirX
+    A-MovSiEax32 $ovl 'aztStepDirX'
+    A-MovEaxDi $ovl $g_dirZ
+    A-MovSiEax32 $ovl 'aztStepDirZ'
+    A-MovWordSiImm $ovl 'aztStepMine' 1
+    Add-Label $ovl 'ASR_pick'                   # |Z| vs |X| as IEEE bits (sign masked: same order as the magnitudes)
+    A-MovEaxDi $ovl $g_dirZ
+    A-AndEaxImm $ovl ([uint32]0x7FFFFFFF)
+    A-MovEdxDi $ovl $g_dirX
+    A-AndEdxImm $ovl ([uint32]0x7FFFFFFF)
+    A-CmpEaxEdx $ovl
+    A-Ja $ovl 'ASR_keepZ'
+    Add-Label $ovl 'ASR_keepX'
+    A-MovDwordDiImm $ovl $g_dirZ ([uint32]0)
+    A-Jmp $ovl 'ASR_retry'
+    Add-Label $ovl 'ASR_keepZ'
+    A-MovDwordDiImm $ovl $g_dirX ([uint32]0)
+    A-Jmp $ovl 'ASR_retry'
+    # second retry: after our own first one, the OTHER axis of the remembered direction;
+    # after a wall slide, the larger axis of the slid direction
+    Add-Label $ovl 'ASR_second'
+    A-CmpWordSiImm $ovl 'aztStepMine' 1
+    A-Jnz $ovl 'ASR_pick'
+    A-MovWordSiImm $ovl 'aztStepMine' 0
+    A-MovEaxSi $ovl 'aztStepDirX'
+    A-MovDiEax32 $ovl $g_dirX
+    A-MovEaxSi $ovl 'aztStepDirZ'
+    A-MovDiEax32 $ovl $g_dirZ
+    A-AndEaxImm $ovl ([uint32]0x7FFFFFFF)
+    A-MovEdxDi $ovl $g_dirX
+    A-AndEdxImm $ovl ([uint32]0x7FFFFFFF)
+    A-CmpEaxEdx $ovl
+    A-Ja $ovl 'ASR_keepX'                       # Z was kept first: now X
+    A-Jmp $ovl 'ASR_keepZ'
+    Add-Label $ovl 'ASR_retry'
+    A-IncWordSi $ovl ([uint32]$asm.Labels['aztSlideDone'])
+    A-MovEaxSi $ovl ([uint32]$asm.Labels['aztRetry'])                  # load before esi is popped
+    A-PopEdi $ovl; A-PopEsi $ovl; A-PopEdx $ovl
+    A-AddEspImm $ovl 4                          # discard the saved eax; we return through it
+    A-JmpEax $ovl                               # redo the step along one axis
+    Add-Label $ovl 'ASR_abandon'
+    A-PopEdi $ovl; A-PopEsi $ovl; A-PopEdx $ovl; A-PopEax $ovl
+    A-Jmp $ovl ([uint32]0x1DE08)                # the original abandon
+    Add-Label $ovl 'aztStepMine';   A-Dw $ovl 0                   # this frame's first retry was ours (AztFrameAll clears it)
+    Add-Label $ovl 'aztStepDirX';   A-Db $ovl ([byte[]](,0 * 4))  # the direction before it
+    Add-Label $ovl 'aztStepDirZ';   A-Db $ovl ([byte[]](,0 * 4))
+
     # ebx = now on entry, and every one of these clobbers it, so it is re-supplied
     # from the stack before each call rather than saved once.
     Add-Label $ovl 'AztFrameAll'
@@ -5097,6 +5174,7 @@ $BOOK_SOURCE_DIR = 'C:\Games\RaptorMod\sources\books'
     A-OrAxImm $ovl 1
     Add-Label $ovl 'AFA_typed'
     A-MovSiAx $ovl 'aztTypingKeys'
+    A-MovWordSiImm $ovl 'aztStepMine' 0         # (AztStepRetry: a new frame's movement)
     # THE STAGING BUFFER IS ALLOCATED HERE, NOT IN AztInitAll, because init now runs
     # before the intro movies and this asks for 576 KB of the same heap the movie player
     # needs. Once, on the first rendered frame -- which is exactly when it used to happen.
@@ -14378,8 +14456,9 @@ foreach ($w in @(0x1D879, 0x1D8EE, 0x1DA0D, 0x1DA94, 0x1DBCB, 0x1DC31)) {
 # is lost: no-wall-turn has already zeroed both rotation immediates, so the two
 # branches are behaviourally identical.
 #
-# Deliberately NOT hooked: the earlier `call 0x11E68 / test ax,ax / jnz 0x1DE08` at
-# 0x1D78C and 0x1D940. v0.11.2 treated those as a wall test; they are not. 0x11E68
+# Not hooked HERE: the earlier `call 0x11E68 / test ax,ax / jnz 0x1DE08` at 0x1D78C and
+# 0x1D940 (they are now AztStepRetry's -- see step-retry below: 0x11E68 is the GROUND test,
+# and it makes no wall normal). v0.11.2 treated those as a wall test; they are not. 0x11E68
 # drives the object-scan readout (it touches 0x152AD4 and 0x1523E2) and rejects a
 # step that runs into an interactive OBJECT, without computing a wall normal -- so
 # sliding there would retry against a stale 0x162DD4.
@@ -14417,6 +14496,19 @@ foreach ($x in @(
         -Expect $raw[$o..($o + 4)] `
         -Replace ([byte[]](@(0xE9) + [BitConverter]::GetBytes([int]$rel))) `
         -Note 'blocked move slides along the wall instead of stopping dead'
+}
+
+# The GROUND test's reject (0x11E68 nonzero: no floor under the new spot, or a face
+# above knee height there) now retries the step along one axis -- AztStepRetry. The
+# `jnz 0x1DE08` is the step's own private abandon (rel32, no fixup).
+foreach ($r in @(0x1D78C, 0x1D940)) {
+    $o = Lin2File $r
+    if ($raw[$o] -ne 0x0F -or $raw[$o+1] -ne 0x85 -or ([BitConverter]::ToInt32($raw, $o + 2) + $r + 6) -ne 0x1DE08) { throw ("no jnz 0x1DE08 at 0x{0:X} -- ground-test exit moved" -f $r) }
+    $rel = [int]$ovlAsm.Labels['AztStepRetry'] - ([int]$r + 6)
+    $patches += New-Patch -Name ("step-retry-{0:X}" -f $r) -FileOffset $o `
+        -Expect $raw[$o..($o + 5)] `
+        -Replace ([byte[]](@(0x0F, 0x85) + [BitConverter]::GetBytes([int]$rel))) `
+        -Note 'a step the ground test rejects (a seam, a lip, an object top) is retried along one axis instead of stopping dead'
 }
 
 # Remove the pitch indicator -- the little vertical scale, drawn into the LEFT

@@ -338,6 +338,17 @@ param(
     # FOOTSTEPS (BootHd.cs Footsteps; Josh, 2026-10-14): subtle steps as the player walks, by what is underfoot (stone, tile, wood,
     # metal, water), at the game's effects level. -NoFootsteps: none; -FootstepVolume: a walking step's peak (0..1, default 0.2).
     [switch]$NoFootsteps, [double]$FootstepVolume = -1,
+    # THE JUMP (Josh, 2026-10-15: "a basic jump button assigned to the SPACE BAR"): Space jumps -- the game's own gravity does
+    # the arc, the host steering its fall speed word 0x152592 tick by tick for an EASED top (rises 16 10 6 3 1, JumpHang ticks
+    # held, then 1 3 6 10 down). Space still skips a spoken line. The weapon / MS7 sight toggle is on Z, and C TOGGLES a
+    # crouch (F stays the lamp). -NoJump: Space and Z/C as stock. -JumpPower: the top in units (36; 16 is the least that leaves
+    # the ground). -NoCrouch: C to the game. -CrouchDrop: how far the eye comes down (units; standing it is 45 over the
+    # floor). -CrouchSpeed: walking / running speed while down. -CrouchTime: seconds to go down or come up.
+    # -NoEyeSmooth: the view's height follows the game's 18 Hz steps as they come (else eased between them, for jumps,
+    # stairs and crouching). -LandBob: how far the view dips on a jump's landing (units; 0 = none), over -LandBobTime s.
+    [switch]$NoJump, [int]$JumpPower = 36, [int]$JumpHang = 1,
+    [switch]$NoCrouch, [double]$CrouchDrop = 16, [double]$CrouchSpeed = 0.65, [double]$CrouchTime = 0.2,
+    [switch]$NoEyeSmooth, [double]$LandBob = 2.5, [double]$LandBobTime = 0.28,
     [switch]$NoConvCue, [switch]$NoVisorFog, [switch]$NoEyeShine, [switch]$NoImpacts, [switch]$NoEcho, [switch]$NoEchoLabels, [switch]$LoadSilence, [switch]$AudioMeter, [switch]$NoLoadGameMute, [double]$MapPanelLight = 0.6, [switch]$NoMapLights, [double]$MapZoomStart = 1.5, [int]$EchoKey = 0x56,
     # THE SHOT RECORD's input history (Step-ShotWatch): every frame's buttons kept, to explain a shot nobody meant (Josh,
     # 2026-10-11). Off by default since the 2026-10-13 performance audit (7 guest reads a frame); the weapon log stays.
@@ -1832,6 +1843,7 @@ $script:capWas = 0
 $MOVE_PER_SEC = @{ 0x141800 = (16.0 * 18.2065); 0x1417FC = (8.0 * 18.2065) }
 $script:fpsOn = $false; $script:fpsCapWas = [uint32]0; $script:fpsMoveWas = @{}
 $script:fpsRate = 24.0; $script:fpsFrame0 = [uint32]0; $script:fpsClock = $null; $script:fpsMax = 60.0; $script:fpsLastRate = 400.0
+$script:crouchK = 1.0      # (CROUCH: the share of the step while down -- every writer of the step multiplies by it)
 # ---- the on-screen frame counter ---------------------------------------------------------
 # DELIVERED frames per second -- pictures the guest actually took from us -- not the guest
 # loop rate, which is far higher and is not what the player sees. Drawn into the host's own
@@ -1944,7 +1956,7 @@ function Enable-HostFps {
     # that is how the player fell out of the room. Start from the rate last measured (or a
     # deliberately high guess): starting too SLOW for a quarter second is harmless.
     $script:fpsRate = [Math]::Max(60.0, [Math]::Min($script:fpsMax, $script:fpsLastRate))
-    foreach ($a in $MOVE_PER_SEC.Keys) { [void]$hv.WriteU32((GuestObj2 ([uint32]$a)), (F32Bits ($MOVE_PER_SEC[$a] / $script:fpsRate))) }
+    foreach ($a in $MOVE_PER_SEC.Keys) { [void]$hv.WriteU32((GuestObj2 ([uint32]$a)), (F32Bits ($MOVE_PER_SEC[$a] / $script:fpsRate * $script:crouchK))) }
     [void]$hv.WriteU32((HostLin $capLin), [uint32][Math]::Round($period))
     $script:fpsOn = $true; $script:fpsClock = [Diagnostics.Stopwatch]::StartNew()
     $script:fpsFrame0 = $(if ($S_frameNo) { RdU32 (HostLin $S_frameNo) } else { [uint32]0 })
@@ -1959,7 +1971,20 @@ function Update-HostFps {
     $inst = [Math]::Max(10.0, [Math]::Min($script:fpsMax, $inst))
     $script:fpsRate = 0.5 * $script:fpsRate + 0.5 * $inst
     $script:fpsLastRate = $script:fpsRate
-    foreach ($a in $MOVE_PER_SEC.Keys) { [void]$hv.WriteU32((GuestObj2 ([uint32]$a)), (F32Bits ($MOVE_PER_SEC[$a] / $script:fpsRate))) }
+    foreach ($a in $MOVE_PER_SEC.Keys) { [void]$hv.WriteU32((GuestObj2 ([uint32]$a)), (F32Bits ($MOVE_PER_SEC[$a] / $script:fpsRate * $script:crouchK))) }
+}
+# THE STEP NOW, crouch included: the measured-rate step while the host has the cap off, else the game's own step (the build's,
+# kept from before the cap came off -- or read on attach when it never did) x crouchK. (The first crouch wrote ITS copy of the
+# step every frame of a transition -- the build's 24 fps step at several hundred fps: a sprint. Josh: "I will zoom in".)
+function Set-MoveSteps {
+    if (-not $hv) { return }
+    foreach ($a in $MOVE_PER_SEC.Keys) {
+        if ($script:fpsOn) { $s = $MOVE_PER_SEC[$a] / $script:fpsRate }
+        elseif ($script:fpsMoveWas.ContainsKey($a)) { $s = [BitConverter]::ToSingle([BitConverter]::GetBytes([uint32]$script:fpsMoveWas[$a]), 0) }
+        elseif ($script:crouchBase) { $s = $(if ($a -eq 0x141800) { $script:crouchBase.Run } else { $script:crouchBase.Walk }) }
+        else { continue }
+        [void]$hv.WriteU32((GuestObj2 ([uint32]$a)), (F32Bits ($s * $script:crouchK)))
+    }
 }
 function Disable-HostFps {
     if (-not $script:fpsOn) { return }
@@ -3089,28 +3114,161 @@ function Step-Footsteps([single]$dtS, $m, [single[]]$dv, $room, [int[]]$dt, $tex
         }
     }
     $quiet = $script:mapFreezeCam -or ($script:bootHd -and $script:bootHd.Covering) -or $script:roomCover -or $script:convWas -or ($script:visorMenu -and $script:visorMenu.AnyPlaying)
+    $script:steps.Airborne = [bool]$script:jumpAir      # (no steps while a jump is in the air)
     $k = $script:steps.Update($dtS, $m[12], $m[13], $m[14], $dv, [int[]]$room.T, $dt, $texes, [bool]$quiet)
     if ($k -and ($script:steps.Steps -le 3 -or $k -ne $script:stepsLastKind)) { Say ("  footstep: {0}" -f $k) DarkGray }
     if ($k) { $script:stepsLastKind = $k }
-}# Every true-colour frame, before the hide rects: returns $true while the 3D map covers the view.
-# THE VISOR'S ECHO SCAN (Josh, 2026-10-14: "tap a key and an amber pulse ripples through the room like the map's intro
-# wave. It outlines doors, pickups and creatures through the walls for a second"). -EchoKey (V: the game binds no V or v --
-# its ascii dispatch at 0x12E75 compares H M P Q X Y h m p r s x y and punctuation; host keys are not taken from the game)
-# starts it: a sonar ping, an amber shell running out over the room (GpuRaster.EchoT; FS_MAIN's uEcho), and as it reaches
-# them the outlines of the DOORS (door/gate parts and each doorway's opening, portals.json farQuad), the ITEMS (parts the
-# game's OBJECTS.DAT names, still in the scene) and the CREATURES (character parts, as they move) light up through the walls,
-# flare and fade (GpuRaster.SetEchoTargets). Not while the map, a boot cover or the room cover is up. -NoEcho: none.
-$script:echoClock = $null; $script:echoWas = $false
-# the character models the labels call CREATURES ("Live fauna detected. Avoid."); every other character is a HUMANOID
-$EchoCreatures = '^(EUG|SCORP|TRILOB|RATTY|COB)'      # (LURKA is a person -- Josh, 2026-10-15: she had "Live fauna detected")
-# THE LOCKED DOORS ("Locked door."; Josh, 2026-10-15: "only have tooltips on locked doors"). Found in the game's own scripts
-# (PUZZLES.DAT): the doors whose operate event waits on an Unlocked / Unbolted flag, plays the locked-door sound (sdoorlte) or
-# says "locked" -- R17Door2 + VestryDoor1/2 (VESTRY), R23Door2 (the bolted door: INTRVIEW / INTER2), R27Door2 (LAB), R35Door2-5
-# (R35 / R35_2) -- each tied to its room by ROOMS.DAT and to its part by OBJECTS.DAT (+0x78), checked against the rooms' parts.
-# Every other door opens when clicked. A locked door that has moved from its rest place (opened) loses its label.
-$EchoLockedDoors = @{ 'VESTRY' = @('sidedoor04', 'Object04', 'bar07'); 'INTRVIEW' = @('BOLTDOOR'); 'INTER2' = @('BOLTDOOR'); 'LAB' = @('labdoor02')
-    'R35' = @('usedoor02', 'usedoor04', 'vs_orgdo04', 'vs_orgdo01'); 'R35_2' = @('usedoor02', 'usedoor04', 'vs_orgdo04', 'vs_orgdo01') }
-$script:echoLabels = $null; $script:echoLabelsRoom = $null; $script:echoModelSaid = @{}
+}# THE JUMP (Josh, 2026-10-15). The game falls by itself: v = word [0x152592], each fall step (the 18.2 Hz tick under the host,
+# AztFallGate) `eye -= v; v += 6` while the eye is more than v + 15 over its standing height, else it stands (v back to 0;
+# damage only if v > 60). So a NEGATIVE v lifts the player -- and the host can steer every step: after each one v reads
+# (written + 6), and the next value of the plan goes in. The plan (Get-JumpPlan) eases: rises 16 10 6 3 1 (the first must be
+# >= 16 or the engine stands instead), JumpHang ticks held at the top, then 1 3 6 10 down, after which the engine's own +6s
+# carry on until the floor takes it (a ledge, or a drop). The top is capped by the headroom (Footsteps.RayUp) so the eye
+# never goes through a ceiling. Space presses come from the SpaceGuard's hook. No game code. [[azrael-jump]]
+$script:fallAt = 0L; $script:jumpOn = $false; $script:jumpOff = $false; $script:jumpAir = $false; $script:jumpTaken = 0L; $script:jumpSaid = 0
+$script:jumpPlan = $null; $script:jumpI = 0; $script:jumpW = 0; $script:jumpFree = $false; $script:jumpMaxV = 0; $script:jumpWrote = 0; $script:jumpRetry = $false
+$script:jumpLand = [Diagnostics.Stopwatch]::StartNew(); $script:jumpUp = [Diagnostics.Stopwatch]::StartNew(); $script:jumpStep = [Diagnostics.Stopwatch]::StartNew()
+function Write-Fall([int]$w) { $script:jumpW = $w; [void][AztTool.ProcMem]::Write($g.ProcessId, $script:fallAt, [BitConverter]::GetBytes([int16]$w)) }
+function Get-JumpPlan([double]$fit) {
+    $top = [Math]::Min([double]$JumpPower, $fit); if ($top -lt 16) { return $null }
+    $k = ($top - 16) / 20.0; $plan = New-Object System.Collections.Generic.List[int]; $plan.Add(-16); $sum = 16
+    foreach ($r in 10, 6, 3, 1) { $x = [int][Math]::Round($r * $k); if ($sum + $x -gt $top) { $x = [int][Math]::Floor($top - $sum) }; if ($x -gt 0) { $plan.Add(-$x); $sum += $x } }
+    for ($i = 0; $i -lt [Math]::Max(0, $JumpHang); $i++) { $plan.Add(0) }
+    foreach ($d in 1, 3, 6, 10) { $plan.Add($d) }
+    @{ Steps = $plan.ToArray(); Top = $sum }
+}
+function Step-Jump($m, [single[]]$dv, $room, [int[]]$dt) {
+    $sg = $script:spaceGuard; if (-not $sg -or -not $sg.JumpMode -or -not $script:fallAt) { return }
+    $vb = [AztTool.ProcMem]::Read($g.ProcessId, $script:fallAt, 2); if (-not $vb -or $vb.Length -lt 2) { return }
+    $v = [int][BitConverter]::ToInt16($vb, 0)
+    if ($script:jumpAir) {
+        $w = $script:jumpW
+        if ($v -gt $script:jumpMaxV) { $script:jumpMaxV = $v }
+        if ($script:jumpWrote -gt 0) {
+            $script:jumpWrote--
+            # (the standing snap can clear the take-off in the same instant -- once: write it again)
+            if ($v -eq 0 -and $script:jumpI -eq 0 -and -not $script:jumpRetry) { $script:jumpRetry = $true; Write-Fall $script:jumpPlan.Steps[0]; return }
+        }
+        $d = $v - $w
+        if ($d -gt 0 -and ($d % 6) -eq 0) {
+            # the engine took d/6 steps since the last write: the plan's next value (past its end the engine's gravity alone)
+            $script:jumpStep.Restart()
+            if ($script:jumpFree) { $script:jumpW = $v }
+            else {
+                $script:jumpI += [int]($d / 6)
+                if ($script:jumpI -lt $script:jumpPlan.Steps.Length) { Write-Fall $script:jumpPlan.Steps[$script:jumpI] } else { $script:jumpFree = $true; $script:jumpW = $v }
+            }
+            return
+        }
+        # landed: the floor took the eye (v back to 0 from a fall, or held at 0 through the top for over two ticks)
+        $snapped = ($v -eq 0 -and $w -gt 0) -or ($v -eq 0 -and $w -eq 0 -and $script:jumpI -gt 0 -and $script:jumpStep.Elapsed.TotalSeconds -gt 0.15)
+        if ($snapped) {
+            $script:jumpAir = $false; $script:jumpLand.Restart()
+            if ($script:steps) { $script:steps.JumpSound($true) }
+            if ($LandBob -gt 0) { $script:eyeBob.Restart(); $script:eyeBobOn = $true }
+            if ($script:jumpSaid -le 8) { Say ("  jump: landed after {0:N2} s (falling at {1} -- damage only past 60)" -f $script:jumpUp.Elapsed.TotalSeconds, $script:jumpMaxV) DarkGray }
+        }
+        elseif ($v -eq 0 -and $script:jumpI -eq 0 -and $script:jumpRetry -and $script:jumpWrote -le 0) { $script:jumpAir = $false }      # (it never left the ground)
+        elseif ($script:jumpUp.Elapsed.TotalSeconds -gt 3 -and ($v -eq 0 -or $d % 6 -ne 0)) { $script:jumpAir = $false }      # (a room change / teleport reset it mid-jump)
+    }
+    $p = $sg.JumpPresses; if ($p -eq $script:jumpTaken) { return }
+    $script:jumpTaken = $p
+    $why = $(if ($script:mapFreezeCam) { 'the map is up' } elseif ($script:bootHd -and $script:bootHd.Covering) { 'a boot / load cover' } elseif ($script:roomCover) { 'the room is loading' }
+             elseif ($script:convWas) { 'a conversation' } elseif ($script:visorMenu -and $script:visorMenu.AnyPlaying) { 'a visor menu' } elseif ($script:gpu -and $script:gpu.BlackView) { 'a close-up / book view' }
+             elseif ($script:jumpAir -or $v -ne 0) { 'already in the air' } elseif ($script:jumpLand.Elapsed.TotalSeconds -lt 0.3) { 'just landed' } else { '' })
+    if ($why) { if ($script:jumpSaid -le 8) { $script:jumpSaid++; Say ("  jump: not now ({0})" -f $why) DarkGray }; return }
+    # the headroom: from the eye (the GAME's, not the eased view's) straight up to the lowest face over it, 12 units spare
+    $gy = $(if ($null -ne $script:eyeGameY) { [single]$script:eyeGameY } else { [single]$m[13] })
+    $room1 = [single]400
+    try { $room1 = [AztTool.Footsteps]::RayUp($dv, [int[]]$room.T, $dt, [single]$m[12], $gy, [single]$m[14], [single]400) } catch { }
+    $plan = Get-JumpPlan ($room1 - 12)
+    if (-not $plan) { if ($script:jumpSaid -le 8) { $script:jumpSaid++; Say ("  jump: no headroom ({0:N0} units to the ceiling)" -f $room1) DarkGray }; return }
+    $script:jumpPlan = $plan; $script:jumpI = 0; $script:jumpFree = $false; $script:jumpMaxV = 0; $script:jumpWrote = 2; $script:jumpRetry = $false
+    Write-Fall $plan.Steps[0]
+    $script:jumpUp.Restart(); $script:jumpStep.Restart(); $script:jumpAir = $true
+    if ($script:steps) { $script:steps.JumpSound($false) }
+    if ($script:jumpSaid -le 8) { $script:jumpSaid++; Say ("  jump: top {0} units ({1}; {2:N0} to the ceiling)" -f $plan.Top, ($plan.Steps -join ' '), $room1) DarkCyan }
+}
+
+# CROUCH (Josh, 2026-10-15: "make C a crouch key ... the player's head is getting caught on geometry ... crouched, they will
+# move slightly slower to emulate sneaking"; then "make C a toggle for crouch, not hold to crouch"). All DATA, read only by the ground test and the movement step: the standing eye
+# height (double 45.0 at 0x140328), the knee test (float -22 at 0x140340: raised as much as the eye comes down, so the
+# player still steps up 23 units), and the walk / run step lengths (0x1417FC / 0x141800, scaled from what the game holds:
+# the build has already rescaled them, and the host's frame-rate step rewrites them: crouchK is a factor inside that step,
+# Set-MoveSteps). Lowering the eye lowers the wall tests with it (a ray at the eye, a point 8 below):
+# beams, arches and overhangs pass over a crouched head. Down and up over CrouchTime, eased; lowered at most a few units a
+# frame, so the engine snaps the eye down instead of falling. Stays down while the ceiling is too low to stand.
+$script:crouchAt = $null; $script:crouchBase = $null; $script:crouchC = 0.0; $script:crouchWrote = 0.0; $script:crouchOff = $false
+$script:bodyStand = 0.0; $script:bodyLift = 0.0
+$script:crouchClock = [Diagnostics.Stopwatch]::StartNew(); $script:crouchSaid = 0; $script:crouchBlocked = $false; $script:crouchWas = $false
+function Write-CrouchValues([double]$c) {
+    $e = $c * $c * (3 - 2 * $c); $drop = $CrouchDrop * $e; $pid0 = $g.ProcessId
+    [void][AztTool.ProcMem]::Write($pid0, $script:crouchAt.Eye, [BitConverter]::GetBytes([double](45 - $drop)))
+    [void][AztTool.ProcMem]::Write($pid0, $script:crouchAt.Knee, [BitConverter]::GetBytes([single](-22 + $drop)))
+    $script:crouchK = 1 - (1 - $CrouchSpeed) * $e; Set-MoveSteps
+    $script:crouchWrote = $c
+}
+function Reset-Crouch {
+    if ($script:crouchAt -and $script:crouchBase -and $g -and $script:crouchWrote -gt 0) { try { Write-CrouchValues 0 } catch { } }
+    $script:crouchK = 1.0; $script:crouchC = 0.0; $script:crouchBase = $null; if ($script:steps) { $script:steps.Crouch = 0 }
+}
+function Step-Crouch($m, [single[]]$dv, $room, [int[]]$dt) {
+    $sg = $script:spaceGuard; if (-not $sg -or -not $sg.CrouchMode -or -not $script:crouchAt) { return }
+    $dtS = [Math]::Min(0.1, $script:crouchClock.Elapsed.TotalSeconds); $script:crouchClock.Restart()
+    if (-not $script:crouchBase) {
+        # the game's own values (a watcher that stopped while crouched left them part way: undo that share)
+        $eye = [BitConverter]::ToDouble([AztTool.ProcMem]::Read($g.ProcessId, $script:crouchAt.Eye, 8), 0)
+        $walk = [BitConverter]::ToSingle([AztTool.ProcMem]::Read($g.ProcessId, $script:crouchAt.Walk, 4), 0)
+        $run = [BitConverter]::ToSingle([AztTool.ProcMem]::Read($g.ProcessId, $script:crouchAt.Run, 4), 0)
+        $e = $(if ($eye -lt 44.99 -and $eye -gt 0 -and $CrouchDrop -gt 0) { [Math]::Min(1, (45 - $eye) / $CrouchDrop) } else { 0 })
+        $k = 1 - (1 - $CrouchSpeed) * $e
+        $script:crouchBase = @{ Walk = $walk / $k; Run = $run / $k }; $script:crouchWrote = $(if ($e -gt 0) { 1.0 } else { 0.0 }); $script:crouchC = $script:crouchWrote
+    }
+    $want = $(if ($sg.Crouched) { 1.0 } else { 0.0 }); $c = $script:crouchC
+    if ($want -lt $c) {
+        # coming up needs room over the head for what is left of the drop
+        $gy = $(if ($null -ne $script:eyeGameY) { [single]$script:eyeGameY } else { [single]$m[13] })
+        $up = [single]400; try { $up = [AztTool.Footsteps]::RayUp($dv, [int[]]$room.T, $dt, [single]$m[12], $gy, [single]$m[14], [single]400) } catch { }
+        $left = $CrouchDrop * $c * $c * (3 - 2 * $c)
+        if ($up - 8 -lt $left) { $want = $c; if (-not $script:crouchBlocked -and $script:crouchSaid -le 8) { $script:crouchSaid++; Say ("  crouch: staying down -- {0:N0} units over the head" -f $up) DarkGray }; $script:crouchBlocked = $true }
+        else { $script:crouchBlocked = $false }
+    }
+    $rate = $dtS / [Math]::Max(0.01, $CrouchTime)
+    if ($want -gt $c) { $c = [Math]::Min($want, $c + $rate) } elseif ($want -lt $c) { $c = [Math]::Max($want, $c - $rate) }
+    $script:crouchC = $c
+    if ($script:steps) { $script:steps.Crouch = $c * $c * (3 - 2 * $c) }      # (crouched steps play quieter: Footsteps.CrouchLevel)
+    if ($sg.Crouched -ne $script:crouchWas) { $script:crouchWas = $sg.Crouched; if ($script:crouchSaid -le 8) { $script:crouchSaid++; Say ("  crouch: {0} (step x{1:N2})" -f $(if ($sg.Crouched) { 'down' } else { 'up' }), $(if ($sg.Crouched) { $CrouchSpeed } else { 1.0 })) DarkGray } }
+    if ([Math]::Abs($c - $script:crouchWrote) -lt 1e-4) { return }
+    Write-CrouchValues $c
+}
+
+# THE VIEW'S HEIGHT, EASED (Josh, 2026-10-15: the jump "feels a little up and down harsh, like an ease at the top would be
+# ideal, and a very slight head bob on landing"). The game moves the eye in 18.2 Hz steps (a jump's rises and falls, its
+# landing snap, a stair); the frame's copy of the camera follows each step over one tick instead of jumping, and a jump's
+# landing dips it LandBob units and back (a half sine over LandBobTime). Only this frame's copy -- as the stand-up tilt.
+$script:eyeDisp = $null; $script:eyeVel = 0.0; $script:eyeGameY = $null; $script:eyeBobOn = $false
+$script:eyeClock = [Diagnostics.Stopwatch]::StartNew(); $script:eyeBob = [Diagnostics.Stopwatch]::StartNew()
+# (The first version eased each game step over one tick, measured from the step -- and restarted on every change, so while
+# walking, where the height changes a little nearly every frame, the view's height FROZE until the player stopped: Josh,
+# "the character won't crouch/stand after pressing C until I stop walking". Now a smooth-damp follow, closed form so any
+# frame time is stable: it always moves toward the game's height, ~EyeSmoothTime behind.)
+$EyeSmoothTime = 0.06
+function Step-EyeSmooth($m) {
+    $gy = [double]$m[13]; $script:eyeGameY = $gy
+    $dtE = [Math]::Max(0.0005, [Math]::Min(0.1, $script:eyeClock.Elapsed.TotalSeconds)); $script:eyeClock.Restart()
+    if ($NoEyeSmooth -or $Retro -or $script:mapFreezeCam) { $script:eyeDisp = $null; return }
+    if ($null -eq $script:eyeDisp -or [Math]::Abs($gy - $script:eyeDisp) -gt 80) { $script:eyeDisp = $gy; $script:eyeVel = 0.0; $script:eyeBobOn = $false; return }
+    $om = 2.0 / $EyeSmoothTime; $x = $om * $dtE; $ex = 1.0 / (1.0 + $x + 0.48 * $x * $x + 0.235 * $x * $x * $x)
+    $ch = $script:eyeDisp - $gy; $tmp = ($script:eyeVel + $om * $ch) * $dtE
+    $script:eyeVel = ($script:eyeVel - $om * $tmp) * $ex
+    $script:eyeDisp = $gy + ($ch + $tmp) * $ex
+    $y = $script:eyeDisp
+    if ($script:eyeBobOn) {
+        $tb = $script:eyeBob.Elapsed.TotalSeconds
+        if ($tb -ge $LandBobTime) { $script:eyeBobOn = $false } else { $y -= $LandBob * [Math]::Sin([Math]::PI * $tb / $LandBobTime) }
+    }
+    $m[13] = [single]$y
+}$script:echoLabels = $null; $script:echoLabelsRoom = $null; $script:echoModelSaid = @{}
 function Get-PartSpan($room, $pt) {
     $v = $room.V; $lo = @(1e9, 1e9, 1e9); $hi = @(-1e9, -1e9, -1e9)
     for ($i = [int]$pt.VFirst; $i -lt [int]$pt.VFirst + [int]$pt.VCount; $i++) { for ($k = 0; $k -lt 3; $k++) { $q = $v[$i * 3 + $k]; if ($q -lt $lo[$k]) { $lo[$k] = $q }; if ($q -gt $hi[$k]) { $hi[$k] = $q } } }
@@ -3636,12 +3794,16 @@ function Start-SpaceGuard([long]$speakAt) {
     if ($NoSpaceGuard -or -not $g) { return }
     try {
         $sg = New-Object AztTool.SpaceGuard($g.ProcessId); $sg.SpeakAddr = $speakAt
+        $sg.JumpMode = (-not $NoJump -and -not $Retro); $script:jumpOn = $sg.JumpMode; $sg.CrouchMode = (-not $NoCrouch -and -not $Retro); try { $sg.TypingAddr = HostLin (Sym 'aztTypingKeys') } catch { }      # (a save name being typed: Space, Z and C are letters)
         if (-not $sg.Start()) { throw ("its keyboard hook would not start: " + $sg.StartError) }
         $script:spaceGuard = $sg; $script:sgSaid = 0L
         Say ("space guard: on -- for {0:N1} s after a spoken line ends, Space is not passed to the game (it would draw the weapon); while a line plays it skips it as before (-NoSpaceGuard)" -f ($sg.QuietMs / 1000.0)) Green
+        if ($sg.JumpMode) { Say ("jump: Space jumps (top {0} units, eased), Z is the weapon / MS7 sight toggle; Space still skips a spoken line (-NoJump)" -f $JumpPower) Green }
+        if ($sg.CrouchMode) { Say ("crouch: C toggles -- the eye {0:N0} units lower, {1:P0} speed (-NoCrouch)" -f $CrouchDrop, $CrouchSpeed) Green }
     } catch { Say ("space guard failed: {0} -- Space goes to the game as it is" -f $_.Exception.Message) Yellow; try { $sg.Dispose() } catch { }; $script:spaceGuard = $null }
 }
 function Stop-SpaceGuard {
+    Reset-Crouch      # (the game's eye height, knee test and speeds back as they were)
     if ($script:spaceGuard) { try { $script:spaceGuard.Dispose() } catch { }; $script:spaceGuard = $null }
 }
 function Step-ShotWatch {
@@ -4871,6 +5033,8 @@ function Invoke-Session {
     # the save/load list's state (docs\save-load-screen-RE.md): the fold-out block 0x1523D6..0x1524CD, the picked row 0x146948, the cursor
     $script:memAt = @{ Blk = (& $shotAt 0x1523D6); Sel = (& $shotAt 0x146948); Cur = (& $shotAt 0x182D6C); Mgr = (& $shotAt 0x182DB8); CurSurf = (& $shotAt 0x147588); Hot = (& $shotAt 0x14758E); Hidden = (& $shotAt 0x147586); Sav = (& $shotAt 0x152B02); Lod = (& $shotAt 0x152B04); Snd = (& $shotAt 0x14693A); D2 = [long]$shotD2 }; $script:sysHotDone = $false; $script:slGuard = $null; $script:quitDone = $false; $script:quitEndSaid = $false
     Start-SpaceGuard (& $shotAt 0x152B28)                # (the "a line is being spoken" word)
+    $script:fallAt = & $shotAt 0x152592; $script:jumpAir = $false      # (the game's fall speed: the jump writes it)
+    $script:crouchAt = @{ Eye = (& $shotAt 0x140328); Knee = (& $shotAt 0x140340); Walk = (& $shotAt 0x1417FC); Run = (& $shotAt 0x141800) }; $script:crouchBase = $null; $script:crouchC = 0.0; $script:crouchWrote = 0.0
     # ---- THE GUEST SNAPSHOT (2026-10-13 performance audit) -------------------------------------------------------------
     # The obj2 blocks the frame's watchers read (the menus' and fold-out's words 0x152138.., the ammo / weapon / sound words
     # 0x146900.., the cursor and the event record 0x182D6C.., the player pointer 0x1841C8) are read ONCE at the top of each
@@ -5518,6 +5682,7 @@ function Invoke-Session {
         # THE RAPTOR GETS UP (a new game's reveal, BootHd.TiltCamera): the view, the helmet lamp and its shadows turn as he
         # stands -- this frame's copy of the game's camera, read fresh every loop; the game's own camera is untouched, and
         # the position checks above have already used the untilted one
+        try { Step-EyeSmooth $m } catch { }      # (the view's height eased between the game's 18 Hz steps; a landing's dip)
         if ($script:bootHd) { try { if ($script:bootHd.TiltCamera($m) -and -not $script:standSaid) { $script:standSaid = $true; Say 'visor boot: the raptor gets up (the view tilts, dust falls off the visor), then the weapon systems come online' DarkCyan } } catch { } }
         $script:lastCamM = $m
         if ($script:mapFreezeCam) { [Array]::Copy([single[]]$script:mapFreezeCam, $m, 16) }      # (THE 3D MAP: the world behind it held still)
@@ -5694,6 +5859,11 @@ function Invoke-Session {
             $bdt = $script:bodyClock.Elapsed.TotalSeconds; $script:bodyClock.Restart()
             $bfd = [AztTool.Raster]::RayDistance($dv, $room.T, $dt, $m[12], $m[13], $m[14], 0, -1, 0, 400)
             if ($bfd -gt 4 -and $bfd -lt 400) {
+                # (a JUMP lifts it by the eye's height over where it stood; a CROUCH shortens it by the crouch's share of its height)
+                if ($script:jumpAir) { $blift = [Math]::Max(0.0, $bfd - $script:bodyStand) } else { $script:bodyStand = $bfd; $blift = 0.0 }
+                $script:bodyLift += ($blift - $script:bodyLift) * [Math]::Min(1.0, $bdt * 30)
+                $bce = $script:crouchC * $script:crouchC * (3 - 2 * $script:crouchC)
+                $script:body.BodyLift = $script:bodyLift; $script:body.BodySquash = $CrouchDrop * $bce / 48.0
                 $bn = $script:body.StepBody('PLAYER', $m, $bfd, $bdt, $script:bodyBuf)
                 if ($bn -gt 0) { $script:gpu.SetCasters($script:bodyBuf, $bn) }
             }
@@ -5752,6 +5922,9 @@ function Invoke-Session {
         # THE GRAPHICS CARD draws the whole picture here, now that it has been handed the lamp's and
         # the lights' views, the water and the dust (all used up by its Draw)
         $cardMs = 0.0; $script:gpuFrame = $false
+        # Space: the jump (card or processor drawing alike; not -Retro, where Space is the stock weapon key)
+        if ($script:jumpOn -and -not $script:jumpOff) { try { Step-Jump $m $dv $room $dt } catch { Say ("jump failed: {0} -- off" -f $_.Exception.Message) Yellow; $script:jumpOff = $true } }
+        if (-not $script:crouchOff) { try { Step-Crouch $m $dv $room $dt } catch { Say ("crouch failed: {0} -- off" -f $_.Exception.Message) Yellow; $script:crouchOff = $true; Reset-Crouch } }
         if ($gpuNow) {
             $mkG = $t0.Elapsed.TotalMilliseconds
             try {
