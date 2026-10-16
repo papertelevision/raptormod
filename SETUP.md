@@ -66,7 +66,7 @@ powershell -ExecutionPolicy Bypass -File tools\Export-AssetPack.ps1 -OutDir E:\r
 2. Double-click `\\DXP2800GT-7649\personal_folder\Projects\AzraelsTear\assets\Install-RaptorMod.cmd`. It:
    - finds the Steam game folder;
    - installs Git with winget if it is missing (answer winget's prompts);
-   - clones the repo on `dev-next` into `<game folder>\AztMod` (GitHub asks you to sign in once: the repo is private);
+   - clones the repo on `dev` (the working branch) into `<game folder>\AztMod` (GitHub asks you to sign in once: the repo is private);
    - runs `Setup-Machine.ps1` with the pack from the NAS (10.9 GB to restore).
 
    `Install-RaptorMod.cmd -DryRun` (from a command prompt) shows what it would do and changes nothing.
@@ -75,7 +75,7 @@ By hand, the same thing is:
 
 ```powershell
 cd "<Steam library>\steamapps\common\Azrael's Tear"
-git clone -b dev-next https://github.com/papertelevision/raptormod.git AztMod
+git clone -b dev https://github.com/papertelevision/raptormod.git AztMod
 powershell -ExecutionPolicy Bypass -File AztMod\tools\Setup-Machine.ps1 -AssetPack "\\DXP2800GT-7649\personal_folder\Projects\AzraelsTear\assets"
 ```
 

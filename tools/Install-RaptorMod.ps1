@@ -5,7 +5,7 @@
 # started by Install-RaptorMod.cmd beside it. In order:
 #   1. finds the Steam copy of Azrael's Tear (the registry and libraryfolders.vdf, as Apply-AztMod does)
 #   2. finds Git, or installs it with winget (you answer winget's own prompts)
-#   3. clones the repo (-Branch, default dev-next) into <game>\AztMod -- or, if it is already there, fetches and fast-forwards
+#   3. clones the repo (-Branch, default dev: the one working branch) into <game>\AztMod -- or, if it is already there, fetches and fast-forwards
 #      (GitHub asks you to sign in the first time: the repo is private)
 #   4. runs AztMod\tools\Setup-Machine.ps1 -AssetPack <the pack folder>: everything goes into ONE folder, C:\Games\RaptorMod (an
 #      older install's folders are moved in); it restores the pack, links, installs the patches,
@@ -16,7 +16,7 @@
 param(
     [string]$AssetPack = '',
     [string]$GameDir = '',
-    [string]$Branch = 'dev-next',
+    [string]$Branch = 'dev',
     [string]$RepoUrl = 'https://github.com/papertelevision/raptormod.git',
     [switch]$DryRun
 )

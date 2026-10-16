@@ -62,7 +62,7 @@
 - [Reticle is TWO draws](azrael-reticle-two-draws.md) - circle 0x145FD runs after the inject hook; both gated.
 - [Viewport: paint, never suppress](azrael-viewport-paint-not-suppress.md) - holding 0x15257C smears the screen; paint via 0x1419D.
 - [MF stride trap](azrael-mf-stride-trap.md) - MF_MT_DEFAULT_STRIDE lies for non-16-aligned widths; decode output back to PNG.
-- [Intro sequence](azrael-intro-sequence.md) - skip flag 0x182DB0; patch all three jnz sites or none.
+- [Intro sequence](azrael-intro-sequence.md) - logo, sting, title; NEW GAME: story intro then OPENING (one movie per key; fade at 0x20094 drains the key-up).
 - [8-bit movie audio](azrael-8bit-movie-audio.md) - silence is 0x80; normalise + TPDF dither.
 - [Blood Omen feasibility](blood-omen-feasibility.md) - 2nd project: Win32 Watcom PE, GOG caves, PILL.BIG of PSX TIMs.
 - [Early overlay](azrael-early-overlay.md) - overlay loads at 0x16146 before the intro; AztInjInit stays deferred.
@@ -118,7 +118,7 @@
 - [Ghost (Niamh)](azrael-ghost.md) - room 'ghost' block: card draws a rig as glowing smoke + wisps + dim light; sizes = shares of her height; -NoGhost.
 - [Damaged visor](azrael-visor-damage.md) - health-driven cracks/broken corner/hit static/vitals ECG in the card's PRESENT pass; -NoVisorDamage.
 - [Title menu](azrael-title-menu.md) - 4K title + Continue/Load (title-loop hold + cmd 16); grail flakes, face glow, foreground bokeh (hand-composited: GDI+ alpha too slow).
-- [RaptorMod repo](raptormod-repo.md) - papertelevision/raptormod (was PUBLIC 2026-10-16: Josh to privatize); main 253f3ba; no gh CLI (local squash); native rebuild on `native` (C:\Games\RaptorMod-Native); NEVER commit/push until Josh says.
+- [RaptorMod repo](raptormod-repo.md) - papertelevision/raptormod (set private!); main = trunk (1.0.0 ecd6778); ONE working branch `dev` from main; native = rebuild worktree; no gh CLI.
 - [Vector cursors](azrael-vector-cursors.md) - the 30 cursors as animated vectors (CursorIcons.cs); every blit raises 'pointer hidden'; weapon out = no pick-up cursor; -NoIconCursor.
 - [Leaving DOSBox](azrael-leaving-dosbox.md) - 2026-10-15: STAGED NATIVE REBUILD (host -> libretro core -> native systems in lockstep -> no emulator), in an ALL-NEW folder.
 - [RaptorMod roadmap](raptormod-roadmap.md) - 1.0 = Steam DOSBox patch (fixes + 2K/4K tiers); 2.0 = native rebuild in a NEW folder; Unity later. No deep DOSBox-only fixes in 1.0.
@@ -145,3 +145,4 @@
 - [Crisp visor text](azrael-crisp-visor-text.md) - visor fonts/positions whole-pixel via ScanWire.cs Crisp; card labels texelFetch. Never new Font/DrawString directly.
 - [Jump + crouch](azrael-jump.md) - Space jump (eased plan into fall speed 0x152592), C crouch toggle (eye 0x140328; speed ONLY via crouchK in the fps step), Z weapon; view eased, bob, shadow.
 - [Public release 1.0](raptormod-release.md) - Inno wizard, all-in-one for ModDB; game built from the player's Steam copy (Install-Game, disc-map); hash guard; RAPTORMOD_ROOT.
+- [Intro poem, vector](azrael-intro-poem.md) - MOV\INTRO rebuilt as Centaur/Garamond outlines from measured layout + fades; all movies 1600 wide; Build-IntroPoem.ps1.

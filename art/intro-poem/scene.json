@@ -1,0 +1,44 @@
+{
+  "about": "The story intro (MOV\\INTRO.MOV) as vector text -- RaptorMod, 2026-10-16. Measured from 'TensorPix - INTRO (1).mp4' (2400x1120, 685 frames); rects are in that space; window = the card's frames (between the dark gaps). Text: **bold**, _italic_. fit: width (default) or height. tools\\Build-IntroPoem.ps1 measures each phrase's ink, baseline and fade curve inside its rect, then renders and encodes.",
+  "source": "C:\\Games\\RaptorMod\\sources\\video\\update\\TensorPix - INTRO (1).mp4",
+  "sourceW": 2400, "sourceH": 1120,
+  "cards": [
+    { "peak": 150, "window": [20, 195], "font": "Centaur", "phrases": [
+      { "text": "In the dark", "rect": [328, 282, 630, 360] },
+      { "text": "in the silence and the dirt we have awaited you", "rect": [640, 282, 1845, 362] },
+      { "text": "thief", "rect": [1852, 258, 2058, 350] },
+      { "text": "only ghosts and beasts for company", "rect": [1322, 357, 2055, 425] },
+      { "text": "_While above_", "rect": [326, 438, 556, 484] },
+      { "text": "the hordes of human **madness** hurtle blindly onward", "rect": [550, 485, 1815, 547] },
+      { "text": "harvested as corn by the merciful scythe", "rect": [550, 549, 1520, 615] },
+      { "text": "our vigil offers no rest.", "rect": [1600, 775, 2055, 840] } ] },
+    { "peak": 300, "window": [193, 334], "font": "Centaur", "phrases": [
+      { "text": "We have drunk deep the cup of life", "rect": [327, 286, 1120, 358] },
+      { "text": "and have **guarded** it through the passage of centuries", "rect": [794, 359, 2072, 430] },
+      { "text": "Now the trumpets herald the third millennium", "rect": [328, 462, 1682, 550] },
+      { "text": "and the cold", "rect": [448, 552, 700, 604] },
+      { "text": "pitiless", "rect": [601, 606, 750, 664] },
+      { "text": "stars align to an age old", "rect": [602, 665, 1072, 722] },
+      { "text": "destiny", "rect": [1660, 715, 1955, 822] } ] },
+    { "peak": 414, "window": [336, 448], "font": "Centaur", "phrases": [
+      { "text": "Azrael", "rect": [328, 294, 468, 346] },
+      { "text": "angel of the **Passover**", "rect": [441, 360, 888, 426] },
+      { "text": "lifts his great wings once more and the endless lights of the cities", "rect": [328, 503, 1978, 581] },
+      { "text": "are to be snuffed like guttering candles", "rect": [329, 582, 1318, 657] },
+      { "text": "in the **hurricane** of his passage", "rect": [1300, 735, 2052, 812] } ] },
+    { "peak": 527, "window": [448, 559], "font": "Centaur", "phrases": [
+      { "text": "the **time** is here", "rect": [329, 297, 645, 349] },
+      { "text": "Can you feel the pull of destiny fated", "rect": [623, 458, 1575, 538] },
+      { "text": "thief", "rect": [1580, 437, 1785, 522] },
+      { "text": "?", "rect": [1788, 462, 1822, 520], "fit": "height" },
+      { "text": "We who guard the cup are calling you with impatience", "rect": [327, 546, 1640, 622] },
+      { "text": "Come **down** into the earth with us", "rect": [1364, 739, 2075, 792] } ] },
+    { "peak": 643, "window": [561, 666], "font": "Garamond", "phrases": [
+      { "text": "\"", "rect": [276, 357, 320, 398], "fit": "height" },
+      { "text": "I see", "rect": [329, 392, 447, 440] },
+      { "text": "**Azrael**", "rect": [452, 356, 730, 440] },
+      { "text": "his wings so vast they are the **dawn**", "rect": [736, 458, 1771, 545] },
+      { "text": "**horizon**", "rect": [1735, 626, 2071, 710] },
+      { "text": "\"", "rect": [2080, 623, 2122, 665], "fit": "height" } ] }
+  ]
+}

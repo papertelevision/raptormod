@@ -54,8 +54,9 @@ Say ("   {0} Steam + disc files known" -f $known.Count) DarkGray
 Say '2. classifying the working install'
 $isBackup = '\.(aztbak|orig|aztoff|aztnew|aztdiag|roombak|requant|local|bak)$|\.bak-|\\orig\\|\\_new\\|\.src$'
 # THE PAYLOAD RULES (relative to the game folder). pre: before the patcher; post: after it (it rebuilds the book pages)
-$preRx  = '^(DOSBOX-STAGING\\|soundfonts\\|AZT\.CUE$|AZTRACK\d+\.(mp3|wav)$|raptordocs\\)'
-$postRx = '^(GAME\\MOV\\[^\\]+\.MOV$|GAME\\AZRAEL\\(INTRO|MINDLOGO|OPENING)\.MOV$|GAME\\AZRAEL\\TITLE\.PCX$|GAME\\AZTEX\\BOOKS\\[^\\]+\.PCX$)'
+# (OPENING.MOV BEFORE the patcher: it checks the extra intro movie is there -- after, it logged a needless warning)
+$preRx  = '^(DOSBOX-STAGING\\|soundfonts\\|AZT\.CUE$|AZTRACK\d+\.(mp3|wav)$|raptordocs\\|GAME\\AZRAEL\\OPENING\.MOV$)'
+$postRx = '^(GAME\\MOV\\[^\\]+\.MOV$|GAME\\AZRAEL\\(INTRO|MINDLOGO)\.MOV$|GAME\\AZRAEL\\TITLE\.PCX$|GAME\\AZTEX\\BOOKS\\[^\\]+\.PCX$)'
 $stockMapped = @{}; $mapRows = New-Object System.Collections.Generic.List[string]; $pre = 0; $post = 0; $skipped = New-Object System.Collections.Generic.List[string]
 foreach ($f in Get-ChildItem -LiteralPath $Ref -Recurse -File) {
     $rel = $f.FullName.Substring($Ref.Length + 1)

@@ -67,7 +67,7 @@ Other docs:
 
 ## Git
 
-- **Branches:** work happens on `dev-next` (cut from `main` after PR #1 was squash-merged, 2026-10-13; the old `dev` is deleted). `main` is the last state Josh has played and approved: merge into it only when he says so. No mention of Claude / Claude Code in commit messages or PRs, and no attribution lines (Josh, 2026-10-13).
+- **Branches (Josh, 2026-10-16: "I want to work from a single branch"):** `main` is the trunk -- the last state Josh has played and approved, and always the most up-to-date. Work happens on ONE working branch, `dev`, cut from `main`; when Josh says so it is squash-merged into `main` and a new working branch is cut from `main`. Merge into `main` only when he says so. (`native` is the separate non-DOSBox rebuild in its own worktree, `C:\Games\RaptorMod-Native`.) The old `dev-next`, `jump` and `release` were deleted 2026-10-16, their work all in `main`. No mention of Claude / Claude Code in commit messages or PRs, and no attribution lines (Josh, 2026-10-13).
 - **Do not commit or push, and do not ask to (Josh, 2026-10-10: "please dont commit or ask me to push as we make changes. I'll tell you when I want to commit").** Leave changes in the working tree; when he says commit, commit what is there with a message saying what changed and why.
 
 - Byte-exact (`.gitattributes`: `* -text`).

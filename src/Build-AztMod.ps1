@@ -12817,7 +12817,23 @@ if ($ENABLE_LOG_BOX_TOGGLE) {
         # STORY_AT is 0x20069, the intro.mov call's setup, NOT the story block's head 0x20053: that blits the TITLE surface
         # [ebp-0x14] and waits 30 ms (stock: the title, then the story) -- in this order the title has not been loaded
         # yet, so it blitted whatever the stack held (a surface descriptor of garbage: dims and a pixel pointer).
-        $TITLE_AT = [uint32]0x1FFDD; $STORY_AT = [uint32]0x20069; $EPI_AT = [uint32]0x20099
+        # ROUND 3 (Josh, 2026-10-16: the story intro "won't play until the user starts a new game, and only plays for a new
+        #    game, directly before my custom cutscene ... Tapping keyboard will skip movies one at a time"): it played at boot,
+        #    BEHIND Loading RaptorMod, so nobody saw it. Now -- the STOCK order again, with the title menu's load bit:
+        #      logo -> logo -> TITLE -> (new game) story intro -> epilogue's opening movie; a load jumps over both (0x2003E).
+        #      0x1FFCF (after logo 2)  btr / jnc TITLE (= the next instruction: either way the title; the key is cleared)
+        #      0x20044 (title, last)   jmp STORY_NEW (0x20053, the stock story head: the title surface IS loaded now)
+        #      0x20094 (story, last)   jmp 0x20099 (the epilogue: AztOpenMovie plays the opening movie)
+        #    (0x20049's btr/jmp-title is no longer reached.) One movie per key: the player ends a movie on a key and drains
+        #    the input queue before the next, and no skip check sits between the story and the epilogue.
+        # ROUND 4 (Josh, 2026-10-16: "when skipping videos in the intro, they shouldn't skip all of them, it should skip to the
+        #    next video in line ... the logo videos at the beginning, and the 2 videos that play after starting a new game"):
+        #      0x1FFA6 (after logo 1)  btr / jc NEXT (the logo sting): a key no longer skips the sting
+        #      0x20094 (story, last)   STOCK again -- the fade call 0x1FACC (64 palette steps, ~0.6 s), then the epilogue by
+        #                              fall-through. Round 3 jumped straight on: a tap's key-DOWN ended the story intro and its
+        #                              key-UP, arriving a moment later, landed in the opening movie's player after it had
+        #                              drained the queue -- one tap, both movies. The fade gives the key-up time to be drained.
+        $TITLE_AT = [uint32]0x1FFDD; $STORY_AT = [uint32]0x20069; $EPI_AT = [uint32]0x20099; $STORY_NEW = [uint32]0x20053
         if ($raw[(Lin2File $STORY_AT)] -ne 0xFF -or $raw[(Lin2File $STORY_AT) + 1] -ne 0x35) { throw 'title order: 0x20069 is not push dword [..] (the intro.mov name)' }
         $btrSite = {
             param([uint32]$site, [byte[]]$jump)
@@ -12827,26 +12843,24 @@ if ($ENABLE_LOG_BOX_TOGGLE) {
         }
         $rel32 = { param([uint32]$from, [uint32]$to) [BitConverter]::GetBytes([int]([int64]$to - [int64]$from)) }
         # after logo 1: jc TITLE (near: 0F 82 rel32, where the near jnz was)
-        $r = & $btrSite 0x1FFA6 ([byte[]](@(0x0F, 0x82) + (& $rel32 ([uint32](0x1FFA6 + 14)) $TITLE_AT)))
+        $r = & $btrSite 0x1FFA6 ([byte[]](@(0x0F, 0x82) + (& $rel32 ([uint32](0x1FFA6 + 14)) ([uint32](0x1FFA6 + 14)))))
         if ($r.Exp[8] -ne 0x0F -or $r.Exp[9] -ne 0x85) { throw 'title order: 0x1FFAE is not a near jnz' }
-        $patches += New-Patch -Name 'title-order-1FFA6' -FileOffset (Lin2File 0x1FFA6) -Expect $r.Exp -Replace $r.New -Note 'after logo 1: btr [skip flag],0 / jc the title'
+        $patches += New-Patch -Name 'title-order-1FFA6' -FileOffset (Lin2File 0x1FFA6) -Expect $r.Exp -Replace $r.New -Note 'after logo 1: btr [skip flag],0 / on to the logo sting either way (one movie per key)'
         # after logo 2: jnc STORY, else falls into the title
-        $r = & $btrSite 0x1FFCF ([byte[]](@(0x0F, 0x83) + (& $rel32 ([uint32](0x1FFCF + 14)) $STORY_AT)))
+        $r = & $btrSite 0x1FFCF ([byte[]](@(0x0F, 0x83) + (& $rel32 ([uint32](0x1FFCF + 14)) $TITLE_AT)))
         if ($r.Exp[8] -ne 0x0F -or $r.Exp[9] -ne 0x85) { throw 'title order: 0x1FFD7 is not a near jnz' }
-        $patches += New-Patch -Name 'title-order-1FFCF' -FileOffset (Lin2File 0x1FFCF) -Expect $r.Exp -Replace $r.New -Note 'after logo 2: btr [skip flag],0 / jnc the story intro (a key: on into the title)'
+        $patches += New-Patch -Name 'title-order-1FFCF' -FileOffset (Lin2File 0x1FFCF) -Expect $r.Exp -Replace $r.New -Note 'after logo 2: btr [skip flag],0 / on into the title either way (the story intro plays after it, for a new game)'
         # the title's fade-out call -> the epilogue
         $so = Lin2File 0x20044; $exp = [byte[]]$raw[$so..($so + 4)]
         if ($exp[0] -ne 0xE8 -or ([uint32](0x20049 + [BitConverter]::ToInt32($exp, 1))) -ne [uint32]0x1FACC) { throw 'title order: 0x20044 is not call 0x1FACC' }
-        $patches += New-Patch -Name 'title-order-20044' -FileOffset $so -Expect $exp -Replace ([byte[]](@(0xE9) + (& $rel32 ([uint32]0x20049) $EPI_AT))) -Note 'the title done: jmp the epilogue (the opening movie for a new game)'
+        $patches += New-Patch -Name 'title-order-20044' -FileOffset $so -Expect $exp -Replace ([byte[]](@(0xE9) + (& $rel32 ([uint32]0x20049) $STORY_NEW))) -Note 'the title done (a new game): jmp the story intro (a load jumped over it at 0x2003E)'
         # after the story: btr / jmp short TITLE (the short jnz's place)
         $r = & $btrSite 0x20049 ([byte[]]@(0xEB, [byte](([int]$TITLE_AT - 0x20053) -band 0xFF)))
         if ($r.Exp[8] -ne 0x75) { throw 'title order: 0x20051 is not a short jnz' }
         if (([int]$TITLE_AT - 0x20053) -lt -128) { throw 'title order: the title is out of short-jump reach' }
         $patches += New-Patch -Name 'title-order-20049' -FileOffset (Lin2File 0x20049) -Expect $r.Exp -Replace $r.New -Note 'after the story intro: btr [skip flag],0 / jmp the title'
         # the story's fade-out call -> the check above
-        $so = Lin2File 0x20094; $exp = [byte[]]$raw[$so..($so + 4)]
-        if ($exp[0] -ne 0xE8 -or ([uint32](0x20099 + [BitConverter]::ToInt32($exp, 1))) -ne [uint32]0x1FACC) { throw 'title order: 0x20094 is not call 0x1FACC' }
-        $patches += New-Patch -Name 'title-order-20094' -FileOffset $so -Expect $exp -Replace ([byte[]](@(0xE9) + (& $rel32 ([uint32]0x20099) ([uint32]0x20049)))) -Note 'the story intro done: jmp to the title'
+        # (0x20094: the story intro's fade call is left STOCK -- see ROUND 4 above)
         # 5. A LOAD SKIPS THE OPENING MOVIE (2026-10-10: Continue "went to a black screen"). The movie player 0x20BD4 never
         #    reads the skip flag: it drains the input queue, then plays until a KEY event (type 2) or its frame count --
         #    and every other event (the mouse) counts as a frame. So a load from the title played all of OPENING.MOV (58 MB)

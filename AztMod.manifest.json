@@ -1960,24 +1960,24 @@
                     },
                     {
                         "name":  "title-order-1FFA6",
-                        "note":  "after logo 1: btr [skip flag],0 / jc the title",
+                        "note":  "after logo 1: btr [skip flag],0 / on to the logo sting either way (one movie per key)",
                         "offset":  465402,
                         "expect":  "66833DB02D0400000F85E5000000",
-                        "replace":  "0FBA35B02D0400000F8229000000"
+                        "replace":  "0FBA35B02D0400000F8200000000"
                     },
                     {
                         "name":  "title-order-1FFCF",
-                        "note":  "after logo 2: btr [skip flag],0 / jnc the story intro (a key: on into the title)",
+                        "note":  "after logo 2: btr [skip flag],0 / on into the title either way (the story intro plays after it, for a new game)",
                         "offset":  465443,
                         "expect":  "66833DB02D0400000F85BC000000",
-                        "replace":  "0FBA35B02D0400000F838C000000"
+                        "replace":  "0FBA35B02D0400000F8300000000"
                     },
                     {
                         "name":  "title-order-20044",
-                        "note":  "the title done: jmp the epilogue (the opening movie for a new game)",
+                        "note":  "the title done (a new game): jmp the story intro (a load jumped over it at 0x2003E)",
                         "offset":  465560,
                         "expect":  "E883FAFFFF",
-                        "replace":  "E950000000"
+                        "replace":  "E90A000000"
                     },
                     {
                         "name":  "title-order-20049",
@@ -1985,13 +1985,6 @@
                         "offset":  465565,
                         "expect":  "66833DB02D0400007546",
                         "replace":  "0FBA35B02D040000EB8A"
-                    },
-                    {
-                        "name":  "title-order-20094",
-                        "note":  "the story intro done: jmp to the title",
-                        "offset":  465640,
-                        "expect":  "E833FAFFFF",
-                        "replace":  "E9B0FFFFFF"
                     },
                     {
                         "name":  "title-loadskip-2003E",

@@ -55,3 +55,15 @@ for the fps, 3 instead of 5. See [[azrael-extra-intro-movie]], [[azrael-cutscene
 ## 2026-10-04: skip-ALL is back on (Josh, 'for now')
 
 ` = $false` -- the three sites are stock again, so one key abandons the whole sequence. It also takes out the extra opening movie, because **AztOpenMovie's flag clear has never worked**: it is cave code with no fixup and no delta, so `66 89 1D <0x182DB0>` writes the BUILT address while the flag lives at runtime 0x182DB0+0x1F1000. The earlier line above saying it 'must clear the flag too' describes intent, not behaviour. If skip-one comes back and the opening movie must survive a skip of the story intro, that store needs a real delta (overlay, not the cave).
+
+## 2026-10-16: the story intro plays for a NEW GAME only, after the title; one movie per key
+Josh: the poem "won't play until the user starts a new game, and only plays for a new game, directly before my custom
+cutscene"; "skip to the next video in line". It had played at BOOT behind Loading RaptorMod (nobody saw it). Now the STOCK
+order with the title menu's load bit: logo -> sting -> TITLE -> (new game) story intro -> fade -> epilogue (OPENING.MOV);
+a load jumps over both at 0x2003E. Patches (Build-AztMod, ROUND 3 + 4 in the title-order block):
+- 0x1FFA6 btr / jc NEXT (the sting: a key no longer skips it); 0x1FFCF btr / on into the title either way;
+- 0x20044 jmp 0x20053 (the stock story head: the title surface is loaded by then);
+- 0x20094 STOCK (the fade call, ~0.6 s): jumping straight on let a tap's key-UP land in OPENING's player -> one tap ended
+  both movies. The fade drains it. (0x20049's btr/jmp-title is no longer reached.)
+455 patches. Movies in the startup sequence must be full-screen frames (the title surface shows around a smaller one);
+the black TITLE.PCX makes a letterboxed one fine.
